@@ -1,6 +1,7 @@
 // app/layout.tsx
 import "./globals.css";
 import { Inter, Poppins } from 'next/font/google';
+import Providers from "./providers";
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -14,13 +15,12 @@ const poppins = Poppins({
 });
 
 export const metadata = {
-  title: "Hbee Digital Enterprise - Digital Solutions & Web Development",
-  description: "Hbee Digital Enterprise provides cutting-edge digital solutions including web development, e-commerce, mobile apps, and digital marketing services.",
+  title: "Hbee Digitals - Digital Solutions & Web Development",
+  description: "Hbee Digitals provides cutting-edge digital solutions including web development, e-commerce, mobile apps, and digital marketing services.",
   keywords: "web development, e-commerce, digital marketing, mobile apps, Toronto, Canada",
-  authors: [{ name: "Hbee Digital Enterprise" }],
-  metadataBase: new URL('https://hbeedigital.com'), // Add this line
+  authors: [{ name: "Hbee Digitals" }],
+  metadataBase: new URL('https://hbeedigital.com'),
   
-  // Favicon configuration
   icons: {
     icon: [
       {
@@ -51,35 +51,32 @@ export const metadata = {
     ],
   },
   
-  // Open Graph for social media
   openGraph: {
-    title: "Hbee Digital Enterprise - Digital Solutions",
+    title: "Hbee Digitals - Digital Solutions",
     description: "Transform your digital presence with our expert development and marketing services.",
     type: "website",
     locale: "en_CA",
-    siteName: "Hbee Digital Enterprise",
+    siteName: "Hbee Digitals",
     images: [
       {
         url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Hbee Digital Enterprise',
+        alt: 'Hbee Digitals',
       },
     ],
   },
   
-  // Twitter Card
   twitter: {
     card: "summary_large_image",
-    title: "Hbee Digital Enterprise - Digital Solutions",
+    title: "Hbee Digitals - Digital Solutions",
     description: "Transform your digital presence with our expert development and marketing services.",
     images: ['/og-image.jpg'],
   },
 };
 
-// Add this viewport export
 export const viewport = {
-  themeColor: "#007BFF",
+  themeColor: "#0A1D37",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -87,9 +84,14 @@ export const viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
-      <body className="font-poppins bg-brand-white text-brand-dark overflow-x-hidden">
-        {children}
+    <html lang="en" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
+      <head>
+        <meta name="format-detection" content="telephone=no, date=no, email=no, address=no" />
+      </head>
+      <body className="font-poppins bg-brand-white text-brand-dark overflow-x-hidden" suppressHydrationWarning>
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

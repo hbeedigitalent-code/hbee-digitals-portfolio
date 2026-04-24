@@ -3,7 +3,7 @@
 
 import { motion } from "framer-motion";
 import { ReactNode } from "react";
-import { useParallax } from "@/Hooks/useParallax"; // Change to uppercase H
+import { useParallax } from "@/hooks/useParallax"; // Change to uppercase H
 
 interface ParallaxContainerProps {
   children: ReactNode;

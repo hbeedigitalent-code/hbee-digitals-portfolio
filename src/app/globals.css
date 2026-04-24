@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Brand colors */
+  --primary-color: #0A1D37;
+  --secondary-color: #FFFFFF;
+  --accent-color: #3B82F6;
+  --text-color: #1F2937;
+  
+  /* Fonts */
+  --heading-font: 'Inter', system-ui, sans-serif;
+  --body-font: 'Inter', system-ui, sans-serif;
+}
+
+/* Apply variables globally */
+body {
+  color: var(--text-color);
+  font-family: var(--body-font);
+  background-color: white;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--heading-font);
+}
+
+/* Utility classes for dynamic colors */
+.bg-primary {
+  background-color: var(--primary-color);
+}
+
+.text-primary {
+  color: var(--primary-color);
+}
+
+.border-primary {
+  border-color: var(--primary-color);
+}
+
+.bg-secondary {
+  background-color: var(--secondary-color);
+}
+
+.text-secondary {
+  color: var(--secondary-color);
+}

@@ -20,7 +20,7 @@ const footerLinks = {
   contact: [
     { 
       name: 'hbeedigital@gmail.com', 
-      href: 'mailto:hbeedigital@gmail.com',
+      href: 'mailto:hello.hbeedigitals@gmail.com',
       icon: '/svgs/email.svg'
     },
     { 
@@ -67,7 +67,7 @@ export default function Footer() {
         <div className="absolute -left-40 -top-40 w-96 h-96 transform scale-150">
           <Image
             src="/svgs/logo.svg"
-            alt="Hbee Digital Enterprise"
+            alt="Hbee Digitals"
             fill
             className="object-contain filter brightness-0 invert"
           />
@@ -75,7 +75,7 @@ export default function Footer() {
         <div className="absolute -right-20 -bottom-20 w-80 h-80 transform scale-125 opacity-30">
           <Image
             src="/svgs/logo.svg"
-            alt="Hbee Digital Enterprise"
+            alt="Hbee Digitals"
             fill
             className="object-contain filter brightness-0 invert"
           />
@@ -109,7 +109,7 @@ export default function Footer() {
                   <div className="w-8 h-8 relative">
                     <Image
                       src="/svgs/logo.svg"
-                      alt="Hbee Digital Enterprise"
+                      alt="Hbee Digitals"
                       fill
                       className="object-contain"
                     />
@@ -117,10 +117,10 @@ export default function Footer() {
                 </div>
                 <div className="flex flex-col">
                   <span className="font-bold text-xl text-white tracking-wide">
-                    HBEEDIGITAL
+                    HBEE
                   </span>
                   <span className="text-sm font-semibold text-[#00BFFF] tracking-wider">
-                    ENTERPRISE
+                    DIGITALS
                   </span>
                 </div>
               </motion.div>
@@ -281,7 +281,7 @@ export default function Footer() {
         >
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-gray-400 text-sm">
-              © {new Date().getFullYear()} Hbee Digital Enterprise. All rights reserved.
+              © {new Date().getFullYear()} Hbee Digitals. All rights reserved.
             </p>
             
             <div className="flex space-x-6 text-sm">

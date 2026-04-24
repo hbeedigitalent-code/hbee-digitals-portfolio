@@ -40,3 +40,7 @@ next-env.d.ts
 # Logs
 *.log
 node_modules
+
+# Backups
+/backups/
+*.backup.json
