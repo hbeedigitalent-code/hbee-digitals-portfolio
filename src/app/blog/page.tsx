@@ -1,24 +1,42 @@
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+'use client'
 
-import { supabase } from '@/lib/supabase'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/hooks/useSupabase'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Link from 'next/link'
 import Image from 'next/image'
 
-async function getBlogPosts() {
-  const { data } = await supabase
-    .from('blog_posts')
-    .select('*')
-    .eq('status', 'published')
-    .order('published_at', { ascending: false })
-  
-  return data || []
-}
+export default function BlogPage() {
+  const [posts, setPosts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-export default async function BlogPage() {
-  const posts = await getBlogPosts()
+  useEffect(() => {
+    const fetchPosts = async () => {
+      const { data } = await supabase
+        .from('blog_posts')
+        .select('*')
+        .eq('status', 'published')
+        .order('published_at', { ascending: false })
+      
+      setPosts(data || [])
+      setLoading(false)
+    }
+    
+    fetchPosts()
+  }, [])
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen pt-32 pb-20 flex items-center justify-center">
+          <div className="text-center">Loading blog posts...</div>
+        </div>
+        <Footer />
+      </>
+    )
+  }
 
   return (
     <>

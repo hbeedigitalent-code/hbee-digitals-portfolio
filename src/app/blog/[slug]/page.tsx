@@ -1,29 +1,47 @@
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+'use client'
 
-import { supabase } from '@/lib/supabase'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/hooks/useSupabase'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
-async function getBlogPost(slug: string) {
-  const { data } = await supabase
-    .from('blog_posts')
-    .select(`
-      *,
-      category:blog_categories(name, slug)
-    `)
-    .eq('slug', slug)
-    .eq('status', 'published')
-    .single()
-  
-  return data
-}
+export default function SingleBlogPage({ params }: { params: { slug: string } }) {
+  const [post, setPost] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
-export default async function SingleBlogPage({ params }: { params: { slug: string } }) {
-  const post = await getBlogPost(params.slug)
+  useEffect(() => {
+    const fetchPost = async () => {
+      const { data } = await supabase
+        .from('blog_posts')
+        .select(`
+          *,
+          category:blog_categories(name, slug)
+        `)
+        .eq('slug', params.slug)
+        .eq('status', 'published')
+        .single()
+      
+      setPost(data)
+      setLoading(false)
+    }
+    
+    fetchPost()
+  }, [params.slug])
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen pt-32 pb-20 flex items-center justify-center">
+          <div className="text-center">Loading post...</div>
+        </div>
+        <Footer />
+      </>
+    )
+  }
 
   if (!post) {
     notFound()
@@ -41,17 +59,6 @@ export default async function SingleBlogPage({ params }: { params: { slug: strin
             <span className="text-gray-400 mx-2">/</span>
             <span className="text-gray-700">{post.title}</span>
           </div>
-
-          {post.category && (
-            <div className="mb-4">
-              <Link 
-                href={`/blog/category/${post.category.slug}`}
-                className="text-sm text-blue-600 font-medium hover:underline"
-              >
-                {post.category.name}
-              </Link>
-            </div>
-          )}
 
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4" style={{ color: 'var(--primary-color)' }}>
             {post.title}
@@ -77,7 +84,7 @@ export default async function SingleBlogPage({ params }: { params: { slug: strin
 
           <div className="bg-white rounded-xl shadow-sm p-8 md:p-10">
             <div className="prose prose-lg max-w-none">
-              {post.content.split('\n').map((paragraph: string, i: number) => (
+              {post.content?.split('\n').map((paragraph: string, i: number) => (
                 <p key={i} className="mb-4 text-gray-700 leading-relaxed">
                   {paragraph}
                 </p>
@@ -90,9 +97,6 @@ export default async function SingleBlogPage({ params }: { params: { slug: strin
               href="/blog"
               className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 transition"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
               Back to all posts
             </Link>
           </div>
