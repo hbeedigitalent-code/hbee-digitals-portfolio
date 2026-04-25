@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -16,17 +16,23 @@ export default function AdminLogin() {
     setLoading(true)
     setError('')
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    if (error) {
-      setError(error.message)
-    } else {
-      router.push('/admin/dashboard')
+      if (error) {
+        setError(error.message)
+      } else if (data?.user) {
+        // Force a hard navigation instead of router.push
+        window.location.href = '/admin/dashboard'
+      }
+    } catch (err: any) {
+      setError(err.message || 'Login failed')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
@@ -38,14 +44,14 @@ export default function AdminLogin() {
           </h2>
           <p className="text-center text-gray-600 mt-2">Sign in to manage your content</p>
         </div>
-        
+
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           {error && (
             <div className="bg-red-50 text-red-500 p-3 rounded text-sm">
               {error}
             </div>
           )}
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input
@@ -57,7 +63,7 @@ export default function AdminLogin() {
               placeholder="admin@example.com"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
             <input
@@ -69,7 +75,7 @@ export default function AdminLogin() {
               placeholder="••••••••"
             />
           </div>
-          
+
           <button
             type="submit"
             disabled={loading}
