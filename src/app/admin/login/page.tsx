@@ -14,49 +14,59 @@ export default function AdminLogin() {
     setLoading(true)
     setError('')
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error: loginError } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
-    if (error) {
-      setError(error.message)
+    if (loginError) {
+      setError(loginError.message)
+      setLoading(false)
     } else {
-      // Use window.location for production redirect
+      // Use window.location for reliable redirect
       window.location.href = '/admin/dashboard'
     }
-    setLoading(false)
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full p-8 bg-white rounded-lg shadow">
-        <h1 className="text-2xl font-bold text-center mb-2">Admin Login</h1>
-        <p className="text-center text-gray-500 mb-6">Sign in to manage your content</p>
-        
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--primary-color)' }}>
+            Admin Login
+          </h1>
+          <p className="text-gray-500 text-sm mt-2">Sign in to manage your content</p>
+        </div>
+
         {error && (
-          <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
             {error}
           </div>
         )}
-        
+
         <form onSubmit={handleLogin}>
-          <input
-            type="email"
-            placeholder="Email address"
-            className="w-full p-3 border rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            className="w-full p-3 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <div className="mb-4">
+            <input
+              type="email"
+              placeholder="Email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div className="mb-6">
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
           <button
             type="submit"
             disabled={loading}
