@@ -10,24 +10,38 @@ export function useAdminAuth() {
   const router = useRouter()
 
   useEffect(() => {
+    let isMounted = true
+
     const checkUser = async () => {
       try {
         const { data: { user }, error } = await supabase.auth.getUser()
         
         if (error || !user) {
-          router.push('/admin/login')
+          if (isMounted) {
+            router.replace('/admin/login')
+          }
         } else {
-          setUser(user)
+          if (isMounted) {
+            setUser(user)
+          }
         }
       } catch (err) {
         console.error('Auth error:', err)
-        router.push('/admin/login')
+        if (isMounted) {
+          router.replace('/admin/login')
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
     
     checkUser()
+    
+    return () => {
+      isMounted = false
+    }
   }, [router])
 
   return { user, loading }
