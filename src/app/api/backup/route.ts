@@ -1,13 +1,12 @@
 ﻿export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabase-server'
 import { writeFile, readFile, unlink, mkdir } from 'fs/promises'
 import path from 'path'
 
 export async function POST(request: Request) {
   try {
-    const { supabase } = await import('@/lib/supabase')
-    
     const { action, tables, backupId } = await request.json()
     const backupDir = path.join(process.cwd(), 'backups')
     await mkdir(backupDir, { recursive: true })
@@ -97,7 +96,6 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const { supabase } = await import('@/lib/supabase')
     const { data } = await supabase
       .from('backup_records')
       .select('*')

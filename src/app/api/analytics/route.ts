@@ -1,11 +1,10 @@
 ﻿export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabase-server'
 
 export async function GET() {
   try {
-    const { supabase } = await import('@/lib/supabase')
-    
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
