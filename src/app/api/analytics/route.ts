@@ -1,8 +1,10 @@
-import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+﻿import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
+    // Dynamic import to avoid build-time issues
+    const { supabase } = await import('@/lib/supabase')
+    
     // Get message statistics (last 30 days)
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
@@ -38,14 +40,14 @@ export async function GET() {
 
     // Calculate daily message counts
     const dailyMessages = new Map()
-    messages?.forEach(msg => {
+    messages?.forEach((msg: any) => {
       const date = new Date(msg.created_at).toLocaleDateString()
       dailyMessages.set(date, (dailyMessages.get(date) || 0) + 1)
     })
 
     // Calculate daily subscriber counts
     const dailySubscribers = new Map()
-    subscribers?.forEach(sub => {
+    subscribers?.forEach((sub: any) => {
       const date = new Date(sub.subscribed_at).toLocaleDateString()
       dailySubscribers.set(date, (dailySubscribers.get(date) || 0) + 1)
     })
@@ -64,17 +66,17 @@ export async function GET() {
     }
 
     // Calculate status counts
-    const publishedProjects = projects?.filter(p => p.status === 'published').length || 0
-    const draftProjects = projects?.filter(p => p.status === 'draft').length || 0
+    const publishedProjects = projects?.filter((p: any) => p.status === 'published').length || 0
+    const draftProjects = projects?.filter((p: any) => p.status === 'draft').length || 0
     
-    const activeSubscribers = subscribers?.filter(s => s.status === 'active').length || 0
-    const unsubscribedCount = subscribers?.filter(s => s.status === 'unsubscribed').length || 0
+    const activeSubscribers = subscribers?.filter((s: any) => s.status === 'active').length || 0
+    const unsubscribedCount = subscribers?.filter((s: any) => s.status === 'unsubscribed').length || 0
     
-    const publishedPosts = blogPosts?.filter(p => p.status === 'published').length || 0
-    const draftPosts = blogPosts?.filter(p => p.status === 'draft').length || 0
-    const totalViews = blogPosts?.reduce((sum, p) => sum + (p.views || 0), 0) || 0
+    const publishedPosts = blogPosts?.filter((p: any) => p.status === 'published').length || 0
+    const draftPosts = blogPosts?.filter((p: any) => p.status === 'draft').length || 0
+    const totalViews = blogPosts?.reduce((sum: number, p: any) => sum + (p.views || 0), 0) || 0
 
-    const unreadMessages = messages?.filter(m => !m.is_read).length || 0
+    const unreadMessages = messages?.filter((m: any) => !m.is_read).length || 0
     const totalMessages = messages?.length || 0
 
     return NextResponse.json({
@@ -106,6 +108,16 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Analytics error:', error)
-    return NextResponse.json({ success: false, error: 'Failed to fetch analytics' }, { status: 500 })
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Failed to fetch analytics',
+      chartData: [],
+      stats: {
+        projects: { total: 0, published: 0, draft: 0 },
+        messages: { total: 0, unread: 0, read: 0 },
+        subscribers: { total: 0, active: 0, unsubscribed: 0 },
+        blog: { total: 0, published: 0, draft: 0, totalViews: 0 }
+      }
+    }, { status: 500 })
   }
 }
