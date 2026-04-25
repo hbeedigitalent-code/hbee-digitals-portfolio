@@ -1,4 +1,6 @@
-﻿import { NextResponse } from 'next/server'
+﻿export const dynamic = 'force-dynamic'
+
+import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
@@ -12,7 +14,7 @@ export async function POST(request: Request) {
     }
 
     // Delete items from specified table
-    const { error, count } = await supabase
+    const { error } = await supabase
       .from(table)
       .delete()
       .in('id', ids)
@@ -23,8 +25,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ 
       success: true, 
-      message: `Successfully deleted ${ids.length} items`,
-      count: ids.length
+      message: `Successfully deleted ${ids.length} items`
     })
   } catch (error) {
     console.error('Bulk delete error:', error)

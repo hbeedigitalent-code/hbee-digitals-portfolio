@@ -1,11 +1,11 @@
-﻿import { NextResponse } from 'next/server'
+﻿export const dynamic = 'force-dynamic'
+
+import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
-    // Dynamic import to avoid build-time issues
     const { supabase } = await import('@/lib/supabase')
     
-    // Get message statistics (last 30 days)
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
@@ -16,14 +16,12 @@ export async function GET() {
 
     if (messagesError) throw messagesError
 
-    // Get project statistics
     const { data: projects, error: projectsError } = await supabase
       .from('projects')
       .select('status, created_at')
 
     if (projectsError) throw projectsError
 
-    // Get subscriber statistics
     const { data: subscribers, error: subscribersError } = await supabase
       .from('subscribers')
       .select('status, subscribed_at')
@@ -31,28 +29,24 @@ export async function GET() {
 
     if (subscribersError) throw subscribersError
 
-    // Get blog post statistics
     const { data: blogPosts, error: blogError } = await supabase
       .from('blog_posts')
       .select('status, views, published_at')
 
     if (blogError) throw blogError
 
-    // Calculate daily message counts
     const dailyMessages = new Map()
     messages?.forEach((msg: any) => {
       const date = new Date(msg.created_at).toLocaleDateString()
       dailyMessages.set(date, (dailyMessages.get(date) || 0) + 1)
     })
 
-    // Calculate daily subscriber counts
     const dailySubscribers = new Map()
     subscribers?.forEach((sub: any) => {
       const date = new Date(sub.subscribed_at).toLocaleDateString()
       dailySubscribers.set(date, (dailySubscribers.get(date) || 0) + 1)
     })
 
-    // Prepare chart data
     const chartData = []
     for (let i = 29; i >= 0; i--) {
       const date = new Date()
@@ -65,7 +59,6 @@ export async function GET() {
       })
     }
 
-    // Calculate status counts
     const publishedProjects = projects?.filter((p: any) => p.status === 'published').length || 0
     const draftProjects = projects?.filter((p: any) => p.status === 'draft').length || 0
     
@@ -83,27 +76,10 @@ export async function GET() {
       success: true,
       chartData,
       stats: {
-        projects: {
-          total: projects?.length || 0,
-          published: publishedProjects,
-          draft: draftProjects,
-        },
-        messages: {
-          total: totalMessages,
-          unread: unreadMessages,
-          read: totalMessages - unreadMessages,
-        },
-        subscribers: {
-          total: subscribers?.length || 0,
-          active: activeSubscribers,
-          unsubscribed: unsubscribedCount,
-        },
-        blog: {
-          total: blogPosts?.length || 0,
-          published: publishedPosts,
-          draft: draftPosts,
-          totalViews: totalViews,
-        },
+        projects: { total: projects?.length || 0, published: publishedProjects, draft: draftProjects },
+        messages: { total: totalMessages, unread: unreadMessages, read: totalMessages - unreadMessages },
+        subscribers: { total: subscribers?.length || 0, active: activeSubscribers, unsubscribed: unsubscribedCount },
+        blog: { total: blogPosts?.length || 0, published: publishedPosts, draft: draftPosts, totalViews: totalViews },
       },
     })
   } catch (error) {
