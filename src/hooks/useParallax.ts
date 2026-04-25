@@ -1,22 +1,30 @@
 ﻿'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
-export function useParallax(speed: number = 0.5) {
+export function useParallax(intensity: number = 10) {
+  const [rotateX, setRotateX] = useState(0)
+  const [rotateY, setRotateY] = useState(0)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const handleScroll = () => {
+    const handleMouseMove = (e: MouseEvent) => {
       if (!ref.current) return
-      const scrollY = window.scrollY
-      const elementTop = ref.current.getBoundingClientRect().top + scrollY
-      const offset = (scrollY - elementTop) * speed
-      ref.current.style.transform = `translateY(${offset}px)`
+      
+      const rect = ref.current.getBoundingClientRect()
+      const centerX = rect.left + rect.width / 2
+      const centerY = rect.top + rect.height / 2
+      
+      const rotateYValue = ((e.clientX - centerX) / (rect.width / 2)) * (intensity / 2)
+      const rotateXValue = ((e.clientY - centerY) / (rect.height / 2)) * (intensity / 2)
+      
+      setRotateY(rotateYValue)
+      setRotateX(-rotateXValue)
     }
 
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [speed])
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [intensity])
 
-  return ref
+  return { rotateX, rotateY, ref }
 }
