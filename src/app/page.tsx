@@ -42,7 +42,10 @@ async function getCtaData() {
   const { data } = await supabase.from('cta_section').select('*').eq('is_active', true).single()
   return data || {}
 }
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
+// then your existing code follows...
 export default async function HomePage() {
   const [hero, services, about, projects, faqs, cta] = await Promise.all([
     getHeroData(),

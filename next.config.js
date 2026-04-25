@@ -12,11 +12,11 @@ const nextConfig = {
       },
     ],
   },
+  // This is the key fix - don't statically generate dynamic routes
   output: 'standalone',
   swcMinify: true,
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
-  },
+  // Tell Next.js not to try to prerender dynamic pages at build time
+  staticPageGenerationTimeout: 120,
 }
 
 module.exports = nextConfig

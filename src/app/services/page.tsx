@@ -29,7 +29,10 @@ const getIconPath = (title: string): string => {
   }
   return iconMap[title] || '/svgs/digital-services.svg'
 }
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
+// then your existing code follows...
 export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)

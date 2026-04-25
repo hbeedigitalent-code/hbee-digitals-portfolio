@@ -20,7 +20,10 @@ interface FAQ {
   category_id: string
   display_order: number
 }
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
+// then your existing code follows...
 export default function FAQPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [faqs, setFaqs] = useState<FAQ[]>([])
