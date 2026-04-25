@@ -1,16 +1,14 @@
-import { NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
+﻿import { NextResponse } from 'next/server'
+import { writeFile } from 'fs/promises'
 import path from 'path'
 
 export async function POST(request: Request) {
   try {
     const { sitemap } = await request.json()
     
-    // Ensure public directory exists
     const publicDir = path.join(process.cwd(), 'public')
     const sitemapPath = path.join(publicDir, 'sitemap.xml')
     
-    // Write sitemap file
     await writeFile(sitemapPath, sitemap, 'utf-8')
     
     return NextResponse.json({ success: true })

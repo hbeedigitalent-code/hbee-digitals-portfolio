@@ -1,8 +1,10 @@
-import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+﻿import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
+    // Dynamic import to avoid build-time issues
+    const { supabase } = await import('@/lib/supabase')
+    
     const { to, subject, html, name, email, message } = await request.json()
 
     // Get email settings from database
@@ -16,19 +18,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email not configured' }, { status: 500 })
     }
 
-    // For now, log the email since we're not using a real SMTP service
+    // Log the email (since we're not using a real SMTP service)
     console.log('=== EMAIL NOTIFICATION ===')
     console.log('To:', to || settings.admin_email)
     console.log('Subject:', subject)
     console.log('From:', `${settings.from_name} <${settings.from_email || 'noreply@hbeedigitals.com'}>`)
     console.log('Message:', message)
     console.log('========================')
-
-    // Here you would integrate with a real email service like:
-    // - Resend (recommended for Next.js)
-    // - SendGrid
-    // - AWS SES
-    // - Nodemailer with SMTP
 
     return NextResponse.json({ success: true, message: 'Email logged successfully' })
   } catch (error) {

@@ -1,8 +1,10 @@
-import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+﻿import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
+    // Dynamic import to avoid build-time issues
+    const { supabase } = await import('@/lib/supabase')
+    
     const { table, format = 'csv' } = await request.json()
 
     if (!table) {
@@ -17,7 +19,6 @@ export async function POST(request: Request) {
     }
 
     if (format === 'csv') {
-      // Generate CSV
       if (!data || data.length === 0) {
         return NextResponse.json({ error: 'No data to export' }, { status: 404 })
       }
@@ -28,7 +29,6 @@ export async function POST(request: Request) {
         ...data.map(row => 
           headers.map(header => {
             const value = row[header]
-            // Handle strings with commas, quotes, or newlines
             if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
               return `"${value.replace(/"/g, '""')}"`
             }
