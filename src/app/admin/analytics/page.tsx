@@ -61,7 +61,6 @@ export default function AnalyticsPage() {
         setData(result)
       } else {
         console.error('Analytics fetch failed:', result.error)
-        // Set empty data to show message
         setData({
           chartData: [],
           stats: {
@@ -184,43 +183,39 @@ export default function AnalyticsPage() {
             <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--primary-color)' }}>
               Growth Over Time (Last 30 Days)
             </h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                {chartType === 'line' && (
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="messages" stroke="#3B82F6" name="Messages" strokeWidth={2} />
-                    <Line type="monotone" dataKey="subscribers" stroke="#10B981" name="Subscribers" strokeWidth={2} />
-                  </LineChart>
-                )}
-                {chartType === 'area' && (
-                  <AreaChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Area type="monotone" dataKey="messages" stackId="1" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.3} />
-                    <Area type="monotone" dataKey="subscribers" stackId="2" stroke="#10B981" fill="#10B981" fillOpacity={0.3} />
-                  </AreaChart>
-                )}
-                {chartType === 'bar' && (
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="messages" fill="#3B82F6" name="Messages" />
-                    <Bar dataKey="subscribers" fill="#10B981" name="Subscribers" />
-                  </BarChart>
-                )}
-              </ResponsiveContainer>
-            </div>
+            <ResponsiveContainer width="100%" height={320}>
+              {chartType === 'line' ? (
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="messages" stroke="#3B82F6" name="Messages" strokeWidth={2} />
+                  <Line type="monotone" dataKey="subscribers" stroke="#10B981" name="Subscribers" strokeWidth={2} />
+                </LineChart>
+              ) : chartType === 'area' ? (
+                <AreaChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Area type="monotone" dataKey="messages" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.3} name="Messages" />
+                  <Area type="monotone" dataKey="subscribers" stroke="#10B981" fill="#10B981" fillOpacity={0.3} name="Subscribers" />
+                </AreaChart>
+              ) : (
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="messages" fill="#3B82F6" name="Messages" />
+                  <Bar dataKey="subscribers" fill="#10B981" name="Subscribers" />
+                </BarChart>
+              )}
+            </ResponsiveContainer>
           </div>
         </>
       )}
@@ -230,18 +225,16 @@ export default function AnalyticsPage() {
         {projectPieData.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm p-4">
             <h4 className="font-semibold text-center mb-2">Projects Status</h4>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={projectPieData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
-                    {projectPieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={projectPieData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
+                  {projectPieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
             <div className="flex justify-center gap-4 text-xs mt-2 flex-wrap">
               {projectPieData.map((item, i) => (
                 <div key={i} className="flex items-center gap-1">
@@ -256,18 +249,16 @@ export default function AnalyticsPage() {
         {messagePieData.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm p-4">
             <h4 className="font-semibold text-center mb-2">Messages Status</h4>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={messagePieData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
-                    {messagePieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={messagePieData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
+                  {messagePieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
             <div className="flex justify-center gap-4 text-xs mt-2 flex-wrap">
               {messagePieData.map((item, i) => (
                 <div key={i} className="flex items-center gap-1">
@@ -282,18 +273,16 @@ export default function AnalyticsPage() {
         {subscriberPieData.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm p-4">
             <h4 className="font-semibold text-center mb-2">Subscribers Status</h4>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={subscriberPieData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
-                    {subscriberPieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={subscriberPieData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
+                  {subscriberPieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
             <div className="flex justify-center gap-4 text-xs mt-2 flex-wrap">
               {subscriberPieData.map((item, i) => (
                 <div key={i} className="flex items-center gap-1">
@@ -308,18 +297,16 @@ export default function AnalyticsPage() {
         {blogPieData.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm p-4">
             <h4 className="font-semibold text-center mb-2">Blog Status</h4>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={blogPieData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
-                    {blogPieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={blogPieData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
+                  {blogPieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
             <div className="flex justify-center gap-4 text-xs mt-2 flex-wrap">
               {blogPieData.map((item, i) => (
                 <div key={i} className="flex items-center gap-1">

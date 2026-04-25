@@ -18,7 +18,6 @@ export default function ContactPage() {
     setLoading(true)
     setError('')
 
-    // Save to database
     const { error: dbError } = await supabase.from('messages').insert([
       { name, email, message, is_read: false }
     ])
@@ -29,7 +28,6 @@ export default function ContactPage() {
       return
     }
 
-    // Send email notification
     try {
       await fetch('/api/send-email', {
         method: 'POST',
@@ -43,7 +41,6 @@ export default function ContactPage() {
       })
     } catch (emailError) {
       console.error('Email notification failed:', emailError)
-      // Don't show error to user - message was still saved
     }
 
     setSubmitted(true)
@@ -55,12 +52,7 @@ export default function ContactPage() {
 
   return (
     <>
-      <Navbar links={[
-        { label: "Home", href: "/" },
-        { label: "About", href: "/about" },
-        { label: "Projects", href: "/projects" },
-        { label: "Contact", href: "/contact" },
-      ]} />
+      <Navbar />
       
       <main className="min-h-screen pt-32 pb-20">
         <div className="container mx-auto px-4 max-w-2xl">
@@ -136,22 +128,7 @@ export default function ContactPage() {
         </div>
       </main>
 
-      <Footer data={{
-        logoText: "Hbee Digitals",
-        copyrightText: "Hbee Digitals. All rights reserved.",
-        columns: [
-          {
-            title: "Quick Links",
-            links: [
-              { label: "Home", href: "/" },
-              { label: "About", href: "/about" },
-              { label: "Projects", href: "/projects" },
-              { label: "Contact", href: "/contact" },
-            ],
-          },
-        ],
-        socialLinks: [],
-      }} />
+      <Footer />
     </>
   )
 }

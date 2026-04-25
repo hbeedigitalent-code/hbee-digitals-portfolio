@@ -43,20 +43,14 @@ async function getCtaData() {
   return data || {}
 }
 
-async function getFooterData() {
-  const { data } = await supabase.from('footer_settings').select('*').single()
-  return data || {}
-}
-
 export default async function HomePage() {
-  const [hero, services, about, projects, faqs, cta, footer] = await Promise.all([
+  const [hero, services, about, projects, faqs, cta] = await Promise.all([
     getHeroData(),
     getServices(),
     getAboutData(),
     getProjects(),
     getFaqs(),
     getCtaData(),
-    getFooterData()
   ])
 
   return (
@@ -128,12 +122,7 @@ export default async function HomePage() {
         <NewsletterSection />
       </main>
 
-      <Footer data={{
-        logoText: footer.logo_text,
-        copyrightText: footer.copyright_text,
-        columns: footer.columns || [],
-        socialLinks: footer.social_links || []
-      }} />
+      <Footer />
     </>
   )
 }
