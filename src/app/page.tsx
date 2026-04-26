@@ -1,3 +1,6 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Navbar from "@/components/Navbar"
 import Footer from "@/components/Footer"
@@ -12,49 +15,57 @@ import CTASection from "@/components/sections/CTASection"
 import Reveal from "@/components/Reveal"
 import NewsletterSection from '@/components/sections/NewsletterSection'
 
-// Fetch all data from Supabase
-async function getHeroData() {
-  const { data } = await supabase.from('hero_section').select('*').eq('is_active', true).single()
-  return data || {}
-}
+export default function HomePage() {
+  const [hero, setHero] = useState<any>({})
+  const [services, setServices] = useState<any[]>([])
+  const [about, setAbout] = useState<any>({})
+  const [projects, setProjects] = useState<any[]>([])
+  const [faqs, setFaqs] = useState<any[]>([])
+  const [cta, setCta] = useState<any>({})
+  const [loading, setLoading] = useState(true)
 
-async function getServices() {
-  const { data } = await supabase.from('services').select('*').eq('is_active', true).order('display_order')
-  return data || []
-}
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [
+          { data: heroData },
+          { data: servicesData },
+          { data: aboutData },
+          { data: projectsData },
+          { data: faqsData },
+          { data: ctaData }
+        ] = await Promise.all([
+          supabase.from('hero_section').select('*').eq('is_active', true).single(),
+          supabase.from('services').select('*').eq('is_active', true).order('display_order'),
+          supabase.from('about_section').select('*').single(),
+          supabase.from('projects').select('*').eq('status', 'published').order('display_order'),
+          supabase.from('faqs').select('*').eq('is_active', true).order('display_order'),
+          supabase.from('cta_section').select('*').eq('is_active', true).single()
+        ])
 
-async function getAboutData() {
-  const { data } = await supabase.from('about_section').select('*').single()
-  return data || {}
-}
+        setHero(heroData || {})
+        setServices(servicesData || [])
+        setAbout(aboutData || {})
+        setProjects(projectsData || [])
+        setFaqs(faqsData || [])
+        setCta(ctaData || {})
+      } catch (error) {
+        console.error('Error fetching homepage data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
 
-async function getProjects() {
-  const { data } = await supabase.from('projects').select('*').eq('status', 'published').order('display_order')
-  return data || []
-}
+    fetchData()
+  }, [])
 
-async function getFaqs() {
-  const { data } = await supabase.from('faqs').select('*').eq('is_active', true).order('display_order')
-  return data || []
-}
-
-async function getCtaData() {
-  const { data } = await supabase.from('cta_section').select('*').eq('is_active', true).single()
-  return data || {}
-}
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
-
-// then your existing code follows...
-export default async function HomePage() {
-  const [hero, services, about, projects, faqs, cta] = await Promise.all([
-    getHeroData(),
-    getServices(),
-    getAboutData(),
-    getProjects(),
-    getFaqs(),
-    getCtaData(),
-  ])
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    )
+  }
 
   return (
     <>

@@ -1,21 +1,24 @@
-﻿'use client'
+﻿// src/hooks/useAdminAuth.ts
+'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { createClientComponentClient } from '@/lib/supabase-client'
 
 export function useAdminAuth() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
     let isMounted = true
 
     const checkUser = async () => {
-      try {        
+      try {
+        const supabase = createClientComponentClient()
         const { data: { user }, error } = await supabase.auth.getUser()
-        
+
         if (error || !user) {
           if (isMounted) {
             router.replace('/admin/login')
@@ -27,8 +30,12 @@ export function useAdminAuth() {
         }
       } catch (err) {
         console.error('Auth error:', err)
+        setError(err instanceof Error ? err.message : 'Authentication failed')
         if (isMounted) {
-          router.replace('/admin/login')
+          // Don't redirect on build errors
+          if (typeof window !== 'undefined') {
+            router.replace('/admin/login')
+          }
         }
       } finally {
         if (isMounted) {
@@ -36,13 +43,13 @@ export function useAdminAuth() {
         }
       }
     }
-    
+
     checkUser()
-    
+
     return () => {
       isMounted = false
     }
   }, [router])
 
-  return { user, loading }
+  return { user, loading, error }
 }

@@ -1,16 +1,16 @@
-// src/lib/supabase.ts
+// src/lib/supabase-client.ts
 import { createClient } from '@supabase/supabase-js'
 
-const createSupabaseClient = () => {
+export const createClientComponentClient = () => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // Handle build time gracefully
   if (!supabaseUrl || !supabaseAnonKey) {
-    if (typeof window !== 'undefined') {
-      console.error('Missing Supabase environment variables')
+    // During build, return a dummy client that won't throw
+    if (typeof window === 'undefined') {
+      return createClient('https://placeholder.supabase.co', 'placeholder-key')
     }
-    return createClient('https://placeholder.supabase.co', 'placeholder-key')
+    throw new Error('Missing Supabase environment variables')
   }
 
   return createClient(supabaseUrl, supabaseAnonKey, {
@@ -20,5 +20,3 @@ const createSupabaseClient = () => {
     },
   })
 }
-
-export const supabase = createSupabaseClient()
