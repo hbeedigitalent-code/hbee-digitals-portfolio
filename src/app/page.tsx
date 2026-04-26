@@ -36,9 +36,9 @@ export default function HomePage() {
           { data: ctaData }
         ] = await Promise.all([
           supabase.from('hero_section').select('*').eq('is_active', true).single(),
-          supabase.from('services').select('*').eq('is_active', true).order('display_order'),
+          supabase.from('services').select('*').eq('is_active', true).order('display_order').limit(6),
           supabase.from('about_section').select('*').single(),
-          supabase.from('projects').select('*').eq('status', 'published').order('display_order'),
+          supabase.from('projects').select('*').eq('status', 'published').order('display_order').limit(6),
           supabase.from('faqs').select('*').eq('is_active', true).order('display_order'),
           supabase.from('cta_section').select('*').eq('is_active', true).single()
         ])
@@ -61,37 +61,36 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex items-center justify-center min-h-screen bg-[#0A1D37]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-white mb-4 mx-auto"></div>
+          <p className="text-white/70">Loading...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <>
+    <div className="relative">
       <Navbar />
       
       <main>
         {/* Hero Section */}
-        <Reveal>
-          <HeroSection data={{
-            title: hero.title,
-            subtitle: hero.subtitle,
-            primaryCtaText: hero.primary_cta_text,
-            primaryCtaLink: hero.primary_cta_link,
-            secondaryCtaText: hero.secondary_cta_text,
-            secondaryCtaLink: hero.secondary_cta_link,
-            backgroundImage: hero.background_image
-          }} />
-        </Reveal>
+        <HeroSection data={{
+          title: hero.title,
+          subtitle: hero.subtitle,
+          primaryCtaText: hero.primary_cta_text,
+          primaryCtaLink: hero.primary_cta_link,
+          secondaryCtaText: hero.secondary_cta_text,
+          secondaryCtaLink: hero.secondary_cta_link,
+          backgroundImage: hero.background_image
+        }} />
 
         {/* Services Section */}
-        <Reveal delay={0.2}>
-          <ServicesSection data={services} />
-        </Reveal>
+        <ServicesSection data={services} />
 
         {/* About Section */}
-        <Reveal delay={0.3}>
+        <Reveal>
           <AboutSection data={{
             title: about.title,
             subtitle: about.subtitle,
@@ -103,22 +102,22 @@ export default function HomePage() {
         </Reveal>
 
         {/* Portfolio Section */}
-        <Reveal delay={0.4}>
+        <Reveal delay={0.2}>
           <PortfolioSection data={projects} />
         </Reveal>
 
         {/* Testimonials Section */}
-        <Reveal delay={0.45}>
+        <Reveal delay={0.3}>
           <TestimonialsSection />
         </Reveal>
 
         {/* Team Section */}
-        <Reveal delay={0.5}>
+        <Reveal delay={0.4}>
           <TeamSection />
         </Reveal>
 
         {/* FAQ Section */}
-        <Reveal delay={0.55}>
+        <Reveal delay={0.5}>
           <FAQSection data={faqs} />
         </Reveal>
 
@@ -137,6 +136,6 @@ export default function HomePage() {
       </main>
 
       <Footer />
-    </>
+    </div>
   )
 }

@@ -21,7 +21,8 @@ export default function AdminLayout({
 }) {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false) // Closed by default on mobile
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userName, setUserName] = useState('')
   const router = useRouter()
   const pathname = usePathname()
@@ -29,7 +30,6 @@ export default function AdminLayout({
   useEffect(() => {
     let isMounted = true
 
-    // Skip auth check completely on login page
     if (pathname === '/admin/login') {
       setLoading(false)
       return
@@ -64,6 +64,11 @@ export default function AdminLayout({
       isMounted = false
     }
   }, [router, pathname])
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [pathname])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -114,7 +119,6 @@ export default function AdminLayout({
     { name: 'Messages', href: '/admin/messages', icon: '/svgs/messages.svg', label: 'Messages' },
   ]
 
-  // Show loading only for non-login pages that need auth check
   if (loading && pathname !== '/admin/login') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -126,7 +130,6 @@ export default function AdminLayout({
     )
   }
 
-  // If on login page or no user, just render children (login form)
   if (!user || pathname === '/admin/login') {
     return <>{children}</>
   }
@@ -134,11 +137,21 @@ export default function AdminLayout({
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gray-50">
-        {/* Sidebar */}
+        {/* Mobile Overlay */}
+        {mobileMenuOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+
+        {/* Sidebar - Responsive */}
         <aside 
-          className={`fixed left-0 top-0 h-full bg-gradient-to-b from-[#0A1D37] to-[#1a2a4a] text-white transition-all duration-300 z-20 flex flex-col ${
-            sidebarOpen ? 'w-64' : 'w-20'
-          }`}
+          className={`fixed left-0 top-0 h-full bg-gradient-to-b from-[#0A1D37] to-[#1a2a4a] text-white transition-all duration-300 z-30 flex flex-col
+            ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            ${sidebarOpen ? 'lg:w-64' : 'lg:w-20'}
+            w-64
+          `}
         >
           {/* Logo Area */}
           <div className={`p-5 border-b border-white/10 flex items-center ${sidebarOpen ? 'justify-between' : 'justify-center'}`}>
@@ -156,19 +169,29 @@ export default function AdminLayout({
                   </div>
                   <span className="font-bold text-lg">Admin Panel</span>
                 </div>
-                <button 
-                  onClick={() => setSidebarOpen(false)}
-                  className="text-white/50 hover:text-white transition"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                  </svg>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setSidebarOpen(false)}
+                    className="text-white/50 hover:text-white transition hidden lg:block"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button 
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-white/50 hover:text-white transition lg:hidden"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </>
             ) : (
               <button 
                 onClick={() => setSidebarOpen(true)}
-                className="text-white/50 hover:text-white transition"
+                className="text-white/50 hover:text-white transition hidden lg:block"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
@@ -177,7 +200,7 @@ export default function AdminLayout({
             )}
           </div>
 
-          {/* Navigation - Scrollable */}
+          {/* Navigation */}
           <nav className="flex-1 py-4 overflow-y-auto">
             {navItems.map((item) => {
               const isActive = pathname === item.href
@@ -189,7 +212,7 @@ export default function AdminLayout({
                     isActive 
                       ? 'bg-white/10 border-l-4 border-white' 
                       : 'hover:bg-white/5'
-                  } ${sidebarOpen ? 'justify-start' : 'justify-center'}`}
+                  } ${sidebarOpen ? 'lg:justify-start justify-start' : 'lg:justify-center justify-start'}`}
                   style={{ borderLeftColor: isActive ? 'white' : 'transparent' }}
                 >
                   <div className="w-5 h-5 flex-shrink-0">
@@ -201,32 +224,30 @@ export default function AdminLayout({
                       className="w-full h-full brightness-0 invert"
                     />
                   </div>
-                  {sidebarOpen && (
-                    <span className="text-sm truncate">{item.label}</span>
-                  )}
+                  <span className={`text-sm truncate ${sidebarOpen ? 'lg:block block' : 'lg:hidden block'}`}>
+                    {item.label}
+                  </span>
                 </Link>
               )
             })}
           </nav>
 
-          {/* User Profile Area - Sticky at bottom */}
-          <div className={`p-4 border-t border-white/10 ${sidebarOpen ? 'block' : 'text-center'} mt-auto`}>
+          {/* User Profile */}
+          <div className={`p-4 border-t border-white/10 mt-auto ${sidebarOpen ? 'block' : 'lg:text-center block'}`}>
             <Link href="/admin/profile" className="flex items-center gap-3 hover:bg-white/5 rounded-lg transition p-2">
               <div className="w-9 h-9 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 flex items-center justify-center flex-shrink-0">
                 <span className="text-sm font-bold text-white">
                   {userName.charAt(0).toUpperCase()}
                 </span>
               </div>
-              {sidebarOpen && (
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{userName}</p>
-                  <p className="text-xs text-white/50 truncate">{user?.email}</p>
-                </div>
-              )}
+              <div className={`flex-1 min-w-0 ${sidebarOpen ? 'lg:block block' : 'lg:hidden block'}`}>
+                <p className="text-sm font-medium truncate">{userName}</p>
+                <p className="text-xs text-white/50 truncate">{user?.email}</p>
+              </div>
             </Link>
             <button 
               onClick={handleLogout}
-              className={`w-full mt-2 text-white/50 hover:text-white transition text-sm ${sidebarOpen ? 'text-left px-2' : 'text-center'}`}
+              className={`w-full mt-2 text-white/50 hover:text-white transition text-sm ${sidebarOpen ? 'lg:text-left lg:px-2 text-left px-2' : 'lg:text-center text-left px-2'}`}
             >
               {sidebarOpen ? 'Logout →' : '🚪'}
             </button>
@@ -234,32 +255,39 @@ export default function AdminLayout({
         </aside>
 
         {/* Main Content */}
-        <main 
-          className={`transition-all duration-300 min-h-screen ${
-            sidebarOpen ? 'ml-64' : 'ml-20'
-          }`}
-        >
+        <main className="transition-all duration-300 min-h-screen lg:ml-64 ml-0">
           {/* Top Header */}
-          <div className="sticky top-0 z-10 bg-white shadow-sm px-6 py-4 flex justify-between items-center">
-            <div>
-              <h1 className="text-xl font-semibold text-gray-800">
-                {navItems.find(item => item.href === pathname)?.label || 'Admin Panel'}
-              </h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-500">
-                {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-              </span>
-              <Link href="/admin/profile" className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 flex items-center justify-center">
-                <span className="text-xs font-bold text-white">
-                  {userName.charAt(0).toUpperCase()}
+          <div className="sticky top-0 z-10 bg-white shadow-sm px-4 lg:px-6 py-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                {/* Mobile Menu Button */}
+                <button 
+                  onClick={() => setMobileMenuOpen(true)}
+                  className="lg:hidden text-gray-600 hover:text-gray-900"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+                <h1 className="text-lg lg:text-xl font-semibold text-gray-800 truncate">
+                  {navItems.find(item => item.href === pathname)?.label || 'Admin Panel'}
+                </h1>
+              </div>
+              <div className="flex items-center gap-2 lg:gap-4">
+                <span className="text-xs lg:text-sm text-gray-500 hidden sm:block">
+                  {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                 </span>
-              </Link>
+                <Link href="/admin/profile" className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 flex items-center justify-center">
+                  <span className="text-xs font-bold text-white">
+                    {userName.charAt(0).toUpperCase()}
+                  </span>
+                </Link>
+              </div>
             </div>
           </div>
 
           {/* Page Content */}
-          <div className="p-6">
+          <div className="p-4 lg:p-6">
             {children}
           </div>
         </main>
