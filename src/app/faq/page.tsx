@@ -1,11 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/hooks/useSupabase'
+import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
-import Link from 'next/link'
-import { motion, AnimatePresence } from 'framer-motion'
 
 export default function FAQPage() {
   const [faqs, setFaqs] = useState<any[]>([])
@@ -19,11 +17,9 @@ export default function FAQPage() {
         .select('*')
         .eq('is_active', true)
         .order('display_order')
-      
       setFaqs(data || [])
       setLoading(false)
     }
-    
     fetchFaqs()
   }, [])
 
@@ -42,15 +38,9 @@ export default function FAQPage() {
   return (
     <>
       <Navbar />
-      <main className="pt-32 pb-20 bg-gray-50">
+      <main className="pt-32 pb-20">
         <div className="container mx-auto px-4 max-w-3xl">
-          <h1 className="text-4xl font-bold text-center mb-4" style={{ color: 'var(--primary-color)' }}>
-            Frequently Asked Questions
-          </h1>
-          <p className="text-center text-gray-600 mb-12">
-            Find answers to common questions about our services
-          </p>
-
+          <h1 className="text-4xl font-bold text-center mb-12">Frequently Asked Questions</h1>
           <div className="space-y-4">
             {faqs.map((faq, index) => (
               <div key={faq.id} className="bg-white rounded-lg border p-4">
@@ -62,9 +52,7 @@ export default function FAQPage() {
                   <span>{openIndex === index ? '−' : '+'}</span>
                 </button>
                 {openIndex === index && (
-                  <div className="mt-3 pt-3 border-t text-gray-600">
-                    {faq.answer}
-                  </div>
+                  <div className="mt-3 pt-3 border-t text-gray-600">{faq.answer}</div>
                 )}
               </div>
             ))}

@@ -23,7 +23,6 @@ export default function AdminLogin() {
       setError(loginError.message)
       setLoading(false)
     } else {
-      // Use window.location for reliable redirect
       window.location.href = '/admin/dashboard'
     }
   }
