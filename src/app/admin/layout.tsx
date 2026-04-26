@@ -29,6 +29,12 @@ export default function AdminLayout({
   useEffect(() => {
     let isMounted = true
 
+    // Skip auth check completely on login page
+    if (pathname === '/admin/login') {
+      setLoading(false)
+      return
+    }
+
     const getUser = async () => {
       try {
         const { data: { user }, error } = await supabase.auth.getUser()
@@ -41,16 +47,13 @@ export default function AdminLayout({
           if (isMounted) {
             setUser(user)
             setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin')
+            setLoading(false)
           }
         }
       } catch (err) {
         console.error('Auth error:', err)
         if (isMounted) {
           router.replace('/admin/login')
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false)
         }
       }
     }
@@ -60,7 +63,7 @@ export default function AdminLayout({
     return () => {
       isMounted = false
     }
-  }, [router])
+  }, [router, pathname])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -111,7 +114,8 @@ export default function AdminLayout({
     { name: 'Messages', href: '/admin/messages', icon: '/svgs/messages.svg', label: 'Messages' },
   ]
 
-  if (loading) {
+  // Show loading only for non-login pages that need auth check
+  if (loading && pathname !== '/admin/login') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -122,8 +126,9 @@ export default function AdminLayout({
     )
   }
 
-  if (!user) {
-    return null
+  // If on login page or no user, just render children (login form)
+  if (!user || pathname === '/admin/login') {
+    return <>{children}</>
   }
 
   return (

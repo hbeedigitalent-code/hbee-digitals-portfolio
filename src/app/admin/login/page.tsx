@@ -14,16 +14,22 @@ export default function AdminLogin() {
     setLoading(true)
     setError('')
 
-    const { error: loginError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    if (loginError) {
-      setError(loginError.message)
+      if (loginError) {
+        setError(loginError.message)
+        setLoading(false)
+      } else {
+        // Successful login - redirect to dashboard
+        window.location.href = '/admin/dashboard'
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred')
       setLoading(false)
-    } else {
-      window.location.href = '/admin/dashboard'
     }
   }
 
