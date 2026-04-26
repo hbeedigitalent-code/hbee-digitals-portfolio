@@ -8,6 +8,7 @@ export interface NavLink {
 export interface HeroData {
   title: string
   subtitle: string
+  welcomeText?: string
   primaryCtaText: string
   primaryCtaLink: string
   secondaryCtaText?: string
@@ -111,33 +112,28 @@ export interface ContactInfo {
 // ============ SITE SETTINGS (Admin configurable) ============
 export interface SiteSettings {
   id: string
-  // Colors
-  primary_color: string      // #0A1D37
-  secondary_color: string    // #FFFFFF
-  accent_color?: string      // optional accent
-  text_color?: string        // default text
-  // Typography
+  site_name: string
+  logo_url?: string
+  primary_color: string
+  secondary_color: string
+  accent_color?: string
+  text_color?: string
   heading_font: string
   body_font: string
-  // Branding
   logo_text: string
   logo_image_url?: string
   favicon_url?: string
-  // Layout
   navbar_style: 'transparent' | 'solid' | 'blur'
   footer_style: 'dark' | 'light'
-  // Contact
   contact_email: string
   contact_phone?: string
   contact_address?: string
-  // Social
   social_twitter?: string
   social_github?: string
   social_linkedin?: string
-  // SEO
+  social_instagram?: string
   site_title: string
   site_description: string
-  // Timestamps
   updated_at: string
 }
 
