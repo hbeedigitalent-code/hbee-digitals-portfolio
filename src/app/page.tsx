@@ -75,10 +75,10 @@ export default function HomePage() {
       <Navbar />
       
       <main>
-        {/* Hero Section */}
         <HeroSection data={{
           title: hero.title,
           subtitle: hero.subtitle,
+          welcomeText: hero.welcome_text || 'Welcome to',
           primaryCtaText: hero.primary_cta_text,
           primaryCtaLink: hero.primary_cta_link,
           secondaryCtaText: hero.secondary_cta_text,
@@ -86,10 +86,8 @@ export default function HomePage() {
           backgroundImage: hero.background_image
         }} />
 
-        {/* Services Section */}
         <ServicesSection data={services} />
 
-        {/* About Section */}
         <Reveal>
           <AboutSection data={{
             title: about.title,
@@ -101,27 +99,22 @@ export default function HomePage() {
           }} />
         </Reveal>
 
-        {/* Portfolio Section */}
         <Reveal delay={0.2}>
           <PortfolioSection data={projects} />
         </Reveal>
 
-        {/* Testimonials Section */}
         <Reveal delay={0.3}>
           <TestimonialsSection />
         </Reveal>
 
-        {/* Team Section */}
         <Reveal delay={0.4}>
           <TeamSection />
         </Reveal>
 
-        {/* FAQ Section */}
         <Reveal delay={0.5}>
           <FAQSection data={faqs} />
         </Reveal>
 
-        {/* CTA Section */}
         <Reveal delay={0.6}>
           <CTASection data={{
             title: cta.title,
@@ -131,7 +124,6 @@ export default function HomePage() {
           }} />
         </Reveal>
 
-        {/* Newsletter Section */}
         <NewsletterSection />
       </main>
 
