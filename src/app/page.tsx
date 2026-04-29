@@ -27,14 +27,13 @@ export default function HomePage() {
   const [cta, setCta] = useState<any>({})
   const [loading, setLoading] = useState(true)
 
-  // Why Choose Us Tab Data
+  // Why Choose Us Tab Data (removed image property)
   const whyChooseUsTabs = [
     {
       id: 'approach',
       label: 'Approach',
       title: 'Human-Centered Design',
       description: 'We put your users first. Every decision is made with your audience in mind, ensuring experiences that resonate and convert.',
-      image: null,
       features: ['User Research', 'Empathy Mapping', 'Journey Mapping', 'Usability Testing']
     },
     {
@@ -42,7 +41,6 @@ export default function HomePage() {
       label: 'Process',
       title: 'Agile Development Process',
       description: 'Our transparent, iterative process keeps you involved at every stage. No surprises, just results.',
-      image: null,
       features: ['Discovery & Strategy', 'Design & Prototype', 'Development', 'Testing & Launch']
     },
     {
@@ -50,7 +48,6 @@ export default function HomePage() {
       label: 'Results',
       title: 'Data-Driven Results',
       description: 'We don\'t just build pretty websites — we build solutions that drive measurable business growth.',
-      image: null,
       features: ['Increased Conversions', 'Faster Load Times', 'Higher Engagement', 'Better ROI']
     },
     {
@@ -58,7 +55,6 @@ export default function HomePage() {
       label: 'Promise',
       title: 'Your Success is Our Promise',
       description: 'We partner with you for the long haul. Ongoing support, maintenance, and optimization included.',
-      image: null,
       features: ['24/7 Support', 'Regular Updates', 'Performance Monitoring', 'Continuous Improvement']
     }
   ]
@@ -138,10 +134,10 @@ export default function HomePage() {
         {/* Stats Bar */}
         <StatsBar stats={statsData} />
 
-        {/* Logo Marquee - No props needed */}
+        {/* Logo Marquee */}
         <LogoMarquee />
 
-        {/* Service Orbit - Interactive Section */}
+        {/* Service Orbit */}
         <section className="py-12 md:py-16 relative overflow-hidden" style={{ backgroundColor: 'var(--primary-color, #0A1D37)' }}>
           <div className="container mx-auto px-4">
             <ServiceOrbit services={services} />
