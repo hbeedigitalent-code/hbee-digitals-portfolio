@@ -6,16 +6,24 @@ import Image from 'next/image';
 
 const footerLinks = {
   services: [
-    { name: 'Web Development', href: '/#services' },
-    { name: 'E-Commerce Solutions', href: '/#services' },
-    { name: 'UI/UX Design', href: '/#services' },
-    { name: 'Digital Marketing', href: '/#services' },
+    { name: 'Web Development', href: '/services' },
+    { name: 'E-Commerce Solutions', href: '/services' },
+    { name: 'UI/UX Design', href: '/services' },
+    { name: 'Digital Marketing', href: '/services' },
+    { name: 'Brand Strategy', href: '/services' },
+    { name: 'Technical Consulting', href: '/services' },
   ],
   company: [
-    { name: 'About Us', href: '/#about' },
-    { name: 'Portfolio', href: '/#portfolio' },
-    { name: 'FAQ', href: '/#faq' },
+    { name: 'About Us', href: '/about' },
+    { name: 'Portfolio', href: '/projects' },
+    { name: 'FAQ', href: '/faq' },
+    { name: 'Blog', href: '/blog' },
     { name: 'Contact', href: '/contact' },
+  ],
+  legal: [
+    { name: 'Privacy Policy', href: '/privacy' },
+    { name: 'Terms of Service', href: '/terms' },
+    { name: 'Cookie Policy', href: '/cookies' },
   ],
   contact: [
     { 
@@ -39,22 +47,22 @@ const footerLinks = {
 const socialLinks = [
   { 
     name: 'Facebook', 
-    href: '#', 
+    href: 'https://facebook.com', 
     icon: '/svgs/facebook.svg' 
   },
   { 
     name: 'Twitter', 
-    href: '#', 
+    href: 'https://twitter.com', 
     icon: '/svgs/twitter.svg' 
   },
   { 
     name: 'LinkedIn', 
-    href: '#', 
+    href: 'https://linkedin.com', 
     icon: '/svgs/linkedin.svg' 
   },
   { 
     name: 'Instagram', 
-    href: '#', 
+    href: 'https://instagram.com', 
     icon: '/svgs/instagram.svg' 
   },
 ];
@@ -131,12 +139,14 @@ export default function Footer() {
               We create exceptional experiences that drive growth and success.
             </p>
 
-            {/* Social Links - White on Hover */}
+            {/* Social Links */}
             <div className="flex space-x-4">
               {socialLinks.map((social, index) => (
                 <motion.a
                   key={social.name}
                   href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center border border-white/20 hover:bg-white hover:border-white transition-all duration-300 backdrop-blur-sm group"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -158,7 +168,7 @@ export default function Footer() {
             </div>
           </motion.div>
 
-          {/* Links Grid */}
+          {/* Links Grid - Now 3 columns */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -166,7 +176,7 @@ export default function Footer() {
             viewport={{ once: true }}
             className="grid grid-cols-1 md:grid-cols-3 gap-8"
           >
-            {/* Services */}
+            {/* Services Column */}
             <div>
               <h3 className="font-bold text-lg text-[#00BFFF] mb-4">Services</h3>
               <ul className="space-y-3">
@@ -197,7 +207,7 @@ export default function Footer() {
               </ul>
             </div>
 
-            {/* Company */}
+            {/* Company Column */}
             <div>
               <h3 className="font-bold text-lg text-[#00BFFF] mb-4">Company</h3>
               <ul className="space-y-3">
@@ -228,41 +238,31 @@ export default function Footer() {
               </ul>
             </div>
 
-            {/* Contact - Larger Icons */}
+            {/* Legal Column */}
             <div>
-              <h3 className="font-bold text-lg text-[#00BFFF] mb-4">Contact</h3>
-              <ul className="space-y-4">
-                {footerLinks.contact.map((link, index) => (
+              <h3 className="font-bold text-lg text-[#00BFFF] mb-4">Legal</h3>
+              <ul className="space-y-3">
+                {footerLinks.legal.map((link, index) => (
                   <motion.li 
                     key={link.name} 
                     initial={{ opacity: 0, x: 20 }} 
                     whileInView={{ opacity: 1, x: 0 }} 
                     transition={{ delay: index * 0.1 + 0.4 }} 
                     viewport={{ once: true }}
-                    className="group"
                   >
                     <Link 
                       href={link.href} 
-                      className="flex items-center space-x-4 text-gray-300 hover:text-white transition-all duration-300 group"
+                      className="text-gray-300 hover:text-white transition-colors duration-300 text-sm flex items-center group"
                     >
-                      {/* Contact Icons - 2x Larger */}
-                      <div className="w-10 h-10 bg-gradient-to-br from-[#007BFF] to-[#00BFFF] rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                        <div className="w-6 h-6 relative">
-                          <Image
-                            src={link.icon}
-                            alt=""
-                            fill
-                            className="object-contain filter brightness-0 invert"
-                          />
-                        </div>
-                      </div>
-                      
-                      {/* Contact Text - Same size as before */}
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium leading-tight break-words group-hover:text-white">
-                          {link.name}
-                        </span>
-                      </div>
+                      {link.name}
+                      <svg 
+                        className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all duration-300" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </Link>
                   </motion.li>
                 ))}
@@ -271,30 +271,60 @@ export default function Footer() {
           </motion.div>
         </div>
 
+        {/* Contact Section Below Links */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 pb-8 border-b border-white/10">
+          {footerLinks.contact.map((link, index) => (
+            <motion.div
+              key={link.name}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              viewport={{ once: true }}
+            >
+              <Link 
+                href={link.href} 
+                className="flex items-center gap-4 text-gray-300 hover:text-white transition-all duration-300 group"
+              >
+                <div className="w-10 h-10 bg-gradient-to-br from-[#007BFF] to-[#00BFFF] rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                  <div className="w-5 h-5 relative">
+                    <Image
+                      src={link.icon}
+                      alt=""
+                      fill
+                      className="object-contain filter brightness-0 invert"
+                    />
+                  </div>
+                </div>
+                <span className="text-sm font-medium break-words group-hover:text-white">
+                  {link.name}
+                </span>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+
         {/* Bottom Bar */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6 }}
           viewport={{ once: true }}
-          className="pt-8 border-t border-white/20"
+          className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0"
         >
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <p className="text-gray-400 text-sm">
-              © {new Date().getFullYear()} Hbee Digitals. All rights reserved.
-            </p>
-            
-            <div className="flex space-x-6 text-sm">
-              <Link href="/privacy" className="text-gray-400 hover:text-white transition-colors duration-300">
-                Privacy Policy
-              </Link>
-              <Link href="/terms" className="text-gray-400 hover:text-white transition-colors duration-300">
-                Terms of Service
-              </Link>
-              <Link href="/cookies" className="text-gray-400 hover:text-white transition-colors duration-300">
-                Cookie Policy
-              </Link>
-            </div>
+          <p className="text-gray-400 text-sm">
+            © {new Date().getFullYear()} Hbee Digitals. All rights reserved.
+          </p>
+          
+          <div className="flex space-x-6 text-sm">
+            <Link href="/privacy" className="text-gray-400 hover:text-white transition-colors duration-300">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="text-gray-400 hover:text-white transition-colors duration-300">
+              Terms of Service
+            </Link>
+            <Link href="/cookies" className="text-gray-400 hover:text-white transition-colors duration-300">
+              Cookie Policy
+            </Link>
           </div>
         </motion.div>
 

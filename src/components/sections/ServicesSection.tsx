@@ -28,7 +28,8 @@ export default function ServicesSection({ data, title = "Our Services", subtitle
     return null
   }
 
-  const displayServices = data.slice(0, 3)
+  // Show ALL services from database (no limit)
+  const displayServices = data
 
   return (
     <section className="py-24 bg-gradient-to-br from-gray-50 via-white to-gray-100 relative overflow-hidden">
@@ -135,7 +136,7 @@ export default function ServicesSection({ data, title = "Our Services", subtitle
                     </div>
                   )}
                   
-                  {/* Button-style Learn More with enhanced animation */}
+                  {/* Button-style Learn More */}
                   <motion.div
                     whileHover={{ x: 5 }}
                     whileTap={{ scale: 0.98 }}
@@ -166,7 +167,7 @@ export default function ServicesSection({ data, title = "Our Services", subtitle
           ))}
         </div>
 
-        {/* View All Services Button with enhanced animation */}
+        {/* View All Services Button */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}

@@ -1,0 +1,16 @@
+<svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="blobGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#007BFF" stopOpacity="0.15" />
+      <stop offset="50%" stopColor="#00BFFF" stopOpacity="0.08" />
+      <stop offset="100%" stopColor="#007BFF" stopOpacity="0.15" />
+    </linearGradient>
+  </defs>
+  <path 
+    d="M250 30C350 40 470 100 470 200C470 300 400 430 300 450C200 470 80 400 40 300C0 200 30 100 100 60C150 30 200 20 250 30Z" 
+    fill="url(#blobGradient)" 
+    stroke="#007BFF" 
+    strokeWidth="0.5" 
+    strokeOpacity="0.3"
+  />
+</svg>

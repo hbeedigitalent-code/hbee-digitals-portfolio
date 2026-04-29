@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabase'
 import Navbar from "@/components/Navbar"
 import Footer from "@/components/Footer"
 import HeroSection from "@/components/sections/HeroSection"
-import ServicesSection from "@/components/sections/ServicesSection"
 import AboutSection from "@/components/sections/AboutSection"
 import PortfolioSection from "@/components/sections/PortfolioSection"
 import TestimonialsSection from "@/components/sections/TestimonialsSection"
@@ -14,6 +13,10 @@ import FAQSection from "@/components/sections/FAQSection"
 import CTASection from "@/components/sections/CTASection"
 import Reveal from "@/components/Reveal"
 import NewsletterSection from '@/components/sections/NewsletterSection'
+import StatsBar from '@/components/ui/StatsBar'
+import LogoMarquee from '@/components/ui/LogoMarquee'
+import TabSwitcher from '@/components/ui/TabSwitcher'
+import ServiceOrbit from '@/components/ui/ServiceOrbit'
 
 export default function HomePage() {
   const [hero, setHero] = useState<any>({})
@@ -23,6 +26,50 @@ export default function HomePage() {
   const [faqs, setFaqs] = useState<any[]>([])
   const [cta, setCta] = useState<any>({})
   const [loading, setLoading] = useState(true)
+
+  // Why Choose Us Tab Data
+  const whyChooseUsTabs = [
+    {
+      id: 'approach',
+      label: 'Approach',
+      title: 'Human-Centered Design',
+      description: 'We put your users first. Every decision is made with your audience in mind, ensuring experiences that resonate and convert.',
+      image: null,
+      features: ['User Research', 'Empathy Mapping', 'Journey Mapping', 'Usability Testing']
+    },
+    {
+      id: 'process',
+      label: 'Process',
+      title: 'Agile Development Process',
+      description: 'Our transparent, iterative process keeps you involved at every stage. No surprises, just results.',
+      image: null,
+      features: ['Discovery & Strategy', 'Design & Prototype', 'Development', 'Testing & Launch']
+    },
+    {
+      id: 'results',
+      label: 'Results',
+      title: 'Data-Driven Results',
+      description: 'We don\'t just build pretty websites — we build solutions that drive measurable business growth.',
+      image: null,
+      features: ['Increased Conversions', 'Faster Load Times', 'Higher Engagement', 'Better ROI']
+    },
+    {
+      id: 'promise',
+      label: 'Promise',
+      title: 'Your Success is Our Promise',
+      description: 'We partner with you for the long haul. Ongoing support, maintenance, and optimization included.',
+      image: null,
+      features: ['24/7 Support', 'Regular Updates', 'Performance Monitoring', 'Continuous Improvement']
+    }
+  ]
+
+  // Stats Data
+  const statsData = [
+    { value: 50, label: 'Projects Completed', suffix: '+' },
+    { value: 25, label: 'Happy Clients', suffix: '+' },
+    { value: 5, label: 'Years Experience', suffix: '+' },
+    { value: 98, label: 'Success Rate', suffix: '%' }
+  ]
 
   useEffect(() => {
     async function fetchData() {
@@ -36,7 +83,7 @@ export default function HomePage() {
           { data: ctaData }
         ] = await Promise.all([
           supabase.from('hero_section').select('*').eq('is_active', true).single(),
-          supabase.from('services').select('*').eq('is_active', true).order('display_order').limit(6),
+          supabase.from('services').select('*').eq('is_active', true).order('display_order'),
           supabase.from('about_section').select('*').single(),
           supabase.from('projects').select('*').eq('status', 'published').order('display_order').limit(6),
           supabase.from('faqs').select('*').eq('is_active', true).order('display_order'),
@@ -75,6 +122,7 @@ export default function HomePage() {
       <Navbar />
       
       <main>
+        {/* Hero Section */}
         <HeroSection data={{
           title: hero.title,
           subtitle: hero.subtitle,
@@ -83,11 +131,39 @@ export default function HomePage() {
           primaryCtaLink: hero.primary_cta_link,
           secondaryCtaText: hero.secondary_cta_text,
           secondaryCtaLink: hero.secondary_cta_link,
-          backgroundImage: hero.background_image
+          backgroundImage: hero.background_image,
+          featureBullets: hero.feature_bullets || 'Web Development|UI/UX Design|Digital Marketing|Brand Strategy'
         }} />
 
-        <ServicesSection data={services} />
+        {/* Stats Bar */}
+        <StatsBar stats={statsData} />
 
+        {/* Logo Marquee - No props needed */}
+        <LogoMarquee />
+
+        {/* Service Orbit - Interactive Section */}
+        <section className="py-12 md:py-16 relative overflow-hidden" style={{ backgroundColor: 'var(--primary-color, #0A1D37)' }}>
+          <div className="container mx-auto px-4">
+            <ServiceOrbit services={services} />
+          </div>
+        </section>
+
+        {/* Why Choose Us Tabs */}
+        <section className="py-20 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4" style={{ color: 'var(--primary-color)' }}>
+                Why Choose Us
+              </h2>
+              <p className="text-gray-600 max-w-2xl mx-auto">
+                Discover what makes us different and why clients trust us with their digital presence
+              </p>
+            </div>
+            <TabSwitcher tabs={whyChooseUsTabs} defaultTab="approach" />
+          </div>
+        </section>
+
+        {/* About Section */}
         <Reveal>
           <AboutSection data={{
             title: about.title,
@@ -99,22 +175,27 @@ export default function HomePage() {
           }} />
         </Reveal>
 
+        {/* Portfolio Section */}
         <Reveal delay={0.2}>
           <PortfolioSection data={projects} />
         </Reveal>
 
+        {/* Testimonials Section */}
         <Reveal delay={0.3}>
           <TestimonialsSection />
         </Reveal>
 
+        {/* Team Section */}
         <Reveal delay={0.4}>
           <TeamSection />
         </Reveal>
 
+        {/* FAQ Section */}
         <Reveal delay={0.5}>
           <FAQSection data={faqs} />
         </Reveal>
 
+        {/* CTA Section */}
         <Reveal delay={0.6}>
           <CTASection data={{
             title: cta.title,
@@ -124,6 +205,7 @@ export default function HomePage() {
           }} />
         </Reveal>
 
+        {/* Newsletter Section */}
         <NewsletterSection />
       </main>
 
