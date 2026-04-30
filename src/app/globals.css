@@ -45,3 +45,45 @@ h1, h2, h3, h4, h5, h6 {
 .text-secondary {
   color: var(--secondary-color);
 }
+
+/* Rich text styles for FAQ answers */
+.faq-rich-content {
+  line-height: 1.6;
+}
+
+.faq-rich-content a {
+  color: #007BFF;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.faq-rich-content a:hover {
+  color: #00BFFF;
+}
+
+.faq-rich-content ul, 
+.faq-rich-content ol {
+  margin: 8px 0 8px 20px;
+  padding-left: 0;
+}
+
+.faq-rich-content li {
+  margin: 4px 0;
+}
+
+.faq-rich-content strong {
+  font-weight: 600;
+  color: #1F2937;
+}
+
+.faq-rich-content em {
+  font-style: italic;
+}
+
+.faq-rich-content .text-blue {
+  color: #007BFF;
+}
+
+.faq-rich-content .text-green {
+  color: #10B981;
+}

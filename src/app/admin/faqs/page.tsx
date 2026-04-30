@@ -9,6 +9,7 @@ interface FAQ {
   id: string
   question: string
   answer: string
+  rich_answer: string
   category_id: string
   display_order: number
   is_active: boolean
@@ -25,9 +26,11 @@ export default function FAQsPage() {
   const [loading, setLoading] = useState(true)
   const [editingItem, setEditingItem] = useState<FAQ | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [useRichText, setUseRichText] = useState(false)
   const [formData, setFormData] = useState({
     question: '',
     answer: '',
+    rich_answer: '',
     category_id: '',
     display_order: 0,
     is_active: true
@@ -75,12 +78,14 @@ export default function FAQsPage() {
     setFormData({
       question: '',
       answer: '',
+      rich_answer: '',
       category_id: categories[0]?.id || '',
       display_order: 0,
       is_active: true
     })
     setEditingItem(null)
     setShowForm(false)
+    setUseRichText(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,15 +93,20 @@ export default function FAQsPage() {
     setSaving(true)
     setMessage(null)
 
+    const submitData = useRichText 
+      ? { ...formData, rich_answer: formData.rich_answer, answer: formData.rich_answer }
+      : { ...formData, rich_answer: formData.answer, answer: formData.answer }
+
     if (editingItem) {
       const { error } = await supabase
         .from('faqs')
         .update({
-          question: formData.question,
-          answer: formData.answer,
-          category_id: formData.category_id,
-          display_order: formData.display_order,
-          is_active: formData.is_active,
+          question: submitData.question,
+          answer: submitData.answer,
+          rich_answer: submitData.rich_answer,
+          category_id: submitData.category_id,
+          display_order: submitData.display_order,
+          is_active: submitData.is_active,
           updated_at: new Date().toISOString()
         })
         .eq('id', editingItem.id)
@@ -111,7 +121,7 @@ export default function FAQsPage() {
     } else {
       const { error } = await supabase
         .from('faqs')
-        .insert([formData])
+        .insert([submitData])
 
       if (error) {
         setMessage({ type: 'error', text: error.message })
@@ -126,9 +136,12 @@ export default function FAQsPage() {
 
   const handleEdit = (item: FAQ) => {
     setEditingItem(item)
+    const hasRichText = !!(item.rich_answer && item.rich_answer !== item.answer)
+    setUseRichText(hasRichText)
     setFormData({
       question: item.question,
       answer: item.answer,
+      rich_answer: item.rich_answer || item.answer,
       category_id: item.category_id || categories[0]?.id || '',
       display_order: item.display_order,
       is_active: item.is_active
@@ -167,6 +180,57 @@ export default function FAQsPage() {
     }
   }
 
+  const getCategoryName = (categoryId: string) => {
+    const cat = categories.find(c => c.id === categoryId)
+    return cat ? cat.name : 'General'
+  }
+
+  const insertFormat = (type: string) => {
+    const textarea = document.getElementById('richAnswer') as HTMLTextAreaElement
+    if (!textarea) return
+    
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const text = textarea.value
+    let newText = text
+    let newStart = start
+    
+    switch(type) {
+      case 'bold':
+        newText = text.substring(0, start) + '<strong>' + text.substring(start, end) + '</strong>' + text.substring(end)
+        newStart = start + 8
+        break
+      case 'italic':
+        newText = text.substring(0, start) + '<em>' + text.substring(start, end) + '</em>' + text.substring(end)
+        newStart = start + 5
+        break
+      case 'link':
+        const url = prompt('Enter URL:', 'https://')
+        if (url) {
+          newText = text.substring(0, start) + '<a href="' + url + '" target="_blank" style="color: #007BFF; text-decoration: underline;">' + (text.substring(start, end) || 'link text') + '</a>' + text.substring(end)
+          newStart = start + 20 + url.length
+        }
+        break
+      case 'color-blue':
+        newText = text.substring(0, start) + '<span style="color: #007BFF; font-weight: 500;">' + text.substring(start, end) + '</span>' + text.substring(end)
+        break
+      case 'color-green':
+        newText = text.substring(0, start) + '<span style="color: #10B981; font-weight: 500;">' + text.substring(start, end) + '</span>' + text.substring(end)
+        break
+      case 'list':
+        newText = text.substring(0, start) + '<ul style="margin: 8px 0 8px 20px;"><li>' + text.substring(start, end).split('\n').join('</li><li>') + '</li></ul>' + text.substring(end)
+        break
+      default:
+        newText = text
+    }
+    
+    setFormData({ ...formData, rich_answer: newText })
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(newStart, newStart)
+    }, 10)
+  }
+
   if (loading) {
     return (
       <div className="text-center py-12">
@@ -181,7 +245,7 @@ export default function FAQsPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">FAQs Management</h2>
-          <p className="text-sm text-gray-500 mt-1">Manage frequently asked questions</p>
+          <p className="text-sm text-gray-500 mt-1">Manage frequently asked questions with rich text formatting</p>
         </div>
         {!showForm && (
           <button
@@ -195,20 +259,28 @@ export default function FAQsPage() {
       </div>
 
       {message && (
-        <div className={`mb-4 p-4 rounded-lg ${
-          message.type === 'success' 
-            ? 'bg-green-100 text-green-700 border border-green-200' 
-            : 'bg-red-100 text-red-700 border border-red-200'
-        }`}>
+        <div className={`mb-4 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
           {message.text}
         </div>
       )}
 
       {showForm && (
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <h3 className="text-lg font-semibold mb-4">
-            {editingItem ? 'Edit FAQ' : 'Add New FAQ'}
-          </h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">
+              {editingItem ? 'Edit FAQ' : 'Add New FAQ'}
+            </h3>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={useRichText}
+                onChange={(e) => setUseRichText(e.target.checked)}
+                className="w-4 h-4"
+              />
+              <span className="text-sm text-gray-600">Enable Rich Text Formatting</span>
+            </label>
+          </div>
+          
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">Question *</label>
@@ -222,17 +294,44 @@ export default function FAQsPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Answer *</label>
-              <textarea
-                required
-                value={formData.answer}
-                onChange={(e) => setFormData({ ...formData, answer: e.target.value })}
-                rows={4}
-                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="Enter the answer"
-              />
-            </div>
+            {useRichText ? (
+              <div>
+                <label className="block text-sm font-medium mb-2">Answer * (Rich Text)</label>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <button type="button" onClick={() => insertFormat('bold')} className="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-sm font-bold">Bold</button>
+                  <button type="button" onClick={() => insertFormat('italic')} className="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-sm italic">Italic</button>
+                  <button type="button" onClick={() => insertFormat('link')} className="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-sm">Link</button>
+                  <button type="button" onClick={() => insertFormat('color-blue')} className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200 text-sm text-blue-600">Blue Text</button>
+                  <button type="button" onClick={() => insertFormat('color-green')} className="px-3 py-1 bg-green-100 rounded hover:bg-green-200 text-sm text-green-600">Green Text</button>
+                  <button type="button" onClick={() => insertFormat('list')} className="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-sm">List</button>
+                </div>
+                <textarea
+                  id="richAnswer"
+                  required
+                  value={formData.rich_answer}
+                  onChange={(e) => setFormData({ ...formData, rich_answer: e.target.value })}
+                  rows={8}
+                  className="w-full p-2 border rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  placeholder="Enter your answer with HTML formatting..."
+                />
+                <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Preview:</p>
+                  <div className="text-sm prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: formData.rich_answer || 'Your formatted answer will appear here...' }} />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium mb-1">Answer *</label>
+                <textarea
+                  required
+                  value={formData.answer}
+                  onChange={(e) => setFormData({ ...formData, answer: e.target.value })}
+                  rows={5}
+                  className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  placeholder="Enter the answer"
+                />
+              </div>
+            )}
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
@@ -305,6 +404,7 @@ export default function FAQsPage() {
                 <tr>
                   <th className="p-4 text-left text-sm font-semibold text-gray-600">Question</th>
                   <th className="p-4 text-left text-sm font-semibold text-gray-600">Category</th>
+                  <th className="p-4 text-left text-sm font-semibold text-gray-600">Rich Text</th>
                   <th className="p-4 text-left text-sm font-semibold text-gray-600">Order</th>
                   <th className="p-4 text-left text-sm font-semibold text-gray-600">Status</th>
                   <th className="p-4 text-left text-sm font-semibold text-gray-600">Actions</th>
@@ -313,39 +413,28 @@ export default function FAQsPage() {
               <tbody className="divide-y">
                 {faqs.map((faq) => (
                   <tr key={faq.id} className="hover:bg-gray-50 transition">
-                    <td className="p-4 font-medium text-gray-800 max-w-md truncate">
-                      {faq.question}
-                    </td>
-                    <td className="p-4 text-sm text-gray-500">
-                      {categories.find(c => c.id === faq.category_id)?.name || 'General'}
+                    <td className="p-4 font-medium text-gray-800 max-w-md truncate">{faq.question}</td>
+                    <td className="p-4 text-sm text-gray-500">{getCategoryName(faq.category_id)}</td>
+                    <td className="p-4">
+                      {faq.rich_answer && faq.rich_answer !== faq.answer ? (
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">HTML</span>
+                      ) : (
+                        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">Plain</span>
+                      )}
                     </td>
                     <td className="p-4 text-sm text-gray-500">{faq.display_order}</td>
                     <td className="p-4">
                       <button
                         onClick={() => toggleStatus(faq.id, faq.is_active)}
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          faq.is_active 
-                            ? 'bg-green-100 text-green-700' 
-                            : 'bg-gray-100 text-gray-500'
-                        }`}
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${faq.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
                       >
                         {faq.is_active ? 'Active' : 'Inactive'}
                       </button>
                     </td>
                     <td className="p-4">
                       <div className="flex gap-3">
-                        <button
-                          onClick={() => handleEdit(faq)}
-                          className="text-blue-600 hover:text-blue-800 text-sm"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(faq.id)}
-                          className="text-red-600 hover:text-red-800 text-sm"
-                        >
-                          Delete
-                        </button>
+                        <button onClick={() => handleEdit(faq)} className="text-blue-600 hover:text-blue-800 text-sm">Edit</button>
+                        <button onClick={() => handleDelete(faq.id)} className="text-red-600 hover:text-red-800 text-sm">Delete</button>
                       </div>
                     </td>
                   </tr>

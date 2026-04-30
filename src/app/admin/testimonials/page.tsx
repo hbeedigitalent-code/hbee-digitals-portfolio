@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import Image from 'next/image'
+import ImageUpload from '@/components/ImageUpload'
 
 interface Testimonial {
   id: string
@@ -266,14 +267,13 @@ export default function TestimonialsPage() {
               </div>
             </div>
 
+            {/* Image Upload Component */}
             <div>
-              <label className="block text-sm font-medium mb-1">Image URL</label>
-              <input
-                type="text"
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="https://example.com/avatar.jpg"
+              <ImageUpload
+                onUpload={(url) => setFormData({ ...formData, image_url: url })}
+                currentImage={formData.image_url}
+                folder="testimonials"
+                label="Client Avatar"
               />
             </div>
 

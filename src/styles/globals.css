@@ -1,26 +1,60 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --primary-color: #0A1D37;
+  --secondary-color: #FFFFFF;
+  --accent-color: #007BFF;
+  --text-color: #1F2937;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Apply Poppins font */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+  color: var(--text-color);
+  background-color: #f9fafb;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+  font-weight: 600;
+}
+
+/* Utility classes */
+.bg-primary {
+  background-color: var(--primary-color);
+}
+
+.text-primary {
+  color: var(--primary-color);
+}
+
+.text-secondary {
+  color: var(--secondary-color);
+}
+
+/* 3D Effects */
+.perspective-container {
+  perspective: 1000px;
+  perspective-origin: 50% 50%;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* Diamond 3D hover effect */
+.diamond-3d {
+  transition: transform 0.3s ease;
+  transform-style: preserve-3d;
+}
+
+.diamond-3d:hover {
+  transform: scale(0.96) rotateX(5deg) rotateY(5deg);
+}
+
+/* Number 3D text effect */
+.text-3d {
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.1), 4px 4px 0 rgba(0,0,0,0.05);
 }

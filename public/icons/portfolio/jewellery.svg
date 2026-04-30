@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M10 10 Q24 6 38 10"/>
+  <path d="M10 10 Q8 22 20 30"/>
+  <path d="M38 10 Q40 22 28 30"/>
+  <path d="M20 30 Q24 34 28 30"/>
+  <polygon points="24,32 20,40 24,38 28,40" stroke-linejoin="round"/>
+</svg>

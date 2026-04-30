@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import ImageUpload from '@/components/ImageUpload'
 
 interface TeamMember {
   id: string
@@ -114,7 +115,18 @@ export default function TeamMembersPage() {
     } else {
       const { error } = await supabase
         .from('team_members')
-        .insert([formData])
+        .insert([{
+          name: formData.name,
+          position: formData.position,
+          bio: formData.bio,
+          image_url: formData.image_url,
+          social_twitter: formData.social_twitter,
+          social_linkedin: formData.social_linkedin,
+          social_github: formData.social_github,
+          social_instagram: formData.social_instagram,
+          display_order: formData.display_order,
+          is_active: formData.is_active
+        }])
 
       if (error) {
         setMessage({ type: 'error', text: error.message })
@@ -189,7 +201,7 @@ export default function TeamMembersPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Team Members</h2>
-          <p className="text-sm text-gray-500 mt-1">Manage your team members displayed on the website</p>
+          <p className="text-sm text-gray-500 mt-1">Manage your team members with profile images</p>
         </div>
         {!showForm && (
           <button
@@ -254,14 +266,13 @@ export default function TeamMembersPage() {
               />
             </div>
 
+            {/* Image Upload Component - Supports both upload and URL */}
             <div>
-              <label className="block text-sm font-medium mb-1">Image URL</label>
-              <input
-                type="url"
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="https://example.com/photo.jpg"
+              <ImageUpload
+                onUpload={(url) => setFormData({ ...formData, image_url: url })}
+                currentImage={formData.image_url}
+                folder="team"
+                label="Profile Image"
               />
             </div>
 
@@ -318,6 +329,7 @@ export default function TeamMembersPage() {
                   className="w-full p-2 border rounded-lg"
                   placeholder="0, 1, 2..."
                 />
+                <p className="text-xs text-gray-400 mt-1">Lower numbers appear first</p>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Status</label>
@@ -353,6 +365,7 @@ export default function TeamMembersPage() {
         </div>
       )}
 
+      {/* Team Members Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {members.length === 0 ? (
           <div className="col-span-full bg-white rounded-xl shadow-sm p-12 text-center">

@@ -3,7 +3,14 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { FAQ } from '@/types'
+
+interface FAQ {
+  id: string
+  question: string
+  answer: string
+  rich_answer: string
+  display_order: number
+}
 
 interface FAQSectionProps {
   data: FAQ[]
@@ -14,7 +21,8 @@ interface FAQSectionProps {
 export default function FAQSection({ data, title = "Frequently Asked Questions", subtitle = "Got questions? We've got answers" }: FAQSectionProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
   
-  const displayFaqs = data.slice(0, 3)
+  // Show only first 3 FAQs on homepage
+  const displayFaqs = data?.slice(0, 3) || []
 
   const toggle = (index: number) => {
     setOpenIndex(openIndex === index ? null : index)
@@ -37,6 +45,7 @@ export default function FAQSection({ data, title = "Frequently Asked Questions",
           <h2 className="text-3xl md:text-4xl font-bold mb-4" style={{ color: 'var(--primary-color)' }}>
             {title}
           </h2>
+          <div className="w-16 h-1 bg-gradient-to-r from-[#007BFF] to-[#00BFFF] rounded-full mx-auto my-4" />
           <p className="text-lg text-gray-600">{subtitle}</p>
         </motion.div>
 
@@ -48,13 +57,13 @@ export default function FAQSection({ data, title = "Frequently Asked Questions",
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: index * 0.1 }}
               viewport={{ once: true }}
-              className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:border-gray-300 hover:shadow-md transition-all duration-300"
+              className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:border-gray-200 hover:shadow-md transition-all duration-300"
             >
               <button
                 onClick={() => toggle(index)}
                 className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50 transition-colors duration-200 group"
               >
-                <span className="font-semibold text-gray-800 text-lg group-hover:text-blue-600 transition-colors">
+                <span className="font-semibold text-gray-800 text-lg group-hover:text-[#007BFF] transition-colors">
                   {faq.question}
                 </span>
                 
@@ -89,8 +98,12 @@ export default function FAQSection({ data, title = "Frequently Asked Questions",
                     transition={{ duration: 0.3, ease: "easeInOut" }}
                     className="overflow-hidden"
                   >
-                    <div className="px-6 pb-4 text-gray-600 border-t pt-4">
-                      {faq.answer}
+                    <div className="px-6 pb-4 text-gray-600 border-t pt-4 faq-rich-content">
+                      {faq.rich_answer ? (
+                        <div dangerouslySetInnerHTML={{ __html: faq.rich_answer }} />
+                      ) : (
+                        faq.answer
+                      )}
                     </div>
                   </motion.div>
                 )}
@@ -108,7 +121,7 @@ export default function FAQSection({ data, title = "Frequently Asked Questions",
         >
           <Link
             href="/faq"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg"
             style={{ 
               backgroundColor: 'transparent',
               color: 'var(--primary-color)',

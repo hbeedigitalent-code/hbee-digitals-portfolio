@@ -100,6 +100,7 @@ export default function AdminLayout({
     { name: 'About Section', href: '/admin/about', icon: '/svgs/about.svg', label: 'About Section' },
     { name: 'Services', href: '/admin/services', icon: '/svgs/services.svg', label: 'Services' },
     { name: 'Projects', href: '/admin/projects', icon: '/svgs/projects.svg', label: 'Projects' },
+    { name: 'Portfolio', href: '/admin/portfolio', icon: '/svgs/portfolio-icon.svg', label: 'Portfolio' },
     { name: 'FAQs', href: '/admin/faqs', icon: '/svgs/faq.svg', label: 'FAQs' },
     { name: 'Call to Action', href: '/admin/cta', icon: '/svgs/cta.svg', label: 'Call to Action' },
     { name: 'Navigation Menu', href: '/admin/menu', icon: '/svgs/menu.svg', label: 'Navigation Menu' },
@@ -145,7 +146,6 @@ export default function AdminLayout({
         `}>
           {/* Logo Area */}
           <div className={`p-5 border-b border-white/10 flex items-center ${sidebarOpen ? 'justify-between' : 'justify-center'}`}>
-            {/* Collapse button + logo */}
             <div className={`flex items-center gap-2 overflow-hidden ${sidebarOpen ? 'flex-1' : ''}`}>
               {siteLogo ? (
                 <img src={siteLogo} alt={siteName} className="w-8 h-8 object-contain brightness-0 invert flex-shrink-0" />
@@ -157,7 +157,6 @@ export default function AdminLayout({
               {sidebarOpen && <span className="font-bold text-lg truncate">{siteName}</span>}
             </div>
             
-            {/* Collapse/Expand Arrow */}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="text-white/50 hover:text-white transition flex-shrink-0 p-1 rounded hover:bg-white/10"
