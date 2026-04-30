@@ -45,6 +45,7 @@ export default function PortfolioPage() {
     ? items
     : items.filter(item => item.category === activeCategory)
 
+  // Get all categories including 'all' for display - total 11
   const allCategories = categories.filter(c => c.id !== 'all')
 
   if (loading) {
@@ -78,9 +79,31 @@ export default function PortfolioPage() {
             </p>
           </div>
 
-          {/* Category Row */}
+          {/* Category Row - Single row with ALL categories + All button */}
           <div className="max-w-5xl mx-auto mb-12">
             <div className="flex flex-wrap justify-center gap-3">
+              {/* ALL Category Button */}
+              <button
+                onClick={() => setActiveCategory('all')}
+                className={`flex flex-col items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl transition-all duration-300 cursor-pointer group
+                  ${activeCategory === 'all'
+                    ? 'bg-gradient-to-br from-[#007BFF] to-[#0056b3] border border-[#00BFFF]/50 shadow-lg shadow-blue-500/20'
+                    : 'bg-white border border-gray-200 hover:border-[#007BFF]/50 hover:bg-[#007BFF]/5'
+                  }`}
+              >
+                <div className="w-7 h-7">
+                  <img
+                    src="/icons/portfolio/all.svg"
+                    alt="All"
+                    className={`w-full h-full object-contain transition-all ${activeCategory === 'all' ? 'brightness-0 invert' : 'opacity-70 group-hover:opacity-100'}`}
+                  />
+                </div>
+                <span className={`text-[10px] font-medium text-center whitespace-nowrap ${activeCategory === 'all' ? 'text-white' : 'text-gray-600'}`}>
+                  All
+                </span>
+              </button>
+              
+              {/* Other 10 Categories */}
               {allCategories.map((category, idx) => {
                 const isMiddle = idx === 5
                 return (
@@ -103,7 +126,7 @@ export default function PortfolioPage() {
             </p>
           </div>
 
-          {/* Projects Grid - Better Image Display */}
+          {/* Projects Grid */}
           <div className="max-w-6xl mx-auto">
             {filteredItems.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -117,7 +140,6 @@ export default function PortfolioPage() {
                     className="group bg-white rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100"
                   >
                     <Link href={item.url || '#'} className="block">
-                      {/* Improved Image Container */}
                       <div className="relative h-48 w-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
                         {item.image_url ? (
                           <img
@@ -135,15 +157,14 @@ export default function PortfolioPage() {
                             <span className="text-xs text-gray-400">No image</span>
                           </div>
                         )}
-                        {/* Gradient Overlay on Hover */}
+                        {/* Gradient Overlay with Diagonal Arrow ↗ */}
                         <div className="absolute inset-0 bg-gradient-to-t from-[#007BFF]/80 via-[#007BFF]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
                           <span className="text-white font-medium text-sm flex items-center gap-2">
-                            {item.url ? 'View Project →' : 'Learn More →'}
+                            {item.url ? 'View Project ↗' : 'Learn More ↗'}
                           </span>
                         </div>
                       </div>
 
-                      {/* Content */}
                       <div className="p-4">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-xs font-medium bg-[#007BFF]/10 text-[#007BFF] px-3 py-1 rounded-full">

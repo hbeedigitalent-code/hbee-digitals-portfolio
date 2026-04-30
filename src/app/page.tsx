@@ -101,7 +101,7 @@ export default function HomePage() {
           supabase.from('projects').select('*').eq('status', 'published').order('display_order').limit(6),
           supabase.from('faqs').select('*').eq('is_active', true).order('display_order'),
           supabase.from('cta_section').select('*').eq('is_active', true).single(),
-          supabase.from('portfolio_items').select('*').eq('is_active', true).eq('featured', true).order('display_order').limit(4)
+          supabase.from('portfolio_items').select('*').eq('is_active', true).eq('featured', true).order('display_order').limit(6)
         ])
 
         setHero(heroData || {})
@@ -190,112 +190,137 @@ export default function HomePage() {
           }} />
         </Reveal>
 
-        {/* Portfolio Preview Section */}
-<section className="py-20 overflow-hidden bg-gray-50">
-  <div className="container mx-auto px-4">
-    {/* Header */}
-    <div className="text-center max-w-2xl mx-auto mb-10">
-      <div className="text-xs tracking-widest uppercase text-[#007BFF] font-semibold mb-3">
-        Our Work
-      </div>
-      <h2 className="font-bold text-3xl md:text-4xl text-gray-900">
-        Real Stores We've Grown
-      </h2>
-      <div className="w-16 h-1 bg-gradient-to-r from-[#007BFF] to-[#00BFFF] rounded-full mx-auto my-4" />
-      <p className="text-gray-600 text-sm leading-relaxed">
-        We've helped Shopify and e-commerce stores increase revenue, traffic, and conversions. Here's a snapshot of recent work.
-      </p>
-    </div>
+        {/* Portfolio Preview Section - With Diagonal Arrow */}
+        <section className="py-20 overflow-hidden bg-gray-50">
+          <div className="container mx-auto px-4">
+            {/* Header */}
+            <div className="text-center max-w-2xl mx-auto mb-10">
+              <div className="text-xs tracking-widest uppercase text-[#007BFF] font-semibold mb-3">
+                Our Work
+              </div>
+              <h2 className="font-bold text-3xl md:text-4xl text-gray-900">
+                Real Stores We've Grown
+              </h2>
+              <div className="w-16 h-1 bg-gradient-to-r from-[#007BFF] to-[#00BFFF] rounded-full mx-auto my-4" />
+              <p className="text-gray-600 text-sm leading-relaxed">
+                We've helped Shopify and e-commerce stores increase revenue, traffic, and conversions. Here's a snapshot of recent work.
+              </p>
+            </div>
 
-    {/* Horizontal Scroll Container */}
-    <div className="relative">
-      <div
-        ref={scrollRef}
-        className="flex gap-5 overflow-x-auto pb-6 scroll-smooth snap-x snap-mandatory"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        <style jsx>{`
-          div::-webkit-scrollbar {
-            display: none;
-          }
-        `}</style>
-        
-        {featuredPortfolioItems.length === 0 ? (
-          <div className="text-center py-16 w-full">
-            <p className="text-gray-400">No portfolio items yet. Add them in Admin → Portfolio.</p>
-          </div>
-        ) : (
-          featuredPortfolioItems.map((item, index) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              viewport={{ once: true }}
-              className="flex-shrink-0 w-80 snap-start group"
-            >
-              <Link href={item.url || '/portfolio'}>
-                <div className="bg-white rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100">
-                  {/* Image Container - Fixed Height */}
-                  <div className="relative h-44 w-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
-                    {item.image_url ? (
-                      <img
-                        src={item.image_url}
-                        alt={item.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center">
-                          <svg className="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
+            {/* Horizontal Scroll Container */}
+            <div className="relative">
+              {/* Scroll Buttons */}
+              {featuredPortfolioItems.length > 3 && (
+                <>
+                  <button
+                    onClick={scrollLeft}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100 hover:bg-gray-100 hidden md:flex"
+                    aria-label="Scroll left"
+                  >
+                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={scrollRight}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100 hover:bg-gray-100 hidden md:flex"
+                    aria-label="Scroll right"
+                  >
+                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </>
+              )}
+
+              <div
+                ref={scrollRef}
+                className="flex gap-5 overflow-x-auto pb-6 scroll-smooth snap-x snap-mandatory"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                <style jsx>{`
+                  div::-webkit-scrollbar {
+                    display: none;
+                  }
+                `}</style>
+                
+                {featuredPortfolioItems.length === 0 ? (
+                  <div className="text-center py-16 w-full">
+                    <p className="text-gray-400">No portfolio items yet. Add them in Admin → Portfolio.</p>
+                  </div>
+                ) : (
+                  featuredPortfolioItems.map((item, index) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 30 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: index * 0.1 }}
+                      viewport={{ once: true }}
+                      className="flex-shrink-0 w-80 snap-start group"
+                    >
+                      <Link href={item.url || '/portfolio'}>
+                        <div className="bg-white rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100">
+                          {/* Image Container */}
+                          <div className="relative h-44 w-full overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
+                            {item.image_url ? (
+                              <img
+                                src={item.image_url}
+                                alt={item.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center">
+                                  <svg className="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                </div>
+                              </div>
+                            )}
+                            {/* Hover Overlay with Diagonal Arrow */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-[#007BFF]/80 via-[#007BFF]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-3">
+                              <span className="text-white text-xs font-medium flex items-center gap-1">
+                                View Project ↗
+                              </span>
+                            </div>
+                          </div>
+                          <div className="p-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium bg-[#007BFF]/10 text-[#007BFF] px-2 py-0.5 rounded-full">
+                                {item.tag || 'Project'}
+                              </span>
+                              {item.result && (
+                                <span className="text-xs text-[#007BFF] font-semibold">
+                                  {item.result}
+                                </span>
+                              )}
+                            </div>
+                            <h3 className="font-semibold text-gray-800 text-sm">
+                              {item.name}
+                            </h3>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#007BFF]/70 via-[#007BFF]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-3">
-                      <span className="text-white text-xs font-medium flex items-center gap-1">
-                        View Project →
-                      </span>
-                    </div>
-                  </div>
-                  <div className="p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium bg-[#007BFF]/10 text-[#007BFF] px-2 py-0.5 rounded-full">
-                        {item.tag || 'Project'}
-                      </span>
-                      {item.result && (
-                        <span className="text-xs text-[#007BFF] font-semibold">
-                          {item.result}
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="font-semibold text-gray-800 text-sm">
-                      {item.name}
-                    </h3>
-                  </div>
-                </div>
-              </Link>
-            </motion.div>
-          ))
-        )}
-      </div>
-    </div>
+                      </Link>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+            </div>
 
-    {/* View All Button */}
-    <div className="text-center mt-8">
-      <Link
-        href="/portfolio"
-        className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-[#007BFF] to-[#00BFFF] rounded-full text-white font-medium text-sm hover:shadow-lg hover:scale-105 transition-all duration-300"
-      >
-        View All Work
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
-      </Link>
-    </div>
-  </div>
-</section>
+            {/* View All Button with Diagonal Arrow ↗ */}
+            <div className="text-center mt-8">
+              <Link
+                href="/portfolio"
+                className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-[#007BFF] to-[#00BFFF] rounded-full text-white font-medium text-sm hover:shadow-lg hover:scale-105 transition-all duration-300"
+              >
+                View All Work
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7l10 10M7 7v10m10-10H7" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+        </section>
 
         {/* Testimonials Section */}
         <Reveal delay={0.3}>
