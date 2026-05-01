@@ -2,33 +2,43 @@
 
 export async function POST(request: Request) {
   try {
-    // Dynamic import to avoid build-time issues
-    const { supabase } = await import('@/lib/supabase')
-    
-    const { to, subject, html, name, email, message } = await request.json()
+    const { name, email, phone, budget, message, projectDetails, subject } = await request.json()
 
-    // Get email settings from database
-    const { data: settings } = await supabase
-      .from('email_settings')
-      .select('*')
-      .single()
-
-    if (!settings || !settings.admin_email) {
-      console.error('Email settings not configured')
-      return NextResponse.json({ error: 'Email not configured' }, { status: 500 })
+    // Format budget for display
+    const budgetLabels: Record<string, string> = {
+      'under-5k': 'Under $5,000',
+      '5k-10k': '$5,000 - $10,000',
+      '10k-25k': '$10,000 - $25,000',
+      '25k-50k': '$25,000 - $50,000',
+      '50k-plus': '$50,000+',
+      'not-sure': 'Not sure / TBD',
     }
 
-    // Log the email (since we're not using a real SMTP service)
-    console.log('=== EMAIL NOTIFICATION ===')
-    console.log('To:', to || settings.admin_email)
-    console.log('Subject:', subject)
-    console.log('From:', `${settings.from_name} <${settings.from_email || 'noreply@hbeedigitals.com'}>`)
-    console.log('Message:', message)
-    console.log('========================')
+    const formattedBudget = budgetLabels[budget] || budget || 'Not specified'
 
-    return NextResponse.json({ success: true, message: 'Email logged successfully' })
+    // For now, log the email (since SMTP isn't configured)
+    console.log('=== NEW PROJECT INQUIRY ===')
+    console.log('Subject:', subject || 'New Project Inquiry')
+    console.log('Name:', name)
+    console.log('Email:', email)
+    console.log('Phone:', phone || 'Not provided')
+    console.log('Budget:', formattedBudget)
+    console.log('Message:', message)
+    console.log('Additional Details:', projectDetails || 'None')
+    console.log('==========================')
+
+    // Here you can integrate with a real email service like:
+    // - Resend (recommended for Next.js)
+    // - SendGrid
+    // - Nodemailer
+    // For now, messages are saved to database and visible in admin panel
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Inquiry received successfully' 
+    })
   } catch (error) {
     console.error('Email error:', error)
-    return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to process inquiry' }, { status: 500 })
   }
 }
