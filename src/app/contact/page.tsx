@@ -32,6 +32,7 @@ export default function ContactPage() {
     setLoading(true)
     setError('')
 
+    // 1. Save to Supabase Database (for admin dashboard)
     const { error: dbError } = await supabase.from('messages').insert([
       { 
         name, 
@@ -45,37 +46,45 @@ export default function ContactPage() {
     ])
 
     if (dbError) {
-      setError('Failed to send message. Please try again.')
-      setLoading(false)
-      return
+      console.error('Database error:', dbError)
+      // Don't return here - continue to send email even if DB fails
     }
+
+    // 2. Send email via Formspree
+    const formData = new FormData()
+    formData.append('name', name)
+    formData.append('email', email)
+    formData.append('phone', phone || '')
+    formData.append('budget', budget || '')
+    formData.append('message', message)
+    formData.append('project_details', projectDetails || '')
 
     try {
-      await fetch('/api/send-email', {
+      const response = await fetch('https://formspree.io/f/xaqvjbew', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          email,
-          phone,
-          budget,
-          message,
-          projectDetails,
-          subject: `New Project Inquiry from ${name}`
-        })
+        headers: {
+          'Accept': 'application/json'
+        },
+        body: formData
       })
-    } catch (emailError) {
-      console.error('Email notification failed:', emailError)
-    }
 
-    setSubmitted(true)
-    setName('')
-    setEmail('')
-    setPhone('')
-    setBudget('')
-    setMessage('')
-    setProjectDetails('')
-    setLoading(false)
+      if (response.ok) {
+        setSubmitted(true)
+        setName('')
+        setEmail('')
+        setPhone('')
+        setBudget('')
+        setMessage('')
+        setProjectDetails('')
+      } else {
+        const data = await response.json()
+        setError(data.error || 'Failed to send message. Please try again.')
+      }
+    } catch (err) {
+      setError('Network error. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
