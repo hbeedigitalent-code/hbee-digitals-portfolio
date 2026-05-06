@@ -30,6 +30,7 @@ export default function MessagesPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [user, setUser] = useState<any>(null)
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null)
+  const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
@@ -46,11 +47,18 @@ export default function MessagesPage() {
   }, [])
 
   const fetchMessages = async () => {
-    const { data } = await supabase
+    setLoading(true)
+    const { data, error } = await supabase
       .from('messages')
       .select('*')
       .order('created_at', { ascending: false })
-    setMessages(data || [])
+    
+    if (error) {
+      console.error('Error fetching messages:', error)
+    } else {
+      setMessages(data || [])
+    }
+    setLoading(false)
   }
 
   const markAsRead = async (id: string) => {
@@ -69,7 +77,15 @@ export default function MessagesPage() {
     }
   }
 
-  if (!user) return <div className="p-8 text-center">Loading...</div>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    )
+  }
+
+  if (!user) return null
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -194,7 +210,7 @@ export default function MessagesPage() {
 
                   <div className="pt-4 border-t">
                     <a
-                      href={`mailto:${selectedMessage.email}?subject=Response to your inquiry about ${selectedMessage.project_details?.substring(0, 50) || 'your project'}`}
+                      href={`mailto:${selectedMessage.email}?subject=Response to your inquiry`}
                       className="inline-flex items-center gap-2 px-4 py-2 bg-[#007BFF] text-white rounded-lg hover:bg-[#0056b3] transition"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

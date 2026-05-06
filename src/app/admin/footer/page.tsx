@@ -16,23 +16,33 @@ interface FooterData {
 export default function FooterEditor() {
   const { user, loading: authLoading } = useAdminAuth()
   const [footer, setFooter] = useState<FooterData | null>(null)
+  const [contact, setContact] = useState({ email: '', phone: '', address: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [activeTab, setActiveTab] = useState<'basic' | 'columns' | 'social'>('basic')
+  const [activeTab, setActiveTab] = useState<'basic' | 'contact' | 'columns' | 'social'>('basic')
 
   useEffect(() => {
     if (!authLoading && user) {
-      fetchFooter()
+      fetchAll()
     }
   }, [authLoading, user])
 
-  const fetchFooter = async () => {
+  const fetchAll = async () => {
     try {
-      const { data } = await supabase.from('footer_settings').select('*').single()
-      setFooter(data || { columns: [], social_links: [] })
+      const { data: footerData } = await supabase.from('footer_settings').select('*').single()
+      setFooter(footerData || { columns: [], social_links: [] })
+
+      const { data: siteData } = await supabase.from('site_settings').select('*').single()
+      if (siteData) {
+        setContact({
+          email: siteData.contact_email || '',
+          phone: siteData.contact_phone || '',
+          address: siteData.contact_address || '',
+        })
+      }
     } catch (err) {
-      console.error('Error fetching footer:', err)
+      console.error('Error fetching:', err)
     } finally {
       setLoading(false)
     }
@@ -44,7 +54,7 @@ export default function FooterEditor() {
     setMessage(null)
 
     try {
-      const { error } = await supabase
+      const { error: footerError } = await supabase
         .from('footer_settings')
         .update({
           logo_text: footer.logo_text,
@@ -55,13 +65,23 @@ export default function FooterEditor() {
         })
         .eq('id', footer.id)
 
-      if (error) {
-        setMessage({ type: 'error', text: 'Error: ' + error.message })
-      } else {
-        setMessage({ type: 'success', text: 'Footer settings updated successfully!' })
+      if (footerError) throw footerError
+
+      const { data: siteData } = await supabase.from('site_settings').select('id').single()
+      if (siteData?.id) {
+        await supabase
+          .from('site_settings')
+          .update({
+            contact_email: contact.email,
+            contact_phone: contact.phone,
+            contact_address: contact.address,
+          })
+          .eq('id', siteData.id)
       }
-    } catch (err) {
-      setMessage({ type: 'error', text: 'An unexpected error occurred' })
+
+      setMessage({ type: 'success', text: 'Footer settings updated successfully!' })
+    } catch (err: any) {
+      setMessage({ type: 'error', text: 'Error: ' + err.message })
     } finally {
       setSaving(false)
     }
@@ -158,7 +178,7 @@ export default function FooterEditor() {
 
         <div className="bg-white rounded-xl shadow-sm">
           {/* Tabs */}
-          <div className="flex border-b">
+          <div className="flex border-b flex-wrap">
             <button
               onClick={() => setActiveTab('basic')}
               className={`px-6 py-3 font-medium transition ${
@@ -172,6 +192,20 @@ export default function FooterEditor() {
               }}
             >
               Basic Info
+            </button>
+            <button
+              onClick={() => setActiveTab('contact')}
+              className={`px-6 py-3 font-medium transition ${
+                activeTab === 'contact' 
+                  ? 'border-b-2' 
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              style={{ 
+                borderColor: activeTab === 'contact' ? 'var(--primary-color)' : 'transparent',
+                color: activeTab === 'contact' ? 'var(--primary-color)' : undefined
+              }}
+            >
+              Contact Info
             </button>
             <button
               onClick={() => setActiveTab('columns')}
@@ -223,7 +257,43 @@ export default function FooterEditor() {
                     value={footer?.copyright_text || ''}
                     onChange={(e) => setFooter({ ...footer!, copyright_text: e.target.value })}
                     className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    placeholder="© 2024 Hbee Digitals. All rights reserved."
+                    placeholder="© 2026 Hbee Digitals. All rights reserved."
+                  />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'contact' && (
+              <div className="space-y-6">
+                <p className="text-sm text-gray-500 mb-4">These fields update the email, phone, and address shown in the website footer.</p>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    value={contact.email}
+                    onChange={(e) => setContact({ ...contact, email: e.target.value })}
+                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="hello@hbeedigitals.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    value={contact.phone}
+                    onChange={(e) => setContact({ ...contact, phone: e.target.value })}
+                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="+234 912 191 3997"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Address</label>
+                  <input
+                    type="text"
+                    value={contact.address}
+                    onChange={(e) => setContact({ ...contact, address: e.target.value })}
+                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    placeholder="Plot 241 Digital Street, Tech City"
                   />
                 </div>
               </div>
@@ -369,7 +439,12 @@ export default function FooterEditor() {
           <h3 className="text-lg font-semibold mb-4">Live Preview</h3>
           <div className="border rounded-lg p-6" style={{ backgroundColor: 'var(--primary-color)' }}>
             <div className="text-white">
-              <div className="font-bold text-xl mb-4">{footer?.logo_text || 'Logo'}</div>
+              <div className="font-bold text-xl mb-2">{footer?.logo_text || 'Logo'}</div>
+              <div className="text-xs text-white/50 mb-4 flex flex-wrap gap-3">
+                {contact.email && <span>✉ {contact.email}</span>}
+                {contact.phone && <span>☎ {contact.phone}</span>}
+                {contact.address && <span>⌂ {contact.address}</span>}
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 {(footer?.columns || []).map((col, i) => (
                   <div key={i}>
