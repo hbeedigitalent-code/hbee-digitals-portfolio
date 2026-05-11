@@ -1,55 +1,70 @@
 "use client";
 
-import { motion, useAnimation, useInView, useReducedMotion } from "framer-motion";
-import { useEffect, useRef, ReactNode } from "react";
+import { motion, useInView, useReducedMotion } from "framer-motion";
+import { useRef, ReactNode } from "react";
 
 interface RevealProps {
   children: ReactNode;
+  variant?: "fade" | "wipe" | "slide";
   delay?: number;
+  duration?: number;
   direction?: "up" | "left" | "right";
 }
 
 export default function Reveal({
   children,
+  variant = "fade",
   delay = 0,
+  duration = 0.7,
   direction = "up",
 }: RevealProps) {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-50px" });
-  const controls = useAnimation();
-  const prefersReducedMotion = useReducedMotion();
+  const inView = useInView(ref, { once: true, margin: "-80px" });
+  const reducedMotion = useReducedMotion();
 
-  useEffect(() => {
-    if (prefersReducedMotion) {
-      controls.set("visible");
-    } else if (isInView) {
-      controls.start("visible");
-    }
-  }, [isInView, controls, prefersReducedMotion]);
+  if (reducedMotion) return <>{children}</>;
 
-  // If the user prefers reduced motion, render children immediately without any wrapper animation.
-  if (prefersReducedMotion) {
-    return <>{children}</>;
-  }
+  const fadeVariants = {
+    hidden: { opacity: 0, y: 32 },
+    visible: { opacity: 1, y: 0, transition: { duration, delay, ease: [0.22, 1, 0.36, 1] } },
+  };
 
-  // Offsets based on direction
-  const hiddenOffset =
-    direction === "up"
-      ? { y: 32, x: 0 }
-      : direction === "left"
-      ? { x: -32, y: 0 }
-      : { x: 32, y: 0 }; // right
+  const wipeVariants = {
+    hidden: { clipPath: "inset(100% 0% 0% 0%)", opacity: 1 },
+    visible: {
+      clipPath: "inset(0% 0% 0% 0%)",
+      opacity: 1,
+      transition: { duration, delay, ease: [0.76, 0, 0.24, 1] },
+    },
+  };
+
+  const slideDir = {
+    up: { hidden: { opacity: 0, y: 48 }, visible: { opacity: 1, y: 0 } },
+    left: { hidden: { opacity: 0, x: -48 }, visible: { opacity: 1, x: 0 } },
+    right: { hidden: { opacity: 0, x: 48 }, visible: { opacity: 1, x: 0 } },
+  };
+
+  const slideVariants = {
+    hidden: slideDir[direction].hidden,
+    visible: {
+      ...slideDir[direction].visible,
+      transition: { duration, delay, ease: [0.22, 1, 0.36, 1] },
+    },
+  };
+
+  const variants =
+    variant === "wipe"
+      ? wipeVariants
+      : variant === "slide"
+      ? slideVariants
+      : fadeVariants;
 
   return (
     <motion.div
       ref={ref}
-      variants={{
-        hidden: { opacity: 0, ...hiddenOffset },
-        visible: { opacity: 1, y: 0, x: 0 },
-      }}
       initial="hidden"
-      animate={controls}
-      transition={{ duration: 0.6, delay }}
+      animate={inView ? "visible" : "hidden"}
+      variants={variants}
     >
       {children}
     </motion.div>

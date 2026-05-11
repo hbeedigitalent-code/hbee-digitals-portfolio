@@ -5,6 +5,7 @@ import GoogleAnalytics from "@/components/GoogleAnalytics";
 import CookieConsent from "@/components/CookieConsent";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { Suspense } from "react";
+import CursorGlow from "@/components/ui/CursorGlow";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -24,7 +25,7 @@ export const metadata = {
   keywords:
     "web development, e-commerce, digital marketing, mobile apps, Toronto, Canada",
   authors: [{ name: "Hbee Digitals" }],
-  metadataBase: new URL("https://hbeedigital.com"),
+  metadataBase: new URL("https://hbeedigitals.vercel.app"),
 
   icons: {
     icon: [
@@ -66,7 +67,6 @@ export const viewport = {
   themeColor: "#0A1D37",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -81,16 +81,19 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <meta
-          name="format-detection"
-          content="telephone=no, date=no, email=no, address=no"
-        />
+        <meta name="format-detection" content="date=no" />
       </head>
       <body
         className="font-poppins overflow-x-hidden"
-        style={{ backgroundColor: 'var(--bg-color)', color: 'var(--text-color)' }}
+        style={{
+          backgroundColor: "var(--bg-color)",
+          color: "var(--text-color)",
+        }}
         suppressHydrationWarning
       >
+        {/* Magnetic cursor glow effect */}
+        <CursorGlow />
+
         <ThemeProvider>
           {/* Skip navigation link */}
           <a
@@ -109,7 +112,6 @@ export default function RootLayout({
             </main>
           </Providers>
 
-          {/* Cookie Consent Banner */}
           <CookieConsent />
         </ThemeProvider>
       </body>

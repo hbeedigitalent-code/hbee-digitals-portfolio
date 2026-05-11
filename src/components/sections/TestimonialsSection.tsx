@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Star, StarHalf } from 'lucide-react'
+import Reveal from '@/components/Reveal'
 
 // -------------------------------------------------------
 // Types
@@ -15,7 +16,7 @@ interface Testimonial {
   position: string
   company: string
   content: string
-  rating: number   // can be e.g. 4.5
+  rating: number
   image_url: string
   display_order: number
 }
@@ -101,9 +102,13 @@ export default function TestimonialsSection() {
           <div className="text-xs tracking-widest uppercase text-[#007BFF] font-semibold mb-3">
             Testimonials
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
-            What Our Clients Say
-          </h2>
+
+          <Reveal variant="wipe">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
+              What Our Clients Say
+            </h2>
+          </Reveal>
+
           <div className="w-16 h-1 bg-gradient-to-r from-[#007BFF] to-[#00BFFF] rounded-full mx-auto my-4" />
           <p className="text-white/70 max-w-2xl mx-auto">
             Don't just take our word for it — hear from our satisfied clients

@@ -3,22 +3,62 @@
 import { Service } from '@/types'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
+import { useRef, useState } from 'react'
 import {
-  Code,
-  ShoppingCart,
-  Palette,
-  Megaphone,
-  Lightbulb,
-  Briefcase,
-  Globe,
-  Smartphone,
-  Cloud,
-  Database,
-  Shield,
-  Wrench,
+  Code, ShoppingCart, Palette, Megaphone, Lightbulb, Briefcase,
+  Globe, Smartphone, Cloud, Database, Shield, Wrench,
 } from 'lucide-react'
+import Reveal from '@/components/Reveal'
 
+// -------------------------------------------------------
+// 3D Tilt Card Component
+// -------------------------------------------------------
+function TiltCard({
+  children,
+  className,
+  style,
+}: {
+  children: React.ReactNode
+  className?: string
+  style?: React.CSSProperties
+}) {
+  const cardRef = useRef<HTMLDivElement>(null)
+  const [tilt, setTilt] = useState({ x: 0, y: 0 })
+  const reducedMotion = useReducedMotion()
+
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    if (reducedMotion || !cardRef.current) return
+    const rect = cardRef.current.getBoundingClientRect()
+    const centerX = rect.left + rect.width / 2
+    const centerY = rect.top + rect.height / 2
+    const rotateX = ((e.clientY - centerY) / (rect.height / 2)) * -8
+    const rotateY = ((e.clientX - centerX) / (rect.width / 2)) * 8
+    setTilt({ x: rotateX, y: rotateY })
+  }
+
+  function handleMouseLeave() {
+    setTilt({ x: 0, y: 0 })
+  }
+
+  return (
+    <motion.div
+      ref={cardRef}
+      className={className}
+      style={{ transformStyle: 'preserve-3d', willChange: 'transform', ...style }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      animate={{ rotateX: tilt.x, rotateY: tilt.y }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+// -------------------------------------------------------
+// Main Component
+// -------------------------------------------------------
 interface ServicesSectionProps {
   data: Service[]
   title?: string
@@ -78,7 +118,6 @@ export default function ServicesSection({
       style={{ backgroundColor: 'var(--bg-color)' }}
     >
       <div className="container mx-auto px-4 relative z-10">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -95,17 +134,21 @@ export default function ServicesSection({
           >
             What We Do
           </motion.div>
-          <h2
-            id="services-heading"
-            className="text-4xl md:text-5xl font-bold mb-4"
-            style={{ color: 'var(--secondary-color)' }}
-          >
-            {title}
-          </h2>
+
+          <Reveal variant="wipe">
+            <h2
+              id="services-heading"
+              className="text-4xl md:text-5xl font-bold mb-4"
+              style={{ color: 'var(--secondary-color)' }}
+            >
+              {title}
+            </h2>
+          </Reveal>
+
           <p className="text-[var(--text-muted)] max-w-2xl mx-auto text-lg">{subtitle}</p>
         </motion.div>
 
-        {/* Services Grid */}
+        {/* Services Grid with Perspective */}
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -115,6 +158,7 @@ export default function ServicesSection({
             visible: { transition: { staggerChildren: 0.08 } },
           }}
           className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+          style={{ perspective: '1000px' }}
         >
           {data.map((service) => {
             const iconName = (service as any).icon as string | undefined
@@ -130,8 +174,7 @@ export default function ServicesSection({
                 whileHover={{ y: -6 }}
                 className="group relative"
               >
-                {/* Card */}
-                <div
+                <TiltCard
                   className="card-shimmer relative rounded-2xl shadow-lg overflow-hidden transition-all duration-500 h-full"
                   style={{
                     backgroundColor: 'var(--card-bg)',
@@ -142,7 +185,6 @@ export default function ServicesSection({
                   <div className="h-1 w-full bg-gradient-to-r from-blue-500 to-purple-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
 
                   <div className="p-6 sm:p-8">
-                    {/* Icon */}
                     <motion.div
                       whileHover={{ scale: 1.15, rotate: 5 }}
                       transition={{ type: 'spring', stiffness: 400, damping: 10 }}
@@ -169,7 +211,6 @@ export default function ServicesSection({
                       </div>
                     </motion.div>
 
-                    {/* Title */}
                     <h3
                       className="text-2xl font-bold mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#007BFF] group-hover:to-[#00BFFF] transition-all duration-300"
                       style={{ color: 'var(--secondary-color)' }}
@@ -180,7 +221,6 @@ export default function ServicesSection({
                       {service.description}
                     </p>
 
-                    {/* Features */}
                     {service.features && service.features.length > 0 ? (
                       <div className="mb-6">
                         <p
@@ -211,7 +251,6 @@ export default function ServicesSection({
                       </div>
                     )}
 
-                    {/* Learn more */}
                     <Link
                       href="/services"
                       className="inline-flex items-center gap-1.5 text-sm font-medium transition-colors"
@@ -228,13 +267,12 @@ export default function ServicesSection({
                       </svg>
                     </Link>
                   </div>
-                </div>
+                </TiltCard>
               </motion.div>
             )
           })}
         </motion.div>
 
-        {/* View All Button */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}

@@ -2,12 +2,9 @@
 
 import { HeroData } from '@/types'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 
-// -------------------------------------------------------
-// Typewriter effect
-// -------------------------------------------------------
 function TypewriterText({ text, speed = 80 }: { text: string; speed?: number }) {
   const [displayText, setDisplayText] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
@@ -54,9 +51,6 @@ function TypewriterText({ text, speed = 80 }: { text: string; speed?: number }) 
   )
 }
 
-// -------------------------------------------------------
-// Main component
-// -------------------------------------------------------
 interface HeroSectionProps {
   data: HeroData & { welcomeText?: string; featureBullets?: string | string[] }
 }
@@ -74,7 +68,8 @@ export default function HeroSection({ data }: HeroSectionProps) {
     featureBullets = '',
   } = data
 
-  // Parse feature bullets
+  const reducedMotion = useReducedMotion()
+
   let bullets: string[] = []
   if (Array.isArray(featureBullets)) {
     bullets = featureBullets
@@ -84,11 +79,7 @@ export default function HeroSection({ data }: HeroSectionProps) {
     bullets = ['Web Development', 'UI/UX Design', 'Digital Marketing', 'Brand Strategy']
   }
 
-  // Gradient text on last two words of title
   const titleWords = (title || '').split(' ')
-  const gradientStart = Math.max(0, titleWords.length - 2)
-  const firstPart = titleWords.slice(0, gradientStart).join(' ')
-  const gradientPart = titleWords.slice(gradientStart).join(' ')
 
   return (
     <section
@@ -96,27 +87,20 @@ export default function HeroSection({ data }: HeroSectionProps) {
       style={{ backgroundColor: 'var(--primary-color)' }}
       aria-labelledby="hero-heading"
     >
-      {/* Ambient glow orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
         <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-blue-600 rounded-full blur-[120px] opacity-20" />
         <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-cyan-500 rounded-full blur-[120px] opacity-15" />
       </div>
 
-      <div className="container mx-auto px-4 lg:px-8 relative z-10">
+      <div className="w-full max-w-7xl mx-auto px-6 md:px-12 relative z-10">
         <div className="flex flex-col lg:grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-
           {/* LEFT COLUMN */}
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}
-            className="text-center lg:text-left w-full"
-          >
-            {/* Welcome line with typewriter */}
+          <div className="text-center lg:text-left w-full">
             <motion.div
-              variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
-              className="mb-2"
+              initial={reducedMotion ? { opacity: 1 } : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="mb-4"
             >
               <p
                 className="text-xl sm:text-2xl lg:text-3xl font-bold"
@@ -129,36 +113,56 @@ export default function HeroSection({ data }: HeroSectionProps) {
               </p>
             </motion.div>
 
-            {/* Main Heading */}
             <motion.h1
               id="hero-heading"
-              variants={{ hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0 } }}
-              className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-extrabold leading-[1.1] mb-5"
-              style={{ fontFamily: 'var(--heading-font)', color: 'var(--secondary-color)' }}
+              className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-extrabold leading-[1.1] mb-5"
+              style={{ fontFamily: 'var(--heading-font)' }}
+              aria-label={title}
             >
-              <span>{firstPart}</span>{' '}
-              <span className="gradient-text">{gradientPart}</span>
+              {reducedMotion
+                ? title
+                : titleWords.map((word, i) => (
+                    <span
+                      key={i}
+                      className="inline-block overflow-hidden mr-[0.25em]"
+                      aria-hidden="true"
+                    >
+                      <motion.span
+                        className="inline-block gradient-text"
+                        initial={{ y: '110%', opacity: 0 }}
+                        animate={{ y: '0%', opacity: 1 }}
+                        transition={{
+                          duration: 0.65,
+                          delay: 0.3 + i * 0.08,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
+                      >
+                        {word}
+                      </motion.span>
+                    </span>
+                  ))}
             </motion.h1>
 
-            {/* Subtitle */}
             <motion.p
-              variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+              initial={reducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.7 }}
               className="text-sm sm:text-base max-w-lg mx-auto lg:mx-0 mb-6 leading-relaxed"
               style={{ color: 'var(--text-muted)' }}
             >
               {subtitle}
             </motion.p>
 
-            {/* Feature Bullets */}
             <motion.ul
-              variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
+              initial={reducedMotion ? { opacity: 1 } : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.85 }}
               className="flex flex-wrap gap-2.5 mb-7 justify-center lg:justify-start"
               aria-label="Key services"
             >
               {bullets.map((b, i) => (
                 <motion.li
                   key={i}
-                  variants={{ hidden: { opacity: 0, x: -15 }, visible: { opacity: 1, x: 0 } }}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-white/8 rounded-full text-xs sm:text-sm border backdrop-blur-sm"
                   style={{ color: 'var(--text-muted)', borderColor: 'var(--card-border)' }}
                 >
@@ -170,9 +174,10 @@ export default function HeroSection({ data }: HeroSectionProps) {
               ))}
             </motion.ul>
 
-            {/* CTA Buttons */}
             <motion.div
-              variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+              initial={reducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 1.0 }}
               className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-6"
             >
               <Link
@@ -197,9 +202,10 @@ export default function HeroSection({ data }: HeroSectionProps) {
               </Link>
             </motion.div>
 
-            {/* Trust row */}
             <motion.div
-              variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
+              initial={reducedMotion ? { opacity: 1 } : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 1.2 }}
               className="flex items-center gap-3 justify-center lg:justify-start"
               aria-label="Client reviews — 5 stars, trusted by 50+ store owners"
             >
@@ -212,11 +218,11 @@ export default function HeroSection({ data }: HeroSectionProps) {
                 <span className="text-yellow-400">★★★★★</span> Trusted by <strong style={{ color: 'var(--secondary-color)' }}>50+</strong> store owners
               </div>
             </motion.div>
-          </motion.div>
+          </div>
 
-          {/* RIGHT COLUMN – Image or Video */}
+          {/* RIGHT COLUMN — normal size image / placeholder */}
           <motion.div
-            initial={{ opacity: 0, x: 40 }}
+            initial={reducedMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: 40 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             whileHover={{ y: -5 }}
@@ -240,9 +246,9 @@ export default function HeroSection({ data }: HeroSectionProps) {
                   <motion.div
                     animate={{ y: [0, -8, 0] }}
                     transition={{ repeat: Infinity, duration: 3 }}
-                    className="w-20 h-20 rounded-2xl bg-white/10 flex items-center justify-center"
+                    className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center"
                   >
-                    <svg className="w-10 h-10 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-8 h-8 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </motion.div>
@@ -250,7 +256,6 @@ export default function HeroSection({ data }: HeroSectionProps) {
               )}
             </div>
 
-            {/* Experience badge */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -270,7 +275,6 @@ export default function HeroSection({ data }: HeroSectionProps) {
         </div>
       </div>
 
-      {/* Scroll indicator */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

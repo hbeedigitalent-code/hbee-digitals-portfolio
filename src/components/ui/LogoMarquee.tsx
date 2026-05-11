@@ -4,8 +4,17 @@ import { useRef, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 
 const brands = [
-  'Shopify', 'WooCommerce', 'Klaviyo', 'Meta Ads', 'Google Ads',
-  'TikTok', 'Mailchimp', 'Stripe', 'PayPal', 'Zapier', 'Wix'
+  { name: 'Shopify',     color: '#7AB55C' },
+  { name: 'WooCommerce', color: '#96588A' },
+  { name: 'Klaviyo',     color: '#4465E7' },
+  { name: 'Meta Ads',    color: '#0866FF' },
+  { name: 'Google Ads',  color: '#4285F4' },
+  { name: 'TikTok',      color: '#000000' },
+  { name: 'Mailchimp',   color: '#FFE01B' },
+  { name: 'Stripe',      color: '#635BFF' },
+  { name: 'PayPal',      color: '#003087' },
+  { name: 'Zapier',      color: '#FF4A00' },
+  { name: 'Wix',         color: '#FBAD18' },
 ]
 
 export default function LogoMarquee() {
@@ -32,7 +41,7 @@ export default function LogoMarquee() {
     >
       <p className="sr-only">Logos of brands we have worked with</p>
 
-      <div className="container mx-auto px-4 mb-10">
+      <div className="w-full max-w-7xl mx-auto px-6 md:px-12 mb-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -52,27 +61,24 @@ export default function LogoMarquee() {
         <div className="flex overflow-hidden [mask-image:_linear-gradient(to_right,transparent_0,_black_128px,_black_calc(100%-128px),transparent_100%)]">
           <div
             role="list"
-            className={`flex gap-12 py-4 ${shouldAnimate ? 'marquee-track' : ''}`}
+            className={`flex gap-6 py-4 ${shouldAnimate ? 'marquee-track' : ''}`}
             style={{ willChange: 'transform' }}
             onMouseEnter={(e) => {
-              if (shouldAnimate) {
+              if (shouldAnimate)
                 (e.currentTarget as HTMLDivElement).style.animationPlayState = 'paused'
-              }
             }}
             onMouseLeave={(e) => {
-              if (shouldAnimate) {
+              if (shouldAnimate)
                 (e.currentTarget as HTMLDivElement).style.animationPlayState = 'running'
-              }
             }}
           >
-            {/* CSS keyframes for the marquee */}
             <style jsx>{`
               @keyframes marquee {
                 from { transform: translateX(0); }
-                to { transform: translateX(-50%); }
+                to   { transform: translateX(-50%); }
               }
               .marquee-track {
-                animation: marquee 25s linear infinite;
+                animation: marquee 30s linear infinite;
               }
             `}</style>
 
@@ -80,10 +86,15 @@ export default function LogoMarquee() {
               <div
                 key={i}
                 role="listitem"
-                aria-label={`${brand} logo`}
-                className="flex-shrink-0 px-8 py-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-blue-200 hover:shadow-sm transition-all duration-300 cursor-default"
+                aria-label={`${brand.name} logo`}
+                className="flex-shrink-0 flex items-center justify-center px-6 py-3 rounded-xl border border-gray-200 bg-gray-50 hover:border-slate-300 hover:shadow-md transition-all duration-300 cursor-default group"
+                style={{ minWidth: '130px' }}
               >
-                <span className="text-gray-500 font-semibold text-lg whitespace-nowrap">{brand}</span>
+                <span
+                  className="text-sm font-semibold text-gray-500 group-hover:text-gray-800 transition-colors duration-300"
+                >
+                  {brand.name}
+                </span>
               </div>
             ))}
           </div>

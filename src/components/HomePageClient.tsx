@@ -17,6 +17,7 @@ import TabSwitcher from '@/components/ui/TabSwitcher'
 import ServiceOrbit from '@/components/ui/ServiceOrbit'
 import GridPattern from '@/components/ui/GridPattern'
 import GlowOrb from '@/components/ui/GlowOrb'
+import ClientProofsSection from '@/components/sections/ClientProofsSection'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 
@@ -46,98 +47,81 @@ export default function HomePageClient({
 }: HomePageClientProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const scrollLeft = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: -340, behavior: 'smooth' })
-    }
-  }
+  const scrollLeft = () => { if (scrollRef.current) scrollRef.current.scrollBy({ left: -340, behavior: 'smooth' }) }
+  const scrollRight = () => { if (scrollRef.current) scrollRef.current.scrollBy({ left: 340, behavior: 'smooth' }) }
 
-  const scrollRight = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: 340, behavior: 'smooth' })
-    }
-  }
-
-  // ---- static data (no longer from props) ----
   const statsData = [
-    { value: 50, label: 'Projects Completed', suffix: '+' },
-    { value: 25, label: 'Happy Clients', suffix: '+' },
+    { value: 87, label: 'Projects Completed', suffix: '+' },
+    { value: 45, label: 'Happy Clients', suffix: '+' },
     { value: 5, label: 'Years Experience', suffix: '+' },
-    { value: 98, label: 'Success Rate', suffix: '%' }
+    { value: 98, label: 'Success Rate', suffix: '%' },
   ]
 
   const whyChooseUsTabs = [
     {
-      id: 'approach',
-      label: 'Approach',
-      title: 'Human-Centered Design',
+      id: 'approach', label: 'Approach', title: 'Human-Centered Design',
       description: 'We put your users first. Every decision is made with your audience in mind, ensuring experiences that resonate and convert.',
       features: ['User Research', 'Empathy Mapping', 'Journey Mapping', 'Usability Testing']
     },
     {
-      id: 'process',
-      label: 'Process',
-      title: 'Agile Development Process',
+      id: 'process', label: 'Process', title: 'Agile Development Process',
       description: 'Our transparent, iterative process keeps you involved at every stage. No surprises, just results.',
       features: ['Discovery & Strategy', 'Design & Prototype', 'Development', 'Testing & Launch']
     },
     {
-      id: 'results',
-      label: 'Results',
-      title: 'Data-Driven Results',
+      id: 'results', label: 'Results', title: 'Data-Driven Results',
       description: 'We don\'t just build pretty websites — we build solutions that drive measurable business growth.',
       features: ['Increased Conversions', 'Faster Load Times', 'Higher Engagement', 'Better ROI']
     },
     {
-      id: 'promise',
-      label: 'Promise',
-      title: 'Your Success is Our Promise',
+      id: 'promise', label: 'Promise', title: 'Your Success is Our Promise',
       description: 'We partner with you for the long haul. Ongoing support, maintenance, and optimization included.',
       features: ['24/7 Support', 'Regular Updates', 'Performance Monitoring', 'Continuous Improvement']
     }
   ]
 
-  // ---- translated strings for hero ----
-  const welcomeText =
-    translatedTexts?.welcomeText || hero.welcome_text || 'Welcome to'
-  const primaryCtaText =
-    translatedTexts?.primaryCtaText || hero.primary_cta_text || 'Get Started'
-  const secondaryCtaText =
-    translatedTexts?.secondaryCtaText || hero.secondary_cta_text || 'View Work'
-  const trustText =
-    translatedTexts?.trustText || '★★★★★ Trusted by 50+ store owners'
+  const welcomeText = translatedTexts?.welcomeText || hero.welcome_text || 'Welcome to'
+  const primaryCtaText = translatedTexts?.primaryCtaText || hero.primary_cta_text || 'Get Started'
+  const secondaryCtaText = translatedTexts?.secondaryCtaText || hero.secondary_cta_text || 'View Work'
 
-  // Shared background gradient
   const bgGradient = 'bg-gradient-to-br from-[#0A1D37] via-[#0F1E38] to-[#0A1D37]'
 
   return (
     <div className="relative">
+      {/* Fixed background orbs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
+        <div className="absolute w-[600px] h-[600px] rounded-full blur-[140px] opacity-[0.07]"
+          style={{ background: '#007BFF', animation: 'orbFloat1 18s ease-in-out infinite', top: '-10%', left: '10%' }} />
+        <div className="absolute w-[500px] h-[500px] rounded-full blur-[120px] opacity-[0.05]"
+          style={{ background: '#00BFFF', animation: 'orbFloat2 22s ease-in-out infinite', bottom: '20%', right: '5%' }} />
+        <div className="absolute w-[400px] h-[400px] rounded-full blur-[100px] opacity-[0.04]"
+          style={{ background: '#6366F1', animation: 'orbFloat3 26s ease-in-out infinite', top: '50%', left: '50%' }} />
+        <div className="absolute inset-0 opacity-[0.025]"
+          style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.9) 1px, transparent 1px)', backgroundSize: '44px 44px' }} />
+      </div>
+
       <Navbar />
 
-      <main id="main-content">
+      <main id="main-content" className="relative z-10">
         {/* 1. Hero */}
         <section className="relative">
           <GridPattern />
           <GlowOrb />
-          <HeroSection
-            data={{
-              title: hero.title,
-              subtitle: hero.subtitle,
-              welcomeText: welcomeText,
-              primaryCtaText: primaryCtaText,
-              primaryCtaLink: hero.primary_cta_link || '/contact',
-              secondaryCtaText: secondaryCtaText,
-              secondaryCtaLink: hero.secondary_cta_link || '/projects',
-              backgroundImage: hero.background_image,
-              featureBullets:
-                hero.feature_bullets ||
-                'Web Development|UI/UX Design|Digital Marketing|Brand Strategy',
-              ...(hero.video_url ? { video_url: hero.video_url } : {}),
-            }}
-          />
+          <HeroSection data={{
+            title: hero.title,
+            subtitle: hero.subtitle,
+            welcomeText: welcomeText,
+            primaryCtaText: primaryCtaText,
+            primaryCtaLink: hero.primary_cta_link || '/contact',
+            secondaryCtaText: secondaryCtaText,
+            secondaryCtaLink: hero.secondary_cta_link || '/projects',
+            backgroundImage: hero.background_image,
+            featureBullets: hero.feature_bullets || 'Web Development|UI/UX Design|Digital Marketing|Brand Strategy',
+            ...(hero.video_url ? { video_url: hero.video_url } : {}),
+          }} />
         </section>
 
-        {/* 2. Stats Bar */}
+        {/* 2. Stats */}
         <section className={`${bgGradient} relative`}>
           <StatsBar stats={statsData} />
         </section>
@@ -150,7 +134,7 @@ export default function HomePageClient({
         {/* 4. Service Orbit */}
         <section className={`py-12 md:py-16 relative overflow-hidden ${bgGradient}`}>
           <GridPattern />
-          <div className="container mx-auto px-4 relative z-10">
+          <div className="w-full max-w-7xl mx-auto px-6 md:px-12 relative z-10">
             <ServiceOrbit services={services} />
           </div>
         </section>
@@ -158,50 +142,38 @@ export default function HomePageClient({
         {/* 5. Why Choose Us */}
         <section className={`${bgGradient} relative`}>
           <GridPattern />
-          <div className="py-20 container mx-auto px-4 relative z-10">
+          <div className="py-20 w-full max-w-7xl mx-auto px-6 md:px-12 relative z-10">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 font-['Poppins'] text-white">
-                Why Choose Us
-              </h2>
-              <p className="text-white/70 max-w-2xl mx-auto font-['Poppins']">
-                Discover what makes us different and why clients trust us with their digital presence
-              </p>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 font-['Poppins'] text-white">Why Choose Us</h2>
+              <p className="text-white/70 max-w-2xl mx-auto font-['Poppins']">Discover what makes us different and why clients trust us with their digital presence</p>
             </div>
             <TabSwitcher tabs={whyChooseUsTabs} defaultTab="approach" />
           </div>
         </section>
 
-        {/* 6. About Section */}
+        {/* 6. About */}
         <section className={`${bgGradient} relative`}>
           <Reveal>
-            <AboutSection
-              data={{
-                title: about.title,
-                subtitle: about.subtitle,
-                description: about.description,
-                imageUrl: about.image_url,
-                stats: about.stats || [],
-                values: about.values || [],
-              }}
-            />
+            <AboutSection data={{
+              title: about.title,
+              subtitle: about.subtitle,
+              description: about.description,
+              imageUrl: about.image_url,
+              stats: about.stats || [],
+              values: about.values || [],
+            }} />
           </Reveal>
         </section>
 
         {/* 7. Portfolio Preview */}
         <section className={`${bgGradient} relative overflow-hidden`}>
           <GridPattern />
-          <div className="py-20 container mx-auto px-4 relative z-10">
+          <div className="py-20 w-full max-w-7xl mx-auto px-6 md:px-12 relative z-10">
             <div className="text-center max-w-2xl mx-auto mb-10">
-              <div className="text-xs tracking-widest uppercase text-[#007BFF] font-semibold mb-3">
-                Our Work
-              </div>
-              <h2 className="font-bold text-3xl md:text-4xl text-white">
-                Real Stores We've Grown
-              </h2>
+              <div className="text-xs tracking-widest uppercase text-[#007BFF] font-semibold mb-3">Our Work</div>
+              <h2 className="font-bold text-3xl md:text-4xl text-white">Real Stores We've Grown</h2>
               <div className="w-16 h-1 bg-gradient-to-r from-[#007BFF] to-[#00BFFF] rounded-full mx-auto my-4" />
-              <p className="text-white/70 text-sm leading-relaxed">
-                We've helped Shopify and e-commerce stores increase revenue, traffic, and conversions. Here's a snapshot of recent work.
-              </p>
+              <p className="text-white/70 text-sm leading-relaxed">We've helped Shopify and e-commerce stores increase revenue, traffic, and conversions. Here's a snapshot of recent work.</p>
             </div>
 
             <div className="relative">
@@ -263,36 +235,31 @@ export default function HomePageClient({
           </div>
         </section>
 
-        {/* 8. Testimonials */}
+        {/* 8. Client Proofs (Video Testimonial Screenshots) */}
+        <ClientProofsSection />
+
+        {/* 9. Testimonials */}
         <section className={`${bgGradient} relative`}>
           <GlowOrb />
-          <Reveal delay={0.3}>
-            <TestimonialsSection />
-          </Reveal>
+          <Reveal delay={0.3}><TestimonialsSection /></Reveal>
         </section>
 
-        {/* 9. Team */}
+        {/* 10. Team */}
         <section className={`${bgGradient} relative`}>
-          <Reveal delay={0.4}>
-            <TeamSection />
-          </Reveal>
+          <Reveal delay={0.4}><TeamSection /></Reveal>
         </section>
 
-        {/* 10. FAQ */}
+        {/* 11. FAQ */}
         <section className={`${bgGradient} relative`}>
-          <Reveal delay={0.5}>
-            <FAQSection data={faqs} />
-          </Reveal>
+          <Reveal delay={0.5}><FAQSection data={faqs} /></Reveal>
         </section>
 
-        {/* 11. CTA */}
+        {/* 12. CTA */}
         <section className={`${bgGradient} relative`}>
-          <Reveal delay={0.6}>
-            <CTASection data={{ title: cta.title, subtitle: cta.subtitle, buttonText: cta.button_text, buttonLink: cta.button_link }} />
-          </Reveal>
+          <Reveal delay={0.6}><CTASection data={{ title: cta.title, subtitle: cta.subtitle, buttonText: cta.button_text, buttonLink: cta.button_link }} /></Reveal>
         </section>
 
-        {/* 12. Newsletter */}
+        {/* 13. Newsletter */}
         <section className={`${bgGradient} relative`}>
           <NewsletterSection />
         </section>

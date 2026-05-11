@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
 import ThemeToggle from '@/components/ThemeToggle'
 
 interface NavLink {
@@ -13,11 +13,10 @@ interface NavLink {
 }
 
 export default function Navbar() {
-  const [isScrolled, setIsScrolled] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [menuItems, setMenuItems] = useState<NavLink[]>([])
   const [siteName, setSiteName] = useState('Hbee Digitals')
-  const [headerColor, setHeaderColor] = useState('#0A1D37')
   const [logoUrl, setLogoUrl] = useState('/svgs/logo.svg')
 
   const pathname = usePathname()
@@ -26,90 +25,75 @@ export default function Navbar() {
   const firstFocusableRef = useRef<HTMLAnchorElement>(null)
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 60)
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    fetchData()
-    return () => window.removeEventListener('scroll', handleScroll)
+    const onScroll = () => setScrolled(window.scrollY > 60)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isMobileMenuOpen) {
-        setIsMobileMenuOpen(false)
+    const fetchData = async () => {
+      const { data: menuData } = await supabase
+        .from('menu_items')
+        .select('label, href')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+
+      setMenuItems(
+        menuData?.length
+          ? menuData
+          : [
+              { label: 'Home', href: '/' },
+              { label: 'About', href: '/about' },
+              { label: 'Services', href: '/services' },
+              { label: 'Projects', href: '/projects' },
+              { label: 'Blog', href: '/blog' },
+              { label: 'FAQ', href: '/faq' },
+              { label: 'Contact', href: '/contact' },
+            ]
+      )
+
+      const { data: settings } = await supabase.from('site_settings').select('*').single()
+      if (settings) {
+        if (settings.site_name) setSiteName(settings.site_name)
+        if (settings.logo_url?.trim()) setLogoUrl(settings.logo_url.trim())
+        if (settings.primary_color) {
+          document.documentElement.style.setProperty('--primary-color', settings.primary_color)
+        }
       }
     }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
+    fetchData()
+  }, [])
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && isMobileMenuOpen) setIsMobileMenuOpen(false) }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
   }, [isMobileMenuOpen])
 
   useEffect(() => {
-    if (isMobileMenuOpen) {
-      setTimeout(() => firstFocusableRef.current?.focus(), 100)
-    }
+    if (isMobileMenuOpen) setTimeout(() => firstFocusableRef.current?.focus(), 100)
   }, [isMobileMenuOpen])
 
   useEffect(() => {
     if (!isMobileMenuOpen) return
     const menu = mobileMenuRef.current
     if (!menu) return
-    const focusable = menu.querySelectorAll<HTMLElement>(
-      'a, button, input, textarea, select'
-    )
+    const focusable = menu.querySelectorAll<HTMLElement>('a, button, input, textarea, select')
     if (focusable.length === 0) return
     const first = focusable[0]
     const last = focusable[focusable.length - 1]
-    const handleTab = (e: KeyboardEvent) => {
+    const trap = (e: KeyboardEvent) => {
       if (e.key === 'Tab') {
         if (e.shiftKey) {
-          if (document.activeElement === first) {
-            e.preventDefault()
-            last.focus()
-          }
+          if (document.activeElement === first) { e.preventDefault(); last.focus() }
         } else {
-          if (document.activeElement === last) {
-            e.preventDefault()
-            first.focus()
-          }
+          if (document.activeElement === last) { e.preventDefault(); first.focus() }
         }
       }
     }
-    menu.addEventListener('keydown', handleTab)
-    return () => menu.removeEventListener('keydown', handleTab)
+    menu.addEventListener('keydown', trap)
+    return () => menu.removeEventListener('keydown', trap)
   }, [isMobileMenuOpen])
-
-  const fetchData = async () => {
-    const { data: menuData } = await supabase
-      .from('menu_items')
-      .select('label, href')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true })
-
-    setMenuItems(
-      menuData?.length
-        ? menuData
-        : [
-            { label: 'Home', href: '/' },
-            { label: 'About', href: '/about' },
-            { label: 'Services', href: '/services' },
-            { label: 'Projects', href: '/projects' },
-            { label: 'Blog', href: '/blog' },
-            { label: 'FAQ', href: '/faq' },
-            { label: 'Contact', href: '/contact' },
-          ]
-    )
-
-    const { data: settings } = await supabase.from('site_settings').select('*').single()
-    if (settings) {
-      if (settings.site_name) setSiteName(settings.site_name)
-      if (settings.logo_url && settings.logo_url.trim().length > 0) {
-        setLogoUrl(settings.logo_url.trim())
-      }
-      if (settings.primary_color) {
-        setHeaderColor(settings.primary_color)
-        document.documentElement.style.setProperty('--primary-color', settings.primary_color)
-      }
-    }
-  }
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false)
 
@@ -119,15 +103,21 @@ export default function Navbar() {
       animate={{ y: 0 }}
       transition={{ duration: 0.5 }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
-          ? 'backdrop-blur-xl bg-[var(--primary-color)]/90 border-b border-[var(--card-border)] shadow-lg'
+        scrolled
+          ? 'backdrop-blur-xl bg-[#0A1D37]/80 border-b border-white/8 shadow-lg'
           : 'bg-transparent'
       }`}
       aria-label="Main navigation"
       role="navigation"
     >
-      <div className="container mx-auto px-4 lg:px-8 flex justify-between items-center py-3">
-        <Link href="/" className="flex items-center gap-3" aria-label="Hbee Digitals — go to homepage">
+      {/* Footer‑style spacing */}
+      <div className="w-full max-w-7xl mx-auto px-6 md:px-12 flex justify-between items-center py-3">
+        {/* Logo with glow on hover */}
+        <Link
+          href="/"
+          className="flex items-center gap-3 hover:drop-shadow-[0_0_8px_rgba(0,191,255,0.6)] transition-all duration-300"
+          aria-label="Hbee Digitals — go to homepage"
+        >
           <img
             src={logoUrl}
             alt={`${siteName} logo`}
@@ -139,30 +129,35 @@ export default function Navbar() {
           </span>
         </Link>
 
-        <ul className="hidden lg:flex items-center gap-1" role="list">
-          {menuItems.map((link) => {
-            const isActive = pathname === link.href
-            return (
-              <li key={link.href} className="relative">
-                <Link
-                  href={link.href}
-                  className={`relative px-4 py-2 text-sm font-medium transition-all duration-300 rounded-lg ${
-                    isActive ? 'bg-[var(--accent-color)]/10' : 'hover:bg-white/10'
-                  }`}
-                  style={{ color: 'var(--secondary-color)' }}
-                  aria-current={isActive ? 'page' : undefined}
-                >
-                  {link.label}
-                  <span
-                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] bg-gradient-to-r from-[#007BFF] to-[#00BFFF] transition-all duration-300 ${
-                      isActive ? 'w-[70%]' : 'w-0 group-hover:w-[70%]'
+        {/* Desktop nav links */}
+        <LayoutGroup>
+          <ul className="hidden lg:flex items-center gap-1" role="list">
+            {menuItems.map((link) => {
+              const isActive = pathname === link.href
+              return (
+                <li key={link.href} className="relative">
+                  <Link
+                    href={link.href}
+                    className={`relative px-4 py-2 text-sm font-medium transition-colors rounded-lg ${
+                      isActive ? 'text-white' : 'text-white/80 hover:text-white'
                     }`}
-                  ></span>
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    {link.label}
+                    {isActive && (
+                      <motion.div
+                        layoutId="nav-underline"
+                        className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
+                        style={{ background: 'linear-gradient(90deg, #007BFF, #00BFFF)' }}
+                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        </LayoutGroup>
 
         <div className="flex items-center gap-3">
           <ThemeToggle />
@@ -204,7 +199,7 @@ export default function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden backdrop-blur-xl bg-[var(--primary-color)]/95"
+            className="lg:hidden backdrop-blur-xl bg-[#0A1D37]/95"
             role="dialog"
             aria-label="Mobile navigation"
           >
@@ -217,7 +212,7 @@ export default function Navbar() {
                       href={link.href}
                       onClick={closeMobileMenu}
                       ref={index === 0 ? firstFocusableRef : undefined}
-                      className={`block px-4 py-3 rounded-lg text-sm transition-all duration-300 ${
+                      className={`block px-4 py-3 rounded-lg text-sm transition ${
                         isActive ? 'bg-[var(--accent-color)]/10 font-medium' : 'hover:bg-white/10'
                       }`}
                       style={{ color: 'var(--secondary-color)' }}

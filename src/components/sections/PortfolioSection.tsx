@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Project } from '@/types'
 import Image from 'next/image'
 import Link from 'next/link'
+import Reveal from '@/components/Reveal'
 
 interface PortfolioSectionProps {
   data: Project[]
@@ -11,20 +12,27 @@ interface PortfolioSectionProps {
   subtitle?: string
 }
 
-export default function PortfolioSection({ data, title = "Our Portfolio", subtitle = "Recent projects" }: PortfolioSectionProps) {
+export default function PortfolioSection({
+  data,
+  title = 'Our Portfolio',
+  subtitle = 'Recent projects',
+}: PortfolioSectionProps) {
   const [filter, setFilter] = useState<string>('all')
-  
-  const categories = ['all', ...new Set(data.map(p => p.category))]
-  
-  const filteredProjects = filter === 'all' 
-    ? data 
-    : data.filter(p => p.category === filter)
+
+  const categories = ['all', ...new Set(data.map((p) => p.category))]
+
+  const filteredProjects =
+    filter === 'all' ? data : data.filter((p) => p.category === filter)
 
   return (
     <section className="py-20 bg-white">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{title}</h2>
+          <Reveal variant="wipe">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              {title}
+            </h2>
+          </Reveal>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">{subtitle}</p>
         </div>
 
@@ -63,9 +71,15 @@ export default function PortfolioSection({ data, title = "Our Portfolio", subtit
                 </div>
               )}
               <div className="p-4 bg-white">
-                <span className="text-sm text-[#0A1D37] font-medium">{project.category}</span>
-                <h3 className="text-lg font-semibold text-gray-900 mt-1">{project.title}</h3>
-                <p className="text-gray-600 text-sm mt-1 line-clamp-2">{project.description}</p>
+                <span className="text-sm text-[#0A1D37] font-medium">
+                  {project.category}
+                </span>
+                <h3 className="text-lg font-semibold text-gray-900 mt-1">
+                  {project.title}
+                </h3>
+                <p className="text-gray-600 text-sm mt-1 line-clamp-2">
+                  {project.description}
+                </p>
                 {project.projectUrl && (
                   <Link
                     href={project.projectUrl}

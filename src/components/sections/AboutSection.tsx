@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react'
 import { useInView } from 'framer-motion'
 import { AboutData } from '@/types'
 import Image from 'next/image'
+import Reveal from '@/components/Reveal'
 
 interface AboutSectionProps {
   data: AboutData
@@ -13,6 +14,7 @@ export default function AboutSection({ data }: AboutSectionProps) {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-5%' })
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
+
   const { title, subtitle, description, imageUrl, stats, values } = data
 
   useEffect(() => {
@@ -27,9 +29,11 @@ export default function AboutSection({ data }: AboutSectionProps) {
     <section ref={ref} className="py-20" aria-labelledby="about-heading">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 id="about-heading" className="text-3xl md:text-4xl font-bold text-white mb-4">
-            {title}
-          </h2>
+          <Reveal variant="wipe">
+            <h2 id="about-heading" className="text-3xl md:text-4xl font-bold text-white mb-4">
+              {title}
+            </h2>
+          </Reveal>
           <p className="text-lg text-white/70 max-w-2xl mx-auto">{subtitle}</p>
         </div>
 
@@ -50,9 +54,15 @@ export default function AboutSection({ data }: AboutSectionProps) {
               key={index}
               className="text-center p-6 bg-white/5 rounded-lg"
               style={{
-                transform: prefersReducedMotion ? 'none' : isInView ? 'none' : 'translateY(20px)',
+                transform: prefersReducedMotion
+                  ? 'none'
+                  : isInView
+                  ? 'none'
+                  : 'translateY(20px)',
                 opacity: prefersReducedMotion ? 1 : isInView ? 1 : 0,
-                transition: prefersReducedMotion ? 'none' : `all 0.5s ease ${index * 0.1}s`,
+                transition: prefersReducedMotion
+                  ? 'none'
+                  : `all 0.5s ease ${index * 0.1}s`,
               }}
             >
               <dt className="sr-only">{stat.label}</dt>
@@ -68,9 +78,15 @@ export default function AboutSection({ data }: AboutSectionProps) {
               key={index}
               className="text-center p-6 border border-white/10 rounded-lg hover:shadow-lg transition list-none"
               style={{
-                transform: prefersReducedMotion ? 'none' : isInView ? 'none' : 'translateY(20px)',
+                transform: prefersReducedMotion
+                  ? 'none'
+                  : isInView
+                  ? 'none'
+                  : 'translateY(20px)',
                 opacity: prefersReducedMotion ? 1 : isInView ? 1 : 0,
-                transition: prefersReducedMotion ? 'none' : `all 0.5s ease ${0.4 + index * 0.1}s`,
+                transition: prefersReducedMotion
+                  ? 'none'
+                  : `all 0.5s ease ${0.4 + index * 0.1}s`,
               }}
             >
               {value.icon && (

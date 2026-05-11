@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import Reveal from '@/components/Reveal'
 
 interface FAQ {
   id: string
@@ -18,7 +19,11 @@ interface FAQSectionProps {
   subtitle?: string
 }
 
-export default function FAQSection({ data, title = "Frequently Asked Questions", subtitle = "Got questions? We've got answers" }: FAQSectionProps) {
+export default function FAQSection({
+  data,
+  title = "Frequently Asked Questions",
+  subtitle = "Got questions? We've got answers",
+}: FAQSectionProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
   const displayFaqs = data?.slice(0, 3) || []
 
@@ -34,7 +39,11 @@ export default function FAQSection({ data, title = "Frequently Asked Questions",
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">{title}</h2>
+          <Reveal variant="wipe">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
+              {title}
+            </h2>
+          </Reveal>
           <div className="w-16 h-1 bg-gradient-to-r from-[#007BFF] to-[#00BFFF] rounded-full mx-auto my-4" />
           <p className="text-lg text-white/70">{subtitle}</p>
         </motion.div>

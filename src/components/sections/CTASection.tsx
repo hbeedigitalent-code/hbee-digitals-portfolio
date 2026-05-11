@@ -3,6 +3,7 @@
 import { CTAData } from '@/types'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import Reveal from '@/components/Reveal'
 
 interface CTASectionProps {
   data: CTAData
@@ -24,16 +25,18 @@ export default function CTASection({ data }: CTASectionProps) {
       </div>
 
       <div className="container mx-auto px-4 text-center relative z-10">
-        {/* Title with fade-up animation */}
+        {/* Title with wipe animation */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
           viewport={{ once: true }}
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
-            {title}
-          </h2>
+          <Reveal variant="wipe">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
+              {title}
+            </h2>
+          </Reveal>
         </motion.div>
 
         {/* Subtitle with fade-up animation (delayed) */}
