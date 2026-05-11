@@ -8,6 +8,7 @@ interface Proof {
   id: string
   title: string
   image_url: string
+  media_type: string
 }
 
 export default function ClientProofsSection() {
@@ -36,7 +37,9 @@ export default function ClientProofsSection() {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Real Results from Our Clients</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Real Results from Our Clients
+          </h2>
           <p className="text-white/70 max-w-2xl mx-auto">
             Screenshots and video testimonials from live Shopify stores we've helped grow
           </p>
@@ -52,11 +55,19 @@ export default function ClientProofsSection() {
               viewport={{ once: true }}
               className="group relative rounded-2xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-sm hover:border-white/20 transition-all duration-300"
             >
-              <img
-                src={proof.image_url}
-                alt={proof.title}
-                className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500"
-              />
+              {proof.media_type === 'video' ? (
+                <video
+                  src={proof.image_url}
+                  controls
+                  className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              ) : (
+                <img
+                  src={proof.image_url}
+                  alt={proof.title}
+                  className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              )}
               <div className="p-4">
                 <p className="text-white font-medium">{proof.title}</p>
               </div>
