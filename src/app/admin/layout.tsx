@@ -40,7 +40,7 @@ export default function AdminLayout({
     const getUser = async () => {
       try {
         const { data: { user: authUser }, error } = await supabase.auth.getUser()
-        
+
         if (error || !authUser) {
           if (isMounted) router.replace('/admin/login')
         } else {
@@ -49,13 +49,13 @@ export default function AdminLayout({
             setUser(refreshedUser)
             setUserName(refreshedUser?.user_metadata?.full_name || refreshedUser?.email?.split('@')[0] || 'Admin')
             setAvatarUrl(refreshedUser?.user_metadata?.avatar_url || null)
-            
+
             const { data: settings } = await supabase.from('site_settings').select('*').single()
             if (settings) {
               setSiteLogo(settings.logo_url || null)
               setSiteName(settings.site_name || 'Admin Panel')
             }
-            
+
             setLoading(false)
           }
         }
@@ -64,7 +64,7 @@ export default function AdminLayout({
         if (isMounted) router.replace('/admin/login')
       }
     }
-    
+
     getUser()
     return () => { isMounted = false }
   }, [router, pathname])
@@ -73,7 +73,6 @@ export default function AdminLayout({
     setMobileMenuOpen(false)
   }, [pathname])
 
-  // Auto-close sidebar on small screens
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 1024) setSidebarOpen(true)
@@ -101,6 +100,7 @@ export default function AdminLayout({
     { name: 'Services', href: '/admin/services', icon: '/svgs/services.svg', label: 'Services' },
     { name: 'Projects', href: '/admin/projects', icon: '/svgs/projects.svg', label: 'Projects' },
     { name: 'Portfolio', href: '/admin/portfolio', icon: '/svgs/portfolio-icon.svg', label: 'Portfolio' },
+    { name: 'Video Testimonials', href: '/admin/video-testimonials', icon: '/svgs/video.svg', label: 'Video Testimonials' },
     { name: 'FAQs', href: '/admin/faqs', icon: '/svgs/faq.svg', label: 'FAQs' },
     { name: 'Call to Action', href: '/admin/cta', icon: '/svgs/cta.svg', label: 'Call to Action' },
     { name: 'Navigation Menu', href: '/admin/menu', icon: '/svgs/menu.svg', label: 'Navigation Menu' },
@@ -134,17 +134,14 @@ export default function AdminLayout({
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gray-50">
-        {/* Mobile Overlay */}
         {mobileMenuOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden" onClick={() => setMobileMenuOpen(false)} />
         )}
 
-        {/* Sidebar */}
         <aside className={`fixed left-0 top-0 h-full bg-gradient-to-b from-[#0A1D37] to-[#1a2a4a] text-white transition-all duration-300 z-30 flex flex-col
           ${sidebarOpen ? 'w-64' : 'w-20'}
           ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}>
-          {/* Logo Area */}
           <div className={`p-5 border-b border-white/10 flex items-center ${sidebarOpen ? 'justify-between' : 'justify-center'}`}>
             <div className={`flex items-center gap-2 overflow-hidden ${sidebarOpen ? 'flex-1' : ''}`}>
               {siteLogo ? (
@@ -156,7 +153,7 @@ export default function AdminLayout({
               )}
               {sidebarOpen && <span className="font-bold text-lg truncate">{siteName}</span>}
             </div>
-            
+
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="text-white/50 hover:text-white transition flex-shrink-0 p-1 rounded hover:bg-white/10"
@@ -168,7 +165,6 @@ export default function AdminLayout({
             </button>
           </div>
 
-          {/* Navigation */}
           <nav className="flex-1 py-2 overflow-y-auto scrollbar-thin">
             {navItems.map((item) => {
               const isActive = pathname === item.href
@@ -188,7 +184,6 @@ export default function AdminLayout({
             })}
           </nav>
 
-          {/* User Profile */}
           <div className="p-3 border-t border-white/10">
             <Link href="/admin/profile" className={`flex items-center gap-3 hover:bg-white/8 rounded-lg transition p-2 ${sidebarOpen ? '' : 'justify-center'}`}>
               <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 flex items-center justify-center flex-shrink-0 overflow-hidden">
@@ -226,9 +221,7 @@ export default function AdminLayout({
           </div>
         </aside>
 
-        {/* Main Content */}
         <main className={`transition-all duration-300 min-h-screen ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'} ml-0`}>
-          {/* Top Header */}
           <div className="sticky top-0 z-10 bg-white shadow-sm px-4 lg:px-6 py-3">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
@@ -256,7 +249,6 @@ export default function AdminLayout({
             </div>
           </div>
 
-          {/* Page Content */}
           <div className="p-4 lg:p-6">{children}</div>
         </main>
       </div>
