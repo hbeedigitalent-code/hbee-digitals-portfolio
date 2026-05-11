@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useInView } from 'framer-motion'
+import { useInView, useReducedMotion } from 'framer-motion'
 
 interface CounterProps {
   value: number
@@ -9,21 +9,31 @@ interface CounterProps {
   suffix?: string
   prefix?: string
   start?: number
+  onComplete?: (final: string) => void
 }
 
-export default function Counter({ 
-  value, 
-  duration = 2000, 
-  suffix = '', 
+export default function Counter({
+  value,
+  duration = 2000,
+  suffix = '',
   prefix = '',
-  start = 0 
+  start = 0,
+  onComplete,
 }: CounterProps) {
   const [count, setCount] = useState(start)
   const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px" })
+  const isInView = useInView(ref, { once: true, margin: '-100px' })
   const hasAnimated = useRef(false)
+  const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
+    if (prefersReducedMotion) {
+      setCount(value)
+      hasAnimated.current = true
+      onComplete?.(`${prefix}${value.toLocaleString()}${suffix}`)
+      return
+    }
+
     if (isInView && !hasAnimated.current) {
       hasAnimated.current = true
       let startTime: number | null = null
@@ -39,16 +49,20 @@ export default function Counter({
 
         if (progress < 1) {
           requestAnimationFrame(animate)
+        } else {
+          onComplete?.(`${prefix}${value.toLocaleString()}${suffix}`)
         }
       }
 
       requestAnimationFrame(animate)
     }
-  }, [isInView, value, duration, start])
+  }, [isInView, value, duration, start, prefix, suffix, prefersReducedMotion, onComplete])
 
   return (
-    <span ref={ref} className="inline-block">
-      {prefix}{count.toLocaleString()}{suffix}
+    <span ref={ref} aria-live="off">
+      {prefix}
+      {count.toLocaleString()}
+      {suffix}
     </span>
   )
 }

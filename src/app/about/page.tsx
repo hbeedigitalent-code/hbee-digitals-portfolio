@@ -29,13 +29,22 @@ export default function AboutPage() {
     fetchAbout()
   }, [])
 
+  // Dynamically set page title for SEO
+  useEffect(() => {
+    if (about?.title) {
+      document.title = `${about.title} | Hbee Digitals`
+    } else {
+      document.title = 'About Us | Hbee Digitals'
+    }
+  }, [about])
+
   if (loading) {
     return (
       <>
         <Navbar />
-        <div className="flex items-center justify-center min-h-screen pt-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
+        <main className="flex items-center justify-center min-h-screen pt-20" id="main-content">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" aria-label="Loading content"></div>
+        </main>
         <Footer />
       </>
     )
@@ -58,7 +67,7 @@ export default function AboutPage() {
   return (
     <>
       <Navbar />
-      <main className="pt-28 pb-20 min-h-screen bg-white">
+      <main className="pt-28 pb-20 min-h-screen bg-white" id="main-content">
         <div className="container mx-auto px-4">
           {/* Header */}
           <motion.div
@@ -83,6 +92,8 @@ export default function AboutPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20"
+            role="list"
+            aria-label="Company statistics"
           >
             {stats.map((stat, index) => (
               <motion.div
@@ -92,6 +103,8 @@ export default function AboutPage() {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
                 className="text-center p-8 bg-gray-50 rounded-2xl hover:shadow-lg transition"
+                role="listitem"
+                aria-label={`${stat.number} ${stat.label}`}
               >
                 <div className="text-4xl lg:text-5xl font-bold text-[#0A1D37] mb-2">
                   {stat.number}
@@ -107,7 +120,7 @@ export default function AboutPage() {
             <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
               The principles that guide everything we do and define who we are as a company
             </p>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6" role="list">
               {values.map((value, index) => (
                 <motion.div
                   key={index}
@@ -116,10 +129,11 @@ export default function AboutPage() {
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.15 }}
                   className="p-6 border border-gray-100 rounded-xl hover:shadow-lg transition group"
+                  role="listitem"
                 >
                   {value.icon && (
                     <div className="w-12 h-12 mb-4">
-                      <Image src={value.icon} alt={value.title} width={48} height={48} className="w-full h-full" />
+                      <Image src={value.icon} alt="" width={48} height={48} className="w-full h-full" aria-hidden="true" />
                     </div>
                   )}
                   <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition">
@@ -142,7 +156,7 @@ export default function AboutPage() {
             <p className="text-white/70 mb-6 max-w-md mx-auto">Ready to work with a team that cares about your success?</p>
             <a
               href="/contact"
-              className="px-8 py-3 bg-white rounded-xl font-semibold text-[#0A1D37] hover:shadow-lg transition inline-block"
+              className="inline-block px-8 py-3 bg-white rounded-xl font-semibold text-[#0A1D37] hover:shadow-lg hover:scale-105 transition-all duration-300 focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               Get in Touch
             </a>

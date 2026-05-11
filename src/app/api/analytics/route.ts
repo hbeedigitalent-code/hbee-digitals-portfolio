@@ -1,98 +1,19 @@
-﻿export const dynamic = 'force-dynamic'
-
+﻿import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase-server'
 
 export async function GET() {
-  try {
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  const supabase = createServerSupabaseClient()
 
-    const { data: messages, error: messagesError } = await supabase
-      .from('messages')
-      .select('created_at, is_read')
-      .gte('created_at', thirtyDaysAgo.toISOString())
+  // Example: get total posts, services, etc. (adjust to your needs)
+  const { count: postsCount } = await supabase
+    .from('blog_posts')
+    .select('*', { count: 'exact', head: true })
+  const { count: servicesCount } = await supabase
+    .from('services')
+    .select('*', { count: 'exact', head: true })
 
-    if (messagesError) throw messagesError
-
-    const { data: projects, error: projectsError } = await supabase
-      .from('projects')
-      .select('status, created_at')
-
-    if (projectsError) throw projectsError
-
-    const { data: subscribers, error: subscribersError } = await supabase
-      .from('subscribers')
-      .select('status, subscribed_at')
-      .gte('subscribed_at', thirtyDaysAgo.toISOString())
-
-    if (subscribersError) throw subscribersError
-
-    const { data: blogPosts, error: blogError } = await supabase
-      .from('blog_posts')
-      .select('status, views, published_at')
-
-    if (blogError) throw blogError
-
-    const dailyMessages = new Map()
-    messages?.forEach((msg: any) => {
-      const date = new Date(msg.created_at).toLocaleDateString()
-      dailyMessages.set(date, (dailyMessages.get(date) || 0) + 1)
-    })
-
-    const dailySubscribers = new Map()
-    subscribers?.forEach((sub: any) => {
-      const date = new Date(sub.subscribed_at).toLocaleDateString()
-      dailySubscribers.set(date, (dailySubscribers.get(date) || 0) + 1)
-    })
-
-    const chartData = []
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date()
-      date.setDate(date.getDate() - i)
-      const dateStr = date.toLocaleDateString()
-      chartData.push({
-        date: dateStr,
-        messages: dailyMessages.get(dateStr) || 0,
-        subscribers: dailySubscribers.get(dateStr) || 0,
-      })
-    }
-
-    const publishedProjects = projects?.filter((p: any) => p.status === 'published').length || 0
-    const draftProjects = projects?.filter((p: any) => p.status === 'draft').length || 0
-    
-    const activeSubscribers = subscribers?.filter((s: any) => s.status === 'active').length || 0
-    const unsubscribedCount = subscribers?.filter((s: any) => s.status === 'unsubscribed').length || 0
-    
-    const publishedPosts = blogPosts?.filter((p: any) => p.status === 'published').length || 0
-    const draftPosts = blogPosts?.filter((p: any) => p.status === 'draft').length || 0
-    const totalViews = blogPosts?.reduce((sum: number, p: any) => sum + (p.views || 0), 0) || 0
-
-    const unreadMessages = messages?.filter((m: any) => !m.is_read).length || 0
-    const totalMessages = messages?.length || 0
-
-    return NextResponse.json({
-      success: true,
-      chartData,
-      stats: {
-        projects: { total: projects?.length || 0, published: publishedProjects, draft: draftProjects },
-        messages: { total: totalMessages, unread: unreadMessages, read: totalMessages - unreadMessages },
-        subscribers: { total: subscribers?.length || 0, active: activeSubscribers, unsubscribed: unsubscribedCount },
-        blog: { total: blogPosts?.length || 0, published: publishedPosts, draft: draftPosts, totalViews: totalViews },
-      },
-    })
-  } catch (error) {
-    console.error('Analytics error:', error)
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Failed to fetch analytics',
-      chartData: [],
-      stats: {
-        projects: { total: 0, published: 0, draft: 0 },
-        messages: { total: 0, unread: 0, read: 0 },
-        subscribers: { total: 0, active: 0, unsubscribed: 0 },
-        blog: { total: 0, published: 0, draft: 0, totalViews: 0 }
-      }
-    }, { status: 500 })
-  }
+  return NextResponse.json({
+    posts: postsCount || 0,
+    services: servicesCount || 0,
+  })
 }

@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import HomePageClient from '@/components/HomePageClient'
+import { getTranslations } from 'next-intl/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,6 +28,14 @@ export default async function HomePage() {
       .limit(6),
   ])
 
+  const t = await getTranslations('hero')
+  const translatedTexts = {
+    welcomeText: t('welcome'),
+    primaryCtaText: t('cta'),
+    secondaryCtaText: t('secondaryCta'),
+    trustText: t('trust'),
+  }
+
   return (
     <HomePageClient
       hero={heroData || {}}
@@ -35,6 +44,7 @@ export default async function HomePage() {
       faqs={faqsData || []}
       cta={ctaData || {}}
       featuredPortfolioItems={portfolioData || []}
+      translatedTexts={translatedTexts}
     />
   )
 }

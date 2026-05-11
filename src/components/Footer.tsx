@@ -39,18 +39,15 @@ export default function Footer() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Fetch footer settings
       const { data: footer } = await supabase.from('footer_settings').select('*').single()
       if (footer) setFooterData(footer)
 
-      // Fetch site settings for contact info
       const { data: site } = await supabase.from('site_settings').select('*').single()
       if (site) setSiteSettings(site)
     }
     fetchData()
   }, [])
 
-  // Fallback columns if none in DB
   const columns: FooterColumn[] = footerData?.columns?.length
     ? footerData.columns
     : [
@@ -113,17 +110,22 @@ export default function Footer() {
   ]
 
   return (
-    <footer className="relative bg-gradient-to-br from-gray-900 via-[#0A0F1C] to-[#112266] text-white overflow-hidden">
-      <div className="absolute inset-0 opacity-5">
+    <footer
+      className="relative bg-gradient-to-br from-gray-900 via-[#0A0F1C] to-[#112266] text-white overflow-hidden"
+      role="contentinfo"
+      aria-label="Site footer"
+    >
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 opacity-5" aria-hidden="true">
         <div className="absolute -left-40 -top-40 w-96 h-96 transform scale-150">
-          <img src="/svgs/logo.svg" alt="Hbee Digitals" className="w-full h-full object-contain filter brightness-0 invert" />
+          <img src="/svgs/logo.svg" alt="" className="w-full h-full object-contain filter brightness-0 invert" />
         </div>
         <div className="absolute -right-20 -bottom-20 w-80 h-80 transform scale-125 opacity-30">
-          <img src="/svgs/logo.svg" alt="Hbee Digitals" className="w-full h-full object-contain filter brightness-0 invert" />
+          <img src="/svgs/logo.svg" alt="" className="w-full h-full object-contain filter brightness-0 invert" />
         </div>
       </div>
 
-      <div className="absolute inset-0">
+      <div className="absolute inset-0" aria-hidden="true">
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#007BFF] rounded-full filter blur-3xl opacity-10 animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-[#00BFFF] rounded-full filter blur-3xl opacity-5 animate-pulse" style={{ animationDelay: '2s' }} />
       </div>
@@ -131,11 +133,17 @@ export default function Footer() {
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
           {/* Brand Section */}
-          <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }} viewport={{ once: true }} className="space-y-6">
-            <Link href="/" className="inline-block">
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="space-y-6"
+          >
+            <Link href="/" className="inline-block" aria-label="Hbee Digitals — go to homepage">
               <motion.div className="flex items-center gap-3 group" whileHover={{ scale: 1.02 }} transition={{ duration: 0.3 }}>
                 <div className="w-12 h-12 flex items-center justify-center bg-white/10 rounded-xl backdrop-blur-sm border border-white/20">
-                  <img src="/svgs/logo.svg" alt="Hbee Digitals" className="w-8 h-8 object-contain" />
+                  <img src="/svgs/logo.svg" alt="Hbee Digitals logo" className="w-8 h-8 object-contain" />
                 </div>
                 <div className="flex flex-col">
                   <span className="font-bold text-xl text-white tracking-wide">{footerData?.logo_text || 'HBEE'}</span>
@@ -148,7 +156,8 @@ export default function Footer() {
               Transforming businesses through innovative digital solutions. We create exceptional experiences that drive growth and success.
             </p>
 
-            <div className="flex space-x-4">
+            {/* Social links */}
+            <div className="flex space-x-4" aria-label="Social media links">
               {socialLinks.map((social, index) => (
                 <motion.a
                   key={social.platform}
@@ -163,27 +172,47 @@ export default function Footer() {
                   whileHover={{ scale: 1.1, y: -2 }}
                   aria-label={`Follow us on ${social.platform}`}
                 >
-                  <img src={social.icon} alt={social.platform} className="w-5 h-5 object-contain filter brightness-0 invert group-hover:brightness-0 group-hover:invert-0 transition-all duration-300" />
+                  <img
+                    src={social.icon}
+                    alt=""
+                    className="w-5 h-5 object-contain filter brightness-0 invert group-hover:brightness-0 group-hover:invert-0 transition-all duration-300"
+                    aria-hidden="true"
+                  />
                 </motion.a>
               ))}
             </div>
           </motion.div>
 
-          {/* Columns */}
-          <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }} viewport={{ once: true }} className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Footer Columns */}
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-8"
+          >
             {columns.map((column, colIndex) => (
               <div key={colIndex}>
                 <h3 className="font-bold text-lg text-[#00BFFF] mb-4">{column.title}</h3>
-                <ul className="space-y-3">
+                <ul className="space-y-3" role="list">
                   {column.links.map((link, linkIndex) => (
-                    <motion.li key={linkIndex} initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} transition={{ delay: linkIndex * 0.1 + colIndex * 0.2 }} viewport={{ once: true }}>
-                      <Link href={link.href} className="text-gray-300 hover:text-white transition-colors duration-300 text-sm flex items-center group">
+                    <li key={linkIndex}>
+                      <Link
+                        href={link.href}
+                        className="text-gray-300 hover:text-white transition-colors duration-300 text-sm flex items-center group"
+                      >
                         {link.label}
-                        <svg className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg
+                          className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all duration-300"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       </Link>
-                    </motion.li>
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -194,26 +223,56 @@ export default function Footer() {
         {/* Contact Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 pb-8 border-b border-white/10">
           {contactItems.map((item, index) => (
-            <motion.div key={index} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} viewport={{ once: true }}>
-              <Link href={item.href} className="flex items-center gap-4 text-gray-300 hover:text-white transition-all duration-300 group">
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              viewport={{ once: true }}
+            >
+              <Link
+                href={item.href}
+                className="flex items-center gap-4 text-gray-300 hover:text-white transition-all duration-300 group"
+                aria-label={
+                  item.icon.includes('email')
+                    ? `Email Hbee Digitals at ${item.name}`
+                    : item.icon.includes('phone')
+                    ? `Call Hbee Digitals at ${item.name}`
+                    : undefined
+                }
+              >
                 <div className="w-10 h-10 bg-gradient-to-br from-[#007BFF] to-[#00BFFF] rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                  <img src={item.icon} alt="" className="w-5 h-5 object-contain filter brightness-0 invert" />
+                  <img src={item.icon} alt="" className="w-5 h-5 object-contain filter brightness-0 invert" aria-hidden="true" />
                 </div>
-                <span className="text-sm font-medium break-words group-hover:text-white">{item.name}</span>
+                <span className="text-sm font-medium break-words group-hover:text-white">
+                  {item.name}
+                </span>
               </Link>
             </motion.div>
           ))}
         </div>
 
         {/* Bottom Bar */}
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }} viewport={{ once: true }} className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+          viewport={{ once: true }}
+          className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0"
+        >
           <p className="text-gray-400 text-sm">
             {footerData?.copyright_text || `© ${new Date().getFullYear()} Hbee Digitals. All rights reserved.`}
           </p>
           <div className="flex space-x-6 text-sm">
-            <Link href="/privacy" className="text-gray-400 hover:text-white transition-colors duration-300">Privacy Policy</Link>
-            <Link href="/terms" className="text-gray-400 hover:text-white transition-colors duration-300">Terms of Service</Link>
-            <Link href="/cookies" className="text-gray-400 hover:text-white transition-colors duration-300">Cookie Policy</Link>
+            <Link href="/privacy" className="text-gray-400 hover:text-white transition-colors duration-300">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="text-gray-400 hover:text-white transition-colors duration-300">
+              Terms of Service
+            </Link>
+            <Link href="/cookies" className="text-gray-400 hover:text-white transition-colors duration-300">
+              Cookie Policy
+            </Link>
           </div>
         </motion.div>
 
@@ -228,7 +287,7 @@ export default function Footer() {
           transition={{ duration: 0.5 }}
           aria-label="Back to top"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
           </svg>
         </motion.button>

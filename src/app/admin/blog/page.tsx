@@ -3,12 +3,15 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import { Search, Plus, Edit, Trash2, Eye } from 'lucide-react'
 
 interface BlogPost {
   id: string
   title: string
   slug: string
   status: string
+  excerpt: string
+  featured_image: string
   views: number
   published_at: string
   created_at: string
@@ -32,63 +35,71 @@ export default function BlogPostsPage() {
         category:blog_categories(name)
       `)
       .order('created_at', { ascending: false })
-    
+
     setPosts(data || [])
     setLoading(false)
   }
 
   const handleDelete = async (id: string) => {
-    if (confirm('Delete this post?')) {
-      await supabase.from('blog_posts').delete().eq('id', id)
-      fetchPosts()
+    if (confirm('Delete this post? This action cannot be undone.')) {
+      const { error } = await supabase.from('blog_posts').delete().eq('id', id)
+      if (!error) fetchPosts()
+      else alert('Error deleting post: ' + error.message)
     }
   }
 
-  const filteredPosts = posts.filter(p => 
-    p.title.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredPosts = posts.filter(p =>
+    p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.excerpt && p.excerpt.toLowerCase().includes(searchQuery.toLowerCase()))
   )
 
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        <p className="mt-2 text-gray-600">Loading posts...</p>
+      <div className="text-center py-16">
+        <div className="inline-block w-8 h-8 rounded-full border-2 border-gray-300 border-t-gray-800 animate-spin mb-3" />
+        <p className="text-gray-500">Loading posts...</p>
       </div>
     )
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
+    <div className="max-w-6xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Blog Posts</h2>
-        <div className="flex gap-3">
-          <input
-            type="text"
-            placeholder="Search posts..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="px-4 py-2 border rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-none">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search posts..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-4 py-2 w-full sm:w-64 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
           <Link
             href="/admin/blog/new"
-            className="px-4 py-2 text-white rounded-lg hover:opacity-90"
-            style={{ backgroundColor: 'var(--primary-color)' }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
           >
-            + New Post
+            <Plus className="w-4 h-4" />
+            New Post
           </Link>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      {/* Table */}
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
         {filteredPosts.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="text-6xl mb-4">📝</div>
-            <p className="text-gray-500">No blog posts yet. Create your first post!</p>
+            <div className="text-5xl mb-3">📝</div>
+            <p className="text-gray-500 mb-4">No blog posts yet. Create your first post!</p>
             <Link
               href="/admin/blog/new"
-              className="inline-block mt-4 text-blue-600 hover:underline"
+              className="inline-flex items-center gap-1 text-blue-600 hover:underline font-medium"
             >
-              Create New Post →
+              <Plus className="w-4 h-4" />
+              Create New Post
             </Link>
           </div>
         ) : (
@@ -97,18 +108,34 @@ export default function BlogPostsPage() {
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="p-4 text-left text-sm font-semibold text-gray-600">Title</th>
-                  <th className="p-4 text-left text-sm font-semibold text-gray-600">Category</th>
+                  <th className="p-4 text-left text-sm font-semibold text-gray-600 hidden md:table-cell">Category</th>
                   <th className="p-4 text-left text-sm font-semibold text-gray-600">Status</th>
-                  <th className="p-4 text-left text-sm font-semibold text-gray-600">Views</th>
-                  <th className="p-4 text-left text-sm font-semibold text-gray-600">Date</th>
+                  <th className="p-4 text-left text-sm font-semibold text-gray-600 hidden lg:table-cell">Views</th>
+                  <th className="p-4 text-left text-sm font-semibold text-gray-600 hidden lg:table-cell">Date</th>
                   <th className="p-4 text-left text-sm font-semibold text-gray-600">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {filteredPosts.map((post) => (
                   <tr key={post.id} className="hover:bg-gray-50 transition">
-                    <td className="p-4 font-medium text-gray-800">{post.title}</td>
-                    <td className="p-4 text-sm text-gray-500">{post.category?.name || 'Uncategorized'}</td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        {post.featured_image ? (
+                          <img src={post.featured_image} alt="" className="w-8 h-8 rounded object-cover hidden sm:block" />
+                        ) : (
+                          <div className="w-8 h-8 rounded bg-gray-200 hidden sm:block" />
+                        )}
+                        <div>
+                          <Link href={`/admin/blog/${post.id}`} className="font-medium text-gray-800 hover:text-blue-600 transition line-clamp-1">
+                            {post.title}
+                          </Link>
+                          {post.excerpt && (
+                            <p className="text-xs text-gray-400 line-clamp-1 hidden sm:block">{post.excerpt}</p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4 text-sm text-gray-500 hidden md:table-cell">{post.category?.name || 'Uncategorized'}</td>
                     <td className="p-4">
                       <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
                         post.status === 'published' 
@@ -118,20 +145,21 @@ export default function BlogPostsPage() {
                         {post.status}
                       </span>
                     </td>
-                    <td className="p-4 text-sm text-gray-500">{post.views || 0}</td>
-                    <td className="p-4 text-sm text-gray-500">
+                    <td className="p-4 text-sm text-gray-500 hidden lg:table-cell">{post.views || 0}</td>
+                    <td className="p-4 text-sm text-gray-500 hidden lg:table-cell">
                       {new Date(post.published_at || post.created_at).toLocaleDateString()}
                     </td>
                     <td className="p-4">
-                      <div className="flex gap-3">
-                        <Link href={`/admin/blog/${post.id}`} className="text-blue-600 hover:text-blue-800 text-sm">
-                          Edit
+                      <div className="flex items-center gap-2">
+                        <Link href={`/admin/blog/${post.id}`} className="p-1.5 text-gray-500 hover:text-blue-600 transition" title="Edit">
+                          <Edit className="w-4 h-4" />
                         </Link>
                         <button 
                           onClick={() => handleDelete(post.id)}
-                          className="text-red-600 hover:text-red-800 text-sm"
+                          className="p-1.5 text-gray-500 hover:text-red-600 transition"
+                          title="Delete"
                         >
-                          Delete
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
