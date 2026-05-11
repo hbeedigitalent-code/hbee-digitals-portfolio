@@ -4,8 +4,7 @@ import Providers from "./providers";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import CookieConsent from "@/components/CookieConsent";
 import { ThemeProvider } from "@/context/ThemeContext";
-import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
+import { Suspense } from "react";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -70,13 +69,11 @@ export const viewport = {
   maximumScale: 1,
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const messages = await getMessages();
-
   return (
     <html
       lang="en"
@@ -94,25 +91,27 @@ export default async function RootLayout({
         style={{ backgroundColor: 'var(--bg-color)', color: 'var(--text-color)' }}
         suppressHydrationWarning
       >
-        <NextIntlClientProvider messages={messages}>
-          <ThemeProvider>
-            <a
-              href="#main-content"
-              className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-white focus:text-gray-900 focus:px-4 focus:py-2 focus:rounded-md focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-[--primary-color]"
-            >
-              Skip to main content
-            </a>
+        <ThemeProvider>
+          {/* Skip navigation link */}
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-white focus:text-gray-900 focus:px-4 focus:py-2 focus:rounded-md focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-[--primary-color]"
+          >
+            Skip to main content
+          </a>
 
-            <Providers>
+          <Providers>
+            <Suspense fallback={null}>
               <GoogleAnalytics />
-              <main id="main-content" tabIndex={-1}>
-                {children}
-              </main>
-            </Providers>
+            </Suspense>
+            <main id="main-content" tabIndex={-1}>
+              {children}
+            </main>
+          </Providers>
 
-            <CookieConsent />
-          </ThemeProvider>
-        </NextIntlClientProvider>
+          {/* Cookie Consent Banner */}
+          <CookieConsent />
+        </ThemeProvider>
       </body>
     </html>
   );

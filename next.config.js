@@ -1,9 +1,4 @@
 ﻿/** @type {import('next').NextConfig} */
-
-// Import the next-intl plugin
-const createNextIntlPlugin = require('next-intl/plugin')
-const withNextIntl = createNextIntlPlugin()
-
 const nextConfig = {
   images: {
     remotePatterns: [
@@ -16,8 +11,9 @@ const nextConfig = {
         hostname: '**',
       },
     ],
+    // Allow all external image URLs
     unoptimized: false,
   },
 }
 
-module.exports = withNextIntl(nextConfig)
+module.exports = nextConfig

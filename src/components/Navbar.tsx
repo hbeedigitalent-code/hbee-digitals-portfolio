@@ -6,8 +6,6 @@ import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import ThemeToggle from '@/components/ThemeToggle'
-import LanguageSwitcher from '@/components/LanguageSwitcher'
-import { useTranslations } from 'next-intl'
 
 interface NavLink {
   label: string
@@ -15,8 +13,6 @@ interface NavLink {
 }
 
 export default function Navbar() {
-  const t = useTranslations('nav')
-
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [menuItems, setMenuItems] = useState<NavLink[]>([])
@@ -38,30 +34,42 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isMobileMenuOpen) setIsMobileMenuOpen(false)
+      if (e.key === 'Escape' && isMobileMenuOpen) {
+        setIsMobileMenuOpen(false)
+      }
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isMobileMenuOpen])
 
   useEffect(() => {
-    if (isMobileMenuOpen) setTimeout(() => firstFocusableRef.current?.focus(), 100)
+    if (isMobileMenuOpen) {
+      setTimeout(() => firstFocusableRef.current?.focus(), 100)
+    }
   }, [isMobileMenuOpen])
 
   useEffect(() => {
     if (!isMobileMenuOpen) return
     const menu = mobileMenuRef.current
     if (!menu) return
-    const focusable = menu.querySelectorAll<HTMLElement>('a, button, input, textarea, select')
+    const focusable = menu.querySelectorAll<HTMLElement>(
+      'a, button, input, textarea, select'
+    )
     if (focusable.length === 0) return
     const first = focusable[0]
     const last = focusable[focusable.length - 1]
     const handleTab = (e: KeyboardEvent) => {
       if (e.key === 'Tab') {
         if (e.shiftKey) {
-          if (document.activeElement === first) { e.preventDefault(); last.focus() }
+          if (document.activeElement === first) {
+            e.preventDefault()
+            last.focus()
+          }
         } else {
-          if (document.activeElement === last) { e.preventDefault(); first.focus() }
+          if (document.activeElement === last) {
+            e.preventDefault()
+            first.focus()
+          }
         }
       }
     }
@@ -80,20 +88,22 @@ export default function Navbar() {
       menuData?.length
         ? menuData
         : [
-            { label: t('home'), href: '/' },
-            { label: t('about'), href: '/about' },
-            { label: t('services'), href: '/services' },
-            { label: t('projects'), href: '/projects' },
-            { label: t('blog'), href: '/blog' },
-            { label: t('faq'), href: '/faq' },
-            { label: t('contact'), href: '/contact' },
+            { label: 'Home', href: '/' },
+            { label: 'About', href: '/about' },
+            { label: 'Services', href: '/services' },
+            { label: 'Projects', href: '/projects' },
+            { label: 'Blog', href: '/blog' },
+            { label: 'FAQ', href: '/faq' },
+            { label: 'Contact', href: '/contact' },
           ]
     )
 
     const { data: settings } = await supabase.from('site_settings').select('*').single()
     if (settings) {
       if (settings.site_name) setSiteName(settings.site_name)
-      if (settings.logo_url?.trim()) setLogoUrl(settings.logo_url.trim())
+      if (settings.logo_url && settings.logo_url.trim().length > 0) {
+        setLogoUrl(settings.logo_url.trim())
+      }
       if (settings.primary_color) {
         setHeaderColor(settings.primary_color)
         document.documentElement.style.setProperty('--primary-color', settings.primary_color)
@@ -109,15 +119,24 @@ export default function Navbar() {
       animate={{ y: 0 }}
       transition={{ duration: 0.5 }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? 'backdrop-blur-xl bg-[var(--primary-color)]/90 border-b border-[var(--card-border)] shadow-lg' : 'bg-transparent'
+        isScrolled
+          ? 'backdrop-blur-xl bg-[var(--primary-color)]/90 border-b border-[var(--card-border)] shadow-lg'
+          : 'bg-transparent'
       }`}
       aria-label="Main navigation"
       role="navigation"
     >
       <div className="container mx-auto px-4 lg:px-8 flex justify-between items-center py-3">
         <Link href="/" className="flex items-center gap-3" aria-label="Hbee Digitals — go to homepage">
-          <img src={logoUrl} alt={`${siteName} logo`} className="h-8 lg:h-10 w-auto" onError={() => setLogoUrl('/svgs/logo.svg')} />
-          <span className="text-lg lg:text-xl font-bold" style={{ color: 'var(--secondary-color)' }}>{siteName}</span>
+          <img
+            src={logoUrl}
+            alt={`${siteName} logo`}
+            className="h-8 lg:h-10 w-auto"
+            onError={() => setLogoUrl('/svgs/logo.svg')}
+          />
+          <span className="text-lg lg:text-xl font-bold" style={{ color: 'var(--secondary-color)' }}>
+            {siteName}
+          </span>
         </Link>
 
         <ul className="hidden lg:flex items-center gap-1" role="list">
@@ -134,9 +153,11 @@ export default function Navbar() {
                   aria-current={isActive ? 'page' : undefined}
                 >
                   {link.label}
-                  <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] bg-gradient-to-r from-[#007BFF] to-[#00BFFF] transition-all duration-300 ${
-                    isActive ? 'w-[70%]' : 'w-0 group-hover:w-[70%]'
-                  }`}></span>
+                  <span
+                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] bg-gradient-to-r from-[#007BFF] to-[#00BFFF] transition-all duration-300 ${
+                      isActive ? 'w-[70%]' : 'w-0 group-hover:w-[70%]'
+                    }`}
+                  ></span>
                 </Link>
               </li>
             )
@@ -144,15 +165,15 @@ export default function Navbar() {
         </ul>
 
         <div className="flex items-center gap-3">
-          <LanguageSwitcher />
           <ThemeToggle />
 
-          <Link href="/contact"
+          <Link
+            href="/contact"
             className="hidden lg:inline-flex relative group items-center justify-center px-5 py-2.5 overflow-hidden rounded-full text-sm font-semibold transition-all"
             style={{ minHeight: '48px' }}
           >
             <span className="absolute inset-0 bg-gradient-to-r from-[#007BFF] via-[#00BFFF] to-[#007BFF] bg-[length:200%_100%] animate-shimmer group-hover:animate-shimmer-fast" />
-            <span className="relative z-10 text-white">{t('getStarted')}</span>
+            <span className="relative z-10 text-white">Get Started</span>
           </Link>
 
           <button
@@ -192,7 +213,10 @@ export default function Navbar() {
                 const isActive = pathname === link.href
                 return (
                   <li key={link.href}>
-                    <Link href={link.href} onClick={closeMobileMenu} ref={index === 0 ? firstFocusableRef : undefined}
+                    <Link
+                      href={link.href}
+                      onClick={closeMobileMenu}
+                      ref={index === 0 ? firstFocusableRef : undefined}
                       className={`block px-4 py-3 rounded-lg text-sm transition-all duration-300 ${
                         isActive ? 'bg-[var(--accent-color)]/10 font-medium' : 'hover:bg-white/10'
                       }`}
@@ -205,9 +229,12 @@ export default function Navbar() {
                 )
               })}
               <li>
-                <Link href="/contact" onClick={closeMobileMenu}
-                  className="block mt-3 px-4 py-3 text-center bg-gradient-to-r from-[#007BFF] to-[#00BFFF] rounded-full font-semibold text-white text-sm">
-                  {t('getStarted')}
+                <Link
+                  href="/contact"
+                  onClick={closeMobileMenu}
+                  className="block mt-3 px-4 py-3 text-center bg-gradient-to-r from-[#007BFF] to-[#00BFFF] rounded-full font-semibold text-white text-sm"
+                >
+                  Get Started
                 </Link>
               </li>
             </ul>
