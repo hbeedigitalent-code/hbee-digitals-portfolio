@@ -4,13 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import {
-  ArrowRight,
-  Twitter,
-  Linkedin,
-  Github,
-  Instagram,
-} from 'lucide-react'
+import { Twitter, Linkedin, Github, Instagram } from 'lucide-react'
 import Reveal from '@/components/Reveal'
 
 interface TeamMember {
@@ -46,25 +40,15 @@ export default function TeamSection() {
 
   if (loading || members.length === 0) return null
 
-  // Grid configuration
-  const gridColumns =
-    members.length === 1
-      ? 'md:grid-cols-1 max-w-xs mx-auto'
-      : members.length === 2
-      ? 'md:grid-cols-2 max-w-2xl mx-auto'
-      : members.length === 3
-      ? 'md:grid-cols-3 max-w-4xl mx-auto'
-      : 'md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto'
-
   return (
     <section className="py-24 relative overflow-hidden" style={{ backgroundColor: 'var(--bg-color)' }}>
-      {/* Background decorative elements */}
+      {/* Background glow accents */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
         <div className="absolute top-1/3 left-0 w-96 h-96 bg-[#007BFF] rounded-full filter blur-3xl opacity-5 animate-pulse" />
         <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-[#00BFFF] rounded-full filter blur-3xl opacity-5 animate-pulse delay-1000" />
       </div>
 
-      <div className="container mx-auto px-4 relative z-10">
+      <div className="container mx-auto px-4 relative z-10 max-w-7xl">
         {/* Header */}
         <div className="text-center mb-16">
           <motion.div
@@ -91,132 +75,83 @@ export default function TeamSection() {
         </div>
 
         {/* Team Grid */}
-        <div className={`grid gap-8 ${gridColumns}`}>
+        <div className="grid gap-8 max-w-4xl mx-auto" style={{ gridTemplateColumns: `repeat(${Math.min(members.length, 4)}, minmax(0, 1fr))` }}>
           {members.map((member, index) => (
             <motion.article
               key={member.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+              initial={{ opacity: 0, y: 30, scale: 0.95 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.5, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
               viewport={{ once: true }}
               whileHover={{ y: -6 }}
-              className="group relative"
+              className="group relative flex flex-col items-center text-center"
             >
-              {/* Glow on hover */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-[#007BFF]/20 to-[#00BFFF]/20 rounded-3xl opacity-0 group-hover:opacity-100 transition duration-500 blur-xl" />
+              {/* Circular image container with ring */}
+              <div className="relative w-36 h-36 mb-6">
+                {/* Animated gradient ring on hover */}
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#007BFF] to-[#00BFFF] opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-md scale-105" />
 
-              <div
-                className="relative rounded-2xl overflow-hidden backdrop-blur-sm transition-all duration-300 h-full flex flex-col"
-                style={{
-                  backgroundColor: 'var(--card-bg)',
-                  borderColor: 'var(--card-border)',
-                  borderWidth: '1px',
-                }}
-              >
-                {/* Gradient accent top line */}
-                <div className="h-1.5 w-full bg-gradient-to-r from-[#007BFF] to-[#00BFFF] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
-
-                {/* Image container with overlay */}
-                <div className="relative h-72 w-full overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900">
+                <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-white/10 group-hover:border-transparent transition-all duration-300 ring-2 ring-transparent group-hover:ring-[#007BFF]/50">
                   {member.image_url ? (
                     <Image
                       src={member.image_url}
                       alt={member.name}
                       fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-700"
-                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="object-cover group-hover:scale-110 transition-transform duration-700"
+                      sizes="(max-width: 768px) 100vw, 200px"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#007BFF]/20 to-[#00BFFF]/20">
-                      <span className="text-6xl font-bold text-white/20">
-                        {member.name.charAt(0)}
-                      </span>
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#007BFF]/20 to-[#00BFFF]/20 text-4xl font-bold" style={{ color: 'var(--secondary-color)' }}>
+                      {member.name.charAt(0)}
                     </div>
                   )}
-                  {/* Hover overlay with social links */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0A1D37] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-end justify-center pb-4 gap-3">
-                    {member.social_twitter && (
-                      <a
-                        href={member.social_twitter}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-[#1DA1F2] hover:border-[#1DA1F2] transition-all duration-300 hover:scale-110"
-                        aria-label={`${member.name} on Twitter`}
-                      >
-                        <Twitter className="w-4 h-4" />
-                      </a>
-                    )}
-                    {member.social_linkedin && (
-                      <a
-                        href={member.social_linkedin}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-[#0077B5] hover:border-[#0077B5] transition-all duration-300 hover:scale-110"
-                        aria-label={`${member.name} on LinkedIn`}
-                      >
-                        <Linkedin className="w-4 h-4" />
-                      </a>
-                    )}
-                    {member.social_github && (
-                      <a
-                        href={member.social_github}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-gray-700 hover:border-gray-700 transition-all duration-300 hover:scale-110"
-                        aria-label={`${member.name} on GitHub`}
-                      >
-                        <Github className="w-4 h-4" />
-                      </a>
-                    )}
-                    {member.social_instagram && (
-                      <a
-                        href={member.social_instagram}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-gradient-to-br hover:from-pink-500 hover:to-purple-500 hover:border-transparent transition-all duration-300 hover:scale-110"
-                        aria-label={`${member.name} on Instagram`}
-                      >
-                        <Instagram className="w-4 h-4" />
-                      </a>
-                    )}
-                  </div>
                 </div>
 
-                {/* Content */}
-                <div className="p-6 flex flex-col flex-1 text-center">
-                  <h3
-                    className="text-xl font-bold mb-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#007BFF] group-hover:to-[#00BFFF] transition-all duration-300"
-                    style={{ color: 'var(--secondary-color)' }}
-                  >
-                    {member.name}
-                  </h3>
-                  <p
-                    className="text-sm font-medium mb-4"
-                    style={{ color: 'var(--accent-color)' }}
-                  >
-                    {member.position}
-                  </p>
-                  {member.bio && (
-                    <p
-                      className="text-sm leading-relaxed flex-1 mb-5"
-                      style={{ color: 'var(--text-muted)' }}
-                    >
-                      {member.bio}
-                    </p>
+                {/* Social icons – appear on hover */}
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+                  {member.social_twitter && (
+                    <a href={member.social_twitter} target="_blank" rel="noopener noreferrer"
+                      className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-[#1DA1F2] hover:border-[#1DA1F2] transition-all duration-300 hover:scale-110"
+                      aria-label={`${member.name} on Twitter`}>
+                      <Twitter className="w-3.5 h-3.5" />
+                    </a>
                   )}
-
-                  {/* View profile link */}
-                  <a
-                    href="#"
-                    className="inline-flex items-center justify-center gap-2 text-sm font-medium mt-auto transition-colors group/link"
-                    style={{ color: 'var(--accent-color)' }}
-                    onClick={(e) => e.preventDefault()}
-                  >
-                    View profile
-                    <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1 transition-transform" />
-                  </a>
+                  {member.social_linkedin && (
+                    <a href={member.social_linkedin} target="_blank" rel="noopener noreferrer"
+                      className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-[#0077B5] hover:border-[#0077B5] transition-all duration-300 hover:scale-110"
+                      aria-label={`${member.name} on LinkedIn`}>
+                      <Linkedin className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                  {member.social_github && (
+                    <a href={member.social_github} target="_blank" rel="noopener noreferrer"
+                      className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-gray-700 hover:border-gray-700 transition-all duration-300 hover:scale-110"
+                      aria-label={`${member.name} on GitHub`}>
+                      <Github className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                  {member.social_instagram && (
+                    <a href={member.social_instagram} target="_blank" rel="noopener noreferrer"
+                      className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-gradient-to-br hover:from-pink-500 hover:to-purple-500 hover:border-transparent transition-all duration-300 hover:scale-110"
+                      aria-label={`${member.name} on Instagram`}>
+                      <Instagram className="w-3.5 h-3.5" />
+                    </a>
+                  )}
                 </div>
               </div>
+
+              {/* Name & Position */}
+              <h3 className="text-xl font-bold mb-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#007BFF] group-hover:to-[#00BFFF] transition-all duration-300" style={{ color: 'var(--secondary-color)' }}>
+                {member.name}
+              </h3>
+              <p className="text-sm font-medium mb-3" style={{ color: 'var(--accent-color)' }}>
+                {member.position}
+              </p>
+              {member.bio && (
+                <p className="text-sm leading-relaxed max-w-xs" style={{ color: 'var(--text-muted)' }}>
+                  {member.bio}
+                </p>
+              )}
             </motion.article>
           ))}
         </div>
