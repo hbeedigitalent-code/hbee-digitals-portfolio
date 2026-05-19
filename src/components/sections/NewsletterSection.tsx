@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import SvgIcon from '@/components/ui/SvgIcon'
 
 export default function NewsletterSection() {
+  const reducedMotion = useReducedMotion()
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
@@ -15,121 +17,109 @@ export default function NewsletterSection() {
     e.preventDefault()
     setLoading(true)
     setStatus('idle')
-
-    let ipAddress = ''
-    try {
-      const res = await fetch('https://api.ipify.org?format=json')
-      const data = await res.json()
-      ipAddress = data.ip
-    } catch {
-      ipAddress = 'unknown'
-    }
+    setMessage('')
 
     const { error } = await supabase.from('subscribers').insert([
-      { email, name: name || null, ip_address: ipAddress, source: 'newsletter_section' }
+      {
+        email,
+        name: name || null,
+        source: 'newsletter_section',
+      },
     ])
 
     if (error) {
-      if (error.code === '23505') {
-        setStatus('error')
-        setMessage('This email is already subscribed!')
-      } else {
-        setStatus('error')
-        setMessage('Failed to subscribe. Please try again.')
-      }
+      setStatus('error')
+      setMessage(error.code === '23505' ? 'This email is already subscribed.' : 'Could not subscribe. Please try again.')
     } else {
       setStatus('success')
-      setMessage('Thanks for subscribing! 🎉')
+      setMessage('You’re in. Growth insights will now come your way.')
       setEmail('')
       setName('')
-      
-      await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject: `New Newsletter Subscriber: ${email}`,
-          html: `<h2>New Subscriber</h2><p>Email: ${email}</p><p>Name: ${name || 'Not provided'}</p>`
-        })
-      })
     }
-    setLoading(false)
 
-    setTimeout(() => {
-      if (status === 'success') {
-        setStatus('idle')
-        setMessage('')
-      }
-    }, 5000)
+    setLoading(false)
   }
 
   return (
-    <section className="py-16 bg-gradient-to-r from-[#0A1D37] to-[#1a2a4a]">
-      <div className="container mx-auto px-4">
-        <div className="max-w-2xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Stay Updated
-            </h2>
-            <p className="text-white/80 mb-8">
-              Subscribe to our newsletter for the latest news, updates, and exclusive offers.
-            </p>
-          </motion.div>
+    <section className="relative overflow-hidden bg-[#050B16] py-16 text-white sm:py-20">
+      <div className="absolute inset-0 -z-0">
+        <div className="absolute left-1/2 top-0 h-[360px] w-[760px] -translate-x-1/2 rounded-full bg-[#39D97A]/12 blur-[120px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.035)_1px,transparent_1px)] bg-[size:76px_76px] opacity-25" />
+      </div>
 
-          <motion.form
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            viewport={{ once: true }}
-            onSubmit={handleSubmit}
-            className="flex flex-col sm:flex-row gap-4"
-          >
+      <div className="relative z-10 mx-auto max-w-5xl px-5 sm:px-6 md:px-10">
+        <motion.div
+          initial={reducedMotion ? false : { opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55 }}
+          viewport={{ once: true }}
+          className="overflow-hidden rounded-[2rem] border border-[#39D97A]/16 bg-[#071427]/88 p-6 text-center shadow-[0_35px_110px_rgba(0,0,0,0.35)] backdrop-blur-2xl sm:p-8 md:p-10"
+        >
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#39D97A] shadow-[0_0_40px_rgba(57,217,122,0.3)]">
+            <SvgIcon name="newsletter" size={26} color="#06101F" />
+          </div>
+
+          <p className="mb-4 text-[11px] font-black uppercase tracking-[0.2em] text-[#39D97A]">
+            Growth Notes
+          </p>
+
+          <h2 className="text-3xl font-black leading-[0.98] tracking-[-0.055em] sm:text-4xl md:text-5xl">
+            Stay close to smarter digital growth.
+          </h2>
+
+          <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/60 sm:text-base">
+            Get practical website, Shopify, conversion, and brand growth insights from Hbee Digitals.
+          </p>
+
+          <form onSubmit={handleSubmit} className="mx-auto mt-8 grid max-w-3xl gap-3 md:grid-cols-[1fr_1fr_auto]">
             <input
               type="text"
               placeholder="Your name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="flex-1 px-6 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-full border border-white/10 bg-white/[0.045] px-5 py-4 text-sm text-white outline-none placeholder:text-white/35 transition focus:border-[#39D97A]/45 focus:bg-[#39D97A]/8"
             />
+
             <input
               type="email"
               required
-              placeholder="Your email address"
+              placeholder="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="flex-1 px-6 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-full border border-white/10 bg-white/[0.045] px-5 py-4 text-sm text-white outline-none placeholder:text-white/35 transition focus:border-[#39D97A]/45 focus:bg-[#39D97A]/8"
             />
+
             <button
               type="submit"
               disabled={loading}
-              className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-50 whitespace-nowrap"
+              className="group inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-[#39D97A] px-7 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? 'Subscribing...' : 'Subscribe →'}
+              {loading ? 'Subscribing...' : 'Subscribe'}
+              <SvgIcon name="arrow-diagonal" size={15} color="#06101F" />
             </button>
-          </motion.form>
+          </form>
 
-          {status !== 'idle' && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`mt-4 p-3 rounded-lg text-center ${
-                status === 'success' 
-                  ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
-                  : 'bg-red-500/20 text-red-300 border border-red-500/30'
-              }`}
-            >
-              {message}
-            </motion.div>
-          )}
+          <AnimatePresence>
+            {status !== 'idle' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className={`mx-auto mt-5 max-w-xl rounded-2xl border px-4 py-3 text-sm font-bold ${
+                  status === 'success'
+                    ? 'border-[#39D97A]/25 bg-[#39D97A]/10 text-[#39D97A]'
+                    : 'border-red-400/25 bg-red-400/10 text-red-300'
+                }`}
+              >
+                {message}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          <p className="text-white/40 text-xs mt-4">
-            No spam. Unsubscribe anytime.
+          <p className="mt-5 text-xs font-semibold text-white/35">
+            No spam. Only useful growth insights.
           </p>
-        </div>
+        </motion.div>
       </div>
     </section>
   )

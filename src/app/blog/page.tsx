@@ -1,225 +1,275 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
-import GridPattern from '@/components/ui/GridPattern'
-import GlowOrb from '@/components/ui/GlowOrb'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
-import { Search, X } from 'lucide-react'
+import { motion, useReducedMotion } from 'framer-motion'
+import SvgIcon from '@/components/ui/SvgIcon'
 
 interface BlogPost {
   id: string
   title: string
   slug: string
-  excerpt: string
-  content: string
-  featured_image: string
-  category_id: string
+  excerpt?: string
+  content?: string
+  featured_image?: string
+  category_id?: string
   status: string
   created_at: string
+  published_at?: string
+}
+
+function CurvedUnderlineText({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="relative inline-block">
+      <span className="relative z-10 bg-gradient-to-r from-[#39D97A] to-[#C6F135] bg-clip-text text-transparent">
+        {children}
+      </span>
+      <svg
+        className="absolute -bottom-2 left-0 h-4 w-full text-[#39D97A]/75"
+        viewBox="0 0 220 18"
+        fill="none"
+        preserveAspectRatio="none"
+      >
+        <path d="M4 13C50 2 142 2 216 11" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
+      </svg>
+    </span>
+  )
 }
 
 export default function BlogPage() {
   const [posts, setPosts] = useState<BlogPost[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [searching, setSearching] = useState(false)
+  const reducedMotion = useReducedMotion()
 
-  // Initial load: all published posts
   useEffect(() => {
-    const fetchPosts = async () => {
-      setLoading(true)
+    async function fetchPosts() {
       const { data } = await supabase
         .from('blog_posts')
         .select('*')
         .eq('status', 'published')
         .order('created_at', { ascending: false })
-      if (data) setPosts(data)
+
+      setPosts(data || [])
       setLoading(false)
     }
+
     fetchPosts()
   }, [])
 
-  // Debounced search across title AND content
-  useEffect(() => {
-    if (searchQuery.trim() === '') {
-      // Reset to full list (already fetched)
-      const reset = async () => {
-        setSearching(true)
-        const { data } = await supabase
-          .from('blog_posts')
-          .select('*')
-          .eq('status', 'published')
-          .order('created_at', { ascending: false })
-        if (data) setPosts(data)
-        setSearching(false)
-      }
-      reset()
-      return
-    }
+  const filteredPosts = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase()
+    if (!query) return posts
 
-    const delayDebounce = setTimeout(async () => {
-      setSearching(true)
-      const term = `%${searchQuery}%`
-      const { data } = await supabase
-        .from('blog_posts')
-        .select('*')
-        .eq('status', 'published')
-        .or(`title.ilike.${term}, content.ilike.${term}`)
-        .order('created_at', { ascending: false })
-      if (data) setPosts(data)
-      setSearching(false)
-    }, 300)
+    return posts.filter((post) =>
+      `${post.title} ${post.excerpt || ''} ${post.content || ''}`
+        .toLowerCase()
+        .includes(query)
+    )
+  }, [posts, searchQuery])
 
-    return () => clearTimeout(delayDebounce)
-  }, [searchQuery])
+  const featuredPost = posts[0]
+  const remainingPosts = filteredPosts.filter((post) => post.id !== featuredPost?.id)
 
-  const clearSearch = useCallback(() => {
-    setSearchQuery('')
-  }, [])
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <main className="flex min-h-screen items-center justify-center bg-[#060E1C] text-white">
+          <div className="h-12 w-12 animate-spin rounded-full border-2 border-white/10 border-t-[#39D97A]" />
+        </main>
+        <Footer />
+      </>
+    )
+  }
 
   return (
     <>
       <Navbar />
-      <main className="relative pt-28 pb-20 min-h-screen overflow-hidden bg-gradient-to-br from-[#020617] via-[#0A1D37] to-[#0F3460]">
-        {/* Background: Animated Grid */}
-        <GridPattern />
-        {/* Ambient light */}
-        <GlowOrb />
 
-        <div className="container mx-auto px-4 max-w-6xl relative z-10">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-12"
-          >
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 font-['Poppins']">
-              Our Blog
-            </h1>
-            <p className="text-white/70 max-w-2xl mx-auto">
-              Insights, tutorials, and news from our team.
-            </p>
-          </motion.div>
+      <main className="relative min-h-screen overflow-hidden bg-[#060E1C] text-white">
+        <div className="absolute inset-0 -z-0">
+          <div className="absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-[#39D97A]/10 blur-[130px]" />
+          <div className="absolute bottom-0 right-0 h-[420px] w-[520px] rounded-full bg-[#39D97A]/7 blur-[120px]" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.035)_1px,transparent_1px)] bg-[size:76px_76px] opacity-25" />
+        </div>
 
-          {/* Search bar */}
-          <div className="max-w-md mx-auto mb-10 relative">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search articles..."
-                className="w-full pl-12 pr-12 py-3.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[#007BFF] focus:border-transparent transition-all"
-                aria-label="Search blog posts"
-              />
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
+        <section className="relative z-10 px-5 pb-12 pt-32 sm:px-6 md:px-10 lg:px-12">
+          <div className="mx-auto max-w-7xl">
+            <motion.div
+              initial={reducedMotion ? false : { opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55 }}
+              className="max-w-4xl"
+            >
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#39D97A]">
+                <SvgIcon name="blog" size={14} color="#39D97A" />
+                Hbee Insights
+              </div>
+
+              <h1 className="text-5xl font-black leading-[0.94] tracking-[-0.065em] sm:text-6xl lg:text-7xl">
+                Ideas for smarter digital{' '}
+                <CurvedUnderlineText>growth.</CurvedUnderlineText>
+              </h1>
+
+              <p className="mt-6 max-w-2xl text-base leading-8 text-white/62 md:text-lg">
+                Practical insights on websites, Shopify, conversion, branding, digital strategy,
+                and building better online systems.
+              </p>
+            </motion.div>
+
+            <div className="mt-10 max-w-xl">
+              <div className="relative">
+                <SvgIcon
+                  name="search"
+                  size={18}
+                  color="rgba(255,255,255,0.45)"
+                  className="absolute left-5 top-1/2 -translate-y-1/2"
+                />
+
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search articles..."
+                  className="w-full rounded-full border border-white/10 bg-white/[0.045] py-4 pl-14 pr-14 text-sm text-white outline-none placeholder:text-white/35 transition focus:border-[#39D97A]/45 focus:bg-[#39D97A]/8"
+                />
+
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-5 top-1/2 -translate-y-1/2"
+                    aria-label="Clear search"
+                  >
+                    <SvgIcon name="close" size={16} color="rgba(255,255,255,0.55)" />
+                  </button>
+                )}
+              </div>
+
               {searchQuery && (
-                <button
-                  onClick={clearSearch}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition-colors"
-                  aria-label="Clear search"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <p className="mt-3 text-center text-xs font-semibold text-white/40">
+                  Showing {filteredPosts.length} result{filteredPosts.length === 1 ? '' : 's'}
+                </p>
               )}
             </div>
-            {searchQuery && (
-              <p className="text-white/40 text-xs mt-2 text-center">
-                {searching ? 'Searching...' : `Found ${posts.length} result${posts.length !== 1 ? 's' : ''}`}
-              </p>
-            )}
           </div>
+        </section>
 
-          {/* Loading skeleton */}
-          {loading && (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="bg-white/5 rounded-2xl p-4 animate-pulse">
-                  <div className="h-40 bg-white/10 rounded-xl mb-4" />
-                  <div className="h-5 bg-white/10 rounded w-3/4 mb-2" />
-                  <div className="h-4 bg-white/10 rounded w-full mb-1" />
-                  <div className="h-4 bg-white/10 rounded w-2/3" />
+        {featuredPost && !searchQuery && (
+          <section className="relative z-10 px-5 pb-14 sm:px-6 md:px-10 lg:px-12">
+            <div className="mx-auto max-w-7xl">
+              <Link
+                href={`/blog/${featuredPost.slug}`}
+                className="group grid overflow-hidden rounded-[2rem] border border-white/10 bg-[#071427]/88 shadow-[0_35px_110px_rgba(0,0,0,0.35)] backdrop-blur-2xl lg:grid-cols-[1.1fr_0.9fr]"
+              >
+                <div className="relative h-[280px] overflow-hidden sm:h-[380px] lg:h-auto">
+                  {featuredPost.featured_image ? (
+                    <img
+                      src={featuredPost.featured_image}
+                      alt={featuredPost.title}
+                      className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center bg-[#0B1E38]">
+                      <SvgIcon name="blog" size={72} color="#39D97A" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#060E1C] via-transparent to-transparent" />
                 </div>
-              ))}
+
+                <div className="relative p-6 sm:p-8 lg:p-10">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.18),transparent_42%)]" />
+
+                  <div className="relative">
+                    <div className="mb-5 inline-flex rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#39D97A]">
+                      Featured Article
+                    </div>
+
+                    <h2 className="text-3xl font-black leading-tight tracking-[-0.045em] text-white sm:text-4xl">
+                      {featuredPost.title}
+                    </h2>
+
+                    <p className="mt-4 line-clamp-4 text-sm leading-7 text-white/62 sm:text-base">
+                      {featuredPost.excerpt || 'Read the latest insight from Hbee Digitals.'}
+                    </p>
+
+                    <div className="mt-7 inline-flex items-center gap-2 text-sm font-black text-[#39D97A]">
+                      Read Article
+                      <SvgIcon name="arrow-diagonal" size={16} color="#39D97A" />
+                    </div>
+                  </div>
+                </div>
+              </Link>
             </div>
-          )}
+          </section>
+        )}
 
-          {/* Blog posts grid */}
-          {!loading && (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {posts.length === 0 ? (
-                <div className="col-span-full text-center py-12">
-                  <p className="text-white/50 text-lg">No posts found{searchQuery ? ` for "${searchQuery}"` : ''}.</p>
-                </div>
-              ) : (
-                posts.map((post, index) => (
+        <section className="relative z-10 px-5 pb-20 sm:px-6 md:px-10 lg:px-12">
+          <div className="mx-auto max-w-7xl">
+            {filteredPosts.length === 0 ? (
+              <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] px-6 py-16 text-center">
+                <SvgIcon name="blog" size={46} color="#39D97A" className="mx-auto mb-4" />
+                <h3 className="text-lg font-black text-white">No articles found</h3>
+                <p className="mt-2 text-sm text-white/45">Try another search keyword.</p>
+              </div>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {(searchQuery ? filteredPosts : remainingPosts).map((post, index) => (
                   <motion.article
                     key={post.id}
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: index * 0.05 }}
-                    whileHover={{ y: -6 }}
-                    className="group"
+                    initial={reducedMotion ? false : { opacity: 0, y: 24 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.45, delay: index * 0.05 }}
+                    viewport={{ once: true }}
+                    className="group overflow-hidden rounded-[1.7rem] border border-white/10 bg-[#08182D] shadow-[0_28px_80px_rgba(0,0,0,0.25)] transition hover:-translate-y-1 hover:border-[#39D97A]/30"
                   >
                     <Link href={`/blog/${post.slug}`}>
-                      <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden hover:border-white/20 transition-all duration-300 h-full flex flex-col">
-                        {/* Featured image */}
-                        <div className="relative h-48 overflow-hidden">
-                          {post.featured_image ? (
-                            <img
-                              src={post.featured_image}
-                              alt={post.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-[#007BFF]/20 to-[#00BFFF]/20 flex items-center justify-center">
-                              <svg className="w-12 h-12 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Content */}
-                        <div className="p-5 flex flex-col flex-1">
-                          <h2 className="text-xl font-bold text-white mb-2 group-hover:text-[#00BFFF] transition-colors line-clamp-2">
-                            {post.title}
-                          </h2>
-                          {post.excerpt && (
-                            <p className="text-white/60 text-sm mb-4 flex-1 line-clamp-3">
-                              {post.excerpt}
-                            </p>
-                          )}
-                          <div className="flex items-center justify-between mt-auto pt-3 border-t border-white/10">
-                            <span className="text-white/40 text-xs">
-                              {new Date(post.created_at).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                              })}
-                            </span>
-                            <span className="text-[#00BFFF] text-xs font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
-                              Read more
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                              </svg>
-                            </span>
+                      <div className="relative h-56 overflow-hidden bg-[#0B1E38]">
+                        {post.featured_image ? (
+                          <img
+                            src={post.featured_image}
+                            alt={post.title}
+                            className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center">
+                            <SvgIcon name="blog" size={54} color="#39D97A" />
                           </div>
+                        )}
+
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#060E1C] via-transparent to-transparent" />
+                      </div>
+
+                      <div className="p-5">
+                        <p className="mb-3 text-xs font-semibold text-[#39D97A]">
+                          {new Date(post.published_at || post.created_at).toLocaleDateString()}
+                        </p>
+
+                        <h3 className="text-xl font-black leading-tight tracking-[-0.035em] text-white">
+                          {post.title}
+                        </h3>
+
+                        <p className="mt-3 line-clamp-3 text-sm leading-6 text-white/55">
+                          {post.excerpt || 'Read this article from Hbee Digitals.'}
+                        </p>
+
+                        <div className="mt-5 inline-flex items-center gap-2 text-sm font-black text-[#39D97A]">
+                          Read More
+                          <SvgIcon name="arrow-diagonal" size={15} color="#39D97A" />
                         </div>
                       </div>
                     </Link>
                   </motion.article>
-                ))
-              )}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
       </main>
+
       <Footer />
     </>
   )

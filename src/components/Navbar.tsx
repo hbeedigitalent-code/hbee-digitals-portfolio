@@ -1,32 +1,42 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
 import ThemeToggle from '@/components/ThemeToggle'
+import SvgIcon from '@/components/ui/SvgIcon'
 
 interface NavLink {
   label: string
   href: string
 }
 
+const fallbackMenu: NavLink[] = [
+  { label: 'Home', href: '/' },
+  { label: 'About', href: '/about' },
+  { label: 'Portfolio', href: '/portfolio' },
+  { label: 'Services', href: '/services' },
+  { label: 'FAQs', href: '/faqs' },
+  { label: 'Contact', href: '/contact' },
+  { label: 'Blog', href: '/blog' },
+]
+
 export default function Navbar() {
+  const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [menuItems, setMenuItems] = useState<NavLink[]>([])
+  const [menuItems, setMenuItems] = useState<NavLink[]>(fallbackMenu)
   const [siteName, setSiteName] = useState('Hbee Digitals')
   const [logoUrl, setLogoUrl] = useState('/svgs/logo.svg')
 
-  const pathname = usePathname()
-  const mobileMenuRef = useRef<HTMLDivElement>(null)
-  const hamburgerRef = useRef<HTMLButtonElement>(null)
   const firstFocusableRef = useRef<HTMLAnchorElement>(null)
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60)
+    const onScroll = () => setScrolled(window.scrollY > 28)
     window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
@@ -38,119 +48,104 @@ export default function Navbar() {
         .eq('is_active', true)
         .order('display_order', { ascending: true })
 
-      setMenuItems(
-        menuData?.length
-          ? menuData
-          : [
-              { label: 'Home', href: '/' },
-              { label: 'About', href: '/about' },
-              { label: 'Services', href: '/services' },
-              { label: 'Projects', href: '/projects' },
-              { label: 'Blog', href: '/blog' },
-              { label: 'FAQ', href: '/faq' },
-              { label: 'Contact', href: '/contact' },
-            ]
-      )
+      if (menuData?.length) setMenuItems(menuData)
 
       const { data: settings } = await supabase.from('site_settings').select('*').single()
+
       if (settings) {
         if (settings.site_name) setSiteName(settings.site_name)
         if (settings.logo_url?.trim()) setLogoUrl(settings.logo_url.trim())
-        if (settings.primary_color) {
-          document.documentElement.style.setProperty('--primary-color', settings.primary_color)
-        }
+
+        const root = document.documentElement
+        if (settings.primary_color) root.style.setProperty('--accent-color', settings.primary_color)
+        if (settings.background_color) root.style.setProperty('--bg-color', settings.background_color)
+        if (settings.text_color) root.style.setProperty('--text-color', settings.text_color)
       }
     }
+
     fetchData()
   }, [])
 
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && isMobileMenuOpen) setIsMobileMenuOpen(false) }
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMobileMenuOpen(false)
+    }
+
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
-  }, [isMobileMenuOpen])
+  }, [])
 
   useEffect(() => {
-    if (isMobileMenuOpen) setTimeout(() => firstFocusableRef.current?.focus(), 100)
-  }, [isMobileMenuOpen])
-
-  useEffect(() => {
-    if (!isMobileMenuOpen) return
-    const menu = mobileMenuRef.current
-    if (!menu) return
-    const focusable = menu.querySelectorAll<HTMLElement>('a, button, input, textarea, select')
-    if (focusable.length === 0) return
-    const first = focusable[0]
-    const last = focusable[focusable.length - 1]
-    const trap = (e: KeyboardEvent) => {
-      if (e.key === 'Tab') {
-        if (e.shiftKey) {
-          if (document.activeElement === first) { e.preventDefault(); last.focus() }
-        } else {
-          if (document.activeElement === last) { e.preventDefault(); first.focus() }
-        }
-      }
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden'
+      setTimeout(() => firstFocusableRef.current?.focus(), 100)
+    } else {
+      document.body.style.overflow = ''
     }
-    menu.addEventListener('keydown', trap)
-    return () => menu.removeEventListener('keydown', trap)
+
+    return () => {
+      document.body.style.overflow = ''
+    }
   }, [isMobileMenuOpen])
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false)
 
   return (
-    <motion.nav
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.5 }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? 'backdrop-blur-xl bg-[#0A1D37]/80 border-b border-white/8 shadow-lg'
-          : 'bg-transparent'
-      }`}
-      aria-label="Main navigation"
-      role="navigation"
+    <motion.header
+      initial={{ y: -80, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+      className="fixed inset-x-0 top-0 z-50 px-4 pt-4 md:px-6"
     >
-      {/* Footer‑style spacing */}
-      <div className="w-full max-w-7xl mx-auto px-6 md:px-12 flex justify-between items-center py-3">
-        {/* Logo with glow on hover */}
-        <Link
-          href="/"
-          className="flex items-center gap-3 hover:drop-shadow-[0_0_8px_rgba(0,191,255,0.6)] transition-all duration-300"
-          aria-label="Hbee Digitals — go to homepage"
-        >
-          <img
-            src={logoUrl}
-            alt={`${siteName} logo`}
-            className="h-8 lg:h-10 w-auto"
-            onError={() => setLogoUrl('/svgs/logo.svg')}
-          />
-          <span className="text-lg lg:text-xl font-bold" style={{ color: 'var(--secondary-color)' }}>
+      <nav
+        aria-label="Main navigation"
+        className={`mx-auto flex max-w-7xl items-center justify-between rounded-full border px-4 py-3 transition-all duration-300 md:px-5 ${
+          scrolled
+            ? 'border-white/10 bg-[#060E1C]/82 shadow-[0_18px_70px_rgba(0,0,0,0.42)] backdrop-blur-2xl'
+            : 'border-white/12 bg-[#060E1C]/58 backdrop-blur-xl'
+        }`}
+      >
+        <Link href="/" className="group flex items-center gap-3" aria-label={`${siteName} homepage`}>
+          <span className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-[#39D97A]/12 bg-white/[0.03] transition group-hover:border-[#39D97A]/30 group-hover:bg-[#39D97A]/8">
+            <img
+              src={logoUrl}
+              alt={`${siteName} logo`}
+              className="h-7 w-7 object-contain"
+              onError={() => setLogoUrl('/svgs/logo.svg')}
+            />
+          </span>
+
+          <span className="hidden text-sm font-black tracking-[-0.03em] text-white sm:block">
             {siteName}
           </span>
         </Link>
 
-        {/* Desktop nav links */}
         <LayoutGroup>
-          <ul className="hidden lg:flex items-center gap-1" role="list">
+          <ul className="hidden items-center gap-1 lg:flex">
             {menuItems.map((link) => {
               const isActive = pathname === link.href
+
               return (
                 <li key={link.href} className="relative">
                   <Link
                     href={link.href}
-                    className={`relative px-4 py-2 text-sm font-medium transition-colors rounded-lg ${
-                      isActive ? 'text-white' : 'text-white/80 hover:text-white'
-                    }`}
                     aria-current={isActive ? 'page' : undefined}
+                    className={`relative inline-flex rounded-full px-4 py-2 text-sm font-bold transition-colors ${
+                      isActive ? 'text-white' : 'text-white/62 hover:text-white'
+                    }`}
                   >
                     {link.label}
+
                     {isActive && (
-                      <motion.div
-                        layoutId="nav-underline"
-                        className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-                        style={{ background: 'linear-gradient(90deg, #007BFF, #00BFFF)' }}
-                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                      <motion.span
+                        layoutId="active-nav-pill"
+                        className="absolute inset-0 -z-10 rounded-full border border-[#39D97A]/22 bg-[#39D97A]/10 shadow-[0_0_24px_rgba(57,217,122,0.08)]"
+                        transition={{ type: 'spring', stiffness: 360, damping: 32 }}
                       />
+                    )}
+
+                    {!isActive && (
+                      <span className="absolute bottom-1.5 left-1/2 h-px w-0 -translate-x-1/2 bg-gradient-to-r from-[#39D97A] to-[#C6F135] transition-all duration-300 hover:w-1/2" />
                     )}
                   </Link>
                 </li>
@@ -159,83 +154,93 @@ export default function Navbar() {
           </ul>
         </LayoutGroup>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <ThemeToggle />
 
           <Link
             href="/contact"
-            className="hidden lg:inline-flex relative group items-center justify-center px-5 py-2.5 overflow-hidden rounded-full text-sm font-semibold transition-all"
-            style={{ minHeight: '48px' }}
+            className="group hidden items-center gap-2 rounded-full bg-gradient-to-r from-[#39D97A] to-[#C6F135] px-5 py-2.5 text-sm font-black text-[#06101F] shadow-[0_0_28px_rgba(57,217,122,0.22)] transition hover:scale-[1.02] hover:shadow-[0_0_40px_rgba(57,217,122,0.32)] lg:inline-flex"
           >
-            <span className="absolute inset-0 bg-gradient-to-r from-[#007BFF] via-[#00BFFF] to-[#007BFF] bg-[length:200%_100%] animate-shimmer group-hover:animate-shimmer-fast" />
-            <span className="relative z-10 text-white">Get Started</span>
+            Get Free Audit
+            <SvgIcon
+              name="arrow-diagonal"
+              size={16}
+              color="#06101F"
+              className="transition duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+            />
           </Link>
 
           <button
-            ref={hamburgerRef}
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden p-2 rounded-md hover:bg-white/10 transition"
-            style={{ color: 'var(--secondary-color)' }}
+            type="button"
+            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white transition hover:border-[#39D97A]/25 hover:bg-[#39D97A]/10 lg:hidden"
             aria-expanded={isMobileMenuOpen}
             aria-controls="mobile-menu"
             aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              {isMobileMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
+            <SvgIcon
+              name={isMobileMenuOpen ? 'close' : 'menu'}
+              size={20}
+              color={isMobileMenuOpen ? '#C6F135' : '#F8FAFC'}
+            />
           </button>
         </div>
-      </div>
+      </nav>
 
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            ref={mobileMenuRef}
             id="mobile-menu"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden backdrop-blur-xl bg-[#0A1D37]/95"
-            role="dialog"
-            aria-label="Mobile navigation"
+            initial={{ opacity: 0, y: -12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.98 }}
+            transition={{ duration: 0.25 }}
+            className="mx-auto mt-3 max-w-7xl overflow-hidden rounded-[1.7rem] border border-white/10 bg-[#060E1C]/96 p-4 shadow-[0_30px_90px_rgba(0,0,0,0.45)] backdrop-blur-2xl lg:hidden"
           >
-            <ul className="px-4 py-4 space-y-1" role="list">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.14),transparent_42%)]" />
+
+            <ul className="relative space-y-1">
               {menuItems.map((link, index) => {
                 const isActive = pathname === link.href
+
                 return (
                   <li key={link.href}>
                     <Link
+                      ref={index === 0 ? firstFocusableRef : undefined}
                       href={link.href}
                       onClick={closeMobileMenu}
-                      ref={index === 0 ? firstFocusableRef : undefined}
-                      className={`block px-4 py-3 rounded-lg text-sm transition ${
-                        isActive ? 'bg-[var(--accent-color)]/10 font-medium' : 'hover:bg-white/10'
-                      }`}
-                      style={{ color: 'var(--secondary-color)' }}
                       aria-current={isActive ? 'page' : undefined}
+                      className={`flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-bold transition ${
+                        isActive
+                          ? 'border border-[#39D97A]/20 bg-[#39D97A]/10 text-[#39D97A]'
+                          : 'text-white/72 hover:bg-white/[0.045] hover:text-white'
+                      }`}
                     >
                       {link.label}
+                      <SvgIcon
+                        name="arrow-diagonal"
+                        size={14}
+                        color={isActive ? '#39D97A' : 'rgba(248,250,252,0.5)'}
+                      />
                     </Link>
                   </li>
                 )
               })}
-              <li>
+
+              <li className="pt-3">
                 <Link
                   href="/contact"
                   onClick={closeMobileMenu}
-                  className="block mt-3 px-4 py-3 text-center bg-gradient-to-r from-[#007BFF] to-[#00BFFF] rounded-full font-semibold text-white text-sm"
+                  className="flex min-h-[50px] items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#39D97A] to-[#C6F135] px-5 py-3 text-sm font-black text-[#06101F]"
                 >
-                  Get Started
+                  Get Free Audit
+                  <SvgIcon name="arrow-diagonal" size={16} color="#06101F" />
                 </Link>
               </li>
             </ul>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.nav>
+    </motion.header>
   )
 }

@@ -1,385 +1,325 @@
-// src/components/ContactSection.tsx
-'use client';
-import { motion } from 'framer-motion';
-import { useInView } from 'framer-motion';
-import { useRef, useState } from 'react';
-import { Mail, Phone, MapPin, Send, Loader2 } from 'lucide-react';
-import Image from 'next/image';
+'use client'
 
-export default function ContactSection() {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: '-100px' });
+import { useState } from 'react'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import SvgIcon from '@/components/ui/SvgIcon'
 
-  const contactInfo = [
-    {
-      icon: <Mail className="w-6 h-6" />,
-      title: 'Email Us',
-      detail: 'hbeedigitalent@gmail.com',
-      link: 'mailto:hbeedigitalent@gmail.com'
-    },
-    {
-      icon: <Phone className="w-6 h-6" />,
-      title: 'Call Us',
-      detail: '+234 912 191 3997',
-      link: 'tel:+2349121913997'
-    },
-    {
-      icon: <MapPin className="w-6 h-6" />,
-      title: 'Visit Us',
-      detail: 'Plot 241, Lambata Kwali Abuja FCT, Nigeria',
-      link: '#'
-    }
-  ];
-
-  const socialLinks = [
-    { name: 'Facebook', url: '#', icon: '/svgs/facebook.svg' },
-    { name: 'Twitter', url: '#', icon: '/svgs/twitter.svg' },
-    { name: 'LinkedIn', url: '#', icon: '/svgs/linkedin.svg' },
-    { name: 'Instagram', url: '#', icon: '/svgs/instagram.svg' },
-    { name: 'GitHub', url: '#', icon: '/svgs/github.svg' }
-  ];
-
+function CurvedUnderlineText({ children }: { children: React.ReactNode }) {
   return (
-    <section id="contact" className="py-20 relative overflow-hidden bg-white">
-      {/* Background Elements */}
-      <div className="absolute inset-0">
-        <div className="absolute top-0 left-1/4 w-80 h-80 bg-blue-500 rounded-full filter blur-3xl opacity-5 animate-float" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500 rounded-full filter blur-3xl opacity-5 animate-float" style={{ animationDelay: '2s' }} />
-      </div>
-
-      <div className="container mx-auto px-4 relative z-10">
-        {/* Section Header */}
-        <motion.div
-          ref={ref}
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-          transition={{ duration: 0.8 }}
-        >
-          <motion.p 
-            className="text-blue-600 font-semibold mb-4 tracking-widest uppercase text-sm"
-            initial={{ opacity: 0 }}
-            animate={isInView ? { opacity: 1 } : { opacity: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            Get In Touch
-          </motion.p>
-          <motion.h2 
-            className="text-4xl md:text-5xl font-bold mb-4"
-            initial={{ opacity: 0 }}
-            animate={isInView ? { opacity: 1 } : { opacity: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <span className="text-black">Let's</span>{' '}
-            <span className="bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">Connect</span>
-          </motion.h2>
-          <motion.p 
-            className="text-xl text-gray-600 max-w-2xl mx-auto"
-            initial={{ opacity: 0 }}
-            animate={isInView ? { opacity: 1 } : { opacity: 0 }}
-            transition={{ delay: 0.6 }}
-          >
-            Ready to start your next project? Get in touch and let's create something amazing together.
-          </motion.p>
-        </motion.div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
-          {/* Contact Information */}
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -30 }}
-            transition={{ delay: 0.8 }}
-          >
-            <h3 className="text-2xl font-bold text-gray-900 mb-8">Contact Information</h3>
-            
-            {/* Contact Details */}
-            <div className="space-y-6 mb-8">
-              {contactInfo.map((item, index) => (
-                <motion.a
-                  key={item.title}
-                  href={item.link}
-                  className="flex items-center p-4 bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 group"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-                  transition={{ delay: 1 + index * 0.1 }}
-                  whileHover={{ x: 10 }}
-                >
-                  <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300 mr-4">
-                    {item.icon}
-                  </div>
-                  <div>
-                    <div className="text-gray-900 font-semibold group-hover:text-blue-600 transition-colors">
-                      {item.title}
-                    </div>
-                    <div className="text-gray-600 text-sm">{item.detail}</div>
-                  </div>
-                </motion.a>
-              ))}
-            </div>
-
-            {/* Social Links */}
-            <div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">Follow Us</h4>
-              <div className="flex space-x-4">
-                {socialLinks.map((social, index) => (
-                  <motion.a
-                    key={social.name}
-                    href={social.url}
-                    className="w-12 h-12 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center border border-gray-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 transition-all duration-300 group"
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0 }}
-                    transition={{ delay: 1.4 + index * 0.1 }}
-                    whileHover={{ scale: 1.1 }}
-                  >
-                    <div className="w-6 h-6 relative">
-                      <Image
-                        src={social.icon}
-                        alt={social.name}
-                        fill
-                        className="object-contain filter group-hover:brightness-0 group-hover:invert transition-all duration-300"
-                      />
-                    </div>
-                  </motion.a>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Contact Form */}
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 30 }}
-            transition={{ delay: 1 }}
-          >
-            <EnhancedContactForm />
-          </motion.div>
-        </div>
-      </div>
-    </section>
-  );
+    <span className="relative inline-block">
+      <span className="relative z-10 bg-gradient-to-r from-[#39D97A] to-[#C6F135] bg-clip-text text-transparent">
+        {children}
+      </span>
+      <svg
+        className="absolute -bottom-2 left-0 h-4 w-full text-[#39D97A]/75 sm:-bottom-3 sm:h-5"
+        viewBox="0 0 220 18"
+        fill="none"
+        preserveAspectRatio="none"
+      >
+        <path
+          d="M4 13C50 2 142 2 216 11"
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeLinecap="round"
+        />
+      </svg>
+    </span>
+  )
 }
 
-function EnhancedContactForm() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: ''
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+export default function ContactSection() {
+  const reducedMotion = useReducedMotion()
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [errorMessage, setErrorMessage] = useState('')
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setStatus('loading')
+    setErrorMessage('')
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
+    const form = e.currentTarget
+    const formData = new FormData(form)
+
+    const payload = {
+      fullName: formData.get('fullName'),
+      email: formData.get('email'),
+      company: formData.get('company'),
+      phone: formData.get('phone'),
+      service: formData.get('service'),
+      budget: formData.get('budget'),
+      message: formData.get('message'),
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
-    }
-
-    if (!formData.subject.trim()) {
-      newErrors.subject = 'Subject is required';
-    }
-
-    if (!formData.message.trim()) {
-      newErrors.message = 'Message is required';
-    } else if (formData.message.trim().length < 10) {
-      newErrors.message = 'Message must be at least 10 characters';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-
-    setIsSubmitting(true);
-    setSubmitStatus('idle');
-    
     try {
-      const response = await fetch('/api/contact', {
+      const res = await fetch('/api/contact', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          phone: '', // Add phone field if needed
-          service: formData.subject, // Using subject as service
-          budget: 'Not specified', // Add budget field if needed
-          message: formData.message,
-        }),
-      });
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
 
-      const result = await response.json();
+      const data = await res.json()
 
-      if (response.ok) {
-        setSubmitStatus('success');
-        setFormData({ name: '', email: '', subject: '', message: '' });
-      } else {
-        setSubmitStatus('error');
-        setErrors({ submit: result.error || 'Failed to send message. Please try again.' });
+      if (!res.ok) {
+        setStatus('error')
+        setErrorMessage(data.error || 'Something went wrong. Please try again.')
+        return
       }
-    } catch (error) {
-      console.error('Form submission error:', error);
-      setSubmitStatus('error');
-      setErrors({ submit: 'Network error. Please check your connection and try again.' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
+      setStatus('success')
+      form.reset()
+      setShowSuccessModal(true)
+    } catch {
+      setStatus('error')
+      setErrorMessage('Network error. Please check your connection and try again.')
     }
-  };
-
-  if (submitStatus === 'success') {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-green-50 border border-green-200 rounded-xl p-8 text-center"
-      >
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-          </svg>
-        </div>
-        <h3 className="text-2xl font-bold text-green-900 mb-2">Message Sent Successfully!</h3>
-        <p className="text-green-700 mb-4">
-          Thank you for your message! We've received your inquiry and will contact you within 24 hours.
-        </p>
-        <p className="text-green-600 text-sm">
-          Check your email for a confirmation message from us.
-        </p>
-      </motion.div>
-    );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-            Your Name
-          </label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            className={`w-full px-4 py-3 bg-white border rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none transition-colors ${
-              errors.name ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
-            }`}
-            placeholder="John Doe"
-          />
-          {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+    <section className="relative overflow-hidden bg-[#060E1C] pb-20 pt-32 text-white">
+      <div className="absolute inset-0 -z-0">
+        <div className="absolute left-0 top-0 h-[520px] w-[680px] rounded-full bg-[#39D97A]/12 blur-[130px]" />
+        <div className="absolute bottom-0 right-0 h-[420px] w-[520px] rounded-full bg-[#39D97A]/8 blur-[120px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.045)_1px,transparent_1px)] bg-[size:76px_76px] opacity-25" />
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-6 md:px-10 lg:px-12">
+        <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+          <motion.div
+            initial={reducedMotion ? false : { opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55 }}
+          >
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/25 bg-[#39D97A]/12 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#39D97A]">
+              <SvgIcon name="growth" size={14} color="#39D97A" />
+              Start A Project
+            </div>
+
+            <h1 className="text-5xl font-black leading-[0.95] tracking-[-0.06em] sm:text-6xl lg:text-7xl">
+              Let’s build your digital
+              <br />
+              <CurvedUnderlineText>growth system.</CurvedUnderlineText>
+            </h1>
+
+            <p className="mt-6 max-w-2xl text-base leading-8 text-white/62 md:text-lg">
+              Tell us what you’re building, what needs fixing, or where your brand needs to grow.
+              We’ll review your request and respond with the best next step.
+            </p>
+
+            <div className="mt-8 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+              {[
+                { label: 'Strategy-first', icon: 'strategy' },
+                { label: 'Premium execution', icon: 'precision' },
+                { label: 'Growth support', icon: 'analytics' },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-2xl border border-[#39D97A]/15 bg-[#39D97A]/8 p-4 transition hover:border-[#39D97A]/35 hover:bg-[#39D97A]/12"
+                >
+                  <SvgIcon name={item.icon} size={20} color="#39D97A" className="mb-3" />
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/55">
+                    {item.label}
+                  </p>
+                </div>
+              ))}
+            </div>
+            
+            <div className="mt-8">
+  <a
+    href="https://wa.me/2348153153827"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="group inline-flex items-center gap-3 rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/8 px-5 py-4 text-sm font-bold text-white/70 transition-all duration-300 hover:border-[#39D97A]/35 hover:bg-[#39D97A]/14 hover:text-white"
+  >
+    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#39D97A] shadow-[0_0_25px_rgba(57,217,122,0.28)]">
+      <SvgIcon name="whatsapp" size={20} color="#06101F" />
+    </div>
+
+    <div className="text-left">
+      <p className="text-[10px] uppercase tracking-[0.18em] text-white/45">
+        WhatsApp Support
+      </p>
+
+      <p className="mt-1 text-sm font-black tracking-[0.02em] text-white">
+        +234 815 315 3827
+      </p>
+    </div>
+
+    <SvgIcon
+      name="arrow-diagonal"
+      size={16}
+      color="#39D97A"
+      className="ml-2 transition duration-300 group-hover:translate-x-1 group-hover:-translate-y-1"
+    />
+  </a>
+</div>
+          </motion.div>
+
+          <motion.form
+            onSubmit={handleSubmit}
+            initial={reducedMotion ? false : { opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.1 }}
+            className="relative overflow-hidden rounded-[2rem] border border-[#39D97A]/18 bg-[#071427]/90 p-5 shadow-[0_35px_110px_rgba(0,0,0,0.35)] backdrop-blur-2xl sm:p-6 md:p-8"
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.18),transparent_38%)]" />
+
+            <div className="relative grid gap-5">
+              <div className="grid gap-5 md:grid-cols-2">
+                <input
+                  name="fullName"
+                  className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-4 text-sm text-white outline-none placeholder:text-white/35 transition focus:border-[#39D97A]/55 focus:bg-[#39D97A]/8"
+                  placeholder="Full name"
+                  required
+                />
+                <input
+                  name="email"
+                  type="email"
+                  className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-4 text-sm text-white outline-none placeholder:text-white/35 transition focus:border-[#39D97A]/55 focus:bg-[#39D97A]/8"
+                  placeholder="Email address"
+                  required
+                />
+              </div>
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <input
+                  name="company"
+                  className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-4 text-sm text-white outline-none placeholder:text-white/35 transition focus:border-[#39D97A]/55 focus:bg-[#39D97A]/8"
+                  placeholder="Company / brand name"
+                />
+                <input
+                  name="phone"
+                  className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-4 text-sm text-white outline-none placeholder:text-white/35 transition focus:border-[#39D97A]/55 focus:bg-[#39D97A]/8"
+                  placeholder="Phone / WhatsApp"
+                />
+              </div>
+
+              <select
+                name="service"
+                className="rounded-2xl border border-white/10 bg-[#071427] px-4 py-4 text-sm text-white outline-none transition focus:border-[#39D97A]/55"
+              >
+                <option>Website Design / Redesign</option>
+                <option>Shopify Store Optimization</option>
+                <option>Brand Identity</option>
+                <option>Conversion / Growth System</option>
+                <option>Technical Support</option>
+                <option>Full Digital Growth System</option>
+              </select>
+
+              <select
+                name="budget"
+                className="rounded-2xl border border-white/10 bg-[#071427] px-4 py-4 text-sm text-white outline-none transition focus:border-[#39D97A]/55"
+              >
+                <option>Estimated budget</option>
+                <option>Below $500</option>
+                <option>$500 - $1,500</option>
+                <option>$1,500 - $5,000</option>
+                <option>$5,000 - $10,000</option>
+                <option>$10,000 - $15,000</option>
+                <option>$15,000+</option>
+                <option>Custom / Not sure yet</option>
+              </select>
+
+              <textarea
+                name="message"
+                className="min-h-[170px] rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-4 text-sm text-white outline-none placeholder:text-white/35 transition focus:border-[#39D97A]/55 focus:bg-[#39D97A]/8"
+                placeholder="Tell us about your project, current problem, or goal..."
+                required
+              />
+
+              <button
+                disabled={status === 'loading'}
+                className="group inline-flex min-h-[56px] items-center justify-center gap-2 rounded-full bg-[#39D97A] px-7 py-3 text-sm font-black text-[#06101F] shadow-[0_0_36px_rgba(57,217,122,0.25)] transition hover:scale-[1.02] hover:bg-[#C6F135] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {status === 'loading' ? 'Submitting Inquiry...' : 'Submit Project Inquiry'}
+                <SvgIcon
+                  name="arrow-diagonal"
+                  size={16}
+                  color="#06101F"
+                  className="transition duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                />
+              </button>
+
+              {status === 'error' && (
+                <p className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm font-bold text-red-300">
+                  {errorMessage}
+                </p>
+              )}
+            </div>
+          </motion.form>
         </div>
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-            Your Email
-          </label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            className={`w-full px-4 py-3 bg-white border rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none transition-colors ${
-              errors.email ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
-            }`}
-            placeholder="john@example.com"
-          />
-          {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
-        </div>
       </div>
-      <div>
-        <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
-          Subject
-        </label>
-        <input
-          type="text"
-          id="subject"
-          name="subject"
-          value={formData.subject}
-          onChange={handleChange}
-          className={`w-full px-4 py-3 bg-white border rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none transition-colors ${
-            errors.subject ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
-          }`}
-          placeholder="Project Inquiry"
-        />
-        {errors.subject && <p className="mt-1 text-sm text-red-600">{errors.subject}</p>}
-      </div>
-      <div>
-        <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
-          Message
-        </label>
-        <textarea
-          id="message"
-          name="message"
-          value={formData.message}
-          onChange={handleChange}
-          rows={6}
-          className={`w-full px-4 py-3 bg-white border rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none transition-colors resize-none ${
-            errors.message ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
-          }`}
-          placeholder="Tell us about your project..."
-        />
-        {errors.message && <p className="mt-1 text-sm text-red-600">{errors.message}</p>}
-      </div>
-      
-      {submitStatus === 'error' && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-red-50 border border-red-200 rounded-lg p-4"
-        >
-          <p className="text-red-700 text-sm">{errors.submit || 'Failed to send message. Please try again.'}</p>
-        </motion.div>
-      )}
-      
-      <motion.button
-        type="submit"
-        disabled={isSubmitting}
-        className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white py-4 rounded-lg font-semibold hover:shadow-xl hover:shadow-blue-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-        whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
-        whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Sending Message...</span>
-          </>
-        ) : (
-          <>
-            <Send className="w-5 h-5" />
-            <span>Send Message</span>
-          </>
+
+      <AnimatePresence>
+        {showSuccessModal && (
+          <motion.div
+            className="fixed inset-0 z-[999] flex items-center justify-center bg-[#02070F]/80 px-5 backdrop-blur-xl"
+            initial={reducedMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={reducedMotion ? undefined : { opacity: 0 }}
+          >
+            <motion.div
+              initial={reducedMotion ? false : { opacity: 0, y: 30, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reducedMotion ? undefined : { opacity: 0, y: 20, scale: 0.96 }}
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              className="relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-[#39D97A]/25 bg-[#071427] p-6 text-center shadow-[0_40px_130px_rgba(0,0,0,0.5)] sm:p-8"
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(57,217,122,0.22),transparent_45%)]" />
+
+              <div className="relative">
+                <motion.div
+                  initial={reducedMotion ? false : { scale: 0.6, rotate: -10 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.08 }}
+                  className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#39D97A] shadow-[0_0_60px_rgba(57,217,122,0.4)]"
+                >
+                  <SvgIcon name="precision" size={36} color="#06101F" />
+                </motion.div>
+
+                <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.2em] text-[#39D97A]">
+                  Inquiry Submitted
+                </p>
+
+                <h2 className="text-3xl font-black leading-tight tracking-[-0.045em] text-white sm:text-4xl">
+                  Congratulations, your request has been received.
+                </h2>
+
+                <p className="mx-auto mt-5 max-w-md text-sm leading-7 text-white/65 sm:text-base">
+                  Thank you for reaching out to Hbee Digitals. We’ve received your project inquiry
+                  and our team will get back to you within the next 24 hours.
+                </p>
+
+                <div className="mt-7 grid gap-3 sm:grid-cols-3">
+                  {[
+                    'Request received',
+                    'Review in progress',
+                    'Reply within 24 hours',
+                  ].map((item) => (
+                    <div
+                      key={item}
+                      className="rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/8 px-4 py-3 text-xs font-bold text-white/65"
+                    >
+                      {item}
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSuccessModal(false)
+                    setStatus('idle')
+                  }}
+                  className="mt-8 inline-flex min-h-[52px] items-center justify-center rounded-full bg-[#39D97A] px-8 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
+                >
+                  Continue
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
-      </motion.button>
-    </form>
-  );
+      </AnimatePresence>
+    </section>
+  )
 }

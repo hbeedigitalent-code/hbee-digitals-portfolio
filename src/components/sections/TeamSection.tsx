@@ -3,9 +3,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
-import { Twitter, Linkedin, Github, Instagram } from 'lucide-react'
-import Reveal from '@/components/Reveal'
+import { motion, useReducedMotion } from 'framer-motion'
+import SvgIcon from '@/components/ui/SvgIcon'
 
 interface TeamMember {
   id: string
@@ -21,137 +20,124 @@ interface TeamMember {
 }
 
 export default function TeamSection() {
+  const reducedMotion = useReducedMotion()
   const [members, setMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    async function fetchMembers() {
+      const { data } = await supabase
+        .from('team_members')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order')
+
+      setMembers(data || [])
+      setLoading(false)
+    }
+
     fetchMembers()
   }, [])
-
-  const fetchMembers = async () => {
-    const { data } = await supabase
-      .from('team_members')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order')
-    setMembers(data || [])
-    setLoading(false)
-  }
 
   if (loading || members.length === 0) return null
 
   return (
-    <section className="py-24 relative overflow-hidden" style={{ backgroundColor: 'var(--bg-color)' }}>
-      {/* Background glow accents */}
-      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-        <div className="absolute top-1/3 left-0 w-96 h-96 bg-[#007BFF] rounded-full filter blur-3xl opacity-5 animate-pulse" />
-        <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-[#00BFFF] rounded-full filter blur-3xl opacity-5 animate-pulse delay-1000" />
+    <section className="relative overflow-hidden bg-[#060E1C] py-16 text-white sm:py-20 lg:py-24">
+      <div className="absolute inset-0 -z-0">
+        <div className="absolute left-0 top-20 h-[360px] w-[460px] rounded-full bg-[#39D97A]/10 blur-[120px]" />
+        <div className="absolute bottom-0 right-0 h-[320px] w-[420px] rounded-full bg-[#39D97A]/7 blur-[110px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.035)_1px,transparent_1px)] bg-[size:76px_76px] opacity-25" />
       </div>
 
-      <div className="container mx-auto px-4 relative z-10 max-w-7xl">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
-          >
-            <span className="inline-block px-4 py-1.5 rounded-full bg-blue-500/10 text-blue-400 text-sm font-medium mb-4 border border-blue-500/20">
-              Our Team
-            </span>
-          </motion.div>
-
-          <Reveal variant="wipe">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: 'var(--secondary-color)' }}>
-              Meet the Experts
-            </h2>
-          </Reveal>
-
-          <p className="text-lg max-w-2xl mx-auto mb-6" style={{ color: 'var(--text-muted)' }}>
-            The passionate professionals behind every successful project
+      <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-6 md:px-10 lg:px-12">
+        <div className="mb-12 text-center">
+          <p className="mb-5 inline-flex rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
+            Our Team
           </p>
-          <div className="w-16 h-1 bg-gradient-to-r from-[#007BFF] to-[#00BFFF] rounded-full mx-auto" />
+
+          <h2 className="text-4xl font-black leading-[0.95] tracking-[-0.06em] sm:text-5xl md:text-6xl">
+            The minds behind the digital systems.
+          </h2>
+
+          <p className="mx-auto mt-6 max-w-2xl text-sm leading-7 text-white/60 sm:text-base">
+            A team focused on strategy, execution, design, development, and growth support.
+          </p>
         </div>
 
-        {/* Team Grid */}
-        <div className="grid gap-8 max-w-4xl mx-auto" style={{ gridTemplateColumns: `repeat(${Math.min(members.length, 4)}, minmax(0, 1fr))` }}>
+        <div
+          className="grid gap-6"
+          style={{
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          }}
+        >
           {members.map((member, index) => (
             <motion.article
               key={member.id}
-              initial={{ opacity: 0, y: 30, scale: 0.95 }}
-              whileInView={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.5, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
+              initial={reducedMotion ? false : { opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: index * 0.06 }}
               viewport={{ once: true }}
-              whileHover={{ y: -6 }}
-              className="group relative flex flex-col items-center text-center"
+              className="group relative overflow-hidden rounded-[1.8rem] border border-white/10 bg-[#08182D] p-6 text-center shadow-[0_28px_80px_rgba(0,0,0,0.24)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-[#39D97A]/30 hover:bg-[#39D97A]/8"
             >
-              {/* Circular image container with ring */}
-              <div className="relative w-36 h-36 mb-6">
-                {/* Animated gradient ring on hover */}
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#007BFF] to-[#00BFFF] opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-md scale-105" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(57,217,122,0.16),transparent_42%)] opacity-70" />
 
-                <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-white/10 group-hover:border-transparent transition-all duration-300 ring-2 ring-transparent group-hover:ring-[#007BFF]/50">
+              <div className="relative mx-auto mb-6 h-32 w-32">
+                <div className="absolute inset-0 rounded-full bg-[#39D97A]/30 blur-xl opacity-0 transition duration-500 group-hover:opacity-100" />
+
+                <div className="relative h-full w-full overflow-hidden rounded-full border border-[#39D97A]/20 bg-[#071427] ring-4 ring-[#39D97A]/8 transition duration-300 group-hover:ring-[#39D97A]/20">
                   {member.image_url ? (
                     <Image
                       src={member.image_url}
                       alt={member.name}
                       fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-700"
-                      sizes="(max-width: 768px) 100vw, 200px"
+                      className="object-cover transition duration-700 group-hover:scale-110"
+                      sizes="128px"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#007BFF]/20 to-[#00BFFF]/20 text-4xl font-bold" style={{ color: 'var(--secondary-color)' }}>
+                    <div className="flex h-full w-full items-center justify-center text-4xl font-black text-[#39D97A]">
                       {member.name.charAt(0)}
                     </div>
                   )}
                 </div>
-
-                {/* Social icons – appear on hover */}
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-                  {member.social_twitter && (
-                    <a href={member.social_twitter} target="_blank" rel="noopener noreferrer"
-                      className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-[#1DA1F2] hover:border-[#1DA1F2] transition-all duration-300 hover:scale-110"
-                      aria-label={`${member.name} on Twitter`}>
-                      <Twitter className="w-3.5 h-3.5" />
-                    </a>
-                  )}
-                  {member.social_linkedin && (
-                    <a href={member.social_linkedin} target="_blank" rel="noopener noreferrer"
-                      className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-[#0077B5] hover:border-[#0077B5] transition-all duration-300 hover:scale-110"
-                      aria-label={`${member.name} on LinkedIn`}>
-                      <Linkedin className="w-3.5 h-3.5" />
-                    </a>
-                  )}
-                  {member.social_github && (
-                    <a href={member.social_github} target="_blank" rel="noopener noreferrer"
-                      className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-gray-700 hover:border-gray-700 transition-all duration-300 hover:scale-110"
-                      aria-label={`${member.name} on GitHub`}>
-                      <Github className="w-3.5 h-3.5" />
-                    </a>
-                  )}
-                  {member.social_instagram && (
-                    <a href={member.social_instagram} target="_blank" rel="noopener noreferrer"
-                      className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:bg-gradient-to-br hover:from-pink-500 hover:to-purple-500 hover:border-transparent transition-all duration-300 hover:scale-110"
-                      aria-label={`${member.name} on Instagram`}>
-                      <Instagram className="w-3.5 h-3.5" />
-                    </a>
-                  )}
-                </div>
               </div>
 
-              {/* Name & Position */}
-              <h3 className="text-xl font-bold mb-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-[#007BFF] group-hover:to-[#00BFFF] transition-all duration-300" style={{ color: 'var(--secondary-color)' }}>
-                {member.name}
-              </h3>
-              <p className="text-sm font-medium mb-3" style={{ color: 'var(--accent-color)' }}>
-                {member.position}
-              </p>
-              {member.bio && (
-                <p className="text-sm leading-relaxed max-w-xs" style={{ color: 'var(--text-muted)' }}>
-                  {member.bio}
+              <div className="relative">
+                <h3 className="text-xl font-black tracking-[-0.035em] text-white">
+                  {member.name}
+                </h3>
+
+                <p className="mt-2 text-sm font-bold text-[#39D97A]">
+                  {member.position}
                 </p>
-              )}
+
+                {member.bio && (
+                  <p className="mx-auto mt-4 max-w-xs text-sm leading-7 text-white/55">
+                    {member.bio}
+                  </p>
+                )}
+
+                <div className="mt-6 flex justify-center gap-2">
+                  {[
+                    { url: member.social_twitter, icon: 'twitter', label: 'Twitter' },
+                    { url: member.social_linkedin, icon: 'linkedin', label: 'LinkedIn' },
+                    { url: member.social_github, icon: 'github', label: 'GitHub' },
+                    { url: member.social_instagram, icon: 'instagram', label: 'Instagram' },
+                  ]
+                    .filter((item) => item.url)
+                    .map((item) => (
+                      <a
+                        key={item.label}
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`${member.name} on ${item.label}`}
+                        className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] transition hover:-translate-y-1 hover:border-[#39D97A]/30 hover:bg-[#39D97A]/12"
+                      >
+                        <SvgIcon name={item.icon} size={17} color="#39D97A" />
+                      </a>
+                    ))}
+                </div>
+              </div>
             </motion.article>
           ))}
         </div>

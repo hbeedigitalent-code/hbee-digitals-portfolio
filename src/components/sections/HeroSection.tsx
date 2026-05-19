@@ -1,298 +1,298 @@
 'use client'
 
-import { HeroData } from '@/types'
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { HeroData } from '@/types'
+import SvgIcon from '@/components/ui/SvgIcon'
 
-function TypewriterText({ text, speed = 80 }: { text: string; speed?: number }) {
-  const [displayText, setDisplayText] = useState('')
+interface HeroSectionProps {
+  data: HeroData & {
+    welcomeText?: string
+    featureBullets?: string | string[]
+  }
+}
+
+function TypewriterWords({ words }: { words: string[] }) {
+  const [wordIndex, setWordIndex] = useState(0)
+  const [text, setText] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
 
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    setPrefersReducedMotion(mq.matches)
-    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches)
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [])
+    const currentWord = words[wordIndex]
+    const speed = isDeleting ? 38 : 70
 
-  useEffect(() => {
-    if (prefersReducedMotion) {
-      setDisplayText(text)
-      return
-    }
-    let timeout: NodeJS.Timeout
-    if (!isDeleting && displayText === text) {
-      timeout = setTimeout(() => setIsDeleting(true), 3000)
-    } else if (isDeleting && displayText === '') {
-      timeout = setTimeout(() => setIsDeleting(false), 1000)
-    } else if (isDeleting) {
-      timeout = setTimeout(() => setDisplayText(text.substring(0, displayText.length - 1)), speed / 2)
-    } else {
-      timeout = setTimeout(() => setDisplayText(text.substring(0, displayText.length + 1)), speed)
-    }
+    const timeout = setTimeout(() => {
+      if (!isDeleting && text === currentWord) {
+        setTimeout(() => setIsDeleting(true), 950)
+        return
+      }
+
+      if (isDeleting && text === '') {
+        setIsDeleting(false)
+        setWordIndex((prev) => (prev + 1) % words.length)
+        return
+      }
+
+      setText((prev) =>
+        isDeleting
+          ? currentWord.substring(0, prev.length - 1)
+          : currentWord.substring(0, prev.length + 1)
+      )
+    }, speed)
+
     return () => clearTimeout(timeout)
-  }, [displayText, isDeleting, text, speed, prefersReducedMotion])
-
-  if (prefersReducedMotion) return <span>{text}</span>
+  }, [text, isDeleting, wordIndex, words])
 
   return (
-    <span>
-      {displayText}
-      <motion.span
-        animate={{ opacity: [1, 0] }}
-        transition={{ repeat: Infinity, duration: 0.6, ease: 'easeInOut' }}
-        className="inline-block w-[3px] h-[0.8em] bg-blue-400 ml-1"
+    <span className="relative inline-block min-w-[250px] sm:min-w-[330px] lg:min-w-[400px]">
+      <span className="relative z-10 bg-gradient-to-r from-[#39D97A] to-[#C6F135] bg-clip-text text-transparent">
+        {text}
+      </span>
+
+      <svg
+        className="absolute -bottom-2 left-0 h-4 w-full text-[#39D97A]/75"
+        viewBox="0 0 220 18"
+        fill="none"
+        preserveAspectRatio="none"
         aria-hidden="true"
-      />
+      >
+        <path
+          d="M4 13C50 2 142 2 216 11"
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeLinecap="round"
+        />
+      </svg>
+
+      <span className="relative z-10 ml-1 inline-block h-[0.85em] w-[4px] translate-y-1 rounded-full bg-[#39D97A] animate-pulse" />
     </span>
   )
 }
 
-interface HeroSectionProps {
-  data: HeroData & { welcomeText?: string; featureBullets?: string | string[] }
+function StatCard({
+  label,
+  value,
+  icon,
+}: {
+  label: string
+  value: string
+  icon: string
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-3 backdrop-blur-xl">
+      <div className="mb-2.5 flex h-8 w-8 items-center justify-center rounded-xl border border-[#39D97A]/20 bg-[#39D97A]/10">
+        <SvgIcon name={icon} size={17} color="#39D97A" />
+      </div>
+      <div className="text-lg font-black tracking-tight text-white">{value}</div>
+      <div className="mt-0.5 text-[10px] font-medium text-white/45">{label}</div>
+    </div>
+  )
+}
+
+function DashboardMockup() {
+  return (
+    <div className="relative mx-auto w-full max-w-[430px] lg:max-w-[430px] xl:max-w-[465px]">
+      <div className="absolute -inset-8 rounded-full bg-[#39D97A]/14 blur-[80px]" />
+
+      <motion.div
+        initial={{ opacity: 0, y: 24, rotateX: 8 }}
+        animate={{ opacity: 1, y: 0, rotateX: 0 }}
+        transition={{ duration: 0.75, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+        className="relative overflow-hidden rounded-[1.45rem] border border-white/10 bg-[#071427]/90 p-3 shadow-[0_28px_80px_rgba(0,0,0,0.38)] backdrop-blur-2xl"
+      >
+        <div className="mb-3 flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5">
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#39D97A]">
+              Growth Intelligence
+            </p>
+            <h3 className="mt-1 text-sm font-bold text-white">Store Health Overview</h3>
+          </div>
+
+          <div className="rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-3 py-1 text-[10px] font-bold text-[#39D97A]">
+            Live
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5">
+          <StatCard label="Conversion Lift" value="+38%" icon="growth" />
+          <StatCard label="Store Health" value="94%" icon="analytics" />
+          <StatCard label="Accessibility" value="AA" icon="security" />
+          <StatCard label="Speed Score" value="91" icon="performance" />
+        </div>
+
+        <div className="mt-2.5 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+          <div className="mb-2.5 flex items-center justify-between">
+            <p className="text-xs font-semibold text-white">Optimization Progress</p>
+            <p className="text-[10px] text-white/45">Last 30 days</p>
+          </div>
+
+          <div className="flex h-16 items-end gap-1.5">
+            {[38, 52, 46, 64, 72, 68, 88, 78, 94, 84, 100, 92].map((height, index) => (
+              <motion.div
+                key={index}
+                initial={{ height: 0 }}
+                animate={{ height: `${height}%` }}
+                transition={{ duration: 0.7, delay: 0.35 + index * 0.035 }}
+                className="flex-1 rounded-t-full bg-gradient-to-t from-[#39D97A]/35 to-[#C6F135]"
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-2.5 grid gap-2.5 md:grid-cols-2">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+            <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-white">
+              <SvgIcon name="precision" size={15} color="#39D97A" />
+              Audit Fixes
+            </div>
+
+            <div className="space-y-1.5">
+              {['Checkout friction reduced', 'Trust signals improved', 'Mobile UX optimized'].map(
+                (item) => (
+                  <div key={item} className="flex items-center gap-2 text-[10px] text-white/55">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#39D97A]" />
+                    {item}
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+            <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-white">
+              <SvgIcon name="strategy" size={15} color="#C6F135" />
+              Growth Focus
+            </div>
+
+            <p className="text-[10px] leading-relaxed text-white/55">
+              Conversion, accessibility, performance, and revenue-focused UX.
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  )
 }
 
 export default function HeroSection({ data }: HeroSectionProps) {
-  const {
-    title = 'We Build Exceptional Digital Experiences That Drive Growth',
-    subtitle = 'Transform your business with cutting-edge technology and creative design.',
-    primaryCtaText = 'Get Started',
-    primaryCtaLink = '/contact',
-    secondaryCtaText = 'View Work',
-    secondaryCtaLink = '/projects',
-    backgroundImage,
-    welcomeText = 'Welcome to',
-    featureBullets = '',
-  } = data
-
   const reducedMotion = useReducedMotion()
 
+  const {
+    primaryCtaText = 'Get Free Audit',
+    primaryCtaLink = '/contact',
+    secondaryCtaText = 'View Case Studies',
+    secondaryCtaLink = '/projects',
+    featureBullets = '',
+  } = data || {}
+
+  const words = useMemo(
+    () => ['Shopify Brands.', 'Online Stores.', 'E-commerce Teams.', 'Scaling Businesses.'],
+    []
+  )
+
   let bullets: string[] = []
+
   if (Array.isArray(featureBullets)) {
     bullets = featureBullets
   } else if (typeof featureBullets === 'string' && featureBullets.trim().length > 0) {
     bullets = featureBullets.split('|').filter(Boolean)
   } else {
-    bullets = ['Web Development', 'UI/UX Design', 'Digital Marketing', 'Brand Strategy']
+    bullets = ['Shopify Optimization', 'Conversion Systems', 'Accessibility Support']
   }
-
-  const titleWords = (title || '').split(' ')
 
   return (
     <section
-      className="relative min-h-[90vh] flex items-center overflow-hidden pt-24 lg:pt-28 pb-12"
-      style={{ backgroundColor: 'var(--primary-color)' }}
+      id="hero"
       aria-labelledby="hero-heading"
+      className="relative isolate flex min-h-[82vh] items-center overflow-hidden bg-[#060E1C] pt-24 text-white md:pt-28"
     >
-      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-blue-600 rounded-full blur-[120px] opacity-20" />
-        <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-cyan-500 rounded-full blur-[120px] opacity-15" />
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute left-1/2 top-0 h-[400px] w-[720px] -translate-x-1/2 rounded-full bg-[#39D97A]/10 blur-[110px]" />
+        <div className="absolute bottom-0 right-0 h-[320px] w-[420px] rounded-full bg-[#C6F135]/8 blur-[100px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:72px_72px] opacity-20" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#060E1C]/10 via-transparent to-[#060E1C]" />
       </div>
 
-      <div className="w-full max-w-7xl mx-auto px-6 md:px-12 relative z-10">
-        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-          {/* LEFT COLUMN */}
-          <div className="text-center lg:text-left w-full">
-            <motion.div
-              initial={reducedMotion ? { opacity: 1 } : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="mb-4"
-            >
-              <p
-                className="text-xl sm:text-2xl lg:text-3xl font-bold"
-                style={{ fontFamily: 'var(--heading-font)', color: 'var(--secondary-color)' }}
-              >
-                {welcomeText}{' '}
-                <span className="gradient-text">
-                  <TypewriterText text="Hbee Digitals" speed={100} />
-                </span>
-              </p>
-            </motion.div>
-
-            <motion.h1
-              id="hero-heading"
-              className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-extrabold leading-[1.1] mb-5"
-              style={{ fontFamily: 'var(--heading-font)' }}
-              aria-label={title}
-            >
-              {reducedMotion
-                ? title
-                : titleWords.map((word, i) => (
-                    <span
-                      key={i}
-                      className="inline-block overflow-hidden mr-[0.25em]"
-                      aria-hidden="true"
-                    >
-                      <motion.span
-                        className="inline-block gradient-text"
-                        initial={{ y: '110%', opacity: 0 }}
-                        animate={{ y: '0%', opacity: 1 }}
-                        transition={{
-                          duration: 0.65,
-                          delay: 0.3 + i * 0.08,
-                          ease: [0.22, 1, 0.36, 1],
-                        }}
-                      >
-                        {word}
-                      </motion.span>
-                    </span>
-                  ))}
-            </motion.h1>
-
-            <motion.p
-              initial={reducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.7 }}
-              className="text-sm sm:text-base max-w-lg mx-auto lg:mx-0 mb-6 leading-relaxed"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              {subtitle}
-            </motion.p>
-
-            <motion.ul
-              initial={reducedMotion ? { opacity: 1 } : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.85 }}
-              className="flex flex-wrap gap-2.5 mb-7 justify-center lg:justify-start"
-              aria-label="Key services"
-            >
-              {bullets.map((b, i) => (
-                <motion.li
-                  key={i}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white/8 rounded-full text-xs sm:text-sm border backdrop-blur-sm"
-                  style={{ color: 'var(--text-muted)', borderColor: 'var(--card-border)' }}
-                >
-                  <svg className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" aria-hidden="true" focusable="false" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  {b}
-                </motion.li>
-              ))}
-            </motion.ul>
-
-            <motion.div
-              initial={reducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 1.0 }}
-              className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-6"
-            >
-              <Link
-                href={primaryCtaLink || '/contact'}
-                className="relative group inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full font-semibold text-sm overflow-hidden transition-all duration-500"
-                style={{ minHeight: '48px' }}
-              >
-                <span className="absolute inset-0 bg-gradient-to-r from-[#007BFF] via-[#00BFFF] to-[#007BFF] bg-[length:200%_100%] animate-shimmer group-hover:animate-shimmer-fast transition-all" />
-                <span className="relative z-10 flex items-center gap-2 text-white">
-                  {primaryCtaText}
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </span>
-              </Link>
-              <Link
-                href={secondaryCtaLink || '/projects'}
-                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 border rounded-full font-semibold text-sm hover:bg-white/10 transition-all"
-                style={{ minHeight: '48px', borderColor: 'var(--card-border)', color: 'var(--secondary-color)' }}
-              >
-                {secondaryCtaText}
-              </Link>
-            </motion.div>
-
-            <motion.div
-              initial={reducedMotion ? { opacity: 1 } : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 1.2 }}
-              className="flex items-center gap-3 justify-center lg:justify-start"
-              aria-label="Client reviews — 5 stars, trusted by 50+ store owners"
-            >
-              <div className="flex -space-x-2">
-                {['bg-red-400', 'bg-blue-400', 'bg-green-400', 'bg-yellow-400'].map((color, i) => (
-                  <div key={i} className={`w-7 h-7 rounded-full border-2 border-white/20 ${color}`} />
-                ))}
-              </div>
-              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                <span className="text-yellow-400">★★★★★</span> Trusted by <strong style={{ color: 'var(--secondary-color)' }}>50+</strong> store owners
-              </div>
-            </motion.div>
-          </div>
-
-          {/* RIGHT COLUMN — normal size image / placeholder */}
+      <div className="mx-auto grid w-full max-w-7xl items-center gap-8 px-6 pb-10 md:px-10 lg:grid-cols-[1fr_0.9fr] lg:gap-10">
+        <div className="text-center lg:text-left">
           <motion.div
-            initial={reducedMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: 40 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            whileHover={{ y: -5 }}
-            className="relative w-full max-w-md lg:max-w-none mx-auto"
+            initial={reducedMotion ? false : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#39D97A]"
           >
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ borderColor: 'var(--card-border)', borderWidth: '1px' }}>
-              {(data as any).video_url ? (
-                <div className="aspect-video">
-                  <iframe
-                    src={(data as any).video_url}
-                    title="Hero video"
-                    className="w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              ) : backgroundImage ? (
-                <img src={backgroundImage} alt={title || 'Hero'} className="w-full h-auto object-cover" />
-              ) : (
-                <div className="aspect-[4/3] bg-white/5 flex items-center justify-center">
-                  <motion.div
-                    animate={{ y: [0, -8, 0] }}
-                    transition={{ repeat: Infinity, duration: 3 }}
-                    className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center"
-                  >
-                    <svg className="w-8 h-8 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </motion.div>
-                </div>
-              )}
-            </div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.4 }}
-              whileHover={{ scale: 1.03 }}
-              className="absolute -bottom-3 -left-3 bg-white rounded-xl shadow-lg px-3 py-2.5 flex items-center gap-2.5"
-            >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">5+</span>
-              </div>
-              <div className="whitespace-nowrap">
-                <p className="font-semibold text-xs text-gray-900">Years Exp</p>
-                <p className="text-[10px] text-gray-500">Trusted Partner</p>
-              </div>
-            </motion.div>
+            <span className="h-2 w-2 rounded-full bg-[#39D97A]" />
+            Digital Growth Systems
           </motion.div>
-        </div>
-      </div>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.8 }}
-        className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10"
-      >
-        <button
-          onClick={() => window.scrollTo({ top: window.innerHeight * 0.9, behavior: 'smooth' })}
-          className="flex flex-col items-center gap-1 transition-colors"
-          style={{ color: 'var(--text-muted)' }}
-          aria-label="Scroll to next section"
-        >
-          <span className="text-[10px] uppercase tracking-widest">Scroll</span>
-          <span className="w-4 h-7 rounded-full border border-white/20 flex justify-center pt-1">
-            <span className="w-1 h-1.5 rounded-full bg-white/40 animate-bounce" />
-          </span>
-        </button>
-      </motion.div>
+          <motion.h1
+            id="hero-heading"
+            initial={reducedMotion ? false : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+            className="mx-auto max-w-5xl text-balance text-5xl font-black leading-[0.95] tracking-[-0.06em] text-white sm:text-6xl lg:mx-0 lg:text-[4.35rem] xl:text-[4.9rem]"
+          >
+            Engineering Growth For <br />
+            <TypewriterWords words={words} />
+          </motion.h1>
+
+          <motion.p
+            initial={reducedMotion ? false : { opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.62, delay: 0.2 }}
+            className="mx-auto mt-5 max-w-2xl text-base leading-7 text-white/68 lg:mx-0"
+          >
+            We build scalable digital systems, conversion-focused experiences, and growth
+            infrastructure for ambitious e-commerce brands.
+          </motion.p>
+
+          <motion.div
+            initial={reducedMotion ? false : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.62, delay: 0.32 }}
+            className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start"
+          >
+            <Link
+              href={primaryCtaLink || '/contact'}
+              className="group inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#39D97A] to-[#C6F135] px-7 py-3 text-sm font-black text-[#06101F] shadow-[0_0_36px_rgba(57,217,122,0.24)] transition hover:scale-[1.02]"
+            >
+              {primaryCtaText}
+              <SvgIcon
+                name="arrow-diagonal"
+                size={16}
+                color="#06101F"
+                className="transition duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              />
+            </Link>
+
+            <Link
+              href={secondaryCtaLink || '/projects'}
+              className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-white/12 bg-white/[0.035] px-7 py-3 text-sm font-bold text-white/82 backdrop-blur-xl transition hover:border-[#39D97A]/30 hover:bg-[#39D97A]/10 hover:text-white"
+            >
+              {secondaryCtaText}
+            </Link>
+          </motion.div>
+
+          <motion.ul
+            initial={reducedMotion ? false : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.62, delay: 0.42 }}
+            className="mx-auto mt-5 flex max-w-2xl flex-wrap justify-center gap-2.5 lg:mx-0 lg:justify-start"
+          >
+            {bullets.map((item) => (
+              <li
+                key={item}
+                className="rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-xs font-semibold text-white/70 backdrop-blur-xl"
+              >
+                {item}
+              </li>
+            ))}
+          </motion.ul>
+        </div>
+
+        <DashboardMockup />
+      </div>
     </section>
   )
 }

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { motion, useReducedMotion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
+import SvgIcon from '@/components/ui/SvgIcon'
 
 interface FooterLink {
   label: string
@@ -27,12 +28,44 @@ interface ContactItem {
   icon: string
 }
 
+const getSvgName = (iconPath: string, fallback: string) => {
+  if (!iconPath) return fallback
+  return iconPath.replace('/svgs/', '').replace('.svg', '').replace('/', '')
+}
+
+function CurvedUnderlineText({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="relative inline-block">
+      <span className="relative z-10 bg-gradient-to-r from-[#39D97A] to-[#C6F135] bg-clip-text text-transparent">
+        {children}
+      </span>
+
+      <svg
+        className="absolute -bottom-2 left-0 h-4 w-full text-[#39D97A]/75"
+        viewBox="0 0 220 18"
+        fill="none"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M4 13C50 2 142 2 216 11"
+          stroke="currentColor"
+          strokeWidth="5"
+          strokeLinecap="round"
+        />
+      </svg>
+    </span>
+  )
+}
+
 export default function Footer() {
+  const reducedMotion = useReducedMotion()
+
   const [footerData, setFooterData] = useState<{
-    logo_text: string
-    copyright_text: string
-    columns: FooterColumn[]
-    social_links: SocialLink[]
+    logo_text?: string
+    copyright_text?: string
+    columns?: FooterColumn[]
+    social_links?: SocialLink[]
   } | null>(null)
 
   const [siteSettings, setSiteSettings] = useState<any>({})
@@ -45,8 +78,15 @@ export default function Footer() {
       const { data: site } = await supabase.from('site_settings').select('*').single()
       if (site) setSiteSettings(site)
     }
+
     fetchData()
   }, [])
+
+  const brandName = footerData?.logo_text || siteSettings.site_name || 'Hbee Digitals'
+  const logoUrl = siteSettings.logo_url || '/svgs/logo.svg'
+  const contactEmail = siteSettings.contact_email || 'contact.hbeedigitalsteam@gmail.com'
+  const contactPhone = siteSettings.contact_phone || '+234 815 315 3827'
+  const cleanPhone = contactPhone.replace(/\s/g, '').replace('+', '')
 
   const columns: FooterColumn[] = footerData?.columns?.length
     ? footerData.columns
@@ -54,21 +94,18 @@ export default function Footer() {
         {
           title: 'Services',
           links: [
-            { label: 'Web Development', href: '/services' },
-            { label: 'E-Commerce Solutions', href: '/services' },
-            { label: 'UI/UX Design', href: '/services' },
-            { label: 'Digital Marketing', href: '/services' },
-            { label: 'Brand Strategy', href: '/services' },
-            { label: 'Technical Consulting', href: '/services' },
+            { label: 'Website Design', href: '/services' },
+            { label: 'Shopify Optimization', href: '/services' },
+            { label: 'Brand Experience', href: '/services' },
+            { label: 'Growth Systems', href: '/services' },
           ],
         },
         {
           title: 'Company',
           links: [
-            { label: 'About Us', href: '/about' },
-            { label: 'Portfolio', href: '/projects' },
+            { label: 'About', href: '/about' },
+            { label: 'Portfolio', href: '/portfolio' },
             { label: 'FAQ', href: '/faq' },
-            { label: 'Blog', href: '/blog' },
             { label: 'Contact', href: '/contact' },
           ],
         },
@@ -93,124 +130,148 @@ export default function Footer() {
 
   const contactItems: ContactItem[] = [
     {
-      name: siteSettings.contact_email || 'hbeedigital@gmail.com',
-      href: `mailto:${siteSettings.contact_email || 'hello.hbeedigitals@gmail.com'}`,
+      name: contactEmail,
+      href: `mailto:${contactEmail}`,
       icon: '/svgs/email.svg',
     },
     {
-      name: siteSettings.contact_phone || '+234 (912) 191-3997',
-      href: `tel:${(siteSettings.contact_phone || '+2349121913997').replace(/\s/g, '')}`,
-      icon: '/svgs/phone.svg',
+      name: contactPhone,
+      href: `https://wa.me/${cleanPhone}`,
+      icon: '/svgs/whatsapp.svg',
     },
     {
-      name: siteSettings.contact_address || 'Plot 241 Digital Street, Tech City',
+      name: siteSettings.contact_address || 'Serving ambitious brands globally',
       href: '#',
       icon: '/svgs/location.svg',
     },
   ]
 
   return (
-    <footer
-      className="relative bg-gradient-to-br from-gray-900 via-[#0A0F1C] to-[#112266] text-white overflow-hidden"
-      role="contentinfo"
-      aria-label="Site footer"
-    >
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 opacity-5" aria-hidden="true">
-        <div className="absolute -left-40 -top-40 w-96 h-96 transform scale-150">
-          <img src="/svgs/logo.svg" alt="" className="w-full h-full object-contain filter brightness-0 invert" />
-        </div>
-        <div className="absolute -right-20 -bottom-20 w-80 h-80 transform scale-125 opacity-30">
-          <img src="/svgs/logo.svg" alt="" className="w-full h-full object-contain filter brightness-0 invert" />
-        </div>
+    <footer className="relative overflow-hidden bg-[#050B16] text-white">
+      <div className="absolute inset-0 -z-0">
+        <div className="absolute left-0 top-0 h-[460px] w-[560px] rounded-full bg-[#39D97A]/10 blur-[130px]" />
+        <div className="absolute bottom-0 right-0 h-[420px] w-[520px] rounded-full bg-[#39D97A]/7 blur-[120px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.035)_1px,transparent_1px)] bg-[size:76px_76px] opacity-25" />
       </div>
 
-      <div className="absolute inset-0" aria-hidden="true">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#007BFF] rounded-full filter blur-3xl opacity-10 animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-[#00BFFF] rounded-full filter blur-3xl opacity-5 animate-pulse" style={{ animationDelay: '2s' }} />
-      </div>
+      <div className="relative z-10 mx-auto max-w-7xl px-5 py-14 sm:px-6 md:px-10 lg:px-12 lg:py-20">
+        <motion.div
+          initial={reducedMotion ? false : { opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55 }}
+          viewport={{ once: true }}
+          className="relative mb-14 overflow-hidden rounded-[2rem] border border-[#39D97A]/16 bg-[#071427]/85 p-6 shadow-[0_35px_120px_rgba(0,0,0,0.38)] backdrop-blur-2xl md:p-8 lg:p-10"
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.18),transparent_38%)]" />
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#39D97A]/60 to-transparent" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
-          {/* Brand Section */}
+          <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <p className="mb-4 inline-flex rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#39D97A]">
+                Digital Growth Starts Here
+              </p>
+
+              <h2 className="max-w-3xl text-3xl font-black leading-[0.98] tracking-[-0.055em] text-white sm:text-4xl md:text-5xl">
+                Ready to build a digital system that feels ready to{' '}
+                <CurvedUnderlineText>scale?</CurvedUnderlineText>
+              </h2>
+
+              <p className="mt-5 max-w-2xl text-sm leading-7 text-white/60 sm:text-base">
+                Let’s improve your website, store experience, brand trust, and conversion structure
+                with a cleaner digital foundation.
+              </p>
+            </div>
+
+            <Link
+              href="/contact"
+              className="group inline-flex min-h-[54px] w-fit items-center justify-center gap-2 rounded-full bg-[#39D97A] px-7 py-3 text-sm font-black text-[#06101F] shadow-[0_0_36px_rgba(57,217,122,0.25)] transition hover:scale-[1.02] hover:bg-[#C6F135]"
+            >
+              Start A Project
+              <SvgIcon
+                name="arrow-diagonal"
+                size={16}
+                color="#06101F"
+                className="transition duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              />
+            </Link>
+          </div>
+        </motion.div>
+
+        <div className="grid gap-12 lg:grid-cols-[1.1fr_1fr]">
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
+            initial={reducedMotion ? false : { opacity: 0, x: -24 }}
             whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.55 }}
             viewport={{ once: true }}
-            className="space-y-6"
           >
-            <Link href="/" className="inline-block" aria-label="Hbee Digitals — go to homepage">
-              <motion.div className="flex items-center gap-3 group" whileHover={{ scale: 1.02 }} transition={{ duration: 0.3 }}>
-                <div className="w-12 h-12 flex items-center justify-center bg-white/10 rounded-xl backdrop-blur-sm border border-white/20">
-                  <img src="/svgs/logo.svg" alt="Hbee Digitals logo" className="w-8 h-8 object-contain" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-bold text-xl text-white tracking-wide">{footerData?.logo_text || 'HBEE'}</span>
-                  <span className="text-sm font-semibold text-[#00BFFF] tracking-wider">DIGITALS</span>
-                </div>
-              </motion.div>
+            <Link href="/" className="group inline-flex items-center gap-3">
+              <span className="flex h-13 w-13 items-center justify-center rounded-2xl border border-[#39D97A]/16 bg-[#39D97A]/8 p-2 transition group-hover:border-[#39D97A]/35 group-hover:bg-[#39D97A]/12">
+                <img src={logoUrl} alt={`${brandName} logo`} className="h-9 w-9 object-contain" />
+              </span>
+
+              <span>
+                <span className="block text-lg font-black tracking-[-0.04em] text-white">
+                  {brandName}
+                </span>
+                <span className="block text-xs font-bold uppercase tracking-[0.22em] text-[#39D97A]">
+                  Digital Growth Studio
+                </span>
+              </span>
             </Link>
 
-            <p className="text-gray-300 max-w-md leading-relaxed text-lg">
-              Transforming businesses through innovative digital solutions. We create exceptional experiences that drive growth and success.
+            <p className="mt-6 max-w-md text-sm leading-7 text-white/58 sm:text-base">
+              Premium websites, Shopify optimization, brand systems, and conversion-focused digital
+              experiences for ambitious businesses.
             </p>
 
-            {/* Social links */}
-            <div className="flex space-x-4" aria-label="Social media links">
+            <div className="mt-7 flex flex-wrap gap-3">
               {socialLinks.map((social, index) => (
                 <motion.a
-                  key={social.platform}
+                  key={`${social.platform}-${index}`}
                   href={social.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center border border-white/20 hover:bg-white hover:border-white transition-all duration-300 backdrop-blur-sm group"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  whileHover={{ scale: 1.1, y: -2 }}
-                  aria-label={`Follow us on ${social.platform}`}
+                  whileHover={reducedMotion ? undefined : { y: -4, scale: 1.05 }}
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] transition hover:border-[#39D97A]/35 hover:bg-[#39D97A]/12"
+                  aria-label={`Follow ${brandName} on ${social.platform}`}
                 >
-                  <img
-                    src={social.icon}
-                    alt=""
-                    className="w-5 h-5 object-contain filter brightness-0 invert group-hover:brightness-0 group-hover:invert-0 transition-all duration-300"
-                    aria-hidden="true"
+                  <SvgIcon
+                    name={getSvgName(social.icon, social.platform.toLowerCase())}
+                    size={18}
+                    color="#39D97A"
                   />
                 </motion.a>
               ))}
             </div>
           </motion.div>
 
-          {/* Footer Columns */}
           <motion.div
-            initial={{ opacity: 0, x: 30 }}
+            initial={reducedMotion ? false : { opacity: 0, x: 24 }}
             whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.55 }}
             viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-8"
+            className="grid gap-8 sm:grid-cols-3"
           >
-            {columns.map((column, colIndex) => (
-              <div key={colIndex}>
-                <h3 className="font-bold text-lg text-[#00BFFF] mb-4">{column.title}</h3>
-                <ul className="space-y-3" role="list">
-                  {column.links.map((link, linkIndex) => (
-                    <li key={linkIndex}>
+            {columns.map((column) => (
+              <div key={column.title}>
+                <h3 className="mb-4 text-sm font-black uppercase tracking-[0.18em] text-[#39D97A]">
+                  {column.title}
+                </h3>
+
+                <ul className="space-y-3">
+                  {column.links.map((link) => (
+                    <li key={link.href + link.label}>
                       <Link
                         href={link.href}
-                        className="text-gray-300 hover:text-white transition-colors duration-300 text-sm flex items-center group"
+                        className="group inline-flex items-center gap-2 text-sm font-semibold text-white/55 transition hover:text-white"
                       >
                         {link.label}
-                        <svg
-                          className="w-3 h-3 ml-1 opacity-0 group-hover:opacity-100 transform group-hover:translate-x-1 transition-all duration-300"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+                        <SvgIcon
+                          name="arrow-diagonal"
+                          size={12}
+                          color="#C6F135"
+                          className="opacity-0 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100"
+                        />
                       </Link>
                     </li>
                   ))}
@@ -220,77 +281,52 @@ export default function Footer() {
           </motion.div>
         </div>
 
-        {/* Contact Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 pb-8 border-b border-white/10">
-          {contactItems.map((item, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              viewport={{ once: true }}
-            >
-              <Link
-                href={item.href}
-                className="flex items-center gap-4 text-gray-300 hover:text-white transition-all duration-300 group"
-                aria-label={
-                  item.icon.includes('email')
-                    ? `Email Hbee Digitals at ${item.name}`
-                    : item.icon.includes('phone')
-                    ? `Call Hbee Digitals at ${item.name}`
-                    : undefined
-                }
-              >
-                <div className="w-10 h-10 bg-gradient-to-br from-[#007BFF] to-[#00BFFF] rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                  <img src={item.icon} alt="" className="w-5 h-5 object-contain filter brightness-0 invert" aria-hidden="true" />
-                </div>
-                <span className="text-sm font-medium break-words group-hover:text-white">
-                  {item.name}
-                </span>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Bottom Bar */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={reducedMotion ? false : { opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
+          transition={{ duration: 0.55 }}
           viewport={{ once: true }}
-          className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0"
+          className="mt-12 grid gap-4 border-y border-white/10 py-6 md:grid-cols-3"
         >
-          <p className="text-gray-400 text-sm">
-            {footerData?.copyright_text || `© ${new Date().getFullYear()} Hbee Digitals. All rights reserved.`}
-          </p>
-          <div className="flex space-x-6 text-sm">
-            <Link href="/privacy" className="text-gray-400 hover:text-white transition-colors duration-300">
-              Privacy Policy
+          {contactItems.map((item) => (
+            <Link
+              key={item.name}
+              href={item.href}
+              target={item.href.startsWith('http') ? '_blank' : undefined}
+              rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+              className="group relative flex items-center gap-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] p-4 transition-all duration-300 hover:-translate-y-1 hover:border-[#39D97A]/28 hover:bg-[#39D97A]/7 hover:shadow-[0_18px_55px_rgba(57,217,122,0.08)]"
+            >
+              <span className="absolute inset-x-0 top-0 h-px scale-x-0 bg-gradient-to-r from-transparent via-[#39D97A]/70 to-transparent transition-transform duration-500 group-hover:scale-x-100" />
+
+              <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border border-[#39D97A]/15 bg-[#39D97A]/10 transition-all duration-300 group-hover:scale-105 group-hover:border-[#39D97A]/35 group-hover:bg-[#39D97A]/14">
+                <SvgIcon name={getSvgName(item.icon, 'email')} size={18} color="#39D97A" />
+              </span>
+
+              <span className="min-w-0 text-sm font-semibold text-white/62 transition duration-300 group-hover:text-white">
+                {item.name}
+              </span>
+
+              <SvgIcon
+                name="arrow-diagonal"
+                size={14}
+                color="#39D97A"
+                className="ml-auto opacity-0 transition duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100"
+              />
             </Link>
-            <Link href="/terms" className="text-gray-400 hover:text-white transition-colors duration-300">
-              Terms of Service
-            </Link>
-            <Link href="/cookies" className="text-gray-400 hover:text-white transition-colors duration-300">
-              Cookie Policy
-            </Link>
-          </div>
+          ))}
         </motion.div>
 
-        {/* Back to Top */}
-        <motion.button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-8 right-8 w-12 h-12 bg-gradient-to-r from-[#007BFF] to-[#00BFFF] rounded-full flex items-center justify-center text-white shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-300 z-50"
-          whileHover={{ scale: 1.1, y: -2 }}
-          whileTap={{ scale: 0.9 }}
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          aria-label="Back to top"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-          </svg>
-        </motion.button>
+        <div className="flex flex-col gap-4 pt-6 text-sm text-white/42 md:flex-row md:items-center md:justify-between">
+          <p>
+            {footerData?.copyright_text ||
+              `© ${new Date().getFullYear()} ${brandName}. All rights reserved.`}
+          </p>
+
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-white/35">
+            <span className="h-2 w-2 rounded-full bg-[#39D97A] shadow-[0_0_18px_rgba(57,217,122,0.8)]" />
+            Built for trust, conversion, and growth.
+          </div>
+        </div>
       </div>
     </footer>
   )

@@ -1,22 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import Image from 'next/image'
-import {
-  Code,
-  ShoppingCart,
-  Palette,
-  Megaphone,
-  Lightbulb,
-  Briefcase,
-  Globe,
-  Smartphone,
-  Cloud,
-  Database,
-  Shield,
-  Wrench,
-} from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import Link from 'next/link'
+import SvgIcon from '@/components/ui/SvgIcon'
 
 interface ServiceItem {
   id: string
@@ -28,262 +15,276 @@ interface ServiceItem {
 
 interface ServiceOrbitProps {
   services?: ServiceItem[]
+  intervalMs?: number
+  compact?: boolean
 }
 
-const lucideIconMap: Record<string, React.ElementType> = {
-  code: Code,
-  'web-development': Code,
-  'web development': Code,
-  ecommerce: ShoppingCart,
-  'e-commerce': ShoppingCart,
-  'e-commerce solutions': ShoppingCart,
-  design: Palette,
-  'ui-ux': Palette,
-  'ui/ux': Palette,
-  marketing: Megaphone,
-  'digital-marketing': Megaphone,
-  'digital marketing': Megaphone,
-  strategy: Lightbulb,
-  'brand-strategy': Lightbulb,
-  'brand strategy': Lightbulb,
-  consulting: Briefcase,
-  'technical-consulting': Briefcase,
-  'technical consulting': Briefcase,
-  globe: Globe,
-  mobile: Smartphone,
-  cloud: Cloud,
-  database: Database,
-  security: Shield,
-  tools: Wrench,
+const serviceIconMap: Record<string, string> = {
+  code: 'web-development',
+  'web-development': 'web-development',
+  'web development': 'web-development',
+
+  ecommerce: 'ecommerce',
+  'e-commerce': 'ecommerce',
+  'e-commerce solutions': 'ecommerce',
+  shopify: 'ecommerce',
+
+  design: 'ui-ux',
+  'ui/ux': 'ui-ux',
+  'ui-ux': 'ui-ux',
+  'ui ux': 'ui-ux',
+
+  branding: 'branding',
+  brand: 'branding',
+  marketing: 'digital-marketing',
+  'digital-marketing': 'digital-marketing',
+  'digital marketing': 'digital-marketing',
+
+  consulting: 'consulting',
+  strategy: 'consulting',
+  performance: 'performance',
+  security: 'security',
+  services: 'services',
 }
 
-const getIconPath = (title: string): string => {
-  const iconMap: Record<string, string> = {
-    'Web Development': '/svgs/web-development.svg',
-    'E-Commerce Solutions': '/svgs/ecommerce.svg',
-    'UI/UX Design': '/svgs/ui-ux.svg',
-    'Digital Marketing': '/svgs/digital-marketing.svg',
-    'Brand Strategy': '/svgs/branding.svg',
-    'Technical Consulting': '/svgs/consulting.svg',
-  }
-  return iconMap[title] || '/svgs/digital-services.svg'
+function getServiceIcon(service: ServiceItem) {
+  const raw = String(service?.icon || service?.title || '')
+    .toLowerCase()
+    .trim()
+
+  if (serviceIconMap[raw]) return serviceIconMap[raw]
+
+  const normalized = raw
+    .replace(/&/g, 'and')
+    .replace(/\//g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+
+  return serviceIconMap[normalized] || normalized || 'services'
 }
 
-export default function ServiceOrbit({ services = [] }: ServiceOrbitProps) {
-  const displayServices = services.length > 0 ? services.slice(0, 6) : []
+export default function ServiceOrbit({
+  services = [],
+  intervalMs = 5200,
+  compact = false,
+}: ServiceOrbitProps) {
+  const reducedMotion = useReducedMotion()
   const [activeIndex, setActiveIndex] = useState(0)
-  const [rotation, setRotation] = useState(0)
-  const sectionRef = useRef<HTMLDivElement>(null)
-  const [isManual, setIsManual] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
+
+  const displayServices = useMemo(() => {
+    return services.length > 0
+      ? services.slice(0, 5)
+      : [
+          {
+            id: 'shopify-growth',
+            title: 'Shopify Growth Systems',
+            description:
+              'Improve store structure, trust signals, conversion flow, and customer journey.',
+            icon: 'ecommerce',
+            features: ['Store audit', 'Conversion UX', 'Trust optimization', 'Checkout flow'],
+          },
+          {
+            id: 'brand-experience',
+            title: 'Brand Experience Design',
+            description:
+              'Create premium identities and interfaces that make businesses look credible.',
+            icon: 'branding',
+            features: ['Visual direction', 'UI systems', 'Landing pages', 'Brand consistency'],
+          },
+          {
+            id: 'technical-systems',
+            title: 'Technical Web Systems',
+            description:
+              'Build clean, scalable, responsive websites with modern frontend architecture.',
+            icon: 'web-development',
+            features: ['Next.js builds', 'Responsive UI', 'Performance', 'CMS structure'],
+          },
+        ]
+  }, [services])
+
+  const activeService = displayServices[activeIndex]
+  const activeIcon = getServiceIcon(activeService)
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768)
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
+    if (reducedMotion || isPaused || displayServices.length <= 1) return
 
-  useEffect(() => {
-    const handleScroll = () => {
-      if (isManual || !sectionRef.current) return
-      const rect = sectionRef.current.getBoundingClientRect()
-      const sectionTop = rect.top
-      const sectionHeight = rect.height
-      const windowHeight = window.innerHeight
-      let visibleRatio = 0
-      if (sectionTop < windowHeight && sectionTop + sectionHeight > 0) {
-        const visibleTop = Math.max(0, sectionTop)
-        const visibleBottom = Math.min(windowHeight, sectionTop + sectionHeight)
-        const visibleHeight = visibleBottom - visibleTop
-        visibleRatio = visibleHeight / windowHeight
-      }
-      const scrollProgress = Math.max(0, Math.min(1, visibleRatio))
-      const newRotation = scrollProgress * 360
-      setRotation(newRotation)
-      const index = Math.floor(((newRotation % 360) / 360) * displayServices.length)
-      if (index !== activeIndex && index < displayServices.length && displayServices.length > 0) {
-        setActiveIndex(index)
-      }
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [isManual, displayServices.length, activeIndex])
+    const timer = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % displayServices.length)
+    }, intervalMs)
 
-  const handleServiceClick = (index: number) => {
-    setIsManual(true)
-    setActiveIndex(index)
-    const targetRotation = (index / displayServices.length) * 360
-    setRotation(targetRotation)
-    setTimeout(() => setIsManual(false), 2000)
-  }
+    return () => window.clearInterval(timer)
+  }, [displayServices.length, intervalMs, isPaused, reducedMotion])
 
-  if (displayServices.length === 0) return null
-
-  const orbitSize = isMobile ? 300 : 420
-  const iconSize = isMobile ? 50 : 65
-  const iconRadius = isMobile ? 125 : 180
+  if (!displayServices.length) return null
 
   return (
-    <div ref={sectionRef} className="w-full py-8 md:py-12">
-      <div className="text-center mb-8 md:mb-12">
-        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3" style={{ color: 'var(--secondary-color)' }}>
-          Our Technical Expertise
-        </h2>
-        <p className="text-sm md:text-base max-w-xl mx-auto px-4" style={{ color: 'var(--text-muted)' }}>
-          Scroll to explore our services. Click any icon to learn more.
-        </p>
-      </div>
+    <section
+      className={`relative overflow-hidden text-white ${compact ? 'py-0' : 'py-12 sm:py-16'}`}
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      <div className="mx-auto max-w-7xl">
+        <div className="grid gap-5 lg:grid-cols-[0.88fr_1.12fr]">
+          <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-4 shadow-[0_30px_90px_rgba(0,0,0,0.24)] backdrop-blur-2xl sm:p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-white/48">
+                <SvgIcon name="rocket" size={15} color="#39D97A" />
+                Systems
+              </div>
 
-      <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 lg:gap-16">
-        {/* LEFT: Orbit Circle */}
-        <div className="flex-shrink-0">
-          <div className="relative mx-auto" style={{ width: orbitSize, height: orbitSize }}>
-            <div
-              className="absolute inset-0 rounded-full transition-transform duration-150 ease-linear"
-              style={{ transform: `rotate(${rotation}deg)` }}
-            >
-              <div className="absolute inset-0 rounded-full border" style={{ borderColor: 'var(--card-border)' }} />
-              <div className="absolute inset-4 rounded-full border border-dashed" style={{ borderColor: 'var(--card-border)' }} />
-              <div className="absolute inset-8 rounded-full border" style={{ borderColor: 'var(--card-border)' }} />
+              <button
+                type="button"
+                onClick={() => setIsPaused((prev) => !prev)}
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[#071427]/80 px-3 py-1.5 text-[11px] font-bold text-white/55 transition hover:border-[#39D97A]/25 hover:text-white"
+              >
+                <SvgIcon name={isPaused ? 'play' : 'pause'} size={12} color="#39D97A" />
+                {isPaused ? 'Resume' : 'Pause'}
+              </button>
             </div>
 
-            {displayServices.map((service, i) => {
-              const angle = (i * (360 / displayServices.length) - 90) * (Math.PI / 180)
-              const x = 50 + (iconRadius / (orbitSize / 100)) * Math.cos(angle)
-              const y = 50 + (iconRadius / (orbitSize / 100)) * Math.sin(angle)
-              const isActive = i === activeIndex
-              const IconComponent = service.icon ? lucideIconMap[service.icon.toLowerCase()] : undefined
+            <div className="grid gap-3">
+              {displayServices.map((service, index) => {
+                const icon = getServiceIcon(service)
+                const active = index === activeIndex
 
-              return (
-                <button
-                  key={service.id}
-                  onClick={() => handleServiceClick(i)}
-                  className="absolute group flex flex-col items-center cursor-pointer"
-                  style={{
-                    left: `${x}%`,
-                    top: `${y}%`,
-                    transform: 'translate(-50%, -50%)',
-                  }}
-                  aria-label={`View ${service.title}`}
-                >
-                  <div
-                    className={`rounded-full flex items-center justify-center transition-all duration-300 ${
-                      isActive ? 'bg-blue-500 scale-110 shadow-lg shadow-blue-500/40' : 'bg-white/10 hover:bg-white/20'
+                return (
+                  <button
+                    key={service.id || service.title}
+                    type="button"
+                    onClick={() => {
+                      setActiveIndex(index)
+                      setIsPaused(true)
+                    }}
+                    className={`group w-full overflow-hidden rounded-2xl border p-4 text-left transition duration-300 ${
+                      active
+                        ? 'border-[#39D97A]/35 bg-[#39D97A]/10 shadow-[0_0_35px_rgba(57,217,122,0.1)]'
+                        : 'border-white/10 bg-[#071427]/70 hover:border-[#39D97A]/25 hover:bg-white/[0.055]'
                     }`}
-                    style={{ width: iconSize, height: iconSize }}
                   >
-                    {IconComponent ? (
-                      <IconComponent
-                        className={`object-contain transition-all ${isActive ? 'text-white' : 'text-white/70 group-hover:text-white'}`}
-                        size={isMobile ? 24 : 30}
-                      />
-                    ) : (
-                      <Image
-                        src={getIconPath(service.title)}
-                        alt={service.title}
-                        width={isMobile ? 24 : 30}
-                        height={isMobile ? 24 : 30}
-                        className={`object-contain transition-all ${
-                          isActive ? 'brightness-0 invert' : 'brightness-0 invert opacity-70 group-hover:opacity-100'
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border transition ${
+                          active
+                            ? 'border-[#39D97A]/30 bg-[#39D97A]/14'
+                            : 'border-white/10 bg-white/[0.045]'
                         }`}
+                      >
+                        <SvgIcon
+                          name={icon}
+                          size={21}
+                          color={active ? '#39D97A' : 'rgba(248,250,252,0.55)'}
+                        />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <h3
+                          className={`text-sm font-black leading-tight tracking-[-0.02em] transition sm:text-base ${
+                            active ? 'text-white' : 'text-white/72 group-hover:text-white'
+                          }`}
+                        >
+                          {service.title}
+                        </h3>
+
+                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/42">
+                          {service.description}
+                        </p>
+                      </div>
+                    </div>
+
+                    {active && (
+                      <motion.div
+                        key={`${activeIndex}-${isPaused}`}
+                        className="mt-4 h-1 rounded-full bg-[#39D97A]"
+                        initial={{ width: isPaused || reducedMotion ? '64%' : '0%' }}
+                        animate={{ width: isPaused || reducedMotion ? '64%' : '100%' }}
+                        transition={{
+                          duration: isPaused || reducedMotion ? 0 : intervalMs / 1000,
+                          ease: 'linear',
+                        }}
                       />
                     )}
-                  </div>
-                  <span
-                    className={`text-[10px] md:text-xs mt-2 text-center max-w-[80px] md:max-w-[100px] leading-tight transition-all duration-300`}
-                    style={{ color: isActive ? '#38bdf8' : 'var(--text-muted)' }}
-                  >
-                    {service.title}
-                  </span>
-                </button>
-              )
-            })}
-
-            <div
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-[#0A1D37] to-[#1a2a4a] border-2 border-blue-400 flex items-center justify-center z-10 shadow-xl"
-              style={{ width: iconSize * 1.2, height: iconSize * 1.2 }}
-            >
-              <div className="relative" style={{ width: iconSize * 0.6, height: iconSize * 0.6 }}>
-                <Image src="/svgs/logo.svg" alt="Hbee Digitals" fill className="object-contain brightness-0 invert" />
-              </div>
+                  </button>
+                )
+              })}
             </div>
           </div>
-        </div>
 
-        {/* RIGHT: Service Info Panel */}
-        <div className="flex-1 w-full md:max-w-md lg:max-w-lg text-center md:text-left">
-          <div aria-live="polite" aria-atomic="true">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeIndex}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs mb-4">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                  {activeIndex + 1} of {displayServices.length}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeService.id || activeIndex}
+              initial={reducedMotion ? false : { opacity: 0, y: 18, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reducedMotion ? undefined : { opacity: 0, y: -14, scale: 0.98 }}
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              className="relative overflow-hidden rounded-[1.8rem] border border-white/10 bg-[#071427] p-5 shadow-[0_35px_100px_rgba(0,0,0,0.28)] backdrop-blur-2xl sm:p-6 lg:p-8"
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.14),transparent_40%)]" />
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#39D97A]/45 to-transparent" />
+
+              <div className="relative">
+                <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-[#39D97A]/20 bg-[#39D97A]/10 shadow-[0_0_35px_rgba(57,217,122,0.12)]">
+                    <SvgIcon name={activeIcon} size={32} color="#39D97A" />
+                  </div>
+
+                  <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#39D97A]/18 bg-white/[0.045] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#39D97A]">
+                    System {activeIndex + 1}/{displayServices.length}
+                  </div>
                 </div>
 
-                <h3 className="text-xl md:text-2xl lg:text-3xl font-bold mb-3" style={{ color: 'var(--secondary-color)' }}>
-                  {displayServices[activeIndex]?.title}
+                <h3 className="max-w-3xl text-3xl font-black leading-[1] tracking-[-0.04em] sm:text-4xl lg:text-5xl">
+                  {activeService.title}
                 </h3>
 
-                <p className="text-sm md:text-base mb-5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                  {displayServices[activeIndex]?.description}
+                <p className="mt-5 max-w-2xl text-sm leading-7 text-white/60 sm:text-base md:text-lg">
+                  {activeService.description}
                 </p>
 
-                {displayServices[activeIndex]?.features && (
-                  <div className="flex flex-wrap gap-2 justify-center md:justify-start mb-6">
-                    {displayServices[activeIndex].features!.slice(0, 4).map((feature, i) => (
-                      <span
-                        key={i}
-                        className="px-3 py-1.5 rounded-full text-xs border"
-                        style={{
-                          backgroundColor: 'var(--card-bg)',
-                          borderColor: 'var(--card-border)',
-                          color: 'var(--text-muted)',
-                        }}
-                      >
-                        {feature}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                  {(activeService.features?.length
+                    ? activeService.features.slice(0, 6)
+                    : ['Strategic planning', 'Premium execution', 'Performance structure', 'Growth support']
+                  ).map((feature, index) => (
+                    <motion.div
+                      key={feature}
+                      initial={reducedMotion ? false : { opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.04 }}
+                      className="rounded-2xl border border-white/10 bg-white/[0.045] p-4 transition hover:border-[#39D97A]/25 hover:bg-[#39D97A]/8"
+                    >
+                      <SvgIcon name="precision" size={18} color="#39D97A" className="mb-3" />
+                      <p className="text-sm font-bold leading-6 text-white/76">{feature}</p>
+                    </motion.div>
+                  ))}
+                </div>
 
-                {/* Learn More button - now adapts to theme */}
-                <button
-                  className="px-6 py-2.5 rounded-lg font-semibold text-sm transition-all inline-flex items-center gap-2"
-                  style={{
-                    backgroundColor: 'var(--accent-color)',
-                    color: '#ffffff',
-                  }}
-                >
-                  Learn More
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </motion.div>
-            </AnimatePresence>
-          </div>
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                  <Link
+                    href="/services"
+                    className="group inline-flex min-h-[50px] items-center justify-center gap-2 rounded-full bg-[#39D97A] px-6 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
+                  >
+                    Explore Services
+                    <SvgIcon
+                      name="arrow-diagonal"
+                      size={16}
+                      color="#06101F"
+                      className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                    />
+                  </Link>
 
-          <div className="flex gap-2 justify-center md:justify-start mt-8">
-            {displayServices.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleServiceClick(idx)}
-                className={`transition-all duration-300 rounded-full h-1.5 md:h-2 ${
-                  idx === activeIndex ? 'w-8 md:w-10 bg-blue-500' : 'w-2 md:w-2.5 bg-white/30 hover:bg-white/50'
-                }`}
-                aria-label={`Go to service ${idx + 1}`}
-              />
-            ))}
-          </div>
+                  <Link
+                    href="/contact"
+                    className="inline-flex min-h-[50px] items-center justify-center rounded-full border border-white/12 bg-white/[0.035] px-6 py-3 text-sm font-bold text-white/82 transition hover:border-[#39D97A]/30 hover:bg-[#39D97A]/10 hover:text-white"
+                  >
+                    Request Strategy Call
+                  </Link>
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
-    </div>
+    </section>
   )
 }

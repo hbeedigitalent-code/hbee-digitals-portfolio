@@ -3,289 +3,63 @@
 @tailwind utilities;
 
 /* ----------------------------------------------------------------
-   DEFAULT THEME (dark) — also used as fallback
+   HBEE DIGITALS SAFE THEME TOKENS
    ---------------------------------------------------------------- */
+
 :root {
-  --primary-color: #0A1D37;
-  --secondary-color: #FFFFFF;
-  --accent-color: #3B82F6;
-  --text-color: #F1F5F9;
-  --bg-color: #0A1D37;
-  --card-bg: rgba(255, 255, 255, 0.05);
+  --primary-color: #060E1C;
+  --secondary-color: #F8FAFC;
+  --accent-color: #39D97A;
+  --highlight-color: #C6F135;
+
+  --text-color: #F8FAFC;
+  --bg-color: #060E1C;
+  --surface-color: #0B1E38;
+  --surface-secondary: #132847;
+
+  --card-bg: rgba(255, 255, 255, 0.045);
   --card-border: rgba(255, 255, 255, 0.1);
-  --text-muted: rgba(255, 255, 255, 0.6);
+  --text-muted: rgba(248, 250, 252, 0.62);
+
   --heading-font: 'Poppins', system-ui, sans-serif;
   --body-font: 'Inter', system-ui, sans-serif;
 }
 
-/* ----------------------------------------------------------------
-   LIGHT THEME OVERRIDES
-   ---------------------------------------------------------------- */
 [data-theme='light'] {
   --primary-color: #FFFFFF;
   --secondary-color: #0A1D37;
   --accent-color: #007BFF;
+  --highlight-color: #00BFFF;
+
   --text-color: #1F2937;
   --bg-color: #F8FAFC;
+  --surface-color: #FFFFFF;
+  --surface-secondary: #EEF2F7;
+
   --card-bg: #FFFFFF;
   --card-border: #E2E8F0;
   --text-muted: #64748B;
-}
-
-/* Apply variables globally */
-body {
-  color: var(--text-color);
-  font-family: var(--body-font);
-  background-color: var(--bg-color);
 }
 
 html {
   scroll-behavior: smooth;
 }
 
+body {
+  color: var(--text-color);
+  font-family: var(--body-font);
+  background-color: var(--bg-color);
+  overflow-x: hidden;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--heading-font);
-  font-weight: 700;
 }
 
-/* ----------------------------------------------------------------
-   1. PAGE FADE ANIMATION
-   ---------------------------------------------------------------- */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.animate-fadeIn {
-  animation: fadeIn 0.35s ease-out both;
-}
-
-/* ----------------------------------------------------------------
-   2. GLOW BUTTON
-   ---------------------------------------------------------------- */
-.btn-glow {
-  box-shadow: 0 0 18px rgba(0, 123, 255, 0.45), 0 4px 24px rgba(0, 123, 255, 0.3);
-  transition: box-shadow 0.3s ease, transform 0.3s ease;
-}
-.btn-glow:hover {
-  box-shadow: 0 0 32px rgba(0, 191, 255, 0.6), 0 6px 32px rgba(0, 123, 255, 0.5);
-  transform: translateY(-2px);
-}
-
-/* ----------------------------------------------------------------
-   3. GRADIENT TEXT
-   ---------------------------------------------------------------- */
+/* KEEP OLD CLASS NAMES SAFE */
 .gradient-text {
-  background: linear-gradient(90deg, #007BFF, #00BFFF, #38BDF8);
+  background: linear-gradient(90deg, var(--accent-color), var(--highlight-color));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-}
-
-/* ----------------------------------------------------------------
-   4. SHIMMER CARD BORDER
-   ---------------------------------------------------------------- */
-.card-shimmer {
-  position: relative;
-  overflow: hidden;
-}
-.card-shimmer::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  background: linear-gradient(135deg, rgba(0, 123, 255, 0.5), rgba(0, 191, 255, 0.1), rgba(0, 123, 255, 0.5));
-  border-radius: inherit;
-  z-index: 0;
-  opacity: 0;
-  transition: opacity 0.4s ease;
-}
-.card-shimmer:hover::before {
-  opacity: 1;
-}
-
-/* ----------------------------------------------------------------
-   5. GLOBAL FOCUS RING
-   ---------------------------------------------------------------- */
-*:focus-visible {
-  outline: 2px solid #00BFFF;
-  outline-offset: 3px;
-  border-radius: 4px;
-}
-
-/* ----------------------------------------------------------------
-   6. REDUCE MOTION (accessibility)
-   ---------------------------------------------------------------- */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* ----------------------------------------------------------------
-   7. FLOATING PARTICLE GLOW
-   ---------------------------------------------------------------- */
-@keyframes floatGlow {
-  0%, 100% { transform: translateY(0) scale(1); opacity: 0.2; }
-  50%       { transform: translateY(-20px) scale(1.15); opacity: 0.7; }
-}
-.particle {
-  animation: floatGlow var(--duration, 4s) var(--delay, 0s) infinite ease-in-out;
-}
-
-/* ----------------------------------------------------------------
-   8. SHIMMER / GRADIENT SHIFT (buttons)
-   ---------------------------------------------------------------- */
-@keyframes shimmer {
-  from { background-position: 0% 50%; }
-  to   { background-position: 200% 50%; }
-}
-.animate-shimmer {
-  background-size: 200% 100%;
-  animation: shimmer 3s linear infinite;
-}
-.animate-shimmer-fast {
-  background-size: 200% 100%;
-  animation: shimmer 1.5s linear infinite;
-}
-
-/* ----------------------------------------------------------------
-   9. GRID MOVE
-   ---------------------------------------------------------------- */
-@keyframes gridMove {
-  0%   { transform: translate(0, 0); }
-  100% { transform: translate(60px, 60px); }
-}
-
-/* ----------------------------------------------------------------
-   UTILITY CLASSES FOR DYNAMIC COLORS
-   ---------------------------------------------------------------- */
-.bg-primary {
-  background-color: var(--primary-color);
-}
-.text-primary {
-  color: var(--primary-color);
-}
-.border-primary {
-  border-color: var(--primary-color);
-}
-.bg-secondary {
-  background-color: var(--secondary-color);
-}
-.text-secondary {
-  color: var(--secondary-color);
-}
-
-/* ----------------------------------------------------------------
-   RICH TEXT STYLES (FAQ & Blog)
-   ---------------------------------------------------------------- */
-.faq-rich-content {
-  line-height: 1.6;
-}
-.faq-rich-content a {
-  color: #007BFF;
-  text-decoration: underline;
-  transition: color 0.2s;
-}
-.faq-rich-content a:hover {
-  color: #00BFFF;
-}
-.faq-rich-content ul,
-.faq-rich-content ol {
-  margin: 8px 0 8px 20px;
-  padding-left: 0;
-}
-.faq-rich-content li {
-  margin: 4px 0;
-}
-.faq-rich-content strong {
-  font-weight: 600;
-  color: var(--text-color);
-}
-.faq-rich-content em {
-  font-style: italic;
-}
-.faq-rich-content .text-blue {
-  color: #007BFF;
-}
-.faq-rich-content .text-green {
-  color: #10B981;
-}
-
-.blog-content {
-  line-height: 1.8;
-  color: var(--text-muted);
-}
-.blog-content h1 {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-top: 1.5rem;
-  margin-bottom: 1rem;
-  color: var(--text-color);
-}
-.blog-content h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-top: 1.25rem;
-  margin-bottom: 0.75rem;
-  color: var(--text-color);
-}
-.blog-content h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
-  color: var(--text-color);
-}
-.blog-content p {
-  margin-bottom: 1rem;
-}
-.blog-content a {
-  color: #007BFF;
-  text-decoration: underline;
-  transition: color 0.2s;
-}
-.blog-content a:hover {
-  color: #00BFFF;
-}
-.blog-content ul,
-.blog-content ol {
-  margin: 1rem 0 1rem 1.5rem;
-}
-.blog-content li {
-  margin: 0.25rem 0;
-}
-.blog-content img {
-  border-radius: 0.5rem;
-  margin: 1.5rem 0;
-  max-width: 100%;
-  height: auto;
-}
-.blog-content blockquote {
-  border-left: 4px solid #007BFF;
-  padding-left: 1rem;
-  margin: 1rem 0;
-  font-style: italic;
-  color: var(--text-muted);
-}
-
-/* ----------------------------------------------------------------
-   BACKGROUND ORB KEYFRAMES
-   ---------------------------------------------------------------- */
-@keyframes orbFloat1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33%       { transform: translate(60px, -40px) scale(1.1); }
-  66%       { transform: translate(-30px, 30px) scale(0.95); }
-}
-
-@keyframes orbFloat2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50%       { transform: translate(-50px, 60px) scale(1.08); }
-}
-
-@keyframes orbFloat3 {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); }
-  50%       { transform: translate(-50%, -50%) scale(1.15) rotate(10deg); }
 }
