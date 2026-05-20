@@ -1,81 +1,72 @@
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+import Link from 'next/link'
 
 export const metadata = {
   title: 'Cookie Policy | Hbee Digitals',
-  description: 'How Hbee Digitals uses cookies and similar tracking technologies.',
+  description: 'Cookie Policy for Hbee Digitals.',
 }
 
-export default function CookiePolicyPage() {
+const sections = [
+  {
+    title: 'What Are Cookies?',
+    body: 'Cookies are small files stored on your device to help websites remember preferences, improve functionality, and understand visitor behavior.',
+  },
+  {
+    title: 'How We Use Cookies',
+    body: 'We may use cookies to improve website performance, understand traffic, personalize browsing, remember preferences, and improve user experience.',
+  },
+  {
+    title: 'Analytics Cookies',
+    body: 'Analytics cookies help us understand how visitors use our website, which pages are visited, and how we can improve the experience.',
+  },
+  {
+    title: 'Functional Cookies',
+    body: 'Functional cookies may remember your preferences, cookie choices, or settings that improve your browsing experience.',
+  },
+  {
+    title: 'Managing Cookies',
+    body: 'You can manage or disable cookies through your browser settings. Some parts of the website may not work as expected if cookies are disabled.',
+  },
+  {
+    title: 'Updates to This Policy',
+    body: 'We may update this Cookie Policy as our website, tools, or services change.',
+  },
+]
+
+export default function CookiesPage() {
   return (
     <>
       <Navbar />
-      <main className="pt-28 pb-20 min-h-screen bg-white dark:bg-[var(--bg-color)] px-6 md:px-12">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-4xl font-extrabold mb-6" style={{ color: 'var(--secondary-color)' }}>
-            Cookie Policy
-          </h1>
-          <div className="space-y-6 text-gray-600 dark:text-white/70 leading-relaxed">
-            <p><strong>Effective Date:</strong> January 1, 2026</p>
-            <p>
-              This Cookie Policy explains how Hbee Digitals uses cookies and similar technologies to recognize you when
-              you visit our website. It explains what these technologies are and why we use them, as well as your rights
-              to control our use of them.
+      <main className="min-h-screen bg-[#060E1C] px-5 pb-20 pt-32 text-white sm:px-6 md:px-10 lg:px-12">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-10">
+            <p className="mb-4 inline-flex rounded-full border border-[#39D97A]/20 bg-white/[0.04] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#39D97A]">
+              Legal
             </p>
-
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              What Are Cookies?
-            </h2>
-            <p>
-              Cookies are small data files that are placed on your computer or mobile device when you visit a website.
-              They are widely used by website owners to make their websites work, or to work more efficiently, as well as
-              to provide reporting information.
+            <h1 className="text-5xl font-black tracking-[-0.04em]">Cookie Policy</h1>
+            <p className="mt-5 max-w-2xl text-white/60">
+              This page explains how Hbee Digitals may use cookies and similar technologies.
             </p>
+          </div>
 
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              How We Use Cookies
-            </h2>
-            <p>We use cookies for the following purposes:</p>
-            <ul className="list-disc list-inside space-y-2">
-              <li><strong>Essential cookies:</strong> Necessary for the website to function properly (e.g., session handling).</li>
-              <li><strong>Performance cookies:</strong> Help us understand how visitors interact with our site (Google Analytics).</li>
-              <li><strong>Preference cookies:</strong> Remember your theme preference (dark/light mode) and cookie consent choice.</li>
-            </ul>
+          <div className="space-y-5">
+            {sections.map((section) => (
+              <section key={section.title} className="rounded-[1.5rem] border border-white/10 bg-white/[0.045] p-6">
+                <h2 className="text-2xl font-black">{section.title}</h2>
+                <p className="mt-3 leading-7 text-white/62">{section.body}</p>
+              </section>
+            ))}
+          </div>
 
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              Your Choices
-            </h2>
-            <p>
-              When you first visit our site, you will see a cookie consent banner. You can choose to accept or decline
-              non‑essential cookies. You can also change your mind at any time by clearing your browser's cookies or
-              changing your browser settings to block cookies. Please note that disabling cookies may affect the
-              functionality of the website.
+          <div className="mt-10 rounded-[1.5rem] border border-[#39D97A]/20 bg-[#39D97A]/10 p-6">
+            <h2 className="text-xl font-black">Your choice matters</h2>
+            <p className="mt-3 text-white/62">
+              You can accept or decline cookies using the cookie banner when visiting the website.
             </p>
-
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              Third‑Party Cookies
-            </h2>
-            <p>
-              We use Google Analytics, which places cookies on your device to help us analyze site usage. These cookies
-              are governed by Google's privacy policy.
-            </p>
-
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              Changes
-            </h2>
-            <p>
-              We may update this Cookie Policy from time to time to reflect changes in the cookies we use or for other
-              operational, legal, or regulatory reasons.
-            </p>
-
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              Contact
-            </h2>
-            <p>
-              If you have questions about our use of cookies, please contact us at:
-              <br />
-              📧 <a href="mailto:hello.hbeedigitals@gmail.com" className="text-blue-600 underline">hbeedigitalent@gmail.com</a>
-            </p>
+            <Link href="/privacy" className="mt-5 inline-flex rounded-full bg-[#39D97A] px-6 py-3 text-sm font-black text-[#06101F]">
+              View Privacy Policy
+            </Link>
           </div>
         </div>
       </main>

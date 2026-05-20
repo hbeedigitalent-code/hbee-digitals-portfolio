@@ -1,109 +1,76 @@
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+import Link from 'next/link'
 
 export const metadata = {
   title: 'Privacy Policy | Hbee Digitals',
-  description: 'Learn how Hbee Digitals collects, uses, and protects your personal data.',
+  description: 'Privacy Policy for Hbee Digitals.',
 }
+
+const sections = [
+  {
+    title: 'Information We Collect',
+    body: 'We may collect your name, email address, phone number, company name, project details, and any information you submit through our contact forms or communication channels.',
+  },
+  {
+    title: 'How We Use Your Information',
+    body: 'We use your information to respond to enquiries, provide services, improve our website, manage client communication, send updates, and maintain business records.',
+  },
+  {
+    title: 'Newsletter & Communication',
+    body: 'If you subscribe to our newsletter, we may send you helpful updates, insights, and service-related content. You may unsubscribe at any time.',
+  },
+  {
+    title: 'Cookies & Analytics',
+    body: 'We may use cookies and analytics tools to understand website performance, improve user experience, and measure traffic behavior.',
+  },
+  {
+    title: 'Data Protection',
+    body: 'We take reasonable steps to protect your information from unauthorized access, loss, misuse, or disclosure.',
+  },
+  {
+    title: 'Third-Party Services',
+    body: 'We may use trusted third-party platforms such as Supabase, Vercel, Resend, analytics tools, and payment or communication providers to operate our services.',
+  },
+  {
+    title: 'Your Rights',
+    body: 'You may request access, correction, or deletion of your personal information by contacting us directly.',
+  },
+]
 
 export default function PrivacyPage() {
   return (
     <>
       <Navbar />
-      <main className="pt-28 pb-20 min-h-screen bg-white dark:bg-[var(--bg-color)] px-6 md:px-12">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-4xl font-extrabold mb-6" style={{ color: 'var(--secondary-color)' }}>
-            Privacy Policy
-          </h1>
-          <div className="space-y-6 text-gray-600 dark:text-white/70 leading-relaxed">
-            <p><strong>Effective Date:</strong> January 1, 2026</p>
-            <p>
-              At Hbee Digitals, we take your privacy seriously. This Privacy Policy explains how we collect, use,
-              disclose, and safeguard your information when you visit our website or use our services.
+      <main className="min-h-screen bg-[#060E1C] px-5 pb-20 pt-32 text-white sm:px-6 md:px-10 lg:px-12">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-10">
+            <p className="mb-4 inline-flex rounded-full border border-[#39D97A]/20 bg-white/[0.04] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#39D97A]">
+              Legal
             </p>
+            <h1 className="text-5xl font-black tracking-[-0.04em]">Privacy Policy</h1>
+            <p className="mt-5 max-w-2xl text-white/60">
+              This policy explains how Hbee Digitals collects, uses, and protects information shared with us.
+            </p>
+          </div>
 
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              Information We Collect
-            </h2>
-            <p>
-              We may collect personal information that you voluntarily provide to us when you fill out a contact form,
-              subscribe to our newsletter, or engage with our services. This includes:
-            </p>
-            <ul className="list-disc list-inside space-y-2">
-              <li>Name</li>
-              <li>Email address</li>
-              <li>Phone number (optional)</li>
-              <li>Project details (optional)</li>
-              <li>IP address and browser information (automatically logged)</li>
-            </ul>
+          <div className="space-y-5">
+            {sections.map((section) => (
+              <section key={section.title} className="rounded-[1.5rem] border border-white/10 bg-white/[0.045] p-6">
+                <h2 className="text-2xl font-black">{section.title}</h2>
+                <p className="mt-3 leading-7 text-white/62">{section.body}</p>
+              </section>
+            ))}
+          </div>
 
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              How We Use Your Information
-            </h2>
-            <p>
-              We use the information we collect to:
+          <div className="mt-10 rounded-[1.5rem] border border-[#39D97A]/20 bg-[#39D97A]/10 p-6">
+            <h2 className="text-xl font-black">Contact Us</h2>
+            <p className="mt-3 text-white/62">
+              For privacy questions, contact us through our contact page.
             </p>
-            <ul className="list-disc list-inside space-y-2">
-              <li>Respond to your inquiries and provide customer support</li>
-              <li>Send you newsletters, updates, and promotional materials (only with your consent)</li>
-              <li>Improve our website and services</li>
-              <li>Analyze trends and track site usage via Google Analytics</li>
-              <li>Comply with legal obligations</li>
-            </ul>
-
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              Cookies and Tracking Technologies
-            </h2>
-            <p>
-              We use cookies and similar tracking technologies to enhance your browsing experience, analyze site traffic,
-              and understand where our visitors come from. You can manage your cookie preferences through your browser
-              settings or via our cookie consent banner.
-            </p>
-
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              Data Sharing
-            </h2>
-            <p>
-              We do not sell, trade, or rent your personal information to third parties. We may share data with trusted
-              service providers who help us operate our website (e.g., Google Analytics, Supabase hosting), and only
-              to the extent necessary.
-            </p>
-
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              Data Security
-            </h2>
-            <p>
-              We implement appropriate technical and organizational measures to protect your personal data against
-              unauthorized access, alteration, disclosure, or destruction.
-            </p>
-
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              Your Rights
-            </h2>
-            <p>
-              Depending on your jurisdiction, you may have the right to access, correct, or delete your personal data.
-              You can also withdraw your consent at any time. To exercise these rights, please contact us at
-              {' '}<a href="mailto:hello.hbeedigitals@gmail.com" className="text-blue-600 underline">hbeedigitalent@gmail.com</a>.
-            </p>
-
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              Changes to This Policy
-            </h2>
-            <p>
-              We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new
-              Privacy Policy on this page.
-            </p>
-
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              Contact Us
-            </h2>
-            <p>
-              If you have any questions about this Privacy Policy, please contact us at:
-              <br />
-              📧 <a href="mailto:hello.hbeedigitals@gmail.com" className="text-blue-600 underline">hbeedigitalent@gmail.com</a>
-              <br />
-              📞 +234 (815) 315-3827
-            </p>
+            <Link href="/contact" className="mt-5 inline-flex rounded-full bg-[#39D97A] px-6 py-3 text-sm font-black text-[#06101F]">
+              Contact Hbee Digitals
+            </Link>
           </div>
         </div>
       </main>

@@ -38,24 +38,25 @@ export default function StatsBar({
   return (
     <section
       ref={sectionRef}
-      className="relative overflow-hidden bg-[#060E1C] py-16 text-white sm:py-20"
+      className="relative overflow-hidden bg-[#07111F] py-14 text-white sm:py-16 lg:py-20"
       aria-label="Agency statistics"
     >
       <div className="absolute inset-0 -z-0">
-        <div className="absolute left-0 top-0 h-[360px] w-[460px] rounded-full bg-[#39D97A]/10 blur-[120px]" />
-        <div className="absolute bottom-0 right-0 h-[300px] w-[400px] rounded-full bg-[#39D97A]/7 blur-[110px]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.035)_1px,transparent_1px)] bg-[size:72px_72px] opacity-25" />
+        <div className="absolute left-0 top-0 h-[320px] w-[420px] rounded-full bg-[#39D97A]/7 blur-[110px]" />
+        <div className="absolute bottom-0 right-0 h-[280px] w-[380px] rounded-full bg-[#C6F135]/5 blur-[110px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.018)_1px,transparent_1px)] bg-[size:82px_82px] opacity-20" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-6 md:px-10 lg:px-12">
-        <div className="mb-10 grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+        <div className="mb-9 grid gap-5 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
           <motion.div
             initial={reducedMotion ? false : { opacity: 0, y: 18 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55 }}
+            transition={{ duration: 0.45 }}
             viewport={{ once: true }}
           >
-            <p className="mb-4 inline-flex rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#39D97A]">
+            <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
+              <span className="h-2 w-2 rounded-full bg-[#39D97A]" />
               Growth Snapshot
             </p>
 
@@ -67,7 +68,7 @@ export default function StatsBar({
           <motion.p
             initial={reducedMotion ? false : { opacity: 0, y: 18 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 0.08 }}
+            transition={{ duration: 0.45, delay: 0.06 }}
             viewport={{ once: true }}
             className="max-w-2xl text-sm leading-7 text-white/60 sm:text-base lg:justify-self-end"
           >
@@ -75,51 +76,39 @@ export default function StatsBar({
           </motion.p>
         </div>
 
-        <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           {stats.map((stat, index) => (
             <motion.div
               key={`${stat.label}-${index}`}
-              initial={reducedMotion ? false : { opacity: 0, y: 24 }}
+              initial={reducedMotion ? false : { opacity: 0, y: 22 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: index * 0.07 }}
+              transition={{ duration: 0.42, delay: index * 0.05 }}
               viewport={{ once: true }}
-              className="group relative overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5 shadow-[0_24px_75px_rgba(0,0,0,0.22)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-[#39D97A]/30 hover:bg-[#39D97A]/8"
+              className="group relative overflow-hidden rounded-[1.5rem] border border-[#1E314A] bg-[#0E1B2D]/92 p-4 shadow-[0_22px_70px_rgba(0,0,0,0.2)] transition duration-300 hover:-translate-y-1 hover:border-[#39D97A]/28 hover:bg-[#13233A] sm:p-5 lg:p-6"
             >
               <span className="absolute inset-x-0 top-0 h-px scale-x-0 bg-gradient-to-r from-transparent via-[#39D97A]/70 to-transparent transition-transform duration-500 group-hover:scale-x-100" />
-              <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[#39D97A]/10 blur-2xl transition group-hover:bg-[#39D97A]/18" />
 
-              <div className="relative">
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10 transition group-hover:scale-105 group-hover:bg-[#39D97A]/14">
-                  <SvgIcon name={stat.icon || 'growth'} size={22} color="#39D97A" />
-                </div>
+              <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10 sm:h-12 sm:w-12">
+                <SvgIcon name={stat.icon || 'analytics'} size={20} color="#39D97A" />
+              </div>
 
-                <dt className="sr-only">{stat.label}</dt>
+              <dt className="sr-only">{stat.label}</dt>
 
-                <dd
-                  className="text-4xl font-black tracking-[-0.055em] text-white sm:text-5xl"
-                  aria-label={`${stat.prefix || ''}${stat.value}${stat.suffix || ''} ${stat.label}`}
-                >
+              <dd className="text-3xl font-black tracking-[-0.06em] text-white sm:text-4xl lg:text-5xl">
+                <span className="bg-gradient-to-r from-[#39D97A] to-[#C6F135] bg-clip-text text-transparent">
                   <Counter
                     value={stat.value}
                     prefix={stat.prefix}
                     suffix={stat.suffix}
-                    duration={1900}
-                    start={inView && !reducedMotion ? 0 : stat.value}
+                    duration={1800}
+                    start={reducedMotion || !inView ? stat.value : 0}
                   />
-                </dd>
+                </span>
+              </dd>
 
-                <dd className="mt-2 text-sm font-semibold text-white/55">
-                  {stat.label}
-                </dd>
-
-                <motion.div
-                  className="mt-5 h-1 rounded-full bg-[#39D97A]"
-                  initial={reducedMotion ? { width: '100%' } : { width: '0%' }}
-                  animate={inView || reducedMotion ? { width: '68%' } : { width: '0%' }}
-                  transition={{ duration: 0.8, delay: 0.2 + index * 0.08 }}
-                  aria-hidden="true"
-                />
-              </div>
+              <dd className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-white/45 sm:text-sm">
+                {stat.label}
+              </dd>
             </motion.div>
           ))}
         </dl>

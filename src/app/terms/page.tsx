@@ -1,89 +1,80 @@
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+import Link from 'next/link'
 
 export const metadata = {
   title: 'Terms of Service | Hbee Digitals',
-  description: 'Terms and conditions for using Hbee Digitals services.',
+  description: 'Terms of Service for Hbee Digitals.',
 }
+
+const sections = [
+  {
+    title: 'Acceptance of Terms',
+    body: 'By using our website or requesting our services, you agree to these terms and any project-specific agreement provided by Hbee Digitals.',
+  },
+  {
+    title: 'Services',
+    body: 'We provide digital services including website design, Shopify optimization, branding, digital systems, support, consulting, and related services.',
+  },
+  {
+    title: 'Project Scope',
+    body: 'Each project will follow the agreed scope, deliverables, timeline, and pricing discussed before work begins. Additional requests may require a revised quote.',
+  },
+  {
+    title: 'Payments',
+    body: 'Payments must be made according to the agreed invoice or payment schedule. Work may be paused if payment is delayed.',
+  },
+  {
+    title: 'Client Responsibilities',
+    body: 'Clients are responsible for providing accurate information, required access, brand materials, content, feedback, and approvals needed to complete the project.',
+  },
+  {
+    title: 'Revisions',
+    body: 'Revisions are handled based on the agreed project scope. Extra revisions or major direction changes may attract additional fees.',
+  },
+  {
+    title: 'Limitation of Liability',
+    body: 'Hbee Digitals is not liable for indirect losses, third-party platform issues, hosting outages, payment provider issues, or business losses outside our direct control.',
+  },
+  {
+    title: 'Changes to Terms',
+    body: 'We may update these terms when necessary. Continued use of our website or services means you accept the updated terms.',
+  },
+]
 
 export default function TermsPage() {
   return (
     <>
       <Navbar />
-      <main className="pt-28 pb-20 min-h-screen bg-white dark:bg-[var(--bg-color)] px-6 md:px-12">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-4xl font-extrabold mb-6" style={{ color: 'var(--secondary-color)' }}>
-            Terms of Service
-          </h1>
-          <div className="space-y-6 text-gray-600 dark:text-white/70 leading-relaxed">
-            <p><strong>Effective Date:</strong> January 1, 2026</p>
-            <p>
-              Welcome to Hbee Digitals. By accessing or using our website and services, you agree to be bound by these
-              Terms of Service. If you do not agree, please do not use our services.
+      <main className="min-h-screen bg-[#060E1C] px-5 pb-20 pt-32 text-white sm:px-6 md:px-10 lg:px-12">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-10">
+            <p className="mb-4 inline-flex rounded-full border border-[#39D97A]/20 bg-white/[0.04] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#39D97A]">
+              Legal
             </p>
-
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              Services
-            </h2>
-            <p>
-              Hbee Digitals provides web development, e‑commerce solutions, UI/UX design, digital marketing, and
-              related consulting services. All services are subject to availability and may be modified at any time.
+            <h1 className="text-5xl font-black tracking-[-0.04em]">Terms of Service</h1>
+            <p className="mt-5 max-w-2xl text-white/60">
+              These terms explain how our services, projects, payments, and responsibilities are handled.
             </p>
+          </div>
 
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              User Responsibilities
-            </h2>
-            <p>You agree to:</p>
-            <ul className="list-disc list-inside space-y-2">
-              <li>Provide accurate and complete information when contacting us or creating an account</li>
-              <li>Use our website and services only for lawful purposes</li>
-              <li>Not engage in any activity that disrupts or interferes with our services</li>
-            </ul>
+          <div className="space-y-5">
+            {sections.map((section) => (
+              <section key={section.title} className="rounded-[1.5rem] border border-white/10 bg-white/[0.045] p-6">
+                <h2 className="text-2xl font-black">{section.title}</h2>
+                <p className="mt-3 leading-7 text-white/62">{section.body}</p>
+              </section>
+            ))}
+          </div>
 
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              Intellectual Property
-            </h2>
-            <p>
-              All content on this website, including text, graphics, logos, and code, is the property of Hbee Digitals
-              and is protected by copyright and intellectual property laws. You may not reproduce, distribute, or create
-              derivative works without our express written permission.
+          <div className="mt-10 rounded-[1.5rem] border border-[#39D97A]/20 bg-[#39D97A]/10 p-6">
+            <h2 className="text-xl font-black">Need clarification?</h2>
+            <p className="mt-3 text-white/62">
+              Contact us before starting a project if you need any part of these terms explained.
             </p>
-
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              Limitation of Liability
-            </h2>
-            <p>
-              Hbee Digitals shall not be liable for any indirect, incidental, or consequential damages arising from your
-              use of our website or services. Our total liability is limited to the amount paid by you for the specific
-              service in question.
-            </p>
-
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              Governing Law
-            </h2>
-            <p>
-              These terms shall be governed by the laws of the Federal Republic of Nigeria. Any disputes shall be resolved
-              in the courts of Abuja, Nigeria.
-            </p>
-
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              Changes to Terms
-            </h2>
-            <p>
-              We reserve the right to update these Terms of Service at any time. Continued use of the site after changes
-              constitutes acceptance of the new terms.
-            </p>
-
-            <h2 className="text-2xl font-bold mt-10 mb-4" style={{ color: 'var(--secondary-color)' }}>
-              Contact
-            </h2>
-            <p>
-              For questions about these terms, please contact us at:
-              <br />
-              📧 <a href="mailto:hello.hbeedigitals@gmail.com" className="text-blue-600 underline">hbeedigitalent@gmail.com</a>
-              <br />
-              📞 +234 (815) 315-3827
-            </p>
+            <Link href="/contact" className="mt-5 inline-flex rounded-full bg-[#39D97A] px-6 py-3 text-sm font-black text-[#06101F]">
+              Contact Us
+            </Link>
           </div>
         </div>
       </main>

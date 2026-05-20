@@ -3,16 +3,16 @@ import Footer from '@/components/Footer'
 import ContactSection from '@/components/sections/ContactSection'
 
 export const metadata = {
-  title: 'Contact Hbee Digitals | Start Your Growth System',
+  title: 'Contact Hbee Digitals | Start Your Project',
   description:
-    'Start a project with Hbee Digitals. Website design, Shopify optimization, brand experience, and digital growth systems.',
+    'Contact Hbee Digitals to discuss website design, Shopify optimization, brand systems, conversion improvements, and digital growth support.',
 }
 
 export default function ContactPage() {
   return (
     <>
       <Navbar />
-      <main>
+      <main className="bg-[#060E1C]">
         <ContactSection />
       </main>
       <Footer />

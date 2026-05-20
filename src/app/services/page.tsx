@@ -13,20 +13,14 @@ function CurvedUnderlineText({ children }: { children: React.ReactNode }) {
   return (
     <span className="relative inline-block">
       <span className="relative z-10 text-[#39D97A]">{children}</span>
-
       <svg
-        className="absolute -bottom-2 left-0 h-4 w-full text-[#39D97A]/75 sm:-bottom-3 sm:h-5"
+        className="absolute -bottom-2 left-0 h-4 w-full text-[#39D97A]/70"
         viewBox="0 0 220 18"
         fill="none"
         preserveAspectRatio="none"
         aria-hidden="true"
       >
-        <path
-          d="M4 13C50 2 142 2 216 11"
-          stroke="currentColor"
-          strokeWidth="5"
-          strokeLinecap="round"
-        />
+        <path d="M4 13C50 2 142 2 216 11" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
       </svg>
     </span>
   )
@@ -38,7 +32,7 @@ export default function ServicesPage() {
   const reducedMotion = useReducedMotion()
 
   useEffect(() => {
-    const fetchServices = async () => {
+    async function fetchServices() {
       const { data } = await supabase
         .from('services')
         .select('*')
@@ -57,10 +51,7 @@ export default function ServicesPage() {
       <>
         <Navbar />
         <main className="flex min-h-screen items-center justify-center bg-[#060E1C] text-white">
-          <div className="flex flex-col items-center gap-4">
-            <div className="h-12 w-12 animate-spin rounded-full border-2 border-white/10 border-t-[#39D97A]" />
-            <p className="text-sm font-bold text-white/45">Loading services...</p>
-          </div>
+          <div className="h-12 w-12 animate-spin rounded-full border-2 border-white/10 border-t-[#39D97A]" />
         </main>
         <Footer />
       </>
@@ -74,13 +65,13 @@ export default function ServicesPage() {
       <main className="relative overflow-hidden bg-[#060E1C] text-white">
         <div className="absolute inset-0 -z-10">
           <div className="absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-[#39D97A]/8 blur-[140px]" />
-          <div className="absolute bottom-0 right-0 h-[420px] w-[520px] rounded-full bg-[#0B8F4D]/8 blur-[120px]" />
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.028)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.028)_1px,transparent_1px)] bg-[size:78px_78px] opacity-25" />
+          <div className="absolute bottom-0 right-0 h-[420px] w-[520px] rounded-full bg-[#123F2B]/50 blur-[130px]" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.025)_1px,transparent_1px)] bg-[size:80px_80px] opacity-25" />
         </div>
 
-        <section className="relative px-5 pb-14 pt-32 sm:px-6 md:px-10 lg:px-12">
+        <section className="relative px-5 pb-16 pt-32 sm:px-6 md:px-10 lg:px-12">
           <div className="mx-auto max-w-7xl">
-            <div className="grid gap-14 lg:grid-cols-2 lg:items-center">
+            <div className="grid gap-14 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
               <motion.div
                 initial={reducedMotion ? false : { opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -91,7 +82,7 @@ export default function ServicesPage() {
                   Services / Growth Systems
                 </div>
 
-                <h1 className="max-w-5xl text-5xl font-black leading-[0.93] tracking-[-0.045em] sm:text-6xl lg:text-7xl">
+                <h1 className="max-w-5xl text-5xl font-black leading-[0.93] tracking-[-0.04em] sm:text-6xl lg:text-7xl">
                   Strategic systems
                   <br />
                   built for
@@ -136,60 +127,56 @@ export default function ServicesPage() {
                 initial={reducedMotion ? false : { opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.65, delay: 0.12 }}
-                className="grid gap-5 sm:grid-cols-2"
+                className="relative"
               >
-                {services.slice(0, 4).map((service, index) => {
-                  const featured = index === 0
-                  const icon = getServiceIcon(service)
+                <div className="absolute -inset-6 rounded-[2rem] bg-[#39D97A]/6 blur-3xl" />
 
-                  return (
-                    <motion.div
-                      key={service.id}
-                      initial={reducedMotion ? false : { opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.45, delay: 0.16 + index * 0.06 }}
-                      className={`relative overflow-hidden rounded-[2rem] border p-6 shadow-[0_26px_80px_rgba(0,0,0,0.24)] transition duration-300 hover:-translate-y-2 hover:scale-[1.01] ${
-                        featured
-                          ? 'border-[#39D97A] bg-[#39D97A] text-[#06101F]'
-                          : 'border-white/10 bg-white/[0.045] text-white hover:border-[#39D97A]/28 hover:bg-white/[0.065]'
-                      }`}
-                    >
-                      <div
-                        className={`absolute -right-12 -top-12 h-32 w-32 rounded-full blur-3xl ${
-                          featured ? 'bg-[#06101F]/10' : 'bg-[#39D97A]/10'
+                <div className="relative grid gap-5 sm:grid-cols-2">
+                  {services.slice(0, 4).map((service, index) => {
+                    const featured = index === 0
+                    const icon = getServiceIcon(service)
+
+                    return (
+                      <motion.div
+                        key={service.id}
+                        initial={reducedMotion ? false : { opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45, delay: 0.16 + index * 0.06 }}
+                        className={`relative overflow-hidden rounded-[2rem] border p-6 shadow-[0_26px_80px_rgba(0,0,0,0.24)] transition duration-300 hover:-translate-y-2 hover:scale-[1.01] ${
+                          featured
+                            ? 'border-[#39D97A] bg-[#39D97A] text-[#06101F]'
+                            : 'border-white/10 bg-white/[0.045] text-white hover:border-[#39D97A]/28 hover:bg-white/[0.065]'
                         }`}
-                      />
-
-                      <div className="relative">
+                      >
                         <div
-                          className={`mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border ${
-                            featured
-                              ? 'border-[#06101F]/12 bg-[#06101F]/10'
-                              : 'border-[#39D97A]/18 bg-[#39D97A]/10'
+                          className={`absolute -right-12 -top-12 h-32 w-32 rounded-full blur-3xl ${
+                            featured ? 'bg-[#06101F]/10' : 'bg-[#39D97A]/10'
                           }`}
-                        >
-                          <SvgIcon
-                            name={icon}
-                            size={28}
-                            color={featured ? '#06101F' : '#39D97A'}
-                          />
+                        />
+
+                        <div className="relative">
+                          <div
+                            className={`mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border ${
+                              featured
+                                ? 'border-[#06101F]/12 bg-[#06101F]/10'
+                                : 'border-[#39D97A]/18 bg-[#39D97A]/10'
+                            }`}
+                          >
+                            <SvgIcon name={icon} size={28} color={featured ? '#06101F' : '#39D97A'} />
+                          </div>
+
+                          <h3 className="text-2xl font-black leading-tight tracking-[-0.035em]">
+                            {service.title}
+                          </h3>
+
+                          <p className={`mt-4 line-clamp-4 text-sm leading-7 ${featured ? 'text-[#06101F]/72' : 'text-white/58'}`}>
+                            {service.description}
+                          </p>
                         </div>
-
-                        <h3 className="text-2xl font-black leading-tight tracking-[-0.035em]">
-                          {service.title}
-                        </h3>
-
-                        <p
-                          className={`mt-4 line-clamp-4 text-sm leading-7 ${
-                            featured ? 'text-[#06101F]/72' : 'text-white/58'
-                          }`}
-                        >
-                          {service.description}
-                        </p>
-                      </div>
-                    </motion.div>
-                  )
-                })}
+                      </motion.div>
+                    )
+                  })}
+                </div>
               </motion.div>
             </div>
           </div>
@@ -209,21 +196,14 @@ export default function ServicesPage() {
               </h2>
 
               <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/60 sm:text-base">
-                Let’s create a cleaner, more scalable, and conversion-focused digital experience
-                for your brand.
+                Let’s create a cleaner, more scalable, and conversion-focused digital experience for your brand.
               </p>
 
               <Link
                 href="/contact"
-                className="group mt-7 inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-[#39D97A] px-7 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
+                className="mt-7 inline-flex min-h-[52px] items-center justify-center rounded-full bg-[#39D97A] px-7 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
               >
                 Start Your Project
-                <SvgIcon
-                  name="arrow-diagonal"
-                  size={16}
-                  color="#06101F"
-                  className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                />
               </Link>
             </div>
           </div>

@@ -1,298 +1,270 @@
 'use client'
 
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
-import { useEffect, useMemo, useState } from 'react'
-import { HeroData } from '@/types'
 import SvgIcon from '@/components/ui/SvgIcon'
 
 interface HeroSectionProps {
-  data: HeroData & {
-    welcomeText?: string
-    featureBullets?: string | string[]
+  data: {
+    title?: string
+    subtitle?: string
+    primaryCtaText?: string
+    primaryCtaLink?: string
+    secondaryCtaText?: string
+    secondaryCtaLink?: string
+    backgroundImage?: string
+    featureBullets?: string
+    video_url?: string
   }
 }
 
-function TypewriterWords({ words }: { words: string[] }) {
-  const [wordIndex, setWordIndex] = useState(0)
-  const [text, setText] = useState('')
-  const [isDeleting, setIsDeleting] = useState(false)
+const rotatingWords = ['Shopify Stores.', 'Online Stores.', 'Modern Brands.', 'Digital Growth.']
 
-  useEffect(() => {
-    const currentWord = words[wordIndex]
-    const speed = isDeleting ? 38 : 70
-
-    const timeout = setTimeout(() => {
-      if (!isDeleting && text === currentWord) {
-        setTimeout(() => setIsDeleting(true), 950)
-        return
-      }
-
-      if (isDeleting && text === '') {
-        setIsDeleting(false)
-        setWordIndex((prev) => (prev + 1) % words.length)
-        return
-      }
-
-      setText((prev) =>
-        isDeleting
-          ? currentWord.substring(0, prev.length - 1)
-          : currentWord.substring(0, prev.length + 1)
-      )
-    }, speed)
-
-    return () => clearTimeout(timeout)
-  }, [text, isDeleting, wordIndex, words])
-
-  return (
-    <span className="relative inline-block min-w-[250px] sm:min-w-[330px] lg:min-w-[400px]">
-      <span className="relative z-10 bg-gradient-to-r from-[#39D97A] to-[#C6F135] bg-clip-text text-transparent">
-        {text}
-      </span>
-
-      <svg
-        className="absolute -bottom-2 left-0 h-4 w-full text-[#39D97A]/75"
-        viewBox="0 0 220 18"
-        fill="none"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M4 13C50 2 142 2 216 11"
-          stroke="currentColor"
-          strokeWidth="5"
-          strokeLinecap="round"
-        />
-      </svg>
-
-      <span className="relative z-10 ml-1 inline-block h-[0.85em] w-[4px] translate-y-1 rounded-full bg-[#39D97A] animate-pulse" />
-    </span>
-  )
-}
-
-function StatCard({
-  label,
-  value,
-  icon,
-}: {
-  label: string
-  value: string
-  icon: string
-}) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-3 backdrop-blur-xl">
-      <div className="mb-2.5 flex h-8 w-8 items-center justify-center rounded-xl border border-[#39D97A]/20 bg-[#39D97A]/10">
-        <SvgIcon name={icon} size={17} color="#39D97A" />
-      </div>
-      <div className="text-lg font-black tracking-tight text-white">{value}</div>
-      <div className="mt-0.5 text-[10px] font-medium text-white/45">{label}</div>
-    </div>
-  )
-}
-
-function DashboardMockup() {
-  return (
-    <div className="relative mx-auto w-full max-w-[430px] lg:max-w-[430px] xl:max-w-[465px]">
-      <div className="absolute -inset-8 rounded-full bg-[#39D97A]/14 blur-[80px]" />
-
-      <motion.div
-        initial={{ opacity: 0, y: 24, rotateX: 8 }}
-        animate={{ opacity: 1, y: 0, rotateX: 0 }}
-        transition={{ duration: 0.75, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className="relative overflow-hidden rounded-[1.45rem] border border-white/10 bg-[#071427]/90 p-3 shadow-[0_28px_80px_rgba(0,0,0,0.38)] backdrop-blur-2xl"
-      >
-        <div className="mb-3 flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5">
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#39D97A]">
-              Growth Intelligence
-            </p>
-            <h3 className="mt-1 text-sm font-bold text-white">Store Health Overview</h3>
-          </div>
-
-          <div className="rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-3 py-1 text-[10px] font-bold text-[#39D97A]">
-            Live
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2.5">
-          <StatCard label="Conversion Lift" value="+38%" icon="growth" />
-          <StatCard label="Store Health" value="94%" icon="analytics" />
-          <StatCard label="Accessibility" value="AA" icon="security" />
-          <StatCard label="Speed Score" value="91" icon="performance" />
-        </div>
-
-        <div className="mt-2.5 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-          <div className="mb-2.5 flex items-center justify-between">
-            <p className="text-xs font-semibold text-white">Optimization Progress</p>
-            <p className="text-[10px] text-white/45">Last 30 days</p>
-          </div>
-
-          <div className="flex h-16 items-end gap-1.5">
-            {[38, 52, 46, 64, 72, 68, 88, 78, 94, 84, 100, 92].map((height, index) => (
-              <motion.div
-                key={index}
-                initial={{ height: 0 }}
-                animate={{ height: `${height}%` }}
-                transition={{ duration: 0.7, delay: 0.35 + index * 0.035 }}
-                className="flex-1 rounded-t-full bg-gradient-to-t from-[#39D97A]/35 to-[#C6F135]"
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-2.5 grid gap-2.5 md:grid-cols-2">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-            <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-white">
-              <SvgIcon name="precision" size={15} color="#39D97A" />
-              Audit Fixes
-            </div>
-
-            <div className="space-y-1.5">
-              {['Checkout friction reduced', 'Trust signals improved', 'Mobile UX optimized'].map(
-                (item) => (
-                  <div key={item} className="flex items-center gap-2 text-[10px] text-white/55">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#39D97A]" />
-                    {item}
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-            <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-white">
-              <SvgIcon name="strategy" size={15} color="#C6F135" />
-              Growth Focus
-            </div>
-
-            <p className="text-[10px] leading-relaxed text-white/55">
-              Conversion, accessibility, performance, and revenue-focused UX.
-            </p>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  )
+function cleanHeroTitle(title?: string) {
+  return (title || 'Engineering Growth For')
+    .replace(/Modern Brands\.?/gi, '')
+    .replace(/Shopify Stores\.?/gi, '')
+    .replace(/Online Stores\.?/gi, '')
+    .replace(/Digital Growth\.?/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 export default function HeroSection({ data }: HeroSectionProps) {
   const reducedMotion = useReducedMotion()
+  const [wordIndex, setWordIndex] = useState(0)
+  const [typedText, setTypedText] = useState('')
 
   const {
+    title,
+    subtitle = 'We build scalable digital systems, conversion-focused experiences, and growth infrastructure for ambitious e-commerce and modern businesses.',
     primaryCtaText = 'Get Free Audit',
     primaryCtaLink = '/contact',
     secondaryCtaText = 'View Case Studies',
-    secondaryCtaLink = '/projects',
-    featureBullets = '',
+    secondaryCtaLink = '/portfolio',
+    backgroundImage,
+    video_url,
+    featureBullets,
   } = data || {}
 
-  const words = useMemo(
-    () => ['Shopify Brands.', 'Online Stores.', 'E-commerce Teams.', 'Scaling Businesses.'],
-    []
-  )
+  const cleanTitle = cleanHeroTitle(title)
 
-  let bullets: string[] = []
+  const bullets = useMemo(() => {
+    return featureBullets
+      ? featureBullets.split('|').filter(Boolean)
+      : ['Brand Identity', '24/7 Support']
+  }, [featureBullets])
 
-  if (Array.isArray(featureBullets)) {
-    bullets = featureBullets
-  } else if (typeof featureBullets === 'string' && featureBullets.trim().length > 0) {
-    bullets = featureBullets.split('|').filter(Boolean)
-  } else {
-    bullets = ['Shopify Optimization', 'Conversion Systems', 'Accessibility Support']
-  }
+  useEffect(() => {
+    if (reducedMotion) {
+      setTypedText(rotatingWords[0])
+      return
+    }
+
+    const currentWord = rotatingWords[wordIndex]
+    let charIndex = 0
+    setTypedText('')
+
+    const typing = window.setInterval(() => {
+      charIndex += 1
+      setTypedText(currentWord.slice(0, charIndex))
+
+      if (charIndex >= currentWord.length) {
+        window.clearInterval(typing)
+        window.setTimeout(() => {
+          setWordIndex((prev) => (prev + 1) % rotatingWords.length)
+        }, 1600)
+      }
+    }, 68)
+
+    return () => window.clearInterval(typing)
+  }, [wordIndex, reducedMotion])
+
+  const underlineWidth = `${Math.min(Math.max(typedText.length * 34, 180), 620)}px`
 
   return (
-    <section
-      id="hero"
-      aria-labelledby="hero-heading"
-      className="relative isolate flex min-h-[82vh] items-center overflow-hidden bg-[#060E1C] pt-24 text-white md:pt-28"
-    >
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute left-1/2 top-0 h-[400px] w-[720px] -translate-x-1/2 rounded-full bg-[#39D97A]/10 blur-[110px]" />
-        <div className="absolute bottom-0 right-0 h-[320px] w-[420px] rounded-full bg-[#C6F135]/8 blur-[100px]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:72px_72px] opacity-20" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#060E1C]/10 via-transparent to-[#060E1C]" />
+    <section className="relative overflow-hidden bg-[#07111F] pb-12 pt-28 text-white sm:pb-14 sm:pt-32 lg:min-h-screen lg:pb-16 lg:pt-32">
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute left-0 top-0 h-[360px] w-[460px] rounded-full bg-[#39D97A]/7 blur-[110px]" />
+        <div className="absolute bottom-0 right-0 h-[330px] w-[420px] rounded-full bg-[#C6F135]/5 blur-[110px]" />
       </div>
 
-      <div className="mx-auto grid w-full max-w-7xl items-center gap-8 px-6 pb-10 md:px-10 lg:grid-cols-[1fr_0.9fr] lg:gap-10">
-        <div className="text-center lg:text-left">
-          <motion.div
-            initial={reducedMotion ? false : { opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#39D97A]"
-          >
+      <div className="mx-auto grid max-w-7xl items-center gap-10 px-5 sm:px-6 md:px-10 lg:grid-cols-[0.94fr_1.06fr] lg:px-12">
+        <motion.div
+          initial={reducedMotion ? false : { opacity: 0, y: 22 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55 }}
+          className="relative z-10"
+        >
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
             <span className="h-2 w-2 rounded-full bg-[#39D97A]" />
-            Digital Growth Systems
-          </motion.div>
+            DIGITAL GROWTH SYSTEMS
+          </div>
 
-          <motion.h1
-            id="hero-heading"
-            initial={reducedMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-            className="mx-auto max-w-5xl text-balance text-5xl font-black leading-[0.95] tracking-[-0.06em] text-white sm:text-6xl lg:mx-0 lg:text-[4.35rem] xl:text-[4.9rem]"
-          >
-            Engineering Growth For <br />
-            <TypewriterWords words={words} />
-          </motion.h1>
+          <h1 className="max-w-4xl text-[3.45rem] font-black leading-[0.9] tracking-[-0.07em] text-white sm:text-6xl md:text-7xl xl:text-[5.2rem]">
+            {cleanTitle}
+            <br />
 
-          <motion.p
-            initial={reducedMotion ? false : { opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.62, delay: 0.2 }}
-            className="mx-auto mt-5 max-w-2xl text-base leading-7 text-white/68 lg:mx-0"
-          >
-            We build scalable digital systems, conversion-focused experiences, and growth
-            infrastructure for ambitious e-commerce brands.
-          </motion.p>
+            <span className="relative inline-block min-h-[1.08em]">
+              <span className="inline-block bg-gradient-to-r from-[#39D97A] via-[#6EEB73] to-[#C6F135] bg-clip-text text-transparent">
+                {typedText}
+                <span className="ml-1 inline-block h-[0.82em] w-[4px] translate-y-[6px] animate-pulse rounded-full bg-[#C6F135]" />
+              </span>
 
-          <motion.div
-            initial={reducedMotion ? false : { opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.62, delay: 0.32 }}
-            className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start"
-          >
+              <svg
+                className="absolute -bottom-2 left-0 h-5 text-[#39D97A]/75 transition-all duration-300"
+                style={{ width: underlineWidth, maxWidth: '100%' }}
+                viewBox="0 0 260 18"
+                fill="none"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M5 13C62 2 168 2 255 11"
+                  stroke="currentColor"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>
+          </h1>
+
+          <p className="mt-6 max-w-2xl text-sm leading-7 text-white/66 sm:text-base md:text-lg md:leading-8">
+            {subtitle}
+          </p>
+
+          <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
             <Link
-              href={primaryCtaLink || '/contact'}
-              className="group inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#39D97A] to-[#C6F135] px-7 py-3 text-sm font-black text-[#06101F] shadow-[0_0_36px_rgba(57,217,122,0.24)] transition hover:scale-[1.02]"
+              href={primaryCtaLink}
+              className="group inline-flex min-h-[54px] items-center justify-center gap-3 rounded-full bg-[#39D97A] px-7 py-4 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
             >
               {primaryCtaText}
-              <SvgIcon
-                name="arrow-diagonal"
-                size={16}
-                color="#06101F"
-                className="transition duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-              />
+              <SvgIcon name="arrow-diagonal" size={17} color="#06101F" />
             </Link>
 
             <Link
-              href={secondaryCtaLink || '/projects'}
-              className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-white/12 bg-white/[0.035] px-7 py-3 text-sm font-bold text-white/82 backdrop-blur-xl transition hover:border-[#39D97A]/30 hover:bg-[#39D97A]/10 hover:text-white"
+              href={secondaryCtaLink}
+              className="group inline-flex min-h-[54px] items-center justify-center gap-3 rounded-full border border-[#1E314A] bg-[#0E1B2D] px-7 py-4 text-sm font-black text-white transition hover:border-[#39D97A]/25 hover:bg-[#13233A]"
             >
               {secondaryCtaText}
+              <SvgIcon name="arrow-diagonal" size={17} color="#39D97A" />
             </Link>
-          </motion.div>
+          </div>
 
-          <motion.ul
-            initial={reducedMotion ? false : { opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.62, delay: 0.42 }}
-            className="mx-auto mt-5 flex max-w-2xl flex-wrap justify-center gap-2.5 lg:mx-0 lg:justify-start"
-          >
+          <div className="mt-5 flex flex-wrap items-center gap-2.5">
             {bullets.map((item) => (
-              <li
+              <div
                 key={item}
-                className="rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-xs font-semibold text-white/70 backdrop-blur-xl"
+                className="inline-flex items-center gap-2 rounded-full border border-[#39D97A]/18 bg-[#0E1B2D] px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-[#39D97A]"
               >
+                <SvgIcon name="security" size={11} color="#39D97A" />
                 {item}
-              </li>
+              </div>
             ))}
-          </motion.ul>
-        </div>
+          </div>
 
-        <DashboardMockup />
+          <div className="mt-8 flex flex-wrap items-center gap-5">
+            {[
+              ['98%', 'Success Rate'],
+              ['45+', 'Brands Supported'],
+              ['5★', 'Client Feedback'],
+            ].map(([value, label], index) => (
+              <div key={label} className="flex items-center gap-5">
+                <div>
+                  <p className="text-3xl font-black text-white sm:text-4xl">{value}</p>
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/42 sm:text-xs">
+                    {label}
+                  </p>
+                </div>
+
+                {index !== 2 && <div className="hidden h-11 w-px bg-[#1E314A] sm:block" />}
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={reducedMotion ? false : { opacity: 0, y: 28 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.12 }}
+          className="relative"
+        >
+          <div className="relative overflow-hidden rounded-[2.2rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#0B1625] p-4 shadow-[0_36px_100px_rgba(0,0,0,0.3)]">
+            <div className="relative overflow-hidden rounded-[1.8rem] border border-[#1E314A] bg-[#07111F]">
+              {video_url ? (
+                <video
+                  src={video_url}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  poster={backgroundImage}
+                  className="h-full min-h-[390px] w-full object-cover sm:min-h-[500px] lg:min-h-[570px]"
+                />
+              ) : backgroundImage ? (
+                <img
+                  src={backgroundImage}
+                  alt="Hbee Digitals digital growth dashboard"
+                  loading="eager"
+                  fetchPriority="high"
+                  className="h-full min-h-[390px] w-full object-cover sm:min-h-[500px] lg:min-h-[570px]"
+                />
+              ) : (
+                <DashboardMockup />
+              )}
+            </div>
+          </div>
+        </motion.div>
       </div>
     </section>
+  )
+}
+
+function DashboardMockup() {
+  const bars = [34, 46, 40, 52, 61, 55, 72, 63, 78, 67, 86, 79]
+
+  return (
+    <div className="min-h-[390px] bg-[#07111F] p-4 sm:min-h-[500px] sm:p-6 lg:min-h-[570px]">
+      <div className="rounded-[1.4rem] border border-[#1E314A] bg-[#0E1B2D] p-4">
+        <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#39D97A]">
+          Growth Intelligence
+        </p>
+        <h3 className="mt-2 text-lg font-black text-white">Store Health Overview</h3>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-4">
+        {[
+          ['growth', '+38%', 'Conversion Lift'],
+          ['analytics', '94%', 'Store Health'],
+          ['security', 'AA', 'Accessibility'],
+          ['performance', '91', 'Speed Score'],
+        ].map(([icon, value, label]) => (
+          <div key={label} className="rounded-[1.4rem] border border-[#1E314A] bg-[#0E1B2D] p-5">
+            <SvgIcon name={icon} size={20} color="#39D97A" />
+            <p className="mt-8 text-2xl font-black text-white">{value}</p>
+            <p className="mt-1 text-sm font-semibold text-white/42">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 rounded-[1.4rem] border border-[#1E314A] bg-[#0E1B2D] p-5">
+        <div className="mb-5 flex items-center justify-between">
+          <p className="text-sm font-black text-white">Optimization Progress</p>
+          <p className="text-xs text-white/45">Last 30 days</p>
+        </div>
+
+        <div className="flex h-24 items-end gap-2">
+          {bars.map((height, index) => (
+            <div
+              key={index}
+              className="flex-1 rounded-t-full bg-gradient-to-t from-[#39D97A]/45 to-[#C6F135]"
+              style={{ height: `${height}%` }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
