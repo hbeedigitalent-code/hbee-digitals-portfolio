@@ -6,7 +6,6 @@ import Footer from '@/components/Footer'
 import HeroSection from '@/components/sections/HeroSection'
 import AboutSection from '@/components/sections/AboutSection'
 import TestimonialsSection from '@/components/sections/TestimonialsSection'
-import TeamSection from '@/components/sections/TeamSection'
 import FAQSection from '@/components/sections/FAQSection'
 import CTASection from '@/components/sections/CTASection'
 import NewsletterSection from '@/components/sections/NewsletterSection'
@@ -269,12 +268,6 @@ export default async function HomePage() {
         <section className={`${bgGradient} relative`}>
           <Reveal delay={0.3}>
             <TestimonialsSection />
-          </Reveal>
-        </section>
-
-        <section className={`${bgGradient} relative`}>
-          <Reveal delay={0.4}>
-            <TeamSection />
           </Reveal>
         </section>
 

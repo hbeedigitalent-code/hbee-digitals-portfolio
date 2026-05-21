@@ -1,9 +1,10 @@
 import type { MetadataRoute } from "next";
+import { supabase } from "@/lib/supabase";
 
 const baseUrl = "https://hbeedigitals.com";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const routes = [
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const staticRoutes = [
     "",
     "/about",
     "/services",
@@ -18,10 +19,26 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/cookies",
   ];
 
-  return routes.map((route) => ({
-    url: `${baseUrl}${route}`,
-    lastModified: new Date(),
-    changeFrequency: route === "" ? "weekly" : "monthly",
-    priority: route === "" ? 1 : 0.8,
-  }));
+  const { data: portfolioItems } = await supabase
+    .from("portfolio_items")
+    .select("slug")
+    .eq("is_active", true);
+
+  const portfolioRoutes =
+    portfolioItems?.map((item) => ({
+      url: `${baseUrl}/portfolio/${item.slug}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.85,
+    })) || [];
+
+  return [
+    ...staticRoutes.map((route) => ({
+      url: `${baseUrl}${route}`,
+      lastModified: new Date(),
+      changeFrequency: route === "" ? ("weekly" as const) : ("monthly" as const),
+      priority: route === "" ? 1 : 0.8,
+    })),
+    ...portfolioRoutes,
+  ];
 }
