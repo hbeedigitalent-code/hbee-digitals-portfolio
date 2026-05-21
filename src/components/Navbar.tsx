@@ -29,7 +29,7 @@ const fallbackMenu: NavGroup[] = [
       {
         label: 'Website Design',
         href: '/services',
-        icon: 'web',
+        icon: 'web-development',
         description: 'Premium websites built for trust and conversion.',
       },
       {
@@ -41,7 +41,7 @@ const fallbackMenu: NavGroup[] = [
       {
         label: 'Brand Experience',
         href: '/services',
-        icon: 'design',
+        icon: 'branding',
         description: 'Clean brand visuals, structure, and digital presence.',
       },
       {
@@ -74,12 +74,12 @@ const fallbackMenu: NavGroup[] = [
   {
     label: 'Company',
     href: '/about',
-    icon: 'services',
+    icon: 'about',
     children: [
       {
         label: 'About Us',
         href: '/about',
-        icon: 'services',
+        icon: 'about',
         description: 'Learn about Hbee Digitals and how we work.',
       },
       {
@@ -91,7 +91,7 @@ const fallbackMenu: NavGroup[] = [
       {
         label: 'FAQ',
         href: '/faq',
-        icon: 'messages',
+        icon: 'faq',
         description: 'Answers to common project and service questions.',
       },
     ],
@@ -121,7 +121,8 @@ const fallbackMenu: NavGroup[] = [
       },
     ],
   },
-  { label: 'Contact', href: '/contact', icon: 'messages' },
+  { label: 'Contact', href: '/contact', icon: 'email' },
+  { label: 'FAQs', href: '/faq', icon: 'faq' },
 ]
 
 function isActiveRoute(pathname: string, href: string) {
@@ -146,17 +147,17 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [showNavbar, setShowNavbar] = useState(true)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [activeMobilePanel, setActiveMobilePanel] = useState<NavGroup | null>(null)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [menuItems, setMenuItems] = useState<NavGroup[]>(fallbackMenu)
   const [siteName, setSiteName] = useState('Hbee Digitals')
   const [logoUrl, setLogoUrl] = useState('/svgs/logo.svg')
 
   const lastScrollY = useRef(0)
-  const firstFocusableRef = useRef<HTMLAnchorElement>(null)
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const desktopMenu = useMemo(() => {
-    const coreLabels = ['Home', 'Services', 'Portfolio', 'Company', 'Resources', 'Contact']
+    const coreLabels = ['Home', 'Services', 'Portfolio', 'Company', 'Resources', 'Contact', 'FAQs']
 
     const enhanced = fallbackMenu.map((fallback) => {
       const matched = menuItems.find(
@@ -227,7 +228,7 @@ export default function Navbar() {
   }, [isMobileMenuOpen, openDropdown])
 
   useEffect(() => {
-    const fetchData = async () => {
+    async function fetchData() {
       const { data: menuData } = await supabase
         .from('menu_items')
         .select('label, href')
@@ -235,12 +236,12 @@ export default function Navbar() {
         .order('display_order', { ascending: true })
 
       if (menuData?.length) {
-        const cleanedMenu: NavGroup[] = menuData.map((item) => ({
-          label: item.label,
-          href: cleanHref(item.href),
-        }))
-
-        setMenuItems(cleanedMenu)
+        setMenuItems(
+          menuData.map((item) => ({
+            label: item.label,
+            href: cleanHref(item.href),
+          }))
+        )
       }
 
       const { data: settings } = await supabase.from('site_settings').select('*').single()
@@ -248,11 +249,6 @@ export default function Navbar() {
       if (settings) {
         if (settings.site_name) setSiteName(settings.site_name)
         if (settings.logo_url?.trim()) setLogoUrl(settings.logo_url.trim())
-
-        const root = document.documentElement
-        if (settings.primary_color) root.style.setProperty('--accent-color', settings.primary_color)
-        if (settings.background_color) root.style.setProperty('--bg-color', settings.background_color)
-        if (settings.text_color) root.style.setProperty('--text-color', settings.text_color)
       }
     }
 
@@ -261,14 +257,16 @@ export default function Navbar() {
 
   useEffect(() => {
     setIsMobileMenuOpen(false)
+    setActiveMobilePanel(null)
     setOpenDropdown(null)
     setShowNavbar(true)
   }, [pathname])
 
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
+    function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         setIsMobileMenuOpen(false)
+        setActiveMobilePanel(null)
         setOpenDropdown(null)
         setShowNavbar(true)
       }
@@ -282,9 +280,9 @@ export default function Navbar() {
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden'
       setShowNavbar(true)
-      window.setTimeout(() => firstFocusableRef.current?.focus(), 90)
     } else {
       document.body.style.overflow = ''
+      setActiveMobilePanel(null)
     }
 
     return () => {
@@ -312,12 +310,8 @@ export default function Navbar() {
               : 'border-[#1E314A]/70 bg-[#0B1728] shadow-[0_12px_45px_rgba(0,0,0,0.25)]'
           }`}
         >
-          <Link
-            href="/"
-            className="group flex min-w-0 items-center gap-3"
-            aria-label={`${siteName} homepage`}
-          >
-            <span className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-[#39D97A]/16 bg-[#0E1B2D] transition duration-300 group-hover:border-[#39D97A]/35 group-hover:bg-[#13233A]">
+          <Link href="/" className="group flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#39D97A]/16 bg-[#0E1B2D]">
               <img
                 src={logoUrl}
                 alt={`${siteName} logo`}
@@ -326,7 +320,7 @@ export default function Navbar() {
               />
             </span>
 
-            <span className="hidden min-w-0 text-sm font-black tracking-[-0.03em] text-white sm:block">
+            <span className="hidden text-sm font-black tracking-[-0.03em] text-white sm:block">
               {siteName}
             </span>
           </Link>
@@ -347,8 +341,6 @@ export default function Navbar() {
                   >
                     <Link
                       href={link.href}
-                      aria-current={active ? 'page' : undefined}
-                      onFocus={() => hasChildren && setOpenDropdown(link.label)}
                       className={`relative inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition-colors ${
                         active ? 'text-white' : 'text-white/64 hover:text-white'
                       }`}
@@ -370,7 +362,6 @@ export default function Navbar() {
                         <motion.span
                           layoutId="active-nav-pill"
                           className="absolute inset-0 rounded-full border border-[#39D97A]/24 bg-[#39D97A]/10"
-                          transition={{ type: 'spring', stiffness: 360, damping: 34 }}
                         />
                       )}
                     </Link>
@@ -384,49 +375,34 @@ export default function Navbar() {
                           transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                           className="absolute left-1/2 top-[calc(100%+14px)] w-[410px] -translate-x-1/2 overflow-hidden rounded-[1.5rem] border border-[#1E314A] bg-[#0B1728] p-3 shadow-[0_30px_90px_rgba(0,0,0,0.46)]"
                         >
-                          <div className="relative space-y-1">
-                            {link.children?.map((child) => {
-                              const childActive = isActiveRoute(pathname, child.href)
-
-                              return (
-                                <Link
-                                  key={`${child.label}-${child.href}`}
-                                  href={child.href}
-                                  className={`group flex gap-4 rounded-[1.15rem] border p-4 transition-all duration-300 ${
-                                    childActive
-                                      ? 'border-[#39D97A]/25 bg-[#13233A]'
-                                      : 'border-transparent bg-[#0E1B2D] hover:border-[#39D97A]/20 hover:bg-[#13233A]'
-                                  }`}
-                                >
-                                  <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10">
-                                    <SvgIcon
-                                      name={child.icon || 'services'}
-                                      size={20}
-                                      color="#39D97A"
-                                    />
-                                  </span>
-
-                                  <span>
-                                    <span className="block text-sm font-black text-white">
-                                      {child.label}
-                                    </span>
-
-                                    {child.description && (
-                                      <span className="mt-1 block text-xs leading-5 text-white/56">
-                                        {child.description}
-                                      </span>
-                                    )}
-                                  </span>
-
+                          <div className="space-y-1">
+                            {link.children?.map((child) => (
+                              <Link
+                                key={`${child.label}-${child.href}`}
+                                href={child.href}
+                                className="group flex gap-4 rounded-[1.15rem] border border-transparent bg-[#0E1B2D] p-4 transition hover:border-[#39D97A]/20 hover:bg-[#13233A]"
+                              >
+                                <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10">
                                   <SvgIcon
-                                    name="arrow-diagonal"
-                                    size={13}
+                                    name={child.icon || 'services'}
+                                    size={20}
                                     color="#39D97A"
-                                    className="ml-auto mt-1 opacity-0 transition duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100"
                                   />
-                                </Link>
-                              )
-                            })}
+                                </span>
+
+                                <span>
+                                  <span className="block text-sm font-black text-white">
+                                    {child.label}
+                                  </span>
+
+                                  {child.description && (
+                                    <span className="mt-1 block text-xs leading-5 text-white/56">
+                                      {child.description}
+                                    </span>
+                                  )}
+                                </span>
+                              </Link>
+                            ))}
                           </div>
                         </motion.div>
                       )}
@@ -442,42 +418,24 @@ export default function Navbar() {
 
             <Link
               href="/contact"
-              className="group hidden items-center gap-2 rounded-full bg-[#39D97A] px-5 py-2.5 text-sm font-black text-[#06101F] shadow-[0_0_28px_rgba(57,217,122,0.2)] transition hover:scale-[1.02] hover:bg-[#C6F135] lg:inline-flex"
+              className="group hidden items-center gap-2 rounded-full bg-[#39D97A] px-5 py-2.5 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135] lg:inline-flex"
             >
               Get Free Audit
-              <SvgIcon
-                name="arrow-diagonal"
-                size={16}
-                color="#06101F"
-                className="transition duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-              />
+              <SvgIcon name="arrow-diagonal" size={16} color="#06101F" />
             </Link>
 
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-              className="group inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#1E314A] bg-[#0E1B2D] transition hover:border-[#39D97A]/28 hover:bg-[#13233A] lg:hidden"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#1E314A] bg-[#0E1B2D] transition hover:border-[#39D97A]/28 hover:bg-[#13233A] lg:hidden"
               aria-expanded={isMobileMenuOpen}
-              aria-controls="mobile-menu"
               aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             >
-              <span className="relative h-4 w-5">
-                <span
-                  className={`absolute left-0 top-0 h-0.5 w-5 rounded-full bg-white transition duration-300 ${
-                    isMobileMenuOpen ? 'translate-y-[7px] rotate-45 bg-[#39D97A]' : ''
-                  }`}
-                />
-                <span
-                  className={`absolute left-0 top-[7px] h-0.5 w-5 rounded-full bg-white transition duration-300 ${
-                    isMobileMenuOpen ? 'opacity-0' : ''
-                  }`}
-                />
-                <span
-                  className={`absolute left-0 top-[14px] h-0.5 w-5 rounded-full bg-white transition duration-300 ${
-                    isMobileMenuOpen ? '-translate-y-[7px] -rotate-45 bg-[#39D97A]' : ''
-                  }`}
-                />
-              </span>
+              {isMobileMenuOpen ? (
+                <SvgIcon name="close" size={22} color="#ffffff" />
+              ) : (
+                <SvgIcon name="menu" size={22} color="#ffffff" />
+              )}
             </button>
           </div>
         </nav>
@@ -493,104 +451,197 @@ export default function Navbar() {
               initial={reducedMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={reducedMotion ? undefined : { opacity: 0 }}
-              className="fixed inset-0 z-40 bg-[#02070F]/72 lg:hidden"
+              className="fixed inset-0 z-40 bg-[#02070F]/78 lg:hidden"
             />
 
             <motion.div
-              id="mobile-menu"
-              initial={reducedMotion ? false : { opacity: 0, y: -18, scale: 0.97 }}
+              initial={reducedMotion ? false : { opacity: 0, y: -18, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={reducedMotion ? undefined : { opacity: 0, y: -18, scale: 0.97 }}
+              exit={reducedMotion ? undefined : { opacity: 0, y: -18, scale: 0.98 }}
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-              className="fixed left-3 right-3 top-[74px] z-50 max-h-[calc(100vh-92px)] overflow-y-auto rounded-[1.7rem] border border-[#1E314A] bg-[#0B1728] p-4 shadow-[0_30px_90px_rgba(0,0,0,0.5)] sm:left-5 sm:right-5 lg:hidden"
+              className="fixed left-3 right-3 top-[74px] z-50 max-h-[calc(100vh-92px)] overflow-hidden rounded-[1.8rem] border border-[#1E314A] bg-[#0B1728] shadow-[0_30px_90px_rgba(0,0,0,0.5)] sm:left-5 sm:right-5 lg:hidden"
             >
-              <ul className="space-y-2">
-                {desktopMenu.map((link, index) => {
-                  const active = isGroupActive(pathname, link)
-                  const hasChildren = Boolean(link.children?.length)
+              <div className="flex items-center justify-between border-b border-[#1E314A] p-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#39D97A]/16 bg-[#0E1B2D]">
+                    <img src={logoUrl} alt={siteName} className="h-8 w-8 object-contain" />
+                  </span>
 
-                  return (
-                    <motion.li
-                      key={`${link.label}-${link.href}`}
-                      initial={reducedMotion ? false : { opacity: 0, x: -10 }}
+                  <div>
+                    <p className="text-sm font-black text-white">{siteName}</p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#39D97A]">
+                      Digital Growth
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-[#1E314A] bg-[#13233A]"
+                >
+                  <SvgIcon name="close" size={20} color="#ffffff" />
+                </button>
+              </div>
+
+              <div className="relative h-[calc(100vh-190px)] overflow-hidden">
+                <AnimatePresence mode="wait">
+                  {!activeMobilePanel ? (
+                    <motion.div
+                      key="main-menu"
+                      initial={reducedMotion ? false : { opacity: 0, x: -18 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.22, delay: index * 0.035 }}
+                      exit={reducedMotion ? undefined : { opacity: 0, x: -18 }}
+                      transition={{ duration: 0.24 }}
+                      className="h-full overflow-y-auto p-4"
                     >
-                      <Link
-                        ref={index === 0 ? firstFocusableRef : undefined}
-                        href={link.href}
-                        aria-current={active ? 'page' : undefined}
-                        className={`group flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-bold transition ${
-                          active
-                            ? 'border-[#39D97A]/20 bg-[#13233A] text-[#39D97A]'
-                            : 'border-transparent bg-[#0E1B2D] text-white/72 hover:border-[#1E314A] hover:bg-[#13233A] hover:text-white'
-                        }`}
-                      >
-                        <span className="inline-flex items-center gap-3">
-                          <SvgIcon
-                            name={link.icon || 'services'}
-                            size={16}
-                            color={active ? '#39D97A' : 'rgba(255,255,255,0.65)'}
-                          />
-                          {link.label}
-                        </span>
+                      <div className="space-y-2">
+                        {desktopMenu.map((item) => {
+                          const hasChildren = Boolean(item.children?.length)
+                          const active = isGroupActive(pathname, item)
 
-                        <SvgIcon
-                          name="arrow-diagonal"
-                          size={14}
-                          color={active ? '#39D97A' : 'rgba(248,250,252,0.5)'}
-                        />
-                      </Link>
-
-                      {hasChildren && (
-                        <div className="ml-4 mt-2 space-y-1 border-l border-[#1E314A] pl-3">
-                          {link.children?.map((child) => {
-                            const childActive = isActiveRoute(pathname, child.href)
-
+                          if (hasChildren) {
                             return (
-                              <Link
-                                key={`${child.label}-${child.href}`}
-                                href={child.href}
-                                className={`flex items-start gap-3 rounded-2xl px-3 py-3 text-sm transition ${
-                                  childActive
-                                    ? 'bg-[#13233A] text-[#39D97A]'
-                                    : 'bg-[#0E1B2D] text-white/62 hover:bg-[#13233A] hover:text-white'
+                              <button
+                                key={item.label}
+                                type="button"
+                                onClick={() => setActiveMobilePanel(item)}
+                                className={`flex w-full items-center justify-between rounded-2xl border px-4 py-4 text-left transition ${
+                                  active
+                                    ? 'border-[#39D97A]/24 bg-[#13233A] text-[#39D97A]'
+                                    : 'border-[#1E314A] bg-[#0E1B2D] text-white hover:bg-[#13233A]'
                                 }`}
                               >
+                                <span className="flex items-center gap-3">
+                                  <SvgIcon
+                                    name={item.icon || 'services'}
+                                    size={18}
+                                    color={active ? '#39D97A' : 'rgba(255,255,255,0.7)'}
+                                  />
+
+                                  <span className="text-base font-black">{item.label}</span>
+                                </span>
+
                                 <SvgIcon
-                                  name={child.icon || 'services'}
-                                  size={15}
-                                  color={childActive ? '#39D97A' : 'rgba(255,255,255,0.58)'}
-                                  className="mt-0.5"
+                                  name="chevron-right"
+                                  size={17}
+                                  color={active ? '#39D97A' : 'rgba(255,255,255,0.55)'}
+                                />
+                              </button>
+                            )
+                          }
+
+                          return (
+                            <Link
+                              key={item.label}
+                              href={item.href}
+                              className={`flex items-center justify-between rounded-2xl border px-4 py-4 transition ${
+                                active
+                                  ? 'border-[#39D97A]/24 bg-[#13233A] text-[#39D97A]'
+                                  : 'border-[#1E314A] bg-[#0E1B2D] text-white hover:bg-[#13233A]'
+                              }`}
+                            >
+                              <span className="flex items-center gap-3">
+                                <SvgIcon
+                                  name={item.icon || 'services'}
+                                  size={18}
+                                  color={active ? '#39D97A' : 'rgba(255,255,255,0.7)'}
                                 />
 
-                                <span>
-                                  <span className="block font-bold">{child.label}</span>
-                                  {child.description && (
-                                    <span className="mt-1 block text-xs leading-5 text-white/42">
-                                      {child.description}
-                                    </span>
-                                  )}
-                                </span>
-                              </Link>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </motion.li>
-                  )
-                })}
+                                <span className="text-base font-black">{item.label}</span>
+                              </span>
 
-                <li className="pt-3">
-                  <Link
-                    href="/contact"
-                    className="flex min-h-[50px] items-center justify-center gap-2 rounded-full bg-[#39D97A] px-5 py-3 text-sm font-black text-[#06101F] transition hover:bg-[#C6F135]"
-                  >
-                    Get Free Audit
-                    <SvgIcon name="arrow-diagonal" size={16} color="#06101F" />
-                  </Link>
-                </li>
-              </ul>
+                              <SvgIcon
+                                name="arrow-diagonal"
+                                size={15}
+                                color={active ? '#39D97A' : 'rgba(255,255,255,0.45)'}
+                              />
+                            </Link>
+                          )
+                        })}
+                      </div>
+
+                      <Link
+                        href="/contact"
+                        className="mt-4 flex min-h-[54px] items-center justify-center gap-2 rounded-full bg-[#39D97A] px-5 py-3 text-sm font-black text-[#06101F]"
+                      >
+                        Get Free Audit
+                        <SvgIcon name="arrow-diagonal" size={16} color="#06101F" />
+                      </Link>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key={`panel-${activeMobilePanel.label}`}
+                      initial={reducedMotion ? false : { opacity: 0, x: 18 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={reducedMotion ? undefined : { opacity: 0, x: 18 }}
+                      transition={{ duration: 0.24 }}
+                      className="h-full overflow-y-auto p-4"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setActiveMobilePanel(null)}
+                        className="mb-4 flex items-center gap-2 rounded-full border border-[#1E314A] bg-[#0E1B2D] px-4 py-2.5 text-sm font-bold text-white/70"
+                      >
+                        <SvgIcon name="chevron-left" size={16} color="#39D97A" />
+                        Back
+                      </button>
+
+                      <div className="mb-5 rounded-[1.4rem] border border-[#39D97A]/18 bg-[#39D97A]/10 p-5">
+                        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#07111F]">
+                          <SvgIcon
+                            name={activeMobilePanel.icon || 'services'}
+                            size={22}
+                            color="#39D97A"
+                          />
+                        </div>
+
+                        <h3 className="text-2xl font-black text-white">
+                          {activeMobilePanel.label}
+                        </h3>
+
+                        <p className="mt-2 text-sm leading-6 text-white/55">
+                          Select where you want to go.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Link
+                          href={activeMobilePanel.href}
+                          className="flex items-center justify-between rounded-2xl border border-[#1E314A] bg-[#0E1B2D] px-4 py-4 text-white transition hover:bg-[#13233A]"
+                        >
+                          <span className="font-black">Overview</span>
+                          <SvgIcon name="arrow-diagonal" size={15} color="#39D97A" />
+                        </Link>
+
+                        {activeMobilePanel.children?.map((child) => (
+                          <Link
+                            key={`${child.label}-${child.href}`}
+                            href={child.href}
+                            className="flex gap-4 rounded-2xl border border-[#1E314A] bg-[#0E1B2D] p-4 transition hover:border-[#39D97A]/22 hover:bg-[#13233A]"
+                          >
+                            <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-[#39D97A]/16 bg-[#39D97A]/10">
+                              <SvgIcon name={child.icon || 'services'} size={18} color="#39D97A" />
+                            </span>
+
+                            <span>
+                              <span className="block text-base font-black text-white">
+                                {child.label}
+                              </span>
+
+                              {child.description && (
+                                <span className="mt-1 block text-sm leading-6 text-white/50">
+                                  {child.description}
+                                </span>
+                              )}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </motion.div>
           </>
         )}
