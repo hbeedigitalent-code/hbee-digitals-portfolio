@@ -140,6 +140,35 @@ function cleanHref(href: string) {
   return href
 }
 
+function LogoMark({
+  logoUrl,
+  siteName,
+  size = 'small',
+  onError,
+}: {
+  logoUrl: string
+  siteName: string
+  size?: 'small' | 'large'
+  onError: () => void
+}) {
+  return (
+    <span
+      className={`flex flex-shrink-0 items-center justify-center rounded-2xl border border-[#39D97A]/25 bg-gradient-to-br from-[#0E1B2D] to-[#13233A] shadow-[0_0_28px_rgba(57,217,122,0.12)] ring-1 ring-white/5 ${
+        size === 'large' ? 'h-12 w-12' : 'h-11 w-11'
+      }`}
+    >
+      <img
+        src={logoUrl}
+        alt={`${siteName} logo`}
+        className={`object-contain drop-shadow-[0_0_14px_rgba(57,217,122,0.35)] ${
+          size === 'large' ? 'h-8 w-8' : 'h-7 w-7'
+        }`}
+        onError={onError}
+      />
+    </span>
+  )
+}
+
 export default function Navbar() {
   const pathname = usePathname()
   const reducedMotion = useReducedMotion()
@@ -311,14 +340,11 @@ export default function Navbar() {
           }`}
         >
           <Link href="/" className="group flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#39D97A]/16 bg-[#0E1B2D]">
-              <img
-                src={logoUrl}
-                alt={`${siteName} logo`}
-                className="h-7 w-7 object-contain"
-                onError={() => setLogoUrl('/svgs/logo.svg')}
-              />
-            </span>
+            <LogoMark
+              logoUrl={logoUrl}
+              siteName={siteName}
+              onError={() => setLogoUrl('/svgs/logo.svg')}
+            />
 
             <span className="hidden text-sm font-black tracking-[-0.03em] text-white sm:block">
               {siteName}
@@ -463,9 +489,12 @@ export default function Navbar() {
             >
               <div className="flex items-center justify-between border-b border-[#1E314A] p-4">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#39D97A]/16 bg-[#0E1B2D]">
-                    <img src={logoUrl} alt={siteName} className="h-8 w-8 object-contain" />
-                  </span>
+                  <LogoMark
+                    logoUrl={logoUrl}
+                    siteName={siteName}
+                    size="large"
+                    onError={() => setLogoUrl('/svgs/logo.svg')}
+                  />
 
                   <div>
                     <p className="text-sm font-black text-white">{siteName}</p>

@@ -71,6 +71,24 @@ function CurvedUnderlineText({ children }: { children: React.ReactNode }) {
   )
 }
 
+function FooterLogo({
+  logoUrl,
+  brandName,
+}: {
+  logoUrl: string
+  brandName: string
+}) {
+  return (
+    <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-[#39D97A]/25 bg-gradient-to-br from-[#0E1B2D] to-[#13233A] p-2 shadow-[0_0_34px_rgba(57,217,122,0.14)] ring-1 ring-white/5 transition group-hover:border-[#39D97A]/40 group-hover:shadow-[0_0_42px_rgba(57,217,122,0.2)]">
+      <img
+        src={logoUrl}
+        alt={`${brandName} logo`}
+        className="h-10 w-10 object-contain drop-shadow-[0_0_16px_rgba(57,217,122,0.38)]"
+      />
+    </span>
+  )
+}
+
 export default function Footer() {
   const reducedMotion = useReducedMotion()
 
@@ -110,7 +128,7 @@ export default function Footer() {
   const logoUrl = siteSettings.logo_url || '/svgs/logo.svg'
 
   const contactEmail =
-    siteSettings.contact_email || 'contact.hbeedigitalsteam@gmail.com'
+    siteSettings.contact_email || 'contact@hbeedigitals.com'
 
   const contactPhone =
     siteSettings.contact_phone || '+234 815 315 3827'
@@ -240,13 +258,7 @@ export default function Footer() {
             viewport={{ once: true }}
           >
             <Link href="/" className="group inline-flex items-center gap-3">
-              <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-[#39D97A]/16 bg-[#0E1B2D] p-2 transition group-hover:border-[#39D97A]/35 group-hover:bg-[#13233A]">
-                <img
-                  src={logoUrl}
-                  alt={`${brandName} logo`}
-                  className="h-10 w-10 object-contain"
-                />
-              </span>
+              <FooterLogo logoUrl={logoUrl} brandName={brandName} />
 
               <span>
                 <span className="block text-lg font-black tracking-[-0.035em] text-white">

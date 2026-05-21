@@ -1,10 +1,12 @@
 import "./globals.css";
+import type { Metadata, Viewport } from "next";
 import { Inter, Poppins } from "next/font/google";
+import { Suspense } from "react";
+
 import Providers from "./providers";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import CookieConsent from "@/components/CookieBanner";
 import { ThemeProvider } from "@/context/ThemeContext";
-import { Suspense } from "react";
 import CursorGlow from "@/components/ui/CursorGlow";
 import PageUtilities from "@/components/ui/PageUtilities";
 import FloatingWhatsApp from "@/components/ui/FloatingWhatsApp";
@@ -12,25 +14,48 @@ import FloatingWhatsApp from "@/components/ui/FloatingWhatsApp";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
 });
 
 const poppins = Poppins({
   weight: ["300", "400", "500", "600", "700", "800"],
   subsets: ["latin"],
   variable: "--font-poppins",
+  display: "swap",
 });
 
-export const metadata = {
-  title: "Hbee Digitals - Digital Growth Studio",
+export const metadata: Metadata = {
+  title: {
+    default: "Hbee Digitals - Digital Growth Studio",
+    template: "%s | Hbee Digitals",
+  },
+
   description:
     "Premium websites, Shopify optimization, brand systems, and conversion-focused digital experiences for ambitious businesses.",
 
-  keywords:
-    "web development, Shopify optimization, ecommerce growth, digital marketing, branding, Hbee Digitals",
+  keywords: [
+    "Hbee Digitals",
+    "web development",
+    "Shopify optimization",
+    "ecommerce growth",
+    "digital marketing",
+    "branding",
+    "website design",
+    "conversion optimization",
+    "digital growth studio",
+  ],
 
   authors: [{ name: "Hbee Digitals" }],
+  creator: "Hbee Digitals",
+  publisher: "Hbee Digitals",
 
-  metadataBase: new URL("https://hbeedigitals.vercel.app"),
+  metadataBase: new URL("https://hbeedigitals.com"),
+
+  alternates: {
+    canonical: "/",
+  },
+
+  manifest: "/site.webmanifest",
 
   icons: {
     icon: [
@@ -47,7 +72,6 @@ export const metadata = {
         type: "image/png",
       },
     ],
-
     apple: [
       {
         url: "/apple-touch-icon.png",
@@ -59,40 +83,48 @@ export const metadata = {
 
   openGraph: {
     title: "Hbee Digitals - Digital Growth Studio",
-
     description:
       "Premium websites, Shopify optimization, brand systems, and conversion-focused digital experiences for ambitious businesses.",
-
+    url: "https://hbeedigitals.com",
+    siteName: "Hbee Digitals",
     type: "website",
     locale: "en_US",
-    siteName: "Hbee Digitals",
-
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Hbee Digitals",
+        alt: "Hbee Digitals - Digital Growth Studio",
       },
     ],
   },
 
   twitter: {
     card: "summary_large_image",
-
     title: "Hbee Digitals - Digital Growth Studio",
-
     description:
       "Premium websites, Shopify optimization, brand systems, and conversion-focused digital experiences for ambitious businesses.",
-
     images: ["/og-image.jpg"],
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
   },
 };
 
-export const viewport = {
-  themeColor: "#060E1C",
+export const viewport: Viewport = {
+  themeColor: "#07111F",
   width: "device-width",
   initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({
@@ -106,43 +138,28 @@ export default function RootLayout({
       className={`${inter.variable} ${poppins.variable}`}
       suppressHydrationWarning
     >
-      <head>
-        <meta name="format-detection" content="date=no" />
-      </head>
-
       <body
-        className="font-poppins overflow-x-hidden"
-        style={{
-          backgroundColor: "var(--bg-color)",
-          color: "var(--text-color)",
-        }}
+        className="font-poppins overflow-x-hidden bg-[#07111F] text-white antialiased"
         suppressHydrationWarning
       >
-        {/* Cursor Glow */}
-        <CursorGlow />
-
         <ThemeProvider>
-          {/* Accessibility Skip Link */}
+          <CursorGlow />
+
           <a
             href="#main-content"
-            className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[9999] focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-gray-900 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#39D97A]"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[9999] focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-gray-900 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#39D97A]"
           >
             Skip to main content
           </a>
 
           <Providers>
-            {/* Analytics */}
             <Suspense fallback={null}>
               <GoogleAnalytics />
             </Suspense>
 
-            {/* Main Website */}
-            <main id="main-content" tabIndex={-1}>
-              {children}
-            </main>
+            {children}
           </Providers>
 
-          {/* UI Utilities */}
           <CookieConsent />
           <PageUtilities />
           <FloatingWhatsApp />

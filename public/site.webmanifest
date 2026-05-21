@@ -1,11 +1,11 @@
 {
-  "name": "Hbee Digital Enterprise",
-  "short_name": "Hbee Digital",
-  "description": "Digital Solutions & Web Development Services",
+  "name": "Hbee Digitals",
+  "short_name": "Hbee",
+  "description": "Premium websites, Shopify optimization, brand systems, and digital growth systems.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#007BFF",
+  "background_color": "#07111F",
+  "theme_color": "#07111F",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",

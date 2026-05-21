@@ -1,31 +1,26 @@
-import Link from 'next/link'
-import Navbar from '@/components/Navbar'
-import Footer from '@/components/Footer'
+import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <>
-      <Navbar />
-      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-white" id="main-content">
-        <div className="text-center px-4">
-          <div className="text-8xl md:text-9xl font-bold text-gray-200 mb-4" aria-hidden="true">404</div>
-          <h1 className="text-3xl md:text-4xl font-bold mb-4" style={{ color: 'var(--primary-color)' }}>
-            Page Not Found
-          </h1>
-          <p className="text-gray-600 mb-8 max-w-md mx-auto">
-            Oops! The page you&apos;re looking for doesn&apos;t exist or has been moved.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/" className="px-6 py-3 bg-white rounded-lg font-semibold shadow-md hover:shadow-lg transition focus-visible:outline-2 focus-visible:outline-offset-2" style={{ color: 'var(--primary-color)', border: `2px solid var(--primary-color)` }}>
-              Go Home
-            </Link>
-            <Link href="/contact" className="px-6 py-3 rounded-lg font-semibold transition hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2" style={{ backgroundColor: 'var(--primary-color)', color: 'white' }}>
-              Contact Support
-            </Link>
-          </div>
-        </div>
-      </main>
-      <Footer />
-    </>
-  )
+    <main className="flex min-h-screen flex-col items-center justify-center bg-[#07111F] px-6 text-center text-white">
+      <p className="mb-4 text-sm font-bold uppercase tracking-[0.2em] text-[#39D97A]">
+        404 Error
+      </p>
+
+      <h1 className="text-5xl font-black tracking-[-0.06em] md:text-7xl">
+        Page Not Found
+      </h1>
+
+      <p className="mt-6 max-w-xl text-base leading-7 text-white/60">
+        The page you are looking for does not exist or may have been moved.
+      </p>
+
+      <Link
+        href="/"
+        className="mt-10 inline-flex items-center rounded-full bg-[#39D97A] px-6 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
+      >
+        Return Home
+      </Link>
+    </main>
+  );
 }
