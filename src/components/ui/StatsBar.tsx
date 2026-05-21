@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import SvgIcon from '@/components/ui/SvgIcon'
 
@@ -7,8 +8,6 @@ interface Stat {
   value: string | number
   label: string
   icon?: string
-  prefix?: string
-  suffix?: string
 }
 
 interface StatsBarProps {
@@ -52,12 +51,70 @@ function cleanIcon(icon?: string) {
     .toLowerCase()
 }
 
-function formatValue(stat: Stat) {
-  if (typeof stat.value === 'number') {
-    return `${stat.prefix || ''}${stat.value}${stat.suffix || ''}`
-  }
+function extractNumber(value: string | number) {
+  if (typeof value === 'number') return value
 
-  return stat.value
+  const match = value.match(/\d+/)
+
+  return match ? parseInt(match[0]) : 0
+}
+
+function extractSuffix(value: string | number) {
+  if (typeof value === 'number') return ''
+
+  return value.replace(/[0-9]/g, '')
+}
+
+function Counter({
+  value,
+}: {
+  value: string | number
+}) {
+  const [count, setCount] = useState(0)
+  const ref = useRef<HTMLSpanElement | null>(null)
+  const suffix = extractSuffix(value)
+  const finalNumber = extractNumber(value)
+
+  useEffect(() => {
+    const element = ref.current
+
+    if (!element) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          let start = 0
+          const duration = 1600
+          const increment = finalNumber / (duration / 16)
+
+          const timer = setInterval(() => {
+            start += increment
+
+            if (start >= finalNumber) {
+              setCount(finalNumber)
+              clearInterval(timer)
+            } else {
+              setCount(Math.floor(start))
+            }
+          }, 16)
+
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.4 }
+    )
+
+    observer.observe(element)
+
+    return () => observer.disconnect()
+  }, [finalNumber])
+
+  return (
+    <span ref={ref}>
+      {count}
+      {suffix}
+    </span>
+  )
 }
 
 export default function StatsBar({
@@ -95,7 +152,7 @@ export default function StatsBar({
 
               <h3 className="text-3xl font-black leading-none tracking-[-0.05em] text-white sm:text-4xl">
                 <span className="bg-gradient-to-r from-[#39D97A] to-[#C6F135] bg-clip-text text-transparent">
-                  {formatValue(stat)}
+                  <Counter value={stat.value} />
                 </span>
               </h3>
 

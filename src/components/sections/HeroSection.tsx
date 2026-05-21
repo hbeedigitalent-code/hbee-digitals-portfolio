@@ -58,7 +58,6 @@ function TypewriterWord({
 
       if (index >= current.length) {
         window.clearInterval(typing)
-
         window.setTimeout(() => {
           setWordIndex((prev) => (prev + 1) % words.length)
         }, 1700)
@@ -68,7 +67,7 @@ function TypewriterWord({
     return () => window.clearInterval(typing)
   }, [wordIndex, active, reducedMotion])
 
-  const underlineWidth = `${Math.min(Math.max(text.length * 30, 165), 520)}px`
+  const underlineWidth = `${Math.min(Math.max(text.length * 30, 165), 540)}px`
 
   return (
     <span className="relative block min-h-[1.08em] overflow-hidden">
@@ -141,7 +140,7 @@ export default function HeroSection({ data }: HeroSectionProps) {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.018)_1px,transparent_1px)] bg-[size:72px_72px] opacity-35" />
       </div>
 
-      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
+      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
         <motion.div
           initial={reducedMotion ? false : { opacity: 0, y: 22 }}
           animate={{ opacity: 1, y: 0 }}
@@ -187,7 +186,7 @@ export default function HeroSection({ data }: HeroSectionProps) {
                 key={item}
                 className="inline-flex items-center gap-2 rounded-full border border-[#39D97A]/16 bg-[#0E1B2D] px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.13em] text-[#39D97A]"
               >
-                <SvgIcon name="security" size={11} color="#39D97A" />
+                <SvgIcon name="check" size={11} color="#39D97A" />
                 {item}
               </div>
             ))}
@@ -200,10 +199,10 @@ export default function HeroSection({ data }: HeroSectionProps) {
           transition={{ duration: 0.58, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
           className="relative"
         >
-          <div className="relative overflow-hidden rounded-[2rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#0B1625] p-3 shadow-[0_30px_90px_rgba(0,0,0,0.28)] sm:p-4">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.12),transparent_42%)]" />
+          <div className="relative overflow-hidden rounded-[2.2rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#0B1625] p-3 shadow-[0_36px_110px_rgba(0,0,0,0.34)] sm:p-4">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.13),transparent_42%)]" />
 
-            <div className="relative overflow-hidden rounded-[1.55rem] border border-[#1E314A] bg-[#07111F]">
+            <div className="relative overflow-hidden rounded-[1.7rem] border border-[#1E314A] bg-[#07111F]">
               {video_url ? (
                 <video
                   src={video_url}
@@ -213,7 +212,7 @@ export default function HeroSection({ data }: HeroSectionProps) {
                   playsInline
                   preload="metadata"
                   poster={backgroundImage}
-                  className="aspect-[4/3] w-full object-cover sm:aspect-[16/10] lg:min-h-[540px]"
+                  className="aspect-[8/7] w-full object-cover sm:aspect-[8/7] lg:min-h-[570px]"
                 />
               ) : backgroundImage ? (
                 <img
@@ -221,7 +220,7 @@ export default function HeroSection({ data }: HeroSectionProps) {
                   alt="Hbee Digitals digital growth system"
                   loading="eager"
                   fetchPriority="high"
-                  className="aspect-[4/3] w-full object-contain sm:aspect-[16/10] sm:object-cover lg:min-h-[540px]"
+                  className="aspect-[8/7] w-full object-cover object-center sm:aspect-[8/7] lg:min-h-[570px]"
                 />
               ) : (
                 <HeroDashboardMockup />
@@ -238,7 +237,7 @@ function HeroDashboardMockup() {
   const bars = [34, 46, 40, 52, 61, 55, 72, 63, 78, 67, 86, 79]
 
   return (
-    <div className="aspect-[4/3] bg-[#07111F] p-4 sm:aspect-[16/10] sm:p-6 lg:min-h-[540px]">
+    <div className="aspect-[8/7] bg-[#07111F] p-4 sm:p-6 lg:min-h-[570px]">
       <div className="rounded-[1.4rem] border border-[#1E314A] bg-[#0E1B2D] p-4">
         <div className="flex items-center justify-between gap-4">
           <div>

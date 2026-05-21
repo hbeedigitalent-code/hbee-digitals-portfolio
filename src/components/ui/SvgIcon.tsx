@@ -1,5 +1,3 @@
-'use client'
-
 import Image from 'next/image'
 
 interface SvgIconProps {
@@ -10,24 +8,94 @@ interface SvgIconProps {
   alt?: string
 }
 
-const aliasMap: Record<string, string> = {
-  web: 'web-development',
-  design: 'ui-ux',
-  marketing: 'digital-marketing',
-  'brand-strategy': 'branding',
-  conversion: 'analytics',
-  verified: 'security',
-  message: 'messages',
-  star: 'testimonials',
-  quote: 'testimonials',
-  cart: 'ecommerce',
+const iconAliases: Record<string, string> = {
   ecommerce: 'ecommerce',
+  'e-commerce': 'ecommerce',
+  commerce: 'ecommerce',
+  cart: 'ecommerce',
+  shop: 'ecommerce',
+  store: 'ecommerce',
+
+  consulting: 'consulting',
+  consultant: 'consulting',
+  technical: 'consulting',
+
+  portfolio: 'portfolio',
+  case: 'portfolio',
+  cases: 'portfolio',
+  project: 'projects',
+  projects: 'projects',
+
+  web: 'web-development',
+  website: 'web-development',
+  'web-design': 'web-development',
+  'website-design': 'web-development',
+  development: 'web-development',
+
+  brand: 'branding',
+  branding: 'branding',
+  identity: 'branding',
+
+  services: 'services',
+  service: 'services',
+  sliders: 'services',
+  settings: 'services',
+
+  growth: 'growth',
+  analytics: 'analytics',
+  strategy: 'strategy',
+  performance: 'performance',
+  security: 'security',
+  shield: 'security',
+
+  support: 'support',
+  help: 'support',
+
+  email: 'email',
+  mail: 'email',
+  message: 'messages',
+  messages: 'messages',
+
+  whatsapp: 'whatsapp',
+  phone: 'whatsapp',
+
+  location: 'location',
+  pin: 'location',
+
+  faq: 'faq',
+  faqs: 'faq',
+
+  blog: 'blog',
+  article: 'blog',
+
+  about: 'about',
+  company: 'about',
+
+  rocket: 'rocket',
+  home: 'home',
+  menu: 'menu',
+  close: 'close',
+
+  check: 'check',
+  verified: 'check',
+
+  'arrow-diagonal': 'arrow-diagonal',
+  arrow: 'arrow-diagonal',
+
+  'chevron-left': 'chevron-left',
+  'chevron-right': 'chevron-right',
+  'chevron-down': 'chevron-down',
+  'chevron-up': 'chevron-up',
+
+  facebook: 'facebook',
+  twitter: 'twitter',
+  linkedin: 'linkedin',
+  instagram: 'instagram',
+  github: 'github',
 }
 
-function cleanSvgName(value?: string) {
-  if (!value) return 'services'
-
-  const cleaned = value
+function cleanIconName(name: string) {
+  const cleaned = name
     .replace('/public/svgs/', '')
     .replace('public/svgs/', '')
     .replace('/svgs/', '')
@@ -37,7 +105,7 @@ function cleanSvgName(value?: string) {
     .trim()
     .toLowerCase()
 
-  return aliasMap[cleaned] || cleaned || 'services'
+  return iconAliases[cleaned] || cleaned || 'services'
 }
 
 export default function SvgIcon({
@@ -47,21 +115,32 @@ export default function SvgIcon({
   className = '',
   alt = '',
 }: SvgIconProps) {
-  const iconName = cleanSvgName(name)
+  const iconName = cleanIconName(name)
+  const src = `/svgs/${iconName}.svg`
 
   return (
     <span
-      className={`inline-flex items-center justify-center ${className}`}
+      className={`relative inline-flex flex-shrink-0 items-center justify-center ${className}`}
       style={{
         width: size,
         height: size,
-        backgroundColor: color,
-        WebkitMask: `url(/svgs/${iconName}.svg) center / contain no-repeat`,
-        mask: `url(/svgs/${iconName}.svg) center / contain no-repeat`,
-        flexShrink: 0,
+        color,
       }}
-      role={alt ? 'img' : 'presentation'}
-      aria-label={alt || undefined}
-    />
+      aria-hidden={alt ? undefined : true}
+    >
+      <Image
+        src={src}
+        alt={alt}
+        width={size}
+        height={size}
+        className="h-full w-full object-contain"
+        style={{
+          filter:
+            color === '#39D97A' || color.toLowerCase() === '#39d97a'
+              ? 'brightness(0) saturate(100%) invert(67%) sepia(65%) saturate(546%) hue-rotate(89deg) brightness(93%) contrast(88%)'
+              : undefined,
+        }}
+      />
+    </span>
   )
 }
