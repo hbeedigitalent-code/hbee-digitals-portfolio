@@ -1,288 +1,244 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
 
-interface ServiceItem {
-  id: string
-  title: string
-  description: string
-  features?: string[]
+interface Service {
+  id?: string
+  title?: string
+  name?: string
+  slug?: string
   icon?: string
+  description?: string
+  short_description?: string
+  features?: string[] | string
 }
 
 interface ServiceOrbitProps {
-  services?: ServiceItem[]
+  services?: Service[]
   intervalMs?: number
-  compact?: boolean
 }
 
-const serviceIconMap: Record<string, string> = {
-  code: 'web-development',
-  'web-development': 'web-development',
-  'web development': 'web-development',
+function normalizeArray(value: any): string[] {
+  if (!value) return []
 
-  ecommerce: 'ecommerce',
-  'e-commerce': 'ecommerce',
-  'e-commerce solutions': 'ecommerce',
-  shopify: 'ecommerce',
+  if (Array.isArray(value)) return value
 
-  design: 'ui-ux',
-  'ui/ux': 'ui-ux',
-  'ui-ux': 'ui-ux',
-  'ui ux': 'ui-ux',
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) return parsed
+    } catch {
+      return value
+        .split('|')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    }
+  }
 
-  branding: 'branding',
-  brand: 'branding',
-  marketing: 'digital-marketing',
-  'digital-marketing': 'digital-marketing',
-  'digital marketing': 'digital-marketing',
-
-  consulting: 'consulting',
-  strategy: 'consulting',
-  performance: 'performance',
-  security: 'security',
-  services: 'services',
+  return []
 }
 
-function getServiceIcon(service: ServiceItem) {
-  const raw = String(service?.icon || service?.title || '')
-    .toLowerCase()
+function cleanIcon(icon?: string) {
+  if (!icon) return 'services'
+
+  return icon
+    .replace('/public/svgs/', '')
+    .replace('public/svgs/', '')
+    .replace('/svgs/', '')
+    .replace('svgs/', '')
+    .replace('.svg', '')
+    .replace(/^\/+/, '')
     .trim()
-
-  if (serviceIconMap[raw]) return serviceIconMap[raw]
-
-  const normalized = raw
-    .replace(/&/g, 'and')
-    .replace(/\//g, '-')
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-
-  return serviceIconMap[normalized] || normalized || 'services'
+    .toLowerCase()
 }
+
+const fallbackServices: Service[] = [
+  {
+    title: 'Website Design',
+    slug: 'website-design',
+    icon: 'web-development',
+    description: 'Premium websites built for trust, clarity, and conversion.',
+    features: ['Premium UI', 'Mobile-first', 'Conversion flow'],
+  },
+  {
+    title: 'E-Commerce Solutions',
+    slug: 'ecommerce-solutions',
+    icon: 'ecommerce',
+    description: 'Store systems for Shopify, products, trust, and growth.',
+    features: ['Shopify setup', 'Product structure', 'Checkout trust'],
+  },
+  {
+    title: 'Brand Experience',
+    slug: 'brand-experience',
+    icon: 'branding',
+    description: 'Clean brand visuals and digital systems that feel premium.',
+    features: ['Visual direction', 'Brand trust', 'Content structure'],
+  },
+  {
+    title: 'Technical Consulting',
+    slug: 'technical-consulting',
+    icon: 'consulting',
+    description: 'Practical support for fixing and scaling your digital system.',
+    features: ['Audit support', 'Technical fixes', 'Growth guidance'],
+  },
+]
 
 export default function ServiceOrbit({
-  services = [],
-  intervalMs = 5200,
-  compact = false,
+  services = fallbackServices,
+  intervalMs = 5000,
 }: ServiceOrbitProps) {
   const reducedMotion = useReducedMotion()
+  const normalizedServices = services?.length ? services : fallbackServices
   const [activeIndex, setActiveIndex] = useState(0)
-  const [isPaused, setIsPaused] = useState(false)
 
-  const displayServices = useMemo(() => {
-    return services.length > 0
-      ? services.slice(0, 5)
-      : [
-          {
-            id: 'shopify-growth',
-            title: 'Shopify Growth Systems',
-            description:
-              'Improve store structure, trust signals, conversion flow, and customer journey.',
-            icon: 'ecommerce',
-            features: ['Store audit', 'Conversion UX', 'Trust optimization', 'Checkout flow'],
-          },
-          {
-            id: 'brand-experience',
-            title: 'Brand Experience Design',
-            description:
-              'Create premium identities and interfaces that make businesses look credible.',
-            icon: 'branding',
-            features: ['Visual direction', 'UI systems', 'Landing pages', 'Brand consistency'],
-          },
-          {
-            id: 'technical-systems',
-            title: 'Technical Web Systems',
-            description:
-              'Build clean, scalable, responsive websites with modern frontend architecture.',
-            icon: 'web-development',
-            features: ['Next.js builds', 'Responsive UI', 'Performance', 'CMS structure'],
-          },
-        ]
-  }, [services])
+  const activeService = normalizedServices[activeIndex] || normalizedServices[0]
 
-  const activeService = displayServices[activeIndex]
-  const activeIcon = getServiceIcon(activeService)
+  const activeFeatures = useMemo(() => {
+    return normalizeArray(activeService?.features).slice(0, 4)
+  }, [activeService])
 
   useEffect(() => {
-    if (reducedMotion || isPaused || displayServices.length <= 1) return
+    if (reducedMotion || normalizedServices.length <= 1) return
 
-    const timer = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % displayServices.length)
+    const interval = window.setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % normalizedServices.length)
     }, intervalMs)
 
-    return () => window.clearInterval(timer)
-  }, [displayServices.length, intervalMs, isPaused, reducedMotion])
-
-  if (!displayServices.length) return null
+    return () => window.clearInterval(interval)
+  }, [intervalMs, normalizedServices.length, reducedMotion])
 
   return (
-    <section
-      className={`relative overflow-hidden text-white ${compact ? 'py-0' : 'py-12 sm:py-16'}`}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-    >
-      <div className="mx-auto max-w-7xl">
-        <div className="grid gap-5 lg:grid-cols-[0.88fr_1.12fr]">
-          <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-4 shadow-[0_30px_90px_rgba(0,0,0,0.24)] backdrop-blur-2xl sm:p-5">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-white/48">
-                <SvgIcon name="rocket" size={15} color="#39D97A" />
-                Systems
-              </div>
+    <section className="relative overflow-hidden rounded-[2rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#07111F] p-5 text-white shadow-[0_28px_90px_rgba(0,0,0,0.24)] sm:p-7 lg:p-8">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.12),transparent_42%)]" />
 
-              <button
-                type="button"
-                onClick={() => setIsPaused((prev) => !prev)}
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[#071427]/80 px-3 py-1.5 text-[11px] font-bold text-white/55 transition hover:border-[#39D97A]/25 hover:text-white"
-              >
-                <SvgIcon name={isPaused ? 'play' : 'pause'} size={12} color="#39D97A" />
-                {isPaused ? 'Resume' : 'Pause'}
-              </button>
-            </div>
-
-            <div className="grid gap-3">
-              {displayServices.map((service, index) => {
-                const icon = getServiceIcon(service)
-                const active = index === activeIndex
-
-                return (
-                  <button
-                    key={service.id || service.title}
-                    type="button"
-                    onClick={() => {
-                      setActiveIndex(index)
-                      setIsPaused(true)
-                    }}
-                    className={`group w-full overflow-hidden rounded-2xl border p-4 text-left transition duration-300 ${
-                      active
-                        ? 'border-[#39D97A]/35 bg-[#39D97A]/10 shadow-[0_0_35px_rgba(57,217,122,0.1)]'
-                        : 'border-white/10 bg-[#071427]/70 hover:border-[#39D97A]/25 hover:bg-white/[0.055]'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border transition ${
-                          active
-                            ? 'border-[#39D97A]/30 bg-[#39D97A]/14'
-                            : 'border-white/10 bg-white/[0.045]'
-                        }`}
-                      >
-                        <SvgIcon
-                          name={icon}
-                          size={21}
-                          color={active ? '#39D97A' : 'rgba(248,250,252,0.55)'}
-                        />
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <h3
-                          className={`text-sm font-black leading-tight tracking-[-0.02em] transition sm:text-base ${
-                            active ? 'text-white' : 'text-white/72 group-hover:text-white'
-                          }`}
-                        >
-                          {service.title}
-                        </h3>
-
-                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/42">
-                          {service.description}
-                        </p>
-                      </div>
-                    </div>
-
-                    {active && (
-                      <motion.div
-                        key={`${activeIndex}-${isPaused}`}
-                        className="mt-4 h-1 rounded-full bg-[#39D97A]"
-                        initial={{ width: isPaused || reducedMotion ? '64%' : '0%' }}
-                        animate={{ width: isPaused || reducedMotion ? '64%' : '100%' }}
-                        transition={{
-                          duration: isPaused || reducedMotion ? 0 : intervalMs / 1000,
-                          ease: 'linear',
-                        }}
-                      />
-                    )}
-                  </button>
-                )
-              })}
-            </div>
+      <div className="relative grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+        <div>
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#39D97A] sm:text-[11px]">
+            <SvgIcon name="services" size={14} color="#39D97A" />
+            Growth Services
           </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeService.id || activeIndex}
-              initial={reducedMotion ? false : { opacity: 0, y: 18, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={reducedMotion ? undefined : { opacity: 0, y: -14, scale: 0.98 }}
-              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              className="relative overflow-hidden rounded-[1.8rem] border border-white/10 bg-[#071427] p-5 shadow-[0_35px_100px_rgba(0,0,0,0.28)] backdrop-blur-2xl sm:p-6 lg:p-8"
-            >
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.14),transparent_40%)]" />
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#39D97A]/45 to-transparent" />
+          <h2 className="text-3xl font-black leading-[0.98] tracking-[-0.055em] sm:text-4xl md:text-5xl">
+            Services built as growth systems.
+          </h2>
 
-              <div className="relative">
-                <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-[#39D97A]/20 bg-[#39D97A]/10 shadow-[0_0_35px_rgba(57,217,122,0.12)]">
-                    <SvgIcon name={activeIcon} size={32} color="#39D97A" />
-                  </div>
+          <p className="mt-5 max-w-xl text-sm leading-7 text-white/58 sm:text-base">
+            Explore the core systems we use to help brands improve trust, clarity, performance,
+            and conversions.
+          </p>
 
-                  <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#39D97A]/18 bg-white/[0.045] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#39D97A]">
-                    System {activeIndex + 1}/{displayServices.length}
-                  </div>
-                </div>
+          <div className="mt-7 hidden gap-3 lg:flex">
+            {normalizedServices.map((service, index) => {
+              const active = index === activeIndex
 
-                <h3 className="max-w-3xl text-3xl font-black leading-[1] tracking-[-0.04em] sm:text-4xl lg:text-5xl">
-                  {activeService.title}
-                </h3>
+              return (
+                <button
+                  key={service.id || service.slug || service.title || index}
+                  type="button"
+                  onClick={() => setActiveIndex(index)}
+                  className={`h-2.5 rounded-full transition-all duration-300 ${
+                    active ? 'w-10 bg-[#39D97A]' : 'w-2.5 bg-white/18 hover:bg-white/35'
+                  }`}
+                  aria-label={`Show ${service.title || service.name}`}
+                />
+              )
+            })}
+          </div>
+        </div>
 
-                <p className="mt-5 max-w-2xl text-sm leading-7 text-white/60 sm:text-base md:text-lg">
-                  {activeService.description}
-                </p>
-
-                <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                  {(activeService.features?.length
-                    ? activeService.features.slice(0, 6)
-                    : ['Strategic planning', 'Premium execution', 'Performance structure', 'Growth support']
-                  ).map((feature, index) => (
-                    <motion.div
-                      key={feature}
-                      initial={reducedMotion ? false : { opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.04 }}
-                      className="rounded-2xl border border-white/10 bg-white/[0.045] p-4 transition hover:border-[#39D97A]/25 hover:bg-[#39D97A]/8"
-                    >
-                      <SvgIcon name="precision" size={18} color="#39D97A" className="mb-3" />
-                      <p className="text-sm font-bold leading-6 text-white/76">{feature}</p>
-                    </motion.div>
-                  ))}
-                </div>
-
-                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  <Link
-                    href="/services"
-                    className="group inline-flex min-h-[50px] items-center justify-center gap-2 rounded-full bg-[#39D97A] px-6 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
-                  >
-                    Explore Services
-                    <SvgIcon
-                      name="arrow-diagonal"
-                      size={16}
-                      color="#06101F"
-                      className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                    />
-                  </Link>
-
-                  <Link
-                    href="/contact"
-                    className="inline-flex min-h-[50px] items-center justify-center rounded-full border border-white/12 bg-white/[0.035] px-6 py-3 text-sm font-bold text-white/82 transition hover:border-[#39D97A]/30 hover:bg-[#39D97A]/10 hover:text-white"
-                  >
-                    Request Strategy Call
-                  </Link>
-                </div>
+        <div className="grid gap-4">
+          <motion.article
+            key={activeService?.id || activeService?.slug || activeIndex}
+            initial={reducedMotion ? false : { opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="rounded-[1.7rem] border border-[#1E314A] bg-[#0B1728]/90 p-5 sm:p-6"
+          >
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#39D97A]/20 bg-[#39D97A]/10">
+                <SvgIcon
+                  name={cleanIcon(activeService?.icon)}
+                  size={22}
+                  color="#39D97A"
+                />
               </div>
-            </motion.div>
-          </AnimatePresence>
+
+              <span className="rounded-full border border-[#39D97A]/16 bg-[#39D97A]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#39D97A]">
+                System {activeIndex + 1}/{normalizedServices.length}
+              </span>
+            </div>
+
+            <h3 className="text-3xl font-black leading-[1] tracking-[-0.05em] text-white sm:text-4xl">
+              {activeService?.title || activeService?.name}
+            </h3>
+
+            <p className="mt-4 text-sm leading-7 text-white/58 sm:text-base">
+              {activeService?.description ||
+                activeService?.short_description ||
+                'A focused digital growth system designed to improve trust, clarity, and conversion.'}
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {(activeFeatures.length
+                ? activeFeatures
+                : ['Strategy', 'Execution', 'Optimization', 'Support']
+              ).map((feature) => (
+                <div
+                  key={feature}
+                  className="flex items-center gap-3 rounded-2xl border border-[#1E314A] bg-[#07111F] px-4 py-3"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#39D97A]/16 bg-[#39D97A]/10">
+                    <SvgIcon name="check" size={13} color="#39D97A" />
+                  </div>
+
+                  <span className="text-sm font-bold text-white/72">
+                    {feature}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href={`/services/${activeService?.slug || ''}`}
+                className="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-full bg-[#39D97A] px-6 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
+              >
+                Explore Service
+                <SvgIcon name="arrow-diagonal" size={15} color="#06101F" />
+              </Link>
+
+              <Link
+                href="/contact"
+                className="inline-flex min-h-[50px] items-center justify-center rounded-full border border-[#1E314A] bg-[#0E1B2D] px-6 py-3 text-sm font-black text-white transition hover:border-[#39D97A]/25 hover:bg-[#13233A]"
+              >
+                Discuss Project
+              </Link>
+            </div>
+          </motion.article>
+
+          <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden">
+            {normalizedServices.map((service, index) => {
+              const active = index === activeIndex
+
+              return (
+                <button
+                  key={service.id || service.slug || service.title || index}
+                  type="button"
+                  onClick={() => setActiveIndex(index)}
+                  className={`flex-shrink-0 rounded-full border px-4 py-2 text-xs font-black transition ${
+                    active
+                      ? 'border-[#39D97A]/24 bg-[#39D97A]/10 text-[#39D97A]'
+                      : 'border-[#1E314A] bg-[#07111F] text-white/52'
+                  }`}
+                >
+                  {service.title || service.name}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
     </section>

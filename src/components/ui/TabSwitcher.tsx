@@ -1,206 +1,243 @@
 'use client'
 
-import { useState } from 'react'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { useMemo, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import SvgIcon from '@/components/ui/SvgIcon'
 
-interface Tab {
-  id: string
-  label: string
+interface TabItem {
+  id?: string
   title: string
   description: string
-  image?: string
-  features?: string[]
+  icon?: string
+  points?: string[] | string
 }
 
 interface TabSwitcherProps {
-  tabs: Tab[]
-  defaultTab?: string
+  items?: TabItem[]
 }
 
-const iconMap: Record<string, string> = {
-  approach: 'strategy',
-  process: 'systems',
-  results: 'analytics',
-  promise: 'security',
+function normalizeArray(value: any): string[] {
+  if (!value) return []
+
+  if (Array.isArray(value)) return value
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) return parsed
+    } catch {
+      return value
+        .split('|')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    }
+  }
+
+  return []
 }
 
-function CurvedUnderlineText({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="relative inline-block">
-      <span className="relative z-10 bg-gradient-to-r from-[#39D97A] to-[#C6F135] bg-clip-text text-transparent">
-        {children}
-      </span>
+const fallbackItems: TabItem[] = [
+  {
+    title: 'Strategy First',
+    icon: 'strategy',
+    description:
+      'Every system starts with structure, positioning, and conversion thinking before visuals.',
+    points: [
+      'Growth-focused planning',
+      'Clear digital positioning',
+      'Conversion structure',
+    ],
+  },
+  {
+    title: 'Premium Execution',
+    icon: 'web-development',
+    description:
+      'We build modern interfaces and systems that feel clean, scalable, and trustworthy.',
+    points: [
+      'Responsive systems',
+      'Performance optimization',
+      'Premium UI experience',
+    ],
+  },
+  {
+    title: 'Optimization',
+    icon: 'growth',
+    description:
+      'The focus is not just launching but improving performance and usability continuously.',
+    points: [
+      'User experience improvements',
+      'Trust optimization',
+      'Conversion refinement',
+    ],
+  },
+  {
+    title: 'Long-Term Support',
+    icon: 'support',
+    description:
+      'We help brands evolve their digital systems beyond the initial launch phase.',
+    points: [
+      'Technical guidance',
+      'Scaling support',
+      'System maintenance',
+    ],
+  },
+]
 
-      <svg
-        className="absolute -bottom-2 left-0 h-4 w-full text-[#39D97A]/75 sm:-bottom-3 sm:h-5"
-        viewBox="0 0 220 18"
-        fill="none"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M4 13C50 2 142 2 216 11"
-          stroke="currentColor"
-          strokeWidth="5"
-          strokeLinecap="round"
-        />
-      </svg>
-    </span>
-  )
+function cleanIcon(icon?: string) {
+  if (!icon) return 'services'
+
+  return icon
+    .replace('/public/svgs/', '')
+    .replace('public/svgs/', '')
+    .replace('/svgs/', '')
+    .replace('svgs/', '')
+    .replace('.svg', '')
+    .replace(/^\/+/, '')
+    .trim()
+    .toLowerCase()
 }
 
-export default function TabSwitcher({ tabs, defaultTab }: TabSwitcherProps) {
-  const [activeTab, setActiveTab] = useState(defaultTab || tabs[0]?.id)
+export default function TabSwitcher({
+  items = fallbackItems,
+}: TabSwitcherProps) {
   const reducedMotion = useReducedMotion()
+  const [activeIndex, setActiveIndex] = useState(0)
 
-  const activeTabData = tabs.find((tab) => tab.id === activeTab) || tabs[0]
-  const activeIcon = iconMap[activeTabData?.id || 'approach'] || 'growth'
+  const activeItem = items[activeIndex] || fallbackItems[0]
 
-  if (!tabs?.length) return null
+  const points = useMemo(() => {
+    return normalizeArray(activeItem?.points)
+  }, [activeItem])
 
   return (
-    <div className="relative overflow-hidden rounded-[1.7rem] border border-white/10 bg-white/[0.035] p-4 shadow-[0_30px_100px_rgba(0,0,0,0.25)] backdrop-blur-2xl sm:rounded-[2rem] md:p-6">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.16),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(198,241,53,0.08),transparent_40%)]" />
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#39D97A]/55 to-transparent" />
+    <section className="relative overflow-hidden rounded-[2rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#07111F] p-5 text-white shadow-[0_28px_90px_rgba(0,0,0,0.24)] sm:p-7 lg:p-8">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.12),transparent_42%)]" />
 
-      <div className="relative grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="rounded-[1.4rem] border border-white/10 bg-[#071427]/70 p-5 md:p-6">
-          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#39D97A] sm:text-[11px]">
-            <SvgIcon name="growth" size={14} color="#39D97A" />
-            Hbee Growth System
+      <div className="relative">
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#39D97A] sm:text-[11px]">
+              <SvgIcon name="growth" size={13} color="#39D97A" />
+              Why Hbee Digitals
+            </div>
+
+            <h2 className="text-3xl font-black leading-[0.98] tracking-[-0.055em] sm:text-4xl md:text-5xl">
+              Designed for performance and growth.
+            </h2>
+
+            <p className="mt-5 max-w-2xl text-sm leading-7 text-white/58 sm:text-base">
+              Our systems are built to improve user trust, conversion clarity,
+              brand perception, and long-term scalability.
+            </p>
           </div>
 
-          <h3 className="max-w-xl text-3xl font-black leading-[0.98] tracking-[-0.055em] text-white md:text-4xl">
-            We don’t just design. We build systems that help brands{' '}
-            <CurvedUnderlineText>scale.</CurvedUnderlineText>
-          </h3>
-
-          <p className="mt-5 max-w-xl text-sm leading-7 text-white/58 md:text-base">
-            Every project is treated as a growth system — strategy, experience, performance,
-            trust, and conversion working together.
-          </p>
-
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            {[
-              { label: 'Strategy-first execution', icon: 'strategy' },
-              { label: 'Conversion-focused UX', icon: 'conversion' },
-              { label: 'Premium brand experience', icon: 'branding' },
-              { label: 'Long-term growth support', icon: 'growth' },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/[0.035] px-3 py-3 text-xs font-semibold text-white/65"
-              >
-                <SvgIcon name={item.icon} size={16} color="#39D97A" />
-                {item.label}
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 flex flex-wrap gap-2">
-            {tabs.map((tab) => {
-              const active = activeTab === tab.id
-              const icon = iconMap[tab.id] || 'growth'
+          <div className="hidden gap-2 lg:flex">
+            {items.map((item, index) => {
+              const active = index === activeIndex
 
               return (
                 <button
-                  key={tab.id}
+                  key={item.id || item.title || index}
                   type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`group inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold transition ${
+                  onClick={() => setActiveIndex(index)}
+                  className={`rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.12em] transition ${
                     active
-                      ? 'border-[#39D97A]/30 bg-[#39D97A]/12 text-[#39D97A] shadow-[0_0_26px_rgba(57,217,122,0.12)]'
-                      : 'border-white/10 bg-white/[0.035] text-white/50 hover:border-white/20 hover:text-white'
+                      ? 'border-[#39D97A]/24 bg-[#39D97A]/10 text-[#39D97A]'
+                      : 'border-[#1E314A] bg-[#07111F] text-white/45 hover:bg-[#13233A]'
                   }`}
                 >
-                  <SvgIcon
-                    name={icon}
-                    size={14}
-                    color={active ? '#39D97A' : 'rgba(248,250,252,0.55)'}
-                  />
-                  {tab.label}
+                  {item.title}
                 </button>
               )
             })}
           </div>
         </div>
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={reducedMotion ? false : { opacity: 0, y: 16, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={reducedMotion ? undefined : { opacity: 0, y: -12, scale: 0.98 }}
-            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className="relative overflow-hidden rounded-[1.4rem] border border-white/10 bg-[#0B1E38]/80 p-5 md:p-6"
-          >
-            <div className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-[#39D97A]/12 blur-[70px]" />
-            <div className="absolute -bottom-16 left-0 h-44 w-44 rounded-full bg-[#C6F135]/8 blur-[70px]" />
+        <div className="grid gap-6 lg:grid-cols-[0.42fr_0.58fr] lg:items-start">
+          <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden">
+            {items.map((item, index) => {
+              const active = index === activeIndex
 
-            <div className="relative">
-              <div className="mb-6 flex items-start justify-between gap-5">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#39D97A]/20 bg-[#39D97A]/10 shadow-[0_0_35px_rgba(57,217,122,0.12)]">
-                  <SvgIcon name={activeIcon} size={28} color="#39D97A" />
+              return (
+                <button
+                  key={item.id || item.title || index}
+                  type="button"
+                  onClick={() => setActiveIndex(index)}
+                  className={`flex-shrink-0 rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.12em] transition ${
+                    active
+                      ? 'border-[#39D97A]/24 bg-[#39D97A]/10 text-[#39D97A]'
+                      : 'border-[#1E314A] bg-[#07111F] text-white/45'
+                  }`}
+                >
+                  {item.title}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="rounded-[1.7rem] border border-[#1E314A] bg-[#0B1728]/90 p-5 sm:p-6">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeItem.title}
+                initial={reducedMotion ? false : { opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reducedMotion ? undefined : { opacity: 0, y: -10 }}
+                transition={{ duration: 0.28 }}
+              >
+                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10">
+                  <SvgIcon
+                    name={cleanIcon(activeItem.icon)}
+                    size={24}
+                    color="#39D97A"
+                  />
                 </div>
 
-                <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-white/45">
-                  {activeTabData?.label}
+                <h3 className="text-3xl font-black tracking-[-0.05em] text-white sm:text-4xl">
+                  {activeItem.title}
+                </h3>
+
+                <p className="mt-5 max-w-xl text-sm leading-7 text-white/58 sm:text-base">
+                  {activeItem.description}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          <div className="grid gap-4">
+            {(points.length
+              ? points
+              : [
+                  'Premium systems',
+                  'Performance optimization',
+                  'Long-term scalability',
+                ]
+            ).map((point) => (
+              <div
+                key={point}
+                className="flex items-start gap-4 rounded-[1.4rem] border border-[#1E314A] bg-[#0B1728]/90 p-4 sm:p-5"
+              >
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-[#39D97A]/16 bg-[#39D97A]/10">
+                  <SvgIcon
+                    name="check"
+                    size={14}
+                    color="#39D97A"
+                  />
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-black uppercase tracking-[0.12em] text-[#39D97A]">
+                    Premium Advantage
+                  </h4>
+
+                  <p className="mt-2 text-sm leading-7 text-white/58 sm:text-base">
+                    {point}
+                  </p>
                 </div>
               </div>
-
-              <h4 className="text-2xl font-black tracking-[-0.04em] text-white md:text-3xl">
-                {activeTabData?.title}
-              </h4>
-
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-white/58 md:text-base">
-                {activeTabData?.description}
-              </p>
-
-              {activeTabData?.features && (
-                <div className="mt-7 grid gap-3 sm:grid-cols-2">
-                  {activeTabData.features.map((feature, index) => (
-                    <motion.div
-                      key={feature}
-                      initial={reducedMotion ? false : { opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.28, delay: index * 0.05 }}
-                      className="group rounded-2xl border border-white/8 bg-white/[0.04] p-4 transition hover:border-[#39D97A]/25 hover:bg-[#39D97A]/8"
-                    >
-                      <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-xl border border-[#39D97A]/16 bg-[#39D97A]/10">
-                        <SvgIcon name="precision" size={16} color="#39D97A" />
-                      </div>
-                      <p className="text-sm font-bold text-white/76">{feature}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-7 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#39D97A]">
-                      Growth Layer
-                    </p>
-                    <p className="mt-1 text-sm text-white/55">
-                      Built to support trust, conversion, performance, and scale.
-                    </p>
-                  </div>
-
-                  <div className="hidden h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-[#39D97A] to-[#C6F135] sm:flex">
-                    <SvgIcon name="arrow-diagonal" size={18} color="#06101F" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-5 flex items-center gap-3 text-xs font-semibold text-white/38">
-                <SvgIcon name="rocket" size={16} color="#C6F135" />
-                Premium execution for brands ready to grow smarter.
-              </div>
-            </div>
-          </motion.div>
-        </AnimatePresence>
+            ))}
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
   )
-}
+}                                                                        

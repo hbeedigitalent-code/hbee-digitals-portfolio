@@ -2,9 +2,9 @@
 
 export default function GlowOrb() {
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#007BFF] rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-pulse" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#00BFFF] rounded-full mix-blend-screen filter blur-[100px] opacity-15 animate-pulse" style={{ animationDelay: '2s' }} />
+    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
+      <div className="absolute -left-24 top-0 h-[280px] w-[280px] rounded-full bg-[#39D97A]/8 blur-[90px] sm:h-[420px] sm:w-[420px] sm:blur-[120px]" />
+      <div className="absolute -right-24 bottom-0 h-[260px] w-[260px] rounded-full bg-[#C6F135]/6 blur-[90px] sm:h-[390px] sm:w-[390px] sm:blur-[120px]" />
     </div>
   )
 }

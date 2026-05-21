@@ -24,13 +24,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .select("slug")
     .eq("is_active", true);
 
+  const { data: services } = await supabase
+    .from("services")
+    .select("slug")
+    .eq("is_active", true);
+
   const portfolioRoutes =
-    portfolioItems?.map((item) => ({
-      url: `${baseUrl}/portfolio/${item.slug}`,
-      lastModified: new Date(),
-      changeFrequency: "monthly" as const,
-      priority: 0.85,
-    })) || [];
+    portfolioItems
+      ?.filter((item) => item.slug)
+      .map((item) => ({
+        url: `${baseUrl}/portfolio/${item.slug}`,
+        lastModified: new Date(),
+        changeFrequency: "monthly" as const,
+        priority: 0.85,
+      })) || [];
+
+  const serviceRoutes =
+    services
+      ?.filter((service) => service.slug)
+      .map((service) => ({
+        url: `${baseUrl}/services/${service.slug}`,
+        lastModified: new Date(),
+        changeFrequency: "monthly" as const,
+        priority: 0.82,
+      })) || [];
 
   return [
     ...staticRoutes.map((route) => ({
@@ -40,5 +57,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: route === "" ? 1 : 0.8,
     })),
     ...portfolioRoutes,
+    ...serviceRoutes,
   ];
 }

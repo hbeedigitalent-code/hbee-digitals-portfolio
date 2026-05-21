@@ -51,89 +51,62 @@ export default async function HomePage() {
   const cta = ctaRes.data || {}
 
   const statsData = [
+    { value: '87+', label: 'Projects Completed', icon: 'portfolio' },
+    { value: '45+', label: 'Happy Clients', icon: 'growth' },
+    { value: '5+', label: 'Years Experience', icon: 'strategy' },
+    { value: '98%', label: 'Success Rate', icon: 'analytics' },
+  ]
+
+  const whyChooseUsItems = [
     {
-      value: 87,
-      label: 'Projects Completed',
-      suffix: '+',
-      icon: 'portfolio',
-    },
-    {
-      value: 45,
-      label: 'Happy Clients',
-      suffix: '+',
-      icon: 'growth',
-    },
-    {
-      value: 5,
-      label: 'Years Experience',
-      suffix: '+',
+      id: 'strategy',
+      title: 'Strategy First',
       icon: 'strategy',
-    },
-    {
-      value: 98,
-      label: 'Success Rate',
-      suffix: '%',
-      icon: 'analytics',
-    },
-  ]
-
-  const whyChooseUsTabs = [
-    {
-      id: 'approach',
-      label: 'Approach',
-      title: 'Human-Centered Design',
       description:
-        'We put your users first. Every decision is made with your audience in mind, ensuring experiences that resonate and convert.',
-      features: [
-        'User Research',
-        'Empathy Mapping',
-        'Journey Mapping',
-        'Usability Testing',
+        'We do not just design pages. We structure digital systems around trust, clarity, conversion, and long-term growth.',
+      points: [
+        'Growth-focused planning',
+        'Clear brand positioning',
+        'Conversion-first user journey',
       ],
     },
     {
-      id: 'process',
-      label: 'Process',
-      title: 'Agile Development Process',
+      id: 'execution',
+      title: 'Premium Execution',
+      icon: 'web-development',
       description:
-        'Our transparent, iterative process keeps you involved at every stage.',
-      features: [
-        'Discovery & Strategy',
-        'Design & Prototype',
-        'Development',
-        'Testing & Launch',
+        'Every layout, section, and interaction is built to feel clean, modern, responsive, and credible across devices.',
+      points: [
+        'Mobile-first interface',
+        'Premium visual hierarchy',
+        'Fast and clean implementation',
       ],
     },
     {
-      id: 'results',
-      label: 'Results',
-      title: 'Data-Driven Results',
+      id: 'optimization',
+      title: 'Optimization',
+      icon: 'growth',
       description:
-        'We build solutions that drive measurable business growth.',
-      features: [
-        'Increased Conversions',
-        'Faster Load Times',
-        'Higher Engagement',
-        'Better ROI',
+        'We focus on improving how visitors move, trust, and take action instead of only making the website look good.',
+      points: [
+        'Better conversion flow',
+        'Improved page experience',
+        'Trust-focused content structure',
       ],
     },
     {
-      id: 'promise',
-      label: 'Promise',
-      title: 'Your Success is Our Promise',
+      id: 'support',
+      title: 'Long-Term Support',
+      icon: 'support',
       description:
-        'Long-term support, optimization, and scalable digital systems.',
-      features: [
-        '24/7 Support',
-        'Regular Updates',
-        'Performance Monitoring',
-        'Continuous Improvement',
+        'We help brands keep improving after launch with guidance, updates, and practical optimization support.',
+      points: [
+        'Technical support',
+        'Performance monitoring',
+        'Scalable improvement plan',
       ],
     },
   ]
-
-  const bgGradient =
-    'bg-gradient-to-br from-[#060E1C] via-[#0B1E38] to-[#060E1C]'
 
   const hasAboutContent =
     about &&
@@ -145,32 +118,7 @@ export default async function HomePage() {
       (Array.isArray(about.values) && about.values.length > 0))
 
   return (
-    <div className="relative">
-      <div
-        className="fixed inset-0 pointer-events-none overflow-hidden z-0"
-        aria-hidden="true"
-      >
-        <div
-          className="absolute w-[600px] h-[600px] rounded-full blur-[140px] opacity-[0.07]"
-          style={{
-            background: '#39D97A',
-            animation: 'orbFloat1 18s ease-in-out infinite',
-            top: '-10%',
-            left: '10%',
-          }}
-        />
-
-        <div
-          className="absolute w-[500px] h-[500px] rounded-full blur-[120px] opacity-[0.05]"
-          style={{
-            background: '#C6F135',
-            animation: 'orbFloat2 22s ease-in-out infinite',
-            bottom: '20%',
-            right: '5%',
-          }}
-        />
-      </div>
-
+    <div className="relative overflow-hidden bg-[#07111F] text-white">
       <Navbar />
 
       <main id="main-content" className="relative z-10">
@@ -182,72 +130,48 @@ export default async function HomePage() {
             data={{
               title: hero.title,
               subtitle: hero.subtitle,
-              primaryCtaText:
-                hero.primary_cta_text || 'Get Free Audit',
-              primaryCtaLink:
-                hero.primary_cta_link || '/contact',
+              primaryCtaText: hero.primary_cta_text || 'Get Free Audit',
+              primaryCtaLink: hero.primary_cta_link || '/contact',
               secondaryCtaText:
-                hero.secondary_cta_text ||
-                'View Case Studies',
-              secondaryCtaLink:
-                hero.secondary_cta_link || '/portfolio',
+                hero.secondary_cta_text || 'View Case Studies',
+              secondaryCtaLink: hero.secondary_cta_link || '/portfolio',
               backgroundImage: hero.background_image,
               featureBullets:
                 hero.feature_bullets ||
                 'Shopify Optimization|Conversion Systems|Accessibility Support',
-              ...(hero.video_url
-                ? { video_url: hero.video_url }
-                : {}),
+              ...(hero.video_url ? { video_url: hero.video_url } : {}),
             }}
           />
         </section>
 
-        <section className={`${bgGradient} relative`}>
-          <StatsBar stats={statsData} />
-        </section>
-
-        <section className="bg-white relative">
-          <LogoMarquee />
-        </section>
-
-        <section
-          className={`py-12 md:py-14 relative overflow-hidden ${bgGradient}`}
-        >
-          <GridPattern />
-
-          <div className="w-full max-w-7xl mx-auto px-6 md:px-12 relative z-10">
-            <ServiceOrbit
-              services={services}
-              intervalMs={5500}
-            />
+        <section className="relative px-5 py-10 sm:px-6 md:px-10 lg:px-12">
+          <div className="mx-auto max-w-7xl">
+            <StatsBar stats={statsData} />
           </div>
         </section>
 
-        <section className={`${bgGradient} relative`}>
+        <section className="relative bg-white">
+          <LogoMarquee />
+        </section>
+
+        <section className="relative px-5 py-12 sm:px-6 md:px-10 lg:px-12 lg:py-16">
           <GridPattern />
 
-          <div className="pt-14 pb-10 w-full max-w-7xl mx-auto px-6 md:px-12 relative z-10">
-            <div className="text-center mb-10">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
-                Why Choose Us
-              </h2>
+          <div className="relative z-10 mx-auto max-w-7xl">
+            <ServiceOrbit services={services} intervalMs={5500} />
+          </div>
+        </section>
 
-              <p className="text-white/70 max-w-2xl mx-auto">
-                Discover what makes us different and why
-                clients trust us with their digital
-                presence.
-              </p>
-            </div>
+        <section className="relative px-5 py-12 sm:px-6 md:px-10 lg:px-12 lg:py-16">
+          <GridPattern />
 
-            <TabSwitcher
-              tabs={whyChooseUsTabs}
-              defaultTab="approach"
-            />
+          <div className="relative z-10 mx-auto max-w-7xl">
+            <TabSwitcher items={whyChooseUsItems} />
           </div>
         </section>
 
         {hasAboutContent && (
-          <section className={`${bgGradient} relative py-0`}>
+          <section className="relative">
             <Reveal>
               <AboutSection
                 data={{
@@ -265,20 +189,20 @@ export default async function HomePage() {
 
         <ClientProofsSection />
 
-        <section className={`${bgGradient} relative`}>
-          <Reveal delay={0.3}>
+        <section className="relative">
+          <Reveal delay={0.2}>
             <TestimonialsSection />
           </Reveal>
         </section>
 
-        <section className={`${bgGradient} relative`}>
-          <Reveal delay={0.5}>
+        <section className="relative">
+          <Reveal delay={0.3}>
             <FAQSection data={faqs} variant="home" />
           </Reveal>
         </section>
 
-        <section className={`${bgGradient} relative`}>
-          <Reveal delay={0.6}>
+        <section className="relative">
+          <Reveal delay={0.4}>
             <CTASection
               data={{
                 title: cta.title,
@@ -290,7 +214,7 @@ export default async function HomePage() {
           </Reveal>
         </section>
 
-        <section className={`${bgGradient} relative`}>
+        <section className="relative">
           <NewsletterSection />
         </section>
       </main>

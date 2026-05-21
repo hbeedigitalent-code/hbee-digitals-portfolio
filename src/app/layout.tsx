@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import Providers from "./providers";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import CookieConsent from "@/components/CookieBanner";
+import StructuredData from "@/components/StructuredData";
 import { ThemeProvider } from "@/context/ThemeContext";
 import CursorGlow from "@/components/ui/CursorGlow";
 import PageUtilities from "@/components/ui/PageUtilities";
@@ -156,6 +157,8 @@ export default function RootLayout({
             <Suspense fallback={null}>
               <GoogleAnalytics />
             </Suspense>
+
+            <StructuredData />
 
             {children}
           </Providers>

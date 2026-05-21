@@ -2,26 +2,8 @@
 
 export default function GridPattern() {
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(0,191,255,0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(0,191,255,0.18) 1px, transparent 1px)',
-          backgroundSize: '60px 60px',
-          opacity: 0.12,
-          animation: 'gridMove 20s linear infinite',
-        }}
-      />
-      <style jsx>{`
-        @keyframes gridMove {
-          0% { transform: translate(0, 0); }
-          100% { transform: translate(60px, 60px); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          div { animation: none; }
-        }
-      `}</style>
+    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.018)_1px,transparent_1px)] bg-[size:72px_72px] opacity-40" />
     </div>
   )
 }
