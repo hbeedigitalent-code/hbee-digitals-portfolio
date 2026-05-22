@@ -28,7 +28,8 @@ interface TeamMember {
   is_active?: boolean
 }
 
-const TEAM_BUCKET = 'team-images'
+const TEAM_BUCKET = 'project-images'
+const TEAM_FOLDER = 'team'
 
 function isFullUrl(value: string) {
   return value.startsWith('http://') || value.startsWith('https://')
@@ -43,13 +44,11 @@ function getPublicImageUrl(value?: string) {
 
   if (cleaned.includes('/storage/v1/object/public/')) return cleaned
 
-  if (cleaned.startsWith(`${TEAM_BUCKET}/`)) {
-    return supabase.storage
-      .from(TEAM_BUCKET)
-      .getPublicUrl(cleaned.replace(`${TEAM_BUCKET}/`, '')).data.publicUrl
-  }
+  const filePath = cleaned.startsWith(`${TEAM_FOLDER}/`)
+    ? cleaned
+    : `${TEAM_FOLDER}/${cleaned}`
 
-  return supabase.storage.from(TEAM_BUCKET).getPublicUrl(cleaned).data.publicUrl
+  return supabase.storage.from(TEAM_BUCKET).getPublicUrl(filePath).data.publicUrl
 }
 
 function getTeamImage(member: TeamMember) {
@@ -126,68 +125,66 @@ export default function TeamSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.38, delay: index * 0.04 }}
                 viewport={{ once: true }}
-                className="group relative overflow-hidden rounded-[1.8rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#0B1625] p-4 shadow-[0_24px_70px_rgba(0,0,0,0.22)] transition duration-300 hover:-translate-y-1 hover:border-[#39D97A]/28"
+                className="group overflow-hidden rounded-[1.8rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#0B1625] p-4 shadow-[0_24px_70px_rgba(0,0,0,0.22)] transition duration-300 hover:-translate-y-1 hover:border-[#39D97A]/28"
               >
-                <div className="relative">
-                  <div className="relative mb-5 aspect-[4/4.5] overflow-hidden rounded-[1.6rem] border border-[#1E314A] bg-[#07111F]">
-                    {imageSrc ? (
-                      <img
-                        src={imageSrc}
-                        alt={member.name}
-                        className="h-full w-full object-cover object-top transition duration-700 group-hover:scale-[1.04]"
-                        loading="lazy"
-                        onError={(e) => {
-                          e.currentTarget.src = '/images/team-placeholder.jpg'
-                        }}
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#07111F] via-[#0E1B2D] to-[#13233A]">
-                        <div className="flex h-24 w-24 items-center justify-center rounded-[2rem] border border-[#39D97A]/20 bg-[#39D97A]/10 text-4xl font-black text-[#39D97A]">
-                          {member.name?.charAt(0) || 'H'}
-                        </div>
+                <div className="relative mb-5 h-[340px] overflow-hidden rounded-[1.6rem] border border-[#1E314A] bg-[#07111F]">
+                  {imageSrc ? (
+                    <img
+                      src={imageSrc}
+                      alt={member.name}
+                      className="h-full w-full object-cover object-top transition duration-700 group-hover:scale-[1.04]"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#07111F] via-[#0E1B2D] to-[#13233A]">
+                      <div className="flex h-24 w-24 items-center justify-center rounded-[2rem] border border-[#39D97A]/20 bg-[#39D97A]/10 text-4xl font-black text-[#39D97A]">
+                        {member.name?.charAt(0) || 'H'}
                       </div>
-                    )}
-
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#07111F]/82 via-[#07111F]/8 to-transparent" />
-
-                    <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/10 bg-[#07111F]/78 p-4 backdrop-blur-xl">
-                      <h3 className="text-lg font-black tracking-[-0.035em] text-white">
-                        {member.name}
-                      </h3>
-
-                      <p className="mt-1 text-sm font-bold text-[#39D97A]">
-                        {position}
-                      </p>
                     </div>
-                  </div>
-
-                  {member.bio && (
-                    <p className="line-clamp-2 text-sm leading-7 text-white/56">
-                      {member.bio}
-                    </p>
                   )}
 
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    {[
-                      { url: member.social_twitter, icon: 'twitter', label: 'Twitter' },
-                      { url: member.social_linkedin, icon: 'linkedin', label: 'LinkedIn' },
-                      { url: member.social_github, icon: 'github', label: 'GitHub' },
-                      { url: member.social_instagram, icon: 'instagram', label: 'Instagram' },
-                    ]
-                      .filter((item) => item.url)
-                      .map((item) => (
-                        <a
-                          key={item.label}
-                          href={item.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label={`${member.name} on ${item.label}`}
-                          className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#1E314A] bg-[#0E1B2D] transition hover:-translate-y-1 hover:border-[#39D97A]/30 hover:bg-[#13233A]"
-                        >
-                          <SvgIcon name={item.icon} size={17} color="#39D97A" />
-                        </a>
-                      ))}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#07111F]/86 via-[#07111F]/10 to-transparent" />
+
+                  <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/10 bg-[#07111F]/80 p-4 backdrop-blur-xl">
+                    <h3 className="text-lg font-black tracking-[-0.035em] text-white">
+                      {member.name}
+                    </h3>
+
+                    <p className="mt-1 text-sm font-bold text-[#39D97A]">
+                      {position}
+                    </p>
                   </div>
+                </div>
+
+                {member.bio && (
+                  <p className="line-clamp-2 text-sm leading-7 text-white/56">
+                    {member.bio}
+                  </p>
+                )}
+
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {[
+                    { url: member.social_twitter, icon: 'twitter', label: 'Twitter' },
+                    { url: member.social_linkedin, icon: 'linkedin', label: 'LinkedIn' },
+                    { url: member.social_github, icon: 'github', label: 'GitHub' },
+                    { url: member.social_instagram, icon: 'instagram', label: 'Instagram' },
+                  ]
+                    .filter((item) => item.url)
+                    .map((item) => (
+                      <a
+                        key={item.label}
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`${member.name} on ${item.label}`}
+                        className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#1E314A] bg-[#0E1B2D] transition hover:-translate-y-1 hover:border-[#39D97A]/30 hover:bg-[#13233A]"
+                      >
+                        <SvgIcon name={item.icon} size={17} color="#39D97A" />
+                      </a>
+                    ))}
                 </div>
               </motion.article>
             )
