@@ -1,5 +1,3 @@
-import Image from 'next/image'
-
 interface SvgIconProps {
   name: string
   size?: number
@@ -8,23 +6,27 @@ interface SvgIconProps {
   alt?: string
 }
 
-const iconAliases: Record<string, string> = {
+const aliases: Record<string, string> = {
   ecommerce: 'ecommerce',
   'e-commerce': 'ecommerce',
-  commerce: 'ecommerce',
-  cart: 'ecommerce',
-  shop: 'ecommerce',
+  shopify: 'ecommerce',
   store: 'ecommerce',
+  cart: 'ecommerce',
 
+  uiux: 'ui-ux',
+  'ui-ux': 'ui-ux',
+  ux: 'ui-ux',
+  ui: 'ui-ux',
+
+  marketing: 'digital-marketing',
+  'digital-marketing': 'digital-marketing',
+  seo: 'seo',
+
+  brand: 'branding',
+  branding: 'branding',
+  strategy: 'strategy',
   consulting: 'consulting',
-  consultant: 'consulting',
   technical: 'consulting',
-
-  portfolio: 'portfolio',
-  case: 'portfolio',
-  cases: 'portfolio',
-  project: 'projects',
-  projects: 'projects',
 
   web: 'web-development',
   website: 'web-development',
@@ -32,56 +34,39 @@ const iconAliases: Record<string, string> = {
   'website-design': 'web-development',
   development: 'web-development',
 
-  brand: 'branding',
-  branding: 'branding',
-  identity: 'branding',
+  portfolio: 'portfolio',
+  case: 'portfolio',
+  projects: 'projects',
+  project: 'projects',
 
   services: 'services',
   service: 'services',
-  sliders: 'services',
-  settings: 'services',
-
   growth: 'growth',
   analytics: 'analytics',
-  strategy: 'strategy',
   performance: 'performance',
   security: 'security',
-  shield: 'security',
-
   support: 'support',
-  help: 'support',
 
   email: 'email',
   mail: 'email',
   message: 'messages',
   messages: 'messages',
-
   whatsapp: 'whatsapp',
-  phone: 'whatsapp',
-
+  phone: 'phone',
   location: 'location',
-  pin: 'location',
 
-  faq: 'faq',
-  faqs: 'faq',
+  check: 'verified',
+  verified: 'verified',
 
-  blog: 'blog',
-  article: 'blog',
-
-  about: 'about',
-  company: 'about',
-
-  rocket: 'rocket',
-  home: 'home',
   menu: 'menu',
   close: 'close',
-
-  check: 'check',
-  verified: 'check',
+  home: 'home',
+  faq: 'faq',
+  blog: 'blog',
+  about: 'about',
 
   'arrow-diagonal': 'arrow-diagonal',
   arrow: 'arrow-diagonal',
-
   'chevron-left': 'chevron-left',
   'chevron-right': 'chevron-right',
   'chevron-down': 'chevron-down',
@@ -105,7 +90,7 @@ function cleanIconName(name: string) {
     .trim()
     .toLowerCase()
 
-  return iconAliases[cleaned] || cleaned || 'services'
+  return aliases[cleaned] || cleaned || 'services'
 }
 
 export default function SvgIcon({
@@ -116,31 +101,26 @@ export default function SvgIcon({
   alt = '',
 }: SvgIconProps) {
   const iconName = cleanIconName(name)
-  const src = `/svgs/${iconName}.svg`
 
   return (
     <span
-      className={`relative inline-flex flex-shrink-0 items-center justify-center ${className}`}
+      role={alt ? 'img' : undefined}
+      aria-label={alt || undefined}
+      aria-hidden={alt ? undefined : true}
+      className={`inline-flex flex-shrink-0 items-center justify-center ${className}`}
       style={{
         width: size,
         height: size,
-        color,
+        backgroundColor: color,
+        WebkitMaskImage: `url(/svgs/${iconName}.svg)`,
+        maskImage: `url(/svgs/${iconName}.svg)`,
+        WebkitMaskRepeat: 'no-repeat',
+        maskRepeat: 'no-repeat',
+        WebkitMaskPosition: 'center',
+        maskPosition: 'center',
+        WebkitMaskSize: 'contain',
+        maskSize: 'contain',
       }}
-      aria-hidden={alt ? undefined : true}
-    >
-      <Image
-        src={src}
-        alt={alt}
-        width={size}
-        height={size}
-        className="h-full w-full object-contain"
-        style={{
-          filter:
-            color === '#39D97A' || color.toLowerCase() === '#39d97a'
-              ? 'brightness(0) saturate(100%) invert(67%) sepia(65%) saturate(546%) hue-rotate(89deg) brightness(93%) contrast(88%)'
-              : undefined,
-        }}
-      />
-    </span>
+    />
   )
 }

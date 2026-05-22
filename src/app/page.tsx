@@ -10,6 +10,7 @@ import FAQSection from '@/components/sections/FAQSection'
 import CTASection from '@/components/sections/CTASection'
 import NewsletterSection from '@/components/sections/NewsletterSection'
 import ClientProofsSection from '@/components/sections/ClientProofsSection'
+import FeaturedPortfolioSection from '@/components/sections/FeaturedPortfolioSection'
 
 import Reveal from '@/components/Reveal'
 
@@ -23,7 +24,7 @@ import GlowOrb from '@/components/ui/GlowOrb'
 export const revalidate = 60
 
 export default async function HomePage() {
-  const [heroRes, servicesRes, aboutRes, faqsRes, ctaRes] =
+  const [heroRes, servicesRes, aboutRes, faqsRes, ctaRes, portfolioRes] =
     await Promise.all([
       supabase.from('hero_section').select('*').single(),
 
@@ -42,6 +43,14 @@ export default async function HomePage() {
         .order('display_order', { ascending: true }),
 
       supabase.from('cta_section').select('*').single(),
+
+      supabase
+        .from('portfolio_items')
+        .select('*')
+        .eq('featured', true)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+        .limit(6),
     ])
 
   const hero = heroRes.data || {}
@@ -49,6 +58,7 @@ export default async function HomePage() {
   const about = aboutRes.data || {}
   const faqs = faqsRes.data || []
   const cta = ctaRes.data || {}
+  const portfolioItems = portfolioRes.data || []
 
   const statsData = [
     { value: '87+', label: 'Projects Completed', icon: 'portfolio' },
@@ -161,6 +171,8 @@ export default async function HomePage() {
             <ServiceOrbit services={services} intervalMs={5500} />
           </div>
         </section>
+
+        <FeaturedPortfolioSection items={portfolioItems} />
 
         <section className="relative px-5 py-12 sm:px-6 md:px-10 lg:px-12 lg:py-16">
           <GridPattern />
