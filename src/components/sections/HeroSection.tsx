@@ -202,7 +202,7 @@ export default function HeroSection({ data }: HeroSectionProps) {
           <div className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-[2.2rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#0B1625] p-3 shadow-[0_36px_110px_rgba(0,0,0,0.34)] sm:max-w-[520px] sm:p-4 lg:max-w-[580px]">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.13),transparent_42%)]" />
 
-            <div className="relative aspect-[7/8] overflow-hidden rounded-[1.7rem] border border-[#1E314A] bg-[#07111F]">
+            <div className="relative aspect-[14/12] overflow-hidden rounded-[1.7rem] border border-[#1E314A] bg-[#07111F]">
               {video_url ? (
                 <video
                   src={video_url}
@@ -220,7 +220,7 @@ export default function HeroSection({ data }: HeroSectionProps) {
                   alt="Hbee Digitals digital growth system"
                   loading="eager"
                   fetchPriority="high"
-                  className="h-full w-full object-contain object-center lg:object-cover"
+                  className="h-full w-full object-cover object-center"
                 />
               ) : (
                 <HeroDashboardMockup />
