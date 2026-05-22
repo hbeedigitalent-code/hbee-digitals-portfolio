@@ -67,10 +67,8 @@ function TypewriterWord({
     return () => window.clearInterval(typing)
   }, [wordIndex, active, reducedMotion])
 
-  const underlineWidth = `${Math.min(Math.max(text.length * 30, 165), 540)}px`
-
   return (
-    <span className="relative block min-h-[1.08em] overflow-hidden">
+    <span className="relative block min-h-[1.15em] min-w-[300px] overflow-hidden sm:min-w-[420px] lg:min-w-[520px]">
       <span className="inline-flex max-w-full items-center whitespace-nowrap bg-gradient-to-r from-[#39D97A] via-[#6EEB73] to-[#C6F135] bg-clip-text text-transparent">
         {text}
         {!reducedMotion && active && (
@@ -80,7 +78,9 @@ function TypewriterWord({
 
       <svg
         className="absolute -bottom-1 left-0 h-4 max-w-full text-[#39D97A]/75 transition-all duration-300 sm:-bottom-2 sm:h-5"
-        style={{ width: underlineWidth }}
+        style={{
+          width: `${Math.min(Math.max(text.length * 28, 155), 500)}px`,
+        }}
         viewBox="0 0 260 18"
         fill="none"
         preserveAspectRatio="none"
@@ -140,19 +140,19 @@ export default function HeroSection({ data }: HeroSectionProps) {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.018)_1px,transparent_1px)] bg-[size:72px_72px] opacity-35" />
       </div>
 
-      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
         <motion.div
           initial={reducedMotion ? false : { opacity: 0, y: 22 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-          className="relative z-10"
+          className="relative z-10 min-w-0"
         >
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#39D97A] sm:text-[11px]">
             <span className="h-2 w-2 rounded-full bg-[#39D97A]" />
             Digital Growth Systems
           </div>
 
-          <h1 className="max-w-4xl text-[clamp(3.05rem,13vw,5.25rem)] font-black leading-[0.9] tracking-[-0.07em] text-white sm:text-[clamp(4rem,8vw,5.8rem)]">
+          <h1 className="max-w-[760px] text-[clamp(2.8rem,12vw,4.45rem)] font-black leading-[0.92] tracking-[-0.06em] text-white sm:text-[clamp(3.7rem,7vw,5rem)]">
             {baseTitle}
             <br />
             <TypewriterWord active={isInView} reducedMotion={reducedMotion} />
@@ -186,7 +186,7 @@ export default function HeroSection({ data }: HeroSectionProps) {
                 key={item}
                 className="inline-flex items-center gap-2 rounded-full border border-[#39D97A]/16 bg-[#0E1B2D] px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.13em] text-[#39D97A]"
               >
-                <SvgIcon name="check" size={11} color="#39D97A" />
+                <SvgIcon name="verified" size={11} color="#39D97A" />
                 {item}
               </div>
             ))}
@@ -197,12 +197,12 @@ export default function HeroSection({ data }: HeroSectionProps) {
           initial={reducedMotion ? false : { opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.58, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-          className="relative"
+          className="relative min-w-0"
         >
-          <div className="relative overflow-hidden rounded-[2.2rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#0B1625] p-3 shadow-[0_36px_110px_rgba(0,0,0,0.34)] sm:p-4">
+          <div className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-[2.2rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#0B1625] p-3 shadow-[0_36px_110px_rgba(0,0,0,0.34)] sm:max-w-[520px] sm:p-4 lg:max-w-[580px]">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.13),transparent_42%)]" />
 
-            <div className="relative overflow-hidden rounded-[1.7rem] border border-[#1E314A] bg-[#07111F]">
+            <div className="relative aspect-[7/8] overflow-hidden rounded-[1.7rem] border border-[#1E314A] bg-[#07111F]">
               {video_url ? (
                 <video
                   src={video_url}
@@ -212,7 +212,7 @@ export default function HeroSection({ data }: HeroSectionProps) {
                   playsInline
                   preload="metadata"
                   poster={backgroundImage}
-                  className="aspect-[8/7] w-full object-cover sm:aspect-[8/7] lg:min-h-[570px]"
+                  className="h-full w-full object-contain lg:object-cover"
                 />
               ) : backgroundImage ? (
                 <img
@@ -220,7 +220,7 @@ export default function HeroSection({ data }: HeroSectionProps) {
                   alt="Hbee Digitals digital growth system"
                   loading="eager"
                   fetchPriority="high"
-                  className="aspect-[8/7] w-full object-cover object-center sm:aspect-[8/7] lg:min-h-[570px]"
+                  className="h-full w-full object-contain object-center lg:object-cover"
                 />
               ) : (
                 <HeroDashboardMockup />
@@ -237,7 +237,7 @@ function HeroDashboardMockup() {
   const bars = [34, 46, 40, 52, 61, 55, 72, 63, 78, 67, 86, 79]
 
   return (
-    <div className="aspect-[8/7] bg-[#07111F] p-4 sm:p-6 lg:min-h-[570px]">
+    <div className="h-full w-full bg-[#07111F] p-4 sm:p-6">
       <div className="rounded-[1.4rem] border border-[#1E314A] bg-[#0E1B2D] p-4">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -262,17 +262,26 @@ function HeroDashboardMockup() {
           ['security', 'AA', 'Accessibility'],
           ['performance', '91', 'Speed Score'],
         ].map(([icon, value, label]) => (
-          <div key={label} className="rounded-[1.3rem] border border-[#1E314A] bg-[#0E1B2D] p-4 sm:p-5">
+          <div
+            key={label}
+            className="rounded-[1.3rem] border border-[#1E314A] bg-[#0E1B2D] p-4 sm:p-5"
+          >
             <SvgIcon name={icon} size={18} color="#39D97A" />
-            <p className="mt-6 text-xl font-black text-white sm:mt-8 sm:text-2xl">{value}</p>
-            <p className="mt-1 text-xs font-semibold text-white/42 sm:text-sm">{label}</p>
+            <p className="mt-6 text-xl font-black text-white sm:mt-8 sm:text-2xl">
+              {value}
+            </p>
+            <p className="mt-1 text-xs font-semibold text-white/42 sm:text-sm">
+              {label}
+            </p>
           </div>
         ))}
       </div>
 
       <div className="mt-4 rounded-[1.4rem] border border-[#1E314A] bg-[#0E1B2D] p-4 sm:p-5">
         <div className="mb-4 flex items-center justify-between">
-          <p className="text-xs font-black text-white sm:text-sm">Optimization Progress</p>
+          <p className="text-xs font-black text-white sm:text-sm">
+            Optimization Progress
+          </p>
           <p className="text-[11px] text-white/45 sm:text-xs">Last 30 days</p>
         </div>
 

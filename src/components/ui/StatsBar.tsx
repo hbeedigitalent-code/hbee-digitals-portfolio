@@ -15,111 +15,76 @@ interface StatsBarProps {
 }
 
 const fallbackStats: Stat[] = [
-  {
-    value: '87+',
-    label: 'Projects Completed',
-    icon: 'portfolio',
-  },
-  {
-    value: '45+',
-    label: 'Happy Clients',
-    icon: 'growth',
-  },
-  {
-    value: '5+',
-    label: 'Years Experience',
-    icon: 'strategy',
-  },
-  {
-    value: '98%',
-    label: 'Success Rate',
-    icon: 'analytics',
-  },
+  { value: '87+', label: 'Projects Completed', icon: 'portfolio' },
+  { value: '45+', label: 'Happy Clients', icon: 'growth' },
+  { value: '5+', label: 'Years Experience', icon: 'strategy' },
+  { value: '98%', label: 'Success Rate', icon: 'analytics' },
 ]
-
-function cleanIcon(icon?: string) {
-  if (!icon) return 'growth'
-
-  return icon
-    .replace('/public/svgs/', '')
-    .replace('public/svgs/', '')
-    .replace('/svgs/', '')
-    .replace('svgs/', '')
-    .replace('.svg', '')
-    .replace(/^\/+/, '')
-    .trim()
-    .toLowerCase()
-}
 
 function extractNumber(value: string | number) {
   if (typeof value === 'number') return value
-
   const match = value.match(/\d+/)
-
-  return match ? parseInt(match[0]) : 0
+  return match ? parseInt(match[0], 10) : 0
 }
 
 function extractSuffix(value: string | number) {
   if (typeof value === 'number') return ''
-
   return value.replace(/[0-9]/g, '')
 }
 
-function Counter({
-  value,
-}: {
-  value: string | number
-}) {
+function Counter({ value }: { value: string | number }) {
   const [count, setCount] = useState(0)
+  const [started, setStarted] = useState(false)
   const ref = useRef<HTMLSpanElement | null>(null)
-  const suffix = extractSuffix(value)
+
   const finalNumber = extractNumber(value)
+  const suffix = extractSuffix(value)
 
   useEffect(() => {
     const element = ref.current
-
-    if (!element) return
+    if (!element || started) return
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          let start = 0
-          const duration = 1600
-          const increment = finalNumber / (duration / 16)
+        if (!entry.isIntersecting) return
 
-          const timer = setInterval(() => {
-            start += increment
+        setStarted(true)
 
-            if (start >= finalNumber) {
-              setCount(finalNumber)
-              clearInterval(timer)
-            } else {
-              setCount(Math.floor(start))
-            }
-          }, 16)
+        let current = 0
+        const duration = 1500
+        const stepTime = 16
+        const increment = finalNumber / (duration / stepTime)
 
-          observer.disconnect()
-        }
+        const timer = window.setInterval(() => {
+          current += increment
+
+          if (current >= finalNumber) {
+            setCount(finalNumber)
+            window.clearInterval(timer)
+          } else {
+            setCount(Math.floor(current))
+          }
+        }, stepTime)
+
+        observer.disconnect()
       },
-      { threshold: 0.4 }
+      { threshold: 0.35 }
     )
 
     observer.observe(element)
 
     return () => observer.disconnect()
-  }, [finalNumber])
+  }, [finalNumber, started])
 
   return (
     <span ref={ref}>
-      {count}
+      {started ? count : 0}
       {suffix}
     </span>
   )
 }
 
-export default function StatsBar({
-  stats = fallbackStats,
-}: StatsBarProps) {
+export default function StatsBar({ stats = fallbackStats }: StatsBarProps) {
   const reducedMotion = useReducedMotion()
 
   return (
@@ -132,10 +97,7 @@ export default function StatsBar({
             key={`${stat.label}-${index}`}
             initial={reducedMotion ? false : { opacity: 0, y: 18 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.35,
-              delay: index * 0.06,
-            }}
+            transition={{ duration: 0.35, delay: index * 0.06 }}
             viewport={{ once: true }}
             className="group relative overflow-hidden rounded-[1.4rem] border border-[#1E314A] bg-[#0B1728]/90 p-4 transition duration-300 hover:-translate-y-1 hover:border-[#39D97A]/25 hover:bg-[#13233A] sm:p-5"
           >
@@ -143,14 +105,10 @@ export default function StatsBar({
 
             <div className="relative">
               <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10">
-                <SvgIcon
-                  name={cleanIcon(stat.icon)}
-                  size={20}
-                  color="#39D97A"
-                />
+                <SvgIcon name={stat.icon || 'growth'} size={20} color="#39D97A" />
               </div>
 
-              <h3 className="text-3xl font-black leading-none tracking-[-0.05em] text-white sm:text-4xl">
+              <h3 className="text-3xl font-black leading-none tracking-[-0.05em] sm:text-4xl">
                 <span className="bg-gradient-to-r from-[#39D97A] to-[#C6F135] bg-clip-text text-transparent">
                   <Counter value={stat.value} />
                 </span>

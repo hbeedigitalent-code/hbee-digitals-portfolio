@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Image from 'next/image'
 import { motion, useReducedMotion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import SvgIcon from '@/components/ui/SvgIcon'
+import GradientHeading from '@/components/ui/GradientHeading'
 
 interface TeamMember {
   id: string
@@ -13,11 +13,13 @@ interface TeamMember {
   role?: string
   bio?: string
   image_url?: string
-  image?: string
+  photo?: string
+  avatar?: string
   photo_url?: string
   avatar_url?: string
   profile_image?: string
   image_path?: string
+  image?: string
   social_twitter?: string
   social_linkedin?: string
   social_github?: string
@@ -26,60 +28,42 @@ interface TeamMember {
   is_active?: boolean
 }
 
-const TEAM_BUCKETS = ['team-images', 'team', 'team-members', 'uploads']
+const TEAM_BUCKET = 'team-images'
 
 function isFullUrl(value: string) {
   return value.startsWith('http://') || value.startsWith('https://')
 }
 
-function cleanStoragePath(value: string) {
-  return value
-    .replace(/^\/+/, '')
-    .replace(/^storage\/v1\/object\/public\//, '')
-    .trim()
-}
+function getPublicImageUrl(value?: string) {
+  if (!value) return ''
 
-function getPublicImageUrl(path: string) {
-  if (!path) return ''
+  const cleaned = value.trim().replace(/^\/+/, '')
 
-  if (isFullUrl(path)) return path
+  if (isFullUrl(cleaned)) return cleaned
 
-  const cleaned = cleanStoragePath(path)
+  if (cleaned.includes('/storage/v1/object/public/')) return cleaned
 
-  if (cleaned.startsWith('team-images/')) {
-    const filePath = cleaned.replace('team-images/', '')
-    return supabase.storage.from('team-images').getPublicUrl(filePath).data.publicUrl
+  if (cleaned.startsWith(`${TEAM_BUCKET}/`)) {
+    return supabase.storage
+      .from(TEAM_BUCKET)
+      .getPublicUrl(cleaned.replace(`${TEAM_BUCKET}/`, '')).data.publicUrl
   }
 
-  if (cleaned.startsWith('team/')) {
-    const filePath = cleaned.replace('team/', '')
-    return supabase.storage.from('team').getPublicUrl(filePath).data.publicUrl
-  }
-
-  if (cleaned.startsWith('team-members/')) {
-    const filePath = cleaned.replace('team-members/', '')
-    return supabase.storage.from('team-members').getPublicUrl(filePath).data.publicUrl
-  }
-
-  if (cleaned.startsWith('uploads/')) {
-    const filePath = cleaned.replace('uploads/', '')
-    return supabase.storage.from('uploads').getPublicUrl(filePath).data.publicUrl
-  }
-
-  return supabase.storage.from('team-images').getPublicUrl(cleaned).data.publicUrl
+  return supabase.storage.from(TEAM_BUCKET).getPublicUrl(cleaned).data.publicUrl
 }
 
 function getTeamImage(member: TeamMember) {
-  const raw =
+  return getPublicImageUrl(
     member.image_url ||
-    member.photo_url ||
-    member.avatar_url ||
-    member.profile_image ||
-    member.image_path ||
-    member.image ||
-    ''
-
-  return getPublicImageUrl(raw)
+      member.photo_url ||
+      member.avatar_url ||
+      member.profile_image ||
+      member.image_path ||
+      member.photo ||
+      member.avatar ||
+      member.image ||
+      ''
+  )
 }
 
 export default function TeamSection() {
@@ -126,10 +110,7 @@ export default function TeamSection() {
           </p>
 
           <h2 className="text-3xl font-black leading-[0.98] tracking-[-0.055em] sm:text-4xl md:text-5xl">
-            The people behind the{' '}
-            <span className="bg-gradient-to-r from-[#39D97A] via-[#6EEB73] to-[#C6F135] bg-clip-text text-transparent">
-              digital systems.
-            </span>
+            The people behind the <GradientHeading>digital systems.</GradientHeading>
           </h2>
         </div>
 
@@ -153,9 +134,10 @@ export default function TeamSection() {
                       <img
                         src={imageSrc}
                         alt={member.name}
-                        className="h-full w-full object-cover object-center transition duration-700 group-hover:scale-[1.04]"
+                        className="h-full w-full object-cover object-top transition duration-700 group-hover:scale-[1.04]"
+                        loading="lazy"
                         onError={(e) => {
-                          e.currentTarget.style.display = 'none'
+                          e.currentTarget.src = '/images/team-placeholder.jpg'
                         }}
                       />
                     ) : (

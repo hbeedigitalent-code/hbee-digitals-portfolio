@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
+import GradientHeading from '@/components/ui/GradientHeading'
 
 interface Service {
   id?: string
@@ -20,6 +21,44 @@ interface ServiceOrbitProps {
   services?: Service[]
   intervalMs?: number
 }
+
+const fallbackServices: Service[] = [
+  {
+    title: 'Web Development',
+    slug: 'web-development',
+    icon: 'web-development',
+    description: 'Premium websites built for trust, clarity, and conversion.',
+    features: ['Premium UI', 'Mobile-first', 'Conversion flow'],
+  },
+  {
+    title: 'UI/UX Design',
+    slug: 'ui-ux-design',
+    icon: 'ui-ux',
+    description: 'Clean experiences designed around usability, trust, and action.',
+    features: ['User journey', 'Mobile UX', 'Clear hierarchy'],
+  },
+  {
+    title: 'Brand Strategy',
+    slug: 'brand-strategy',
+    icon: 'branding',
+    description: 'Brand systems that improve perception, clarity, and consistency.',
+    features: ['Positioning', 'Visual direction', 'Brand trust'],
+  },
+  {
+    title: 'Digital Marketing',
+    slug: 'digital-marketing',
+    icon: 'digital-marketing',
+    description: 'Growth-focused marketing systems for visibility and conversion.',
+    features: ['Traffic strategy', 'Lead flow', 'Campaign structure'],
+  },
+  {
+    title: 'E-Commerce Solutions',
+    slug: 'ecommerce-solutions',
+    icon: 'ecommerce',
+    description: 'Store systems for Shopify, products, trust, and growth.',
+    features: ['Shopify setup', 'Product structure', 'Checkout trust'],
+  },
+]
 
 function normalizeArray(value: any): string[] {
   if (!value) return []
@@ -41,10 +80,10 @@ function normalizeArray(value: any): string[] {
   return []
 }
 
-function cleanIcon(icon?: string) {
-  if (!icon) return 'services'
+function cleanIcon(icon?: string, title?: string) {
+  const source = icon || title || 'services'
 
-  return icon
+  const cleaned = source
     .replace('/public/svgs/', '')
     .replace('public/svgs/', '')
     .replace('/svgs/', '')
@@ -53,38 +92,31 @@ function cleanIcon(icon?: string) {
     .replace(/^\/+/, '')
     .trim()
     .toLowerCase()
+
+  if (cleaned.includes('ecommerce') || cleaned.includes('e-commerce')) return 'ecommerce'
+  if (cleaned.includes('commerce')) return 'ecommerce'
+  if (cleaned.includes('shopify')) return 'ecommerce'
+  if (cleaned.includes('store')) return 'ecommerce'
+
+  if (cleaned.includes('ui') || cleaned.includes('ux')) return 'ui-ux'
+  if (cleaned.includes('marketing')) return 'digital-marketing'
+  if (cleaned.includes('brand')) return 'branding'
+  if (cleaned.includes('strategy')) return 'strategy'
+  if (cleaned.includes('consult')) return 'consulting'
+  if (cleaned.includes('web') || cleaned.includes('site')) return 'web-development'
+
+  return cleaned || 'services'
 }
 
-const fallbackServices: Service[] = [
-  {
-    title: 'Website Design',
-    slug: 'website-design',
-    icon: 'web-development',
-    description: 'Premium websites built for trust, clarity, and conversion.',
-    features: ['Premium UI', 'Mobile-first', 'Conversion flow'],
-  },
-  {
-    title: 'E-Commerce Solutions',
-    slug: 'ecommerce-solutions',
-    icon: 'ecommerce',
-    description: 'Store systems for Shopify, products, trust, and growth.',
-    features: ['Shopify setup', 'Product structure', 'Checkout trust'],
-  },
-  {
-    title: 'Brand Experience',
-    slug: 'brand-experience',
-    icon: 'branding',
-    description: 'Clean brand visuals and digital systems that feel premium.',
-    features: ['Visual direction', 'Brand trust', 'Content structure'],
-  },
-  {
-    title: 'Technical Consulting',
-    slug: 'technical-consulting',
-    icon: 'consulting',
-    description: 'Practical support for fixing and scaling your digital system.',
-    features: ['Audit support', 'Technical fixes', 'Growth guidance'],
-  },
-]
+function createSlug(service: Service) {
+  const base = service.slug || service.title || service.name || ''
+
+  return base
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+}
 
 export default function ServiceOrbit({
   services = fallbackServices,
@@ -99,6 +131,10 @@ export default function ServiceOrbit({
   const activeFeatures = useMemo(() => {
     return normalizeArray(activeService?.features).slice(0, 4)
   }, [activeService])
+
+  const serviceTitle = activeService?.title || activeService?.name || 'Growth System'
+  const serviceSlug = createSlug(activeService)
+  const activeIcon = cleanIcon(activeService?.icon, serviceTitle)
 
   useEffect(() => {
     if (reducedMotion || normalizedServices.length <= 1) return
@@ -122,12 +158,12 @@ export default function ServiceOrbit({
           </div>
 
           <h2 className="text-3xl font-black leading-[0.98] tracking-[-0.055em] sm:text-4xl md:text-5xl">
-            Services built as growth systems.
+            Services built as <GradientHeading>growth systems.</GradientHeading>
           </h2>
 
           <p className="mt-5 max-w-xl text-sm leading-7 text-white/58 sm:text-base">
-            Explore the core systems we use to help brands improve trust, clarity, performance,
-            and conversions.
+            Explore the core systems we use to help brands improve trust, clarity,
+            performance, and conversions.
           </p>
 
           <div className="mt-7 hidden gap-3 lg:flex">
@@ -159,11 +195,7 @@ export default function ServiceOrbit({
           >
             <div className="mb-5 flex items-start justify-between gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#39D97A]/20 bg-[#39D97A]/10">
-                <SvgIcon
-                  name={cleanIcon(activeService?.icon)}
-                  size={22}
-                  color="#39D97A"
-                />
+                <SvgIcon name={activeIcon} size={22} color="#39D97A" />
               </div>
 
               <span className="rounded-full border border-[#39D97A]/16 bg-[#39D97A]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#39D97A]">
@@ -172,7 +204,7 @@ export default function ServiceOrbit({
             </div>
 
             <h3 className="text-3xl font-black leading-[1] tracking-[-0.05em] text-white sm:text-4xl">
-              {activeService?.title || activeService?.name}
+              {serviceTitle}
             </h3>
 
             <p className="mt-4 text-sm leading-7 text-white/58 sm:text-base">
@@ -191,7 +223,7 @@ export default function ServiceOrbit({
                   className="flex items-center gap-3 rounded-2xl border border-[#1E314A] bg-[#07111F] px-4 py-3"
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#39D97A]/16 bg-[#39D97A]/10">
-                    <SvgIcon name="check" size={13} color="#39D97A" />
+                    <SvgIcon name="verified" size={13} color="#39D97A" />
                   </div>
 
                   <span className="text-sm font-bold text-white/72">
@@ -203,7 +235,7 @@ export default function ServiceOrbit({
 
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link
-                href={`/services/${activeService?.slug || ''}`}
+                href={serviceSlug ? `/services/${serviceSlug}` : '/services'}
                 className="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-full bg-[#39D97A] px-6 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
               >
                 Explore Service

@@ -17,14 +17,17 @@ const aliases: Record<string, string> = {
   'ui-ux': 'ui-ux',
   ux: 'ui-ux',
   ui: 'ui-ux',
+  design: 'ui-ux',
 
   marketing: 'digital-marketing',
   'digital-marketing': 'digital-marketing',
-  seo: 'seo',
 
   brand: 'branding',
   branding: 'branding',
+  'brand-strategy': 'branding',
+
   strategy: 'strategy',
+
   consulting: 'consulting',
   technical: 'consulting',
 
@@ -41,6 +44,7 @@ const aliases: Record<string, string> = {
 
   services: 'services',
   service: 'services',
+
   growth: 'growth',
   analytics: 'analytics',
   performance: 'performance',
@@ -51,6 +55,7 @@ const aliases: Record<string, string> = {
   mail: 'email',
   message: 'messages',
   messages: 'messages',
+
   whatsapp: 'whatsapp',
   phone: 'phone',
   location: 'location',
@@ -67,6 +72,7 @@ const aliases: Record<string, string> = {
 
   'arrow-diagonal': 'arrow-diagonal',
   arrow: 'arrow-diagonal',
+
   'chevron-left': 'chevron-left',
   'chevron-right': 'chevron-right',
   'chevron-down': 'chevron-down',

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import SvgIcon from '@/components/ui/SvgIcon'
+import GradientHeading from '@/components/ui/GradientHeading'
 
 interface TabItem {
   id?: string
@@ -68,9 +69,7 @@ function normalizeArray(value: any): string[] {
 }
 
 function cleanIcon(icon?: string) {
-  if (!icon) return 'services'
-
-  const cleaned = icon
+  const cleaned = (icon || 'services')
     .replace('/public/svgs/', '')
     .replace('public/svgs/', '')
     .replace('/svgs/', '')
@@ -80,44 +79,26 @@ function cleanIcon(icon?: string) {
     .trim()
     .toLowerCase()
 
-  if (cleaned.includes('commerce') || cleaned.includes('store')) return 'ecommerce'
-  if (cleaned.includes('consult')) return 'consulting'
+  if (cleaned.includes('ecommerce') || cleaned.includes('e-commerce')) return 'ecommerce'
+  if (cleaned.includes('commerce')) return 'ecommerce'
+  if (cleaned.includes('shopify')) return 'ecommerce'
+  if (cleaned.includes('store')) return 'ecommerce'
+  if (cleaned.includes('ui') || cleaned.includes('ux')) return 'ui-ux'
+  if (cleaned.includes('marketing')) return 'digital-marketing'
   if (cleaned.includes('brand')) return 'branding'
+  if (cleaned.includes('strategy')) return 'strategy'
+  if (cleaned.includes('consult')) return 'consulting'
   if (cleaned.includes('web') || cleaned.includes('site')) return 'web-development'
 
   return cleaned || 'services'
-}
-
-function HighlightText({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="relative inline-block">
-      <span className="relative z-10 bg-gradient-to-r from-[#39D97A] via-[#6EEB73] to-[#C6F135] bg-clip-text text-transparent">
-        {children}
-      </span>
-
-      <svg
-        className="absolute -bottom-2 left-0 h-4 w-full text-[#39D97A]/70"
-        viewBox="0 0 220 18"
-        fill="none"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M4 13C50 2 142 2 216 11"
-          stroke="currentColor"
-          strokeWidth="5"
-          strokeLinecap="round"
-        />
-      </svg>
-    </span>
-  )
 }
 
 export default function TabSwitcher({ items = fallbackItems }: TabSwitcherProps) {
   const reducedMotion = useReducedMotion()
   const [activeIndex, setActiveIndex] = useState(0)
 
-  const activeItem = items[activeIndex] || fallbackItems[0]
+  const safeItems = items.length ? items : fallbackItems
+  const activeItem = safeItems[activeIndex] || fallbackItems[0]
 
   const points = useMemo(() => {
     return normalizeArray(activeItem?.points)
@@ -136,7 +117,7 @@ export default function TabSwitcher({ items = fallbackItems }: TabSwitcherProps)
             </div>
 
             <h2 className="text-3xl font-black leading-[0.98] tracking-[-0.055em] sm:text-4xl md:text-5xl">
-              Designed for performance and <HighlightText>growth.</HighlightText>
+              Designed for performance and <GradientHeading>growth.</GradientHeading>
             </h2>
 
             <p className="mt-5 max-w-2xl text-sm leading-7 text-white/58 sm:text-base">
@@ -146,7 +127,7 @@ export default function TabSwitcher({ items = fallbackItems }: TabSwitcherProps)
           </div>
 
           <div className="hidden gap-2 lg:flex">
-            {items.map((item, index) => {
+            {safeItems.map((item, index) => {
               const active = index === activeIndex
 
               return (
@@ -169,7 +150,7 @@ export default function TabSwitcher({ items = fallbackItems }: TabSwitcherProps)
 
         <div className="grid gap-6 lg:grid-cols-[0.42fr_0.58fr] lg:items-start">
           <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden">
-            {items.map((item, index) => {
+            {safeItems.map((item, index) => {
               const active = index === activeIndex
 
               return (
@@ -227,7 +208,7 @@ export default function TabSwitcher({ items = fallbackItems }: TabSwitcherProps)
                 className="flex items-start gap-4 rounded-[1.4rem] border border-[#1E314A] bg-[#0B1728]/90 p-4 sm:p-5"
               >
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-[#39D97A]/16 bg-[#39D97A]/10">
-                  <SvgIcon name="check" size={14} color="#39D97A" />
+                  <SvgIcon name="verified" size={14} color="#39D97A" />
                 </div>
 
                 <div>
