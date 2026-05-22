@@ -4,6 +4,7 @@ import { Inter, Poppins } from "next/font/google";
 import { Suspense } from "react";
 
 import Providers from "./providers";
+import PageTransition from "@/components/PageTransition";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import CookieConsent from "@/components/CookieBanner";
 import StructuredData from "@/components/StructuredData";
@@ -160,7 +161,7 @@ export default function RootLayout({
 
             <StructuredData />
 
-            {children}
+            <PageTransition>{children}</PageTransition>
           </Providers>
 
           <CookieConsent />
