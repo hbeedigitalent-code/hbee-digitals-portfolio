@@ -1,18 +1,42 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import SvgIcon from '@/components/ui/SvgIcon'
+import GradientHeading from '@/components/ui/GradientHeading'
 
 interface Testimonial {
   id: string
   name: string
   company?: string
   role?: string
+  position?: string
   content: string
   image_url?: string
+  avatar_url?: string
   rating?: number
+}
+
+const blockedNames = [
+  'john doe',
+  'jane smith',
+  'mike johnson',
+  'test user',
+  'demo user',
+  'sample user',
+  'lorem ipsum',
+]
+
+function isRealTestimonial(item: Testimonial) {
+  const name = item.name?.trim().toLowerCase()
+  const content = item.content?.trim()
+
+  if (!name || !content) return false
+  if (blockedNames.includes(name)) return false
+  if (content.length < 35) return false
+
+  return true
 }
 
 function StarRating({
@@ -22,9 +46,11 @@ function StarRating({
   rating?: number
   size?: number
 }) {
+  const safeRating = Math.max(1, Math.min(5, Number(rating) || 5))
+
   return (
     <div className="flex items-center gap-1">
-      {[...Array(Math.max(1, Math.min(5, rating)))].map((_, index) => (
+      {[...Array(safeRating)].map((_, index) => (
         <img
           key={index}
           src="/svgs/star.svg"
@@ -63,49 +89,52 @@ export default function TestimonialsSection() {
     fetchTestimonials()
   }, [])
 
-  useEffect(() => {
-    if (testimonials.length <= 1) return
+  const verifiedTestimonials = useMemo(() => {
+    return testimonials.filter(isRealTestimonial)
+  }, [testimonials])
 
-    const interval = setInterval(() => {
+  useEffect(() => {
+    setActiveIndex(0)
+  }, [verifiedTestimonials.length])
+
+  useEffect(() => {
+    if (verifiedTestimonials.length <= 1) return
+
+    const interval = window.setInterval(() => {
       setActiveIndex((prev) =>
-        prev === testimonials.length - 1 ? 0 : prev + 1
+        prev === verifiedTestimonials.length - 1 ? 0 : prev + 1
       )
     }, 6500)
 
-    return () => clearInterval(interval)
-  }, [testimonials])
+    return () => window.clearInterval(interval)
+  }, [verifiedTestimonials.length])
 
-  if (!testimonials.length) return null
+  if (!verifiedTestimonials.length) return null
 
-  const active = testimonials[activeIndex]
+  const active = verifiedTestimonials[activeIndex]
 
   return (
-    <section className="relative overflow-hidden bg-[#07111F] py-20 text-white sm:py-24">
+    <section className="relative overflow-hidden bg-[#07111F] py-16 text-white sm:py-20 lg:py-24">
       <div className="absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute left-0 top-0 h-[320px] w-[420px] rounded-full bg-[#39D97A]/7 blur-[120px]" />
-
         <div className="absolute bottom-0 right-0 h-[300px] w-[380px] rounded-full bg-[#C6F135]/6 blur-[120px]" />
-
         <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.02)_1px,transparent_1px)] bg-[size:82px_82px] opacity-20" />
       </div>
 
       <div className="mx-auto max-w-7xl px-5 sm:px-6 md:px-10 lg:px-12">
-        <div className="mb-14 max-w-4xl">
+        <div className="mb-12 max-w-4xl">
           <div className="mb-5 inline-flex items-center gap-3 rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
             <StarRating size={12} />
-            <span>5.0 Client Reviews</span>
+            <span>Verified Client Feedback</span>
           </div>
 
           <h2 className="text-4xl font-black leading-[0.96] tracking-[-0.055em] sm:text-5xl md:text-6xl">
-            Trusted by brands serious about{' '}
-            <span className="bg-gradient-to-r from-[#39D97A] to-[#C6F135] bg-clip-text text-transparent">
-              growth.
-            </span>
+            Trusted by brands serious about <GradientHeading>growth.</GradientHeading>
           </h2>
 
           <p className="mt-6 max-w-2xl text-sm leading-8 text-white/60 sm:text-base">
-            Real feedback from businesses we’ve helped through websites,
-            Shopify optimization, branding, and digital growth systems.
+            Real feedback from businesses we’ve helped through websites, Shopify
+            optimization, branding, and digital growth systems.
           </p>
         </div>
 
@@ -117,24 +146,13 @@ export default function TestimonialsSection() {
               <AnimatePresence mode="wait">
                 <motion.div
                   key={active?.id}
-                  initial={
-                    reducedMotion
-                      ? false
-                      : { opacity: 0, y: 24 }
-                  }
+                  initial={reducedMotion ? false : { opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={
-                    reducedMotion
-                      ? undefined
-                      : { opacity: 0, y: -24 }
-                  }
+                  exit={reducedMotion ? undefined : { opacity: 0, y: -24 }}
                   transition={{ duration: 0.38 }}
                 >
                   <div className="mb-6">
-                    <StarRating
-                      rating={active?.rating || 5}
-                      size={17}
-                    />
+                    <StarRating rating={active?.rating || 5} size={17} />
                   </div>
 
                   <div className="mb-8">
@@ -150,19 +168,17 @@ export default function TestimonialsSection() {
                   </blockquote>
 
                   <div className="mt-10 flex items-center gap-4">
-                    {active?.image_url ? (
+                    {active?.image_url || active?.avatar_url ? (
                       <img
-                        src={active.image_url}
+                        src={active.image_url || active.avatar_url}
                         alt={active.name}
                         className="h-14 w-14 rounded-[1.3rem] border border-[#39D97A]/18 object-cover"
                       />
                     ) : (
                       <div className="flex h-14 w-14 items-center justify-center rounded-[1.3rem] border border-[#39D97A]/18 bg-[#39D97A]/10">
-                        <SvgIcon
-                          name="user"
-                          size={22}
-                          color="#39D97A"
-                        />
+                        <span className="text-lg font-black text-[#39D97A]">
+                          {active?.name?.charAt(0) || 'H'}
+                        </span>
                       </div>
                     )}
 
@@ -172,11 +188,8 @@ export default function TestimonialsSection() {
                       </p>
 
                       <p className="mt-1 text-sm text-white/50">
-                        {active?.role || 'Business Owner'}
-
-                        {active?.company
-                          ? ` • ${active.company}`
-                          : ''}
+                        {active?.role || active?.position || 'Client'}
+                        {active?.company ? ` • ${active.company}` : ''}
                       </p>
                     </div>
                   </div>
@@ -186,23 +199,16 @@ export default function TestimonialsSection() {
           </div>
 
           <div className="grid gap-4">
-            {testimonials.map((testimonial, index) => {
+            {verifiedTestimonials.map((testimonial, index) => {
               const isActive = activeIndex === index
 
               return (
                 <motion.button
                   key={testimonial.id || index}
-                  initial={
-                    reducedMotion
-                      ? false
-                      : { opacity: 0, x: 18 }
-                  }
+                  initial={reducedMotion ? false : { opacity: 0, x: 18 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
-                  transition={{
-                    duration: 0.38,
-                    delay: index * 0.05,
-                  }}
+                  transition={{ duration: 0.38, delay: index * 0.05 }}
                   onClick={() => setActiveIndex(index)}
                   className={`group rounded-[1.6rem] border p-5 text-left transition-all duration-300 ${
                     isActive
@@ -211,10 +217,7 @@ export default function TestimonialsSection() {
                   }`}
                 >
                   <div className="mb-4 flex items-center justify-between">
-                    <StarRating
-                      rating={testimonial.rating || 5}
-                      size={13}
-                    />
+                    <StarRating rating={testimonial.rating || 5} size={13} />
 
                     {isActive && (
                       <span className="rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#39D97A]">
@@ -228,19 +231,17 @@ export default function TestimonialsSection() {
                   </p>
 
                   <div className="mt-5 flex items-center gap-3">
-                    {testimonial.image_url ? (
+                    {testimonial.image_url || testimonial.avatar_url ? (
                       <img
-                        src={testimonial.image_url}
+                        src={testimonial.image_url || testimonial.avatar_url}
                         alt={testimonial.name}
                         className="h-11 w-11 rounded-[1rem] border border-[#39D97A]/16 object-cover"
                       />
                     ) : (
                       <div className="flex h-11 w-11 items-center justify-center rounded-[1rem] border border-[#39D97A]/16 bg-[#39D97A]/10">
-                        <SvgIcon
-                          name="user"
-                          size={18}
-                          color="#39D97A"
-                        />
+                        <span className="text-sm font-black text-[#39D97A]">
+                          {testimonial.name.charAt(0)}
+                        </span>
                       </div>
                     )}
 
@@ -252,6 +253,7 @@ export default function TestimonialsSection() {
                       <p className="truncate text-xs text-white/45">
                         {testimonial.company ||
                           testimonial.role ||
+                          testimonial.position ||
                           'Client'}
                       </p>
                     </div>
