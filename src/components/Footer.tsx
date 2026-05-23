@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import SvgIcon from '@/components/ui/SvgIcon'
+import GradientHeading from '@/components/ui/GradientHeading'
 
 interface FooterLink {
   label: string
@@ -20,12 +21,20 @@ interface SocialLink {
   platform: string
   url: string
   icon: string
+  is_active?: boolean
 }
+
+const blockedSocialUrls = [
+  'https://facebook.com',
+  'https://twitter.com',
+  'https://linkedin.com',
+  'https://instagram.com',
+]
 
 function cleanSvgName(value?: string, fallback = 'services') {
   if (!value) return fallback
 
-  const cleaned = value
+  return value
     .replace('/public/svgs/', '')
     .replace('public/svgs/', '')
     .replace('/svgs/', '')
@@ -33,42 +42,7 @@ function cleanSvgName(value?: string, fallback = 'services') {
     .replace('.svg', '')
     .replace(/^\/+/, '')
     .trim()
-    .toLowerCase()
-
-  const aliases: Record<string, string> = {
-    message: 'messages',
-    mail: 'email',
-    phone: 'whatsapp',
-    verified: 'security',
-    shield: 'security',
-  }
-
-  return aliases[cleaned] || cleaned || fallback
-}
-
-function CurvedUnderlineText({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="relative inline-block">
-      <span className="relative z-10 bg-gradient-to-r from-[#39D97A] to-[#C6F135] bg-clip-text text-transparent">
-        {children}
-      </span>
-
-      <svg
-        className="absolute -bottom-2 left-0 h-4 w-full text-[#39D97A]/70"
-        viewBox="0 0 220 18"
-        fill="none"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M4 13C50 2 142 2 216 11"
-          stroke="currentColor"
-          strokeWidth="5"
-          strokeLinecap="round"
-        />
-      </svg>
-    </span>
-  )
+    .toLowerCase() || fallback
 }
 
 function FooterLogo({
@@ -121,9 +95,7 @@ export default function Footer() {
   }, [])
 
   const brandName =
-    footerData?.logo_text ||
-    siteSettings.site_name ||
-    'Hbee Digitals'
+    footerData?.logo_text || siteSettings.site_name || 'Hbee Digitals'
 
   const logoUrl = siteSettings.logo_url || '/svgs/logo.svg'
 
@@ -142,10 +114,10 @@ export default function Footer() {
           {
             title: 'Services',
             links: [
-              { label: 'Website Design', href: '/services' },
+              { label: 'Website Development', href: '/services' },
               { label: 'Ecommerce Solutions', href: '/services' },
               { label: 'Shopify Optimization', href: '/services' },
-              { label: 'Technical Consulting', href: '/services' },
+              { label: 'Brand Strategy', href: '/services' },
             ],
           },
           {
@@ -153,9 +125,8 @@ export default function Footer() {
             links: [
               { label: 'About Us', href: '/about' },
               { label: 'Portfolio', href: '/portfolio' },
-              { label: 'Our Process', href: '/process' },
+              { label: 'Process', href: '/process' },
               { label: 'FAQ', href: '/faq' },
-              { label: 'Blog', href: '/blog' },
               { label: 'Contact', href: '/contact' },
             ],
           },
@@ -170,14 +141,13 @@ export default function Footer() {
         ]
 
   const socialLinks: SocialLink[] =
-    footerData?.social_links?.length
-      ? footerData.social_links
-      : [
-          { platform: 'Facebook', url: 'https://facebook.com', icon: 'facebook' },
-          { platform: 'Twitter', url: 'https://twitter.com', icon: 'twitter' },
-          { platform: 'LinkedIn', url: 'https://linkedin.com', icon: 'linkedin' },
-          { platform: 'Instagram', url: 'https://instagram.com', icon: 'instagram' },
-        ]
+    footerData?.social_links
+      ?.filter((social) => social.is_active !== false)
+      .filter((social) => social.url?.trim())
+      .filter(
+        (social) =>
+          !blockedSocialUrls.includes(social.url.trim().toLowerCase())
+      ) || []
 
   const contactItems = [
     {
@@ -226,12 +196,12 @@ export default function Footer() {
 
               <h2 className="max-w-3xl text-3xl font-black leading-[0.98] tracking-[-0.04em] sm:text-4xl md:text-5xl">
                 Ready to build a digital system that feels ready to{' '}
-                <CurvedUnderlineText>scale?</CurvedUnderlineText>
+                <GradientHeading>scale?</GradientHeading>
               </h2>
 
               <p className="mt-5 max-w-2xl text-sm leading-7 text-white/60 sm:text-base">
-                Let’s improve your website, store experience, brand trust, and conversion structure
-                with a cleaner digital foundation.
+                Let’s improve your website, store experience, brand trust, and
+                conversion structure with a cleaner digital foundation.
               </p>
             </div>
 
@@ -240,12 +210,7 @@ export default function Footer() {
               className="group inline-flex min-h-[52px] w-fit items-center justify-center gap-2 rounded-full bg-[#39D97A] px-7 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
             >
               Start A Project
-              <SvgIcon
-                name="arrow-diagonal"
-                size={16}
-                color="#06101F"
-                className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-              />
+              <SvgIcon name="arrow-diagonal" size={16} color="#06101F" />
             </Link>
           </div>
         </motion.div>
@@ -271,31 +236,32 @@ export default function Footer() {
             </Link>
 
             <p className="mt-6 max-w-md text-sm leading-7 text-white/58 sm:text-base">
-              Premium websites, Shopify optimization, brand systems, and conversion-focused
-              digital experiences for ambitious businesses.
+              Premium websites, Shopify optimization, brand systems, and
+              conversion-focused digital experiences for ambitious businesses.
             </p>
 
-            <div className="mt-7 flex flex-wrap gap-3">
-              {socialLinks.map((social, index) => (
-                <motion.a
-                  key={`${social.platform}-${index}`}
-                  href={social.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  whileHover={reducedMotion ? undefined : { y: -4, scale: 1.04 }}
-                  whileTap={reducedMotion ? undefined : { scale: 0.96 }}
-                  className="group flex h-11 w-11 items-center justify-center rounded-2xl border border-[#1E314A] bg-[#0E1B2D] transition hover:border-[#39D97A]/30 hover:bg-[#13233A]"
-                  aria-label={`Follow ${brandName} on ${social.platform}`}
-                >
-                  <SvgIcon
-                    name={cleanSvgName(social.icon, social.platform.toLowerCase())}
-                    size={18}
-                    color="#39D97A"
-                    className="transition group-hover:scale-105"
-                  />
-                </motion.a>
-              ))}
-            </div>
+            {socialLinks.length > 0 && (
+              <div className="mt-7 flex flex-wrap gap-3">
+                {socialLinks.map((social, index) => (
+                  <motion.a
+                    key={`${social.platform}-${index}`}
+                    href={social.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    whileHover={reducedMotion ? undefined : { y: -4, scale: 1.04 }}
+                    whileTap={reducedMotion ? undefined : { scale: 0.96 }}
+                    className="group flex h-11 w-11 items-center justify-center rounded-2xl border border-[#1E314A] bg-[#0E1B2D] transition hover:border-[#39D97A]/30 hover:bg-[#13233A]"
+                    aria-label={`Follow ${brandName} on ${social.platform}`}
+                  >
+                    <SvgIcon
+                      name={cleanSvgName(social.icon, social.platform.toLowerCase())}
+                      size={18}
+                      color="#39D97A"
+                    />
+                  </motion.a>
+                ))}
+              </div>
+            )}
           </motion.div>
 
           <motion.div
@@ -323,7 +289,7 @@ export default function Footer() {
                           name="arrow-diagonal"
                           size={12}
                           color="#39D97A"
-                          className="opacity-0 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100"
+                          className="opacity-0 transition group-hover:opacity-100"
                         />
                       </Link>
                     </li>
@@ -350,11 +316,7 @@ export default function Footer() {
               className="group flex items-start gap-4 rounded-[1.4rem] border border-[#1E314A] bg-[#0E1B2D] p-4 transition hover:-translate-y-1 hover:border-[#39D97A]/25 hover:bg-[#13233A]"
             >
               <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-[#39D97A]/16 bg-[#39D97A]/10">
-                <SvgIcon
-                  name={cleanSvgName(item.icon)}
-                  size={18}
-                  color="#39D97A"
-                />
+                <SvgIcon name={item.icon} size={18} color="#39D97A" />
               </span>
 
               <span className="min-w-0 flex-1">
@@ -384,11 +346,6 @@ export default function Footer() {
             <div className="inline-flex items-center gap-2 rounded-full border border-[#39D97A]/16 bg-[#39D97A]/8 px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#39D97A]">
               <SvgIcon name="security" size={13} color="#39D97A" />
               Premium Digital Partner
-            </div>
-
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#1E314A] bg-[#0E1B2D] px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/45">
-              <SvgIcon name="security" size={13} color="#39D97A" />
-              Secure & Optimized
             </div>
           </div>
         </div>
