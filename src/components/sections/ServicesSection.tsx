@@ -6,24 +6,27 @@ import { motion, useReducedMotion } from 'framer-motion'
 import SvgIcon from '@/components/ui/SvgIcon'
 import GradientHeading from '@/components/ui/GradientHeading'
 
-interface Service {
+interface PortfolioItem {
   id: string
   title?: string
+  name?: string
   slug?: string
   description?: string
-  short_description?: string
-  full_description?: string
-  icon?: string
-  features?: string[] | string
-  benefits?: string[] | string
-  timeline?: string
-  starting_price?: string
+  category?: string
+  tag?: string
+  image_url?: string
+  featured_image?: string
+  live_url?: string
+  url?: string
+  project_url?: string
+  industry?: string
+  results?: string[] | string
+  technologies?: string[] | string
   is_featured?: boolean
-  display_order?: number
 }
 
 interface Props {
-  services: Service[]
+  items: PortfolioItem[]
 }
 
 function normalizeArray(value: any): string[] {
@@ -34,7 +37,6 @@ function normalizeArray(value: any): string[] {
   if (typeof value === 'string') {
     try {
       const parsed = JSON.parse(value)
-
       if (Array.isArray(parsed)) return parsed
     } catch {
       return value
@@ -47,52 +49,16 @@ function normalizeArray(value: any): string[] {
   return []
 }
 
-function cleanIcon(service: Service) {
-  const source = service.icon || service.title || 'services'
-
-  const cleaned = source
-    .replace('/public/svgs/', '')
-    .replace('public/svgs/', '')
-    .replace('/svgs/', '')
-    .replace('svgs/', '')
-    .replace('.svg', '')
-    .replace(/^\/+/, '')
-    .trim()
-    .toLowerCase()
-
-  if (
-    cleaned.includes('ecommerce') ||
-    cleaned.includes('commerce') ||
-    cleaned.includes('shopify')
-  ) {
-    return 'ecommerce'
-  }
-
-  if (cleaned.includes('ui') || cleaned.includes('ux')) {
-    return 'ui-ux'
-  }
-
-  if (cleaned.includes('marketing')) {
-    return 'digital-marketing'
-  }
-
-  if (cleaned.includes('brand')) {
-    return 'branding'
-  }
-
-  if (cleaned.includes('web') || cleaned.includes('site')) {
-    return 'web-development'
-  }
-
-  if (cleaned.includes('consult')) {
-    return 'consulting'
-  }
-
-  return cleaned || 'services'
+function getTitle(item: PortfolioItem) {
+  return item.title || item.name || 'Project'
 }
 
-function createSlug(service: Service) {
-  const base = service.slug || service.title || ''
+function getImage(item: PortfolioItem) {
+  return item.featured_image || item.image_url || ''
+}
+
+function getSlug(item: PortfolioItem) {
+  const base = item.slug || getTitle(item)
 
   return base
     .toLowerCase()
@@ -101,69 +67,61 @@ function createSlug(service: Service) {
     .replace(/(^-|-$)/g, '')
 }
 
-export default function ServicesSection({ services }: Props) {
+export default function PortfolioSection({ items }: Props) {
   const reducedMotion = useReducedMotion()
 
-  const orderedServices = [...services].sort((a, b) => {
+  if (!items?.length) return null
+
+  const orderedItems = [...items].sort((a, b) => {
     if (a.is_featured && !b.is_featured) return -1
     if (!a.is_featured && b.is_featured) return 1
-
-    return (a.display_order || 0) - (b.display_order || 0)
+    return 0
   })
-
-  if (!orderedServices.length) return null
 
   return (
     <section className="relative overflow-hidden py-16 text-white sm:py-20 lg:py-24">
       <div className="absolute inset-0 -z-10">
-        <div className="absolute left-0 top-20 h-[320px] w-[420px] rounded-full bg-[#39D97A]/7 blur-[120px]" />
-        <div className="absolute bottom-0 right-0 h-[300px] w-[380px] rounded-full bg-[#C6F135]/6 blur-[110px]" />
+        <div className="absolute left-0 top-10 h-[340px] w-[440px] rounded-full bg-[#39D97A]/7 blur-[120px]" />
+        <div className="absolute bottom-0 right-0 h-[320px] w-[400px] rounded-full bg-[#C6F135]/6 blur-[120px]" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.018)_1px,transparent_1px)] bg-[size:82px_82px] opacity-20" />
       </div>
 
       <div className="mx-auto max-w-7xl px-5 sm:px-6 md:px-10 lg:px-12">
         <motion.div
-          initial={reducedMotion ? false : { opacity: 0, y: 20 }}
+          initial={reducedMotion ? false : { opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
+          transition={{ duration: 0.42 }}
           viewport={{ once: true }}
           className="mb-12 max-w-4xl"
         >
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
-            <SvgIcon name="services" size={14} color="#39D97A" />
-            Premium Digital Services
+            <SvgIcon name="portfolio" size={14} color="#39D97A" />
+            Featured Work
           </div>
 
           <h2 className="text-4xl font-black leading-[0.96] tracking-[-0.055em] sm:text-5xl md:text-6xl">
-            Digital systems built for <GradientHeading>trust & growth.</GradientHeading>
+            Case studies built for <GradientHeading>results.</GradientHeading>
           </h2>
 
           <p className="mt-6 max-w-2xl text-sm leading-8 text-white/60 sm:text-base">
-            From ecommerce optimization to premium websites and brand systems,
-            we help businesses improve how they present, convert, and scale online.
+            Premium digital systems designed to improve trust, customer experience,
+            visual positioning, and conversion performance.
           </p>
         </motion.div>
 
-        <div className="grid gap-5 md:grid-cols-2">
-          {orderedServices.map((service, index) => {
-            const icon = cleanIcon(service)
+        <div className="grid gap-5 lg:grid-cols-2">
+          {orderedItems.map((item, index) => {
+            const title = getTitle(item)
+            const image = getImage(item)
+            const slug = getSlug(item)
 
-            const slug = createSlug(service)
+            const results = normalizeArray(item.results).slice(0, 2)
 
-            const features = normalizeArray(service.features).slice(0, 3)
-
-            const benefits = normalizeArray(service.benefits).slice(0, 3)
-
-            const items =
-              features.length > 0
-                ? features
-                : benefits.length > 0
-                  ? benefits
-                  : ['Strategy', 'Optimization', 'Growth']
+            const technologies = normalizeArray(item.technologies).slice(0, 4)
 
             return (
               <motion.div
-                key={service.id || index}
+                key={item.id || index}
                 initial={reducedMotion ? false : { opacity: 0, y: 18 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{
@@ -173,88 +131,118 @@ export default function ServicesSection({ services }: Props) {
                 viewport={{ once: true }}
               >
                 <Link
-                  href={`/services/${slug}`}
-                  className={`group relative block overflow-hidden rounded-[2rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#0B1625] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[#39D97A]/25 hover:shadow-[0_30px_90px_rgba(0,0,0,0.28)] sm:p-6 ${
+                  href={`/portfolio/${slug}`}
+                  className={`group relative block overflow-hidden rounded-[2rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#0B1625] transition-all duration-300 hover:-translate-y-1 hover:border-[#39D97A]/25 hover:shadow-[0_30px_90px_rgba(0,0,0,0.28)] ${
                     index === 0
-                      ? 'md:col-span-2 lg:grid lg:grid-cols-[0.9fr_1.1fr] lg:gap-8'
+                      ? 'lg:col-span-2 lg:grid lg:grid-cols-[1.05fr_0.95fr]'
                       : ''
                   }`}
                 >
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.12),transparent_42%)] opacity-70" />
-
-                  <div className="relative">
-                    <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-[1.4rem] border border-[#39D97A]/18 bg-[#39D97A]/10">
-                      <SvgIcon
-                        name={icon}
-                        size={25}
-                        color="#39D97A"
+                  <div className="relative overflow-hidden">
+                    {image ? (
+                      <img
+                        src={image}
+                        alt={title}
+                        className={`w-full object-cover transition duration-700 group-hover:scale-[1.03] ${
+                          index === 0
+                            ? 'aspect-[16/10] h-full'
+                            : 'aspect-[4/3]'
+                        }`}
                       />
-                    </div>
+                    ) : (
+                      <div className="flex aspect-[4/3] items-center justify-center bg-[#07111F]">
+                        <SvgIcon
+                          name="portfolio"
+                          size={50}
+                          color="#39D97A"
+                        />
+                      </div>
+                    )}
 
-                    <div className="mb-3 flex flex-wrap items-center gap-3">
-                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
-                        Service {String(index + 1).padStart(2, '0')}
-                      </p>
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#07111F] via-[#07111F]/20 to-transparent" />
 
-                      {service.is_featured && (
-                        <span className="rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#39D97A]">
+                    <div className="absolute left-5 top-5 flex flex-wrap gap-2">
+                      {(item.category || item.tag) && (
+                        <span className="rounded-full border border-[#39D97A]/18 bg-[#39D97A]/12 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#39D97A] backdrop-blur-sm">
+                          {item.category || item.tag}
+                        </span>
+                      )}
+
+                      {item.is_featured && (
+                        <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white backdrop-blur-sm">
                           Featured
-                        </span>
-                      )}
-                    </div>
-
-                    <h3 className="text-3xl font-black leading-[1] tracking-[-0.045em] text-white sm:text-4xl">
-                      {service.title}
-                    </h3>
-
-                    <p className="mt-5 text-sm leading-7 text-white/60 sm:text-base">
-                      {service.short_description ||
-                        service.description ||
-                        'A premium digital service focused on trust, usability, and conversion growth.'}
-                    </p>
-
-                    <div className="mt-6 flex flex-wrap gap-3">
-                      {service.timeline && (
-                        <span className="rounded-full border border-[#39D97A]/16 bg-[#39D97A]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#39D97A]">
-                          {service.timeline}
-                        </span>
-                      )}
-
-                      {service.starting_price && (
-                        <span className="rounded-full border border-[#1E314A] bg-[#07111F] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/55">
-                          {service.starting_price}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <div className="relative mt-7 grid gap-3 lg:mt-0">
-                    {items.map((item) => (
-                      <div
-                        key={item}
-                        className="flex items-center gap-3 rounded-2xl border border-[#1E314A] bg-[#07111F]/80 px-4 py-3"
-                      >
-                        <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#39D97A]/16 bg-[#39D97A]/10">
-                          <SvgIcon
-                            name="verified"
-                            size={13}
-                            color="#39D97A"
-                          />
-                        </span>
-
-                        <span className="text-sm font-bold text-white/68">
-                          {item}
-                        </span>
+                  <div className="relative flex flex-col justify-between p-6 sm:p-7">
+                    <div>
+                      <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/16 bg-[#39D97A]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#39D97A]">
+                        Case Study
                       </div>
-                    ))}
 
-                    <div className="mt-3 inline-flex items-center gap-2 text-sm font-black text-[#39D97A]">
-                      Explore Service
-                      <SvgIcon
-                        name="arrow-diagonal"
-                        size={15}
-                        color="#39D97A"
-                      />
+                      <h3 className="text-3xl font-black leading-[1] tracking-[-0.045em] text-white">
+                        {title}
+                      </h3>
+
+                      <p className="mt-5 text-sm leading-7 text-white/60">
+                        {item.description ||
+                          'A premium digital project focused on trust, conversion, and customer experience improvement.'}
+                      </p>
+
+                      {results.length > 0 && (
+                        <div className="mt-6 grid gap-3">
+                          {results.map((result) => (
+                            <div
+                              key={result}
+                              className="flex items-start gap-3 rounded-2xl border border-[#1E314A] bg-[#07111F]/75 px-4 py-3"
+                            >
+                              <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-[#39D97A]/16 bg-[#39D97A]/10">
+                                <SvgIcon
+                                  name="verified"
+                                  size={12}
+                                  color="#39D97A"
+                                />
+                              </span>
+
+                              <p className="text-sm leading-6 text-white/68">
+                                {result}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {technologies.length > 0 && (
+                        <div className="mt-6 flex flex-wrap gap-2">
+                          {technologies.map((tech) => (
+                            <span
+                              key={tech}
+                              className="rounded-full border border-[#1E314A] bg-[#07111F] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-white/55"
+                            >
+                              {tech}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-8 flex items-center justify-between">
+                      <div className="inline-flex items-center gap-2 text-sm font-black text-[#39D97A]">
+                        View Case Study
+                        <SvgIcon
+                          name="arrow-diagonal"
+                          size={15}
+                          color="#39D97A"
+                        />
+                      </div>
+
+                      {(item.live_url || item.url || item.project_url) && (
+                        <div className="rounded-full border border-[#1E314A] bg-[#07111F] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/50">
+                          Live Project
+                        </div>
+                      )}
                     </div>
                   </div>
                 </Link>
@@ -265,10 +253,10 @@ export default function ServicesSection({ services }: Props) {
 
         <div className="mt-12 text-center">
           <Link
-            href="/services"
+            href="/portfolio"
             className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-full border border-[#1E314A] bg-[#0E1B2D] px-8 py-3 text-sm font-black text-white transition hover:border-[#39D97A]/25 hover:bg-[#13233A]"
           >
-            View All Services
+            Explore Portfolio
             <SvgIcon
               name="arrow-diagonal"
               size={15}
