@@ -1,25 +1,11 @@
-// app/api/contact/route.ts
-
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { Resend } from 'resend'
 
-const resend = process.env.RESEND_API_KEY
-  ? new Resend(process.env.RESEND_API_KEY)
-  : null
+const resend = new Resend(process.env.RESEND_API_KEY)
 
-function escapeHtml(value: unknown) {
-  return String(value || '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;')
-}
-
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const body = await req.json()
+    const body = await request.json()
 
     const {
       fullName,
@@ -28,84 +14,58 @@ export async function POST(req: Request) {
       phone,
       service,
       budget,
+      timeline,
+      website,
       message,
     } = body
 
     if (!fullName || !email || !message) {
       return NextResponse.json(
-        { error: 'Name, email, and message are required.' },
+        { error: 'Please fill in your name, email, and project message.' },
         { status: 400 }
       )
     }
 
-    const { error: supabaseError } = await supabaseAdmin
-      .from('contact_inquiries')
-      .insert([
-        {
-          full_name: fullName,
-          email,
-          company: company || null,
-          phone: phone || null,
-          service: service || null,
-          budget: budget || null,
-          message,
-          status: 'new',
-        },
-      ])
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Hbee Digitals <onboarding@resend.dev>'
+    const toEmail = process.env.CONTACT_TO_EMAIL || 'contact@hbeedigitals.com'
 
-    if (supabaseError) {
-      console.error('SUPABASE INSERT ERROR:', supabaseError)
+    const html = `
+      <div style="font-family: Arial, sans-serif; background:#07111F; color:#ffffff; padding:32px;">
+        <div style="max-width:680px; margin:0 auto; background:#0E1B2D; border:1px solid #1E314A; border-radius:22px; padding:28px;">
+          <p style="color:#39D97A; font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase;">New Project Inquiry</p>
+          <h1 style="margin:10px 0 20px; font-size:28px;">${fullName} submitted a project inquiry</h1>
 
-      return NextResponse.json(
-        {
-          error: 'Could not save inquiry.',
-          details: supabaseError.message,
-        },
-        { status: 500 }
-      )
-    }
+          <div style="background:#07111F; border:1px solid #1E314A; border-radius:16px; padding:20px; margin-top:20px;">
+            <p><strong>Name:</strong> ${fullName}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Company:</strong> ${company || 'Not provided'}</p>
+            <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
+            <p><strong>Website:</strong> ${website || 'Not provided'}</p>
+            <p><strong>Service:</strong> ${service || 'Not selected'}</p>
+            <p><strong>Budget:</strong> ${budget || 'Not selected'}</p>
+            <p><strong>Timeline:</strong> ${timeline || 'Not selected'}</p>
+          </div>
 
-    if (resend && process.env.CONTACT_RECEIVER_EMAIL) {
-      try {
-        await resend.emails.send({
-          from: 'Hbee Digitals <onboarding@resend.dev>',
-          to: process.env.CONTACT_RECEIVER_EMAIL,
-          replyTo: email,
-          subject: `New Project Inquiry from ${fullName}`,
-          html: `
-            <div style="font-family: Arial, sans-serif; padding: 24px; color: #111827;">
-              <h2 style="margin-bottom: 16px;">New Project Inquiry</h2>
+          <div style="background:#07111F; border:1px solid #1E314A; border-radius:16px; padding:20px; margin-top:20px;">
+            <h2 style="font-size:18px;">Project Message</h2>
+            <p style="line-height:1.7;">${String(message).replace(/\n/g, '<br/>')}</p>
+          </div>
+        </div>
+      </div>
+    `
 
-              <p><strong>Name:</strong> ${escapeHtml(fullName)}</p>
-              <p><strong>Email:</strong> ${escapeHtml(email)}</p>
-              <p><strong>Company:</strong> ${escapeHtml(company || 'N/A')}</p>
-              <p><strong>Phone:</strong> ${escapeHtml(phone || 'N/A')}</p>
-              <p><strong>Service:</strong> ${escapeHtml(service || 'N/A')}</p>
-              <p><strong>Budget:</strong> ${escapeHtml(budget || 'N/A')}</p>
-
-              <hr style="margin: 20px 0;" />
-
-              <p><strong>Message:</strong></p>
-              <div style="background: #f3f4f6; padding: 16px; border-radius: 12px;">
-                ${escapeHtml(message)}
-              </div>
-            </div>
-          `,
-        })
-      } catch (emailError) {
-        console.error('RESEND EMAIL ERROR:', emailError)
-      }
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Inquiry submitted successfully.',
+    await resend.emails.send({
+      from: fromEmail,
+      to: [toEmail],
+      replyTo: email,
+      subject: `New Hbee Digitals Inquiry from ${fullName}`,
+      html,
     })
-  } catch (error) {
-    console.error('CONTACT API ERROR:', error)
 
+    return NextResponse.json({ success: true })
+  } catch (error) {
     return NextResponse.json(
-      { error: 'Something went wrong. Please try again.' },
+      { error: 'Unable to send inquiry right now. Please try again later.' },
       { status: 500 }
     )
   }

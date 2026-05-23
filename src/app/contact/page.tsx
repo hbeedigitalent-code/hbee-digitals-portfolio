@@ -12,7 +12,7 @@ export default function ContactPage() {
   return (
     <>
       <Navbar />
-      <main className="bg-[#060E1C]">
+      <main className="bg-[#07111F]">
         <ContactSection />
       </main>
       <Footer />
