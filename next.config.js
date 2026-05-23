@@ -6,13 +6,13 @@ const nextConfig = {
         protocol: 'https',
         hostname: '**.supabase.co',
       },
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
     ],
-    // Allow all external image URLs
-    unoptimized: false,
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60,
+  },
+
+  experimental: {
+    optimizePackageImports: ['framer-motion'],
   },
 }
 
