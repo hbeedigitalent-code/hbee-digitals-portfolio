@@ -1,16 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import ErrorBoundary from '@/components/ErrorBoundary'
 
 interface NavItem {
   name: string
   href: string
   icon: string
-  label: string
+  badge?: number
 }
 
 export default function AdminLayout({
@@ -18,240 +17,293 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
+  const pathname = usePathname()
+  const router = useRouter()
+
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [userName, setUserName] = useState('')
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
-  const [siteLogo, setSiteLogo] = useState<string | null>(null)
-  const [siteName, setSiteName] = useState('Admin Panel')
-  const router = useRouter()
-  const pathname = usePathname()
+  const [unreadInquiries, setUnreadInquiries] = useState(0)
 
   useEffect(() => {
-    let isMounted = true
+    async function checkAuth() {
+      const { data } = await supabase.auth.getUser()
 
-    if (pathname === '/admin/login') {
-      setLoading(false)
-      return
-    }
-
-    const getUser = async () => {
-      try {
-        const { data: { user: authUser }, error } = await supabase.auth.getUser()
-
-        if (error || !authUser) {
-          if (isMounted) router.replace('/admin/login')
-        } else {
-          if (isMounted) {
-            const { data: { user: refreshedUser } } = await supabase.auth.getUser()
-            setUser(refreshedUser)
-            setUserName(refreshedUser?.user_metadata?.full_name || refreshedUser?.email?.split('@')[0] || 'Admin')
-            setAvatarUrl(refreshedUser?.user_metadata?.avatar_url || null)
-
-            const { data: settings } = await supabase.from('site_settings').select('*').single()
-            if (settings) {
-              setSiteLogo(settings.logo_url || null)
-              setSiteName(settings.site_name || 'Admin Panel')
-            }
-
-            setLoading(false)
-          }
-        }
-      } catch (err) {
-        console.error('Auth error:', err)
-        if (isMounted) router.replace('/admin/login')
+      if (!data.user && pathname !== '/admin/login') {
+        router.push('/admin/login')
+      } else {
+        setUser(data.user)
       }
+
+      setLoading(false)
     }
 
-    getUser()
-    return () => { isMounted = false }
-  }, [router, pathname])
+    checkAuth()
+  }, [pathname, router])
 
   useEffect(() => {
-    setMobileMenuOpen(false)
-  }, [pathname])
+    async function fetchUnread() {
+      const { count } = await supabase
+        .from('contact_submissions')
+        .select('*', {
+          count: 'exact',
+          head: true,
+        })
+        .eq('is_read', false)
 
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 1024) setSidebarOpen(true)
+      setUnreadInquiries(count || 0)
     }
-    handleResize()
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
 
-  const handleLogout = async () => {
+    if (user) fetchUnread()
+  }, [user, pathname])
+
+  async function handleLogout() {
     await supabase.auth.signOut()
     router.push('/admin/login')
   }
 
   const navItems: NavItem[] = [
-    { name: 'Dashboard', href: '/admin/dashboard', icon: '/svgs/dashboard.svg', label: 'Dashboard' },
-    { name: 'Analytics', href: '/admin/analytics', icon: '/svgs/analytics.svg', label: 'Analytics' },
-    { name: 'Profile', href: '/admin/profile', icon: '/svgs/profile.svg', label: 'Profile' },
-    { name: 'Blog Posts', href: '/admin/blog', icon: '/svgs/blog.svg', label: 'Blog Posts' },
-    { name: 'Blog Categories', href: '/admin/blog/categories', icon: '/svgs/category.svg', label: 'Blog Categories' },
-    { name: 'Testimonials', href: '/admin/testimonials', icon: '/svgs/testimonials.svg', label: 'Testimonials' },
-    { name: 'Team Members', href: '/admin/team', icon: '/svgs/team.svg', label: 'Team Members' },
-    { name: 'Hero Section', href: '/admin/hero', icon: '/svgs/hero.svg', label: 'Hero Section' },
-    { name: 'About Section', href: '/admin/about', icon: '/svgs/about.svg', label: 'About Section' },
-    { name: 'Services', href: '/admin/services', icon: '/svgs/services.svg', label: 'Services' },
-    { name: 'Projects', href: '/admin/projects', icon: '/svgs/projects.svg', label: 'Projects' },
-    { name: 'Portfolio', href: '/admin/portfolio', icon: '/svgs/portfolio-icon.svg', label: 'Portfolio' },
-    { name: 'Video Testimonials', href: '/admin/video-testimonials', icon: '/svgs/video.svg', label: 'Video Testimonials' },
-    { name: 'FAQs', href: '/admin/faqs', icon: '/svgs/faq.svg', label: 'FAQs' },
-    { name: 'Call to Action', href: '/admin/cta', icon: '/svgs/cta.svg', label: 'Call to Action' },
-    { name: 'Navigation Menu', href: '/admin/menu', icon: '/svgs/menu.svg', label: 'Navigation Menu' },
-    { name: 'Footer', href: '/admin/footer', icon: '/svgs/footer.svg', label: 'Footer' },
-    { name: 'Image Gallery', href: '/admin/images', icon: '/svgs/gallery.svg', label: 'Image Gallery' },
-    { name: 'Subscribers', href: '/admin/subscribers', icon: '/svgs/subscribers.svg', label: 'Subscribers' },
-    { name: 'Newsletter', href: '/admin/newsletter', icon: '/svgs/newsletter.svg', label: 'Newsletter' },
-    { name: 'SEO Tools', href: '/admin/seo', icon: '/svgs/seo.svg', label: 'SEO Tools' },
-    { name: 'Export Data', href: '/admin/export', icon: '/svgs/export.svg', label: 'Export Data' },
-    { name: 'Backup', href: '/admin/backup', icon: '/svgs/backup.svg', label: 'Backup & Restore' },
-    { name: 'Email Settings', href: '/admin/email-settings', icon: '/svgs/email.svg', label: 'Email Settings' },
-    { name: 'Site Settings', href: '/admin/settings', icon: '/svgs/settings.svg', label: 'Site Settings' },
-    { name: 'Messages', href: '/admin/messages', icon: '/svgs/messages.svg', label: 'Messages' },
+    {
+      name: 'Dashboard',
+      href: '/admin/dashboard',
+      icon: '/svgs/analytics.svg',
+    },
+    {
+      name: 'Inquiries',
+      href: '/admin/inquiries',
+      icon: '/svgs/inquiries.svg',
+      badge: unreadInquiries,
+    },
+    {
+      name: 'Hero Section',
+      href: '/admin/hero',
+      icon: '/svgs/hero.svg',
+    },
+    {
+      name: 'About Page',
+      href: '/admin/about',
+      icon: '/svgs/about.svg',
+    },
+    {
+      name: 'Services',
+      href: '/admin/services',
+      icon: '/svgs/services.svg',
+    },
+    {
+      name: 'Portfolio',
+      href: '/admin/portfolio',
+      icon: '/svgs/portfolio-icon.svg',
+    },
+    {
+      name: 'Blog Posts',
+      href: '/admin/blog',
+      icon: '/svgs/blog.svg',
+    },
+    {
+      name: 'Testimonials',
+      href: '/admin/testimonials',
+      icon: '/svgs/testimonials.svg',
+    },
+    {
+      name: 'Team Members',
+      href: '/admin/team',
+      icon: '/svgs/team.svg',
+    },
+    {
+      name: 'FAQs',
+      href: '/admin/faqs',
+      icon: '/svgs/faq.svg',
+    },
+    {
+      name: 'Navigation Menu',
+      href: '/admin/menu',
+      icon: '/svgs/menu.svg',
+    },
+    {
+      name: 'Footer',
+      href: '/admin/footer',
+      icon: '/svgs/footer.svg',
+    },
+    {
+      name: 'Site Settings',
+      href: '/admin/settings',
+      icon: '/svgs/settings.svg',
+    },
   ]
 
-  if (loading && pathname !== '/admin/login') {
+  if (pathname === '/admin/login') {
+    return <>{children}</>
+  }
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-          <p className="mt-2 text-gray-600">Loading...</p>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-[#07111F] text-white">
+        Loading admin...
       </div>
     )
   }
 
-  if (!user || pathname === '/admin/login') {
-    return <>{children}</>
-  }
+  if (!user) return null
 
   return (
-    <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50">
-        {mobileMenuOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden" onClick={() => setMobileMenuOpen(false)} />
-        )}
+    <div className="min-h-screen bg-[#07111F] text-white">
+      {mobileMenuOpen && (
+        <button
+          aria-label="Close menu"
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-30 bg-black/70 lg:hidden"
+        />
+      )}
 
-        <aside className={`fixed left-0 top-0 h-full bg-gradient-to-b from-[#0A1D37] to-[#1a2a4a] text-white transition-all duration-300 z-30 flex flex-col
-          ${sidebarOpen ? 'w-64' : 'w-20'}
-          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        `}>
-          <div className={`p-5 border-b border-white/10 flex items-center ${sidebarOpen ? 'justify-between' : 'justify-center'}`}>
-            <div className={`flex items-center gap-2 overflow-hidden ${sidebarOpen ? 'flex-1' : ''}`}>
-              {siteLogo ? (
-                <img src={siteLogo} alt={siteName} className="w-8 h-8 object-contain brightness-0 invert flex-shrink-0" />
-              ) : (
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-white font-bold text-sm">{siteName.charAt(0)}</span>
-                </div>
-              )}
-              {sidebarOpen && <span className="font-bold text-lg truncate">{siteName}</span>}
-            </div>
+      <aside
+        className={`fixed left-0 top-0 z-40 flex h-full flex-col border-r border-[#1E314A] bg-[#081321] transition-all duration-300 ${
+          sidebarOpen ? 'w-72' : 'w-20'
+        } ${
+          mobileMenuOpen
+            ? 'translate-x-0'
+            : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-[#1E314A] p-4">
+          <Link
+            href="/admin/dashboard"
+            className="flex items-center gap-3 overflow-hidden"
+          >
+            <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-[#39D97A]/25 bg-[#39D97A]/10">
+              <img
+                src="/svgs/logo.svg"
+                alt="Hbee Digitals"
+                className="h-7 w-7 object-contain"
+              />
+            </span>
 
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="text-white/50 hover:text-white transition flex-shrink-0 p-1 rounded hover:bg-white/10"
-              title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-            >
-              <svg className="w-5 h-5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sidebarOpen ? "M11 19l-7-7 7-7m8 14l-7-7 7-7" : "M13 5l7 7-7 7M5 5l7 7-7 7"} />
-              </svg>
-            </button>
-          </div>
-
-          <nav className="flex-1 py-2 overflow-y-auto scrollbar-thin">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  title={!sidebarOpen ? item.label : undefined}
-                  className={`flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg transition-all duration-200 ${
-                    isActive ? 'bg-white/15 text-white font-medium' : 'text-white/70 hover:bg-white/8 hover:text-white'
-                  } ${sidebarOpen ? 'justify-start' : 'justify-center'}`}
-                >
-                  <img src={item.icon} alt={item.name} className="w-5 h-5 brightness-0 invert flex-shrink-0 opacity-80" />
-                  {sidebarOpen && <span className="text-sm truncate">{item.label}</span>}
-                </Link>
-              )
-            })}
-          </nav>
-
-          <div className="p-3 border-t border-white/10">
-            <Link href="/admin/profile" className={`flex items-center gap-3 hover:bg-white/8 rounded-lg transition p-2 ${sidebarOpen ? '' : 'justify-center'}`}>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt={userName} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-xs font-bold text-white">{userName.charAt(0).toUpperCase()}</span>
-                )}
-              </div>
-              {sidebarOpen && (
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{userName}</p>
-                  <p className="text-xs text-white/50 truncate">{user?.email}</p>
-                </div>
-              )}
-            </Link>
-            <button
-              onClick={handleLogout}
-              className={`w-full mt-2 text-white/50 hover:text-white transition text-xs p-2 rounded hover:bg-white/8 ${sidebarOpen ? 'text-left' : 'text-center'}`}
-              title="Logout"
-            >
-              {sidebarOpen ? (
-                <span className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  Logout
+            {sidebarOpen && (
+              <span>
+                <span className="block text-sm font-black">
+                  Hbee Digitals
                 </span>
-              ) : (
-                <svg className="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              )}
-            </button>
-          </div>
-        </aside>
 
-        <main className={`transition-all duration-300 min-h-screen ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'} ml-0`}>
-          <div className="sticky top-0 z-10 bg-white shadow-sm px-4 lg:px-6 py-3">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setMobileMenuOpen(true)} className="lg:hidden text-gray-600 hover:text-gray-900 p-1">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
-                <h1 className="text-lg lg:text-xl font-semibold text-gray-800 truncate">
-                  {navItems.find(item => item.href === pathname)?.label || 'Admin Panel'}
+                <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-[#39D97A]">
+                  Admin Studio
+                </span>
+              </span>
+            )}
+          </Link>
+
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="hidden rounded-xl border border-[#1E314A] bg-[#0E1B2D] px-3 py-2 text-xs text-white/60 lg:block"
+          >
+            {sidebarOpen ? '‹' : '›'}
+          </button>
+        </div>
+
+        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+          {navItems.map((item) => {
+            const active = pathname === item.href
+            const badgeCount = Number(item.badge || 0)
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`group relative flex items-center gap-3 rounded-2xl px-3 py-3 transition ${
+                  active
+                    ? 'border border-[#39D97A]/25 bg-[#39D97A]/10 text-white'
+                    : 'text-white/58 hover:bg-[#0E1B2D] hover:text-white'
+                } ${
+                  sidebarOpen ? '' : 'justify-center'
+                }`}
+              >
+                <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-[#1E314A] bg-[#07111F]">
+                  <img
+                    src={item.icon}
+                    alt=""
+                    className="h-5 w-5 object-contain"
+                    style={{
+                      filter:
+                        'brightness(0) saturate(100%) invert(82%) sepia(58%) saturate(626%) hue-rotate(73deg) brightness(94%) contrast(89%)',
+                    }}
+                  />
+                </span>
+
+                {sidebarOpen && (
+                  <span className="text-sm font-bold">
+                    {item.name}
+                  </span>
+                )}
+
+                {badgeCount > 0 && (
+                  <span className="ml-auto rounded-full bg-[#39D97A] px-2 py-0.5 text-[10px] font-black text-[#06101F]">
+                    {badgeCount > 99 ? '99+' : badgeCount}
+                  </span>
+                )}
+              </Link>
+            )
+          })}
+        </nav>
+
+        <div className="border-t border-[#1E314A] p-4">
+          <button
+            onClick={handleLogout}
+            className={`flex w-full items-center gap-3 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm font-bold text-red-300 transition hover:bg-red-400/15 ${
+              sidebarOpen ? '' : 'justify-center'
+            }`}
+          >
+            {sidebarOpen ? 'Logout' : '↩'}
+          </button>
+        </div>
+      </aside>
+
+      <main
+        className={`min-h-screen transition-all duration-300 ${
+          sidebarOpen ? 'lg:ml-72' : 'lg:ml-20'
+        }`}
+      >
+        <header className="sticky top-0 z-20 border-b border-[#1E314A] bg-[#07111F]/90 px-5 py-4 backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="rounded-xl border border-[#1E314A] bg-[#0E1B2D] p-2 lg:hidden"
+              >
+                ☰
+              </button>
+
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
+                  Hbee Digitals CMS
+                </p>
+
+                <h1 className="text-lg font-black tracking-[-0.03em]">
+                  {navItems.find(
+                    (item) => item.href === pathname
+                  )?.name || 'Admin Dashboard'}
                 </h1>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-gray-400 hidden sm:block">
-                  {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                </span>
-                <Link href="/admin/profile" className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 flex items-center justify-center overflow-hidden">
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt={userName} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-xs font-bold text-white">{userName.charAt(0).toUpperCase()}</span>
-                  )}
-                </Link>
-              </div>
             </div>
-          </div>
 
-          <div className="p-4 lg:p-6">{children}</div>
-        </main>
-      </div>
-    </ErrorBoundary>
+            <Link
+              href="/admin/inquiries"
+              className="relative rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-4 py-2 text-xs font-black text-[#39D97A]"
+            >
+              New Inquiries
+
+              {unreadInquiries > 0 && (
+                <span className="ml-2 rounded-full bg-[#39D97A] px-2 py-0.5 text-[#06101F]">
+                  {unreadInquiries}
+                </span>
+              )}
+            </Link>
+          </div>
+        </header>
+
+        <div className="p-5 lg:p-7">
+          {children}
+        </div>
+      </main>
+    </div>
   )
 }

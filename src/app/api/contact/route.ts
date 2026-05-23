@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { supabase } from '@/lib/supabase'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -21,19 +22,76 @@ export async function POST(request: Request) {
 
     if (!fullName || !email || !message) {
       return NextResponse.json(
-        { error: 'Please fill in your name, email, and project message.' },
+        {
+          error:
+            'Please fill in your name, email, and project message.',
+        },
         { status: 400 }
       )
     }
 
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Hbee Digitals <onboarding@resend.dev>'
-    const toEmail = process.env.CONTACT_TO_EMAIL || 'contact@hbeedigitals.com'
+    /*
+     ----------------------------------------
+     SAVE TO SUPABASE
+     ----------------------------------------
+    */
+
+    const { error: dbError } = await supabase
+      .from('contact_submissions')
+      .insert([
+        {
+          full_name: fullName,
+          email,
+          company,
+          phone,
+          website,
+          service,
+          budget,
+          timeline,
+          message,
+          status: 'new',
+          is_read: false,
+          source: 'website_contact_form',
+        },
+      ])
+
+    if (dbError) {
+      console.error('Supabase Error:', dbError)
+
+      return NextResponse.json(
+        {
+          error:
+            'Unable to save your inquiry right now. Please try again.',
+        },
+        { status: 500 }
+      )
+    }
+
+    /*
+     ----------------------------------------
+     EMAIL TEMPLATE
+     ----------------------------------------
+    */
+
+    const fromEmail =
+      process.env.RESEND_FROM_EMAIL ||
+      'Hbee Digitals <onboarding@resend.dev>'
+
+    const toEmail =
+      process.env.CONTACT_TO_EMAIL ||
+      'hello@hbeedigitals.com'
 
     const html = `
       <div style="font-family: Arial, sans-serif; background:#07111F; color:#ffffff; padding:32px;">
         <div style="max-width:680px; margin:0 auto; background:#0E1B2D; border:1px solid #1E314A; border-radius:22px; padding:28px;">
-          <p style="color:#39D97A; font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase;">New Project Inquiry</p>
-          <h1 style="margin:10px 0 20px; font-size:28px;">${fullName} submitted a project inquiry</h1>
+          
+          <p style="color:#39D97A; font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase;">
+            New Project Inquiry
+          </p>
+
+          <h1 style="margin:10px 0 20px; font-size:28px;">
+            ${fullName} submitted a project inquiry
+          </h1>
 
           <div style="background:#07111F; border:1px solid #1E314A; border-radius:16px; padding:20px; margin-top:20px;">
             <p><strong>Name:</strong> ${fullName}</p>
@@ -48,11 +106,21 @@ export async function POST(request: Request) {
 
           <div style="background:#07111F; border:1px solid #1E314A; border-radius:16px; padding:20px; margin-top:20px;">
             <h2 style="font-size:18px;">Project Message</h2>
-            <p style="line-height:1.7;">${String(message).replace(/\n/g, '<br/>')}</p>
+
+            <p style="line-height:1.7;">
+              ${String(message).replace(/\n/g, '<br/>')}
+            </p>
           </div>
+
         </div>
       </div>
     `
+
+    /*
+     ----------------------------------------
+     SEND EMAIL VIA RESEND
+     ----------------------------------------
+    */
 
     await resend.emails.send({
       from: fromEmail,
@@ -62,10 +130,18 @@ export async function POST(request: Request) {
       html,
     })
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({
+      success: true,
+      message: 'Inquiry submitted successfully.',
+    })
   } catch (error) {
+    console.error('Contact API Error:', error)
+
     return NextResponse.json(
-      { error: 'Unable to send inquiry right now. Please try again later.' },
+      {
+        error:
+          'Unable to send inquiry right now. Please try again later.',
+      },
       { status: 500 }
     )
   }
