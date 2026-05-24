@@ -88,12 +88,6 @@ const fallbackMenu: NavGroup[] = [
         icon: 'rocket',
         description: 'See how we move from audit to launch.',
       },
-      {
-        label: 'FAQ',
-        href: '/faq',
-        icon: 'faq',
-        description: 'Answers to common project and service questions.',
-      },
     ],
   },
   {
@@ -122,7 +116,7 @@ const fallbackMenu: NavGroup[] = [
     ],
   },
   { label: 'Contact', href: '/contact', icon: 'email' },
-  { label: 'FAQs', href: '/faq', icon: 'faq' },
+  { label: 'Pricing', href: '/pricing', icon: 'pricing' },
 ]
 
 function isActiveRoute(pathname: string, href: string) {
@@ -186,7 +180,7 @@ export default function Navbar() {
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const desktopMenu = useMemo(() => {
-    const coreLabels = ['Home', 'Services', 'Portfolio', 'Company', 'Resources', 'Contact', 'FAQs']
+    const coreLabels = ['Home', 'Services', 'Portfolio', 'Company', 'Resources', 'Contact', 'Pricing']
 
     const enhanced = fallbackMenu.map((fallback) => {
       const matched = menuItems.find(
@@ -266,10 +260,12 @@ export default function Navbar() {
 
       if (menuData?.length) {
         setMenuItems(
-          menuData.map((item) => ({
-            label: item.label,
-            href: cleanHref(item.href),
-          }))
+          menuData
+            .filter((item) => item.label.toLowerCase() !== 'faqs' && item.label.toLowerCase() !== 'faq')
+            .map((item) => ({
+              label: item.label,
+              href: cleanHref(item.href),
+            }))
         )
       }
 
