@@ -1,33 +1,34 @@
-import type { MetadataRoute } from "next";
-import { supabase } from "@/lib/supabase";
+import type { MetadataRoute } from 'next'
+import { supabase } from '@/lib/supabase'
 
-const baseUrl = "https://hbeedigitals.com";
+const baseUrl = 'https://hbeedigitals.com'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = [
-    "",
-    "/about",
-    "/services",
-    "/portfolio",
-    "/projects",
-    "/process",
-    "/blog",
-    "/faq",
-    "/contact",
-    "/privacy",
-    "/terms",
-    "/cookies",
-  ];
+    { route: '', priority: 1, changeFrequency: 'weekly' as const },
+    { route: '/about', priority: 0.85, changeFrequency: 'monthly' as const },
+    { route: '/services', priority: 0.9, changeFrequency: 'monthly' as const },
+    { route: '/pricing', priority: 0.88, changeFrequency: 'monthly' as const },
+    { route: '/portfolio', priority: 0.88, changeFrequency: 'monthly' as const },
+    { route: '/projects', priority: 0.75, changeFrequency: 'monthly' as const },
+    { route: '/process', priority: 0.75, changeFrequency: 'monthly' as const },
+    { route: '/blog', priority: 0.82, changeFrequency: 'weekly' as const },
+    { route: '/faq', priority: 0.72, changeFrequency: 'monthly' as const },
+    { route: '/contact', priority: 0.9, changeFrequency: 'monthly' as const },
+    { route: '/privacy', priority: 0.35, changeFrequency: 'yearly' as const },
+    { route: '/terms', priority: 0.35, changeFrequency: 'yearly' as const },
+    { route: '/cookies', priority: 0.35, changeFrequency: 'yearly' as const },
+  ]
 
-  const { data: portfolioItems } = await supabase
-    .from("portfolio_items")
-    .select("slug")
-    .eq("is_active", true);
-
-  const { data: services } = await supabase
-    .from("services")
-    .select("slug")
-    .eq("is_active", true);
+  const [{ data: portfolioItems }, { data: services }, { data: blogPosts }] =
+    await Promise.all([
+      supabase.from('portfolio_items').select('slug').eq('is_active', true),
+      supabase.from('services').select('slug').eq('is_active', true),
+      supabase
+        .from('blog_posts')
+        .select('slug')
+        .eq('status', 'published'),
+    ])
 
   const portfolioRoutes =
     portfolioItems
@@ -35,9 +36,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .map((item) => ({
         url: `${baseUrl}/portfolio/${item.slug}`,
         lastModified: new Date(),
-        changeFrequency: "monthly" as const,
+        changeFrequency: 'monthly' as const,
         priority: 0.85,
-      })) || [];
+      })) || []
 
   const serviceRoutes =
     services
@@ -45,18 +46,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .map((service) => ({
         url: `${baseUrl}/services/${service.slug}`,
         lastModified: new Date(),
-        changeFrequency: "monthly" as const,
-        priority: 0.82,
-      })) || [];
+        changeFrequency: 'monthly' as const,
+        priority: 0.84,
+      })) || []
+
+  const blogRoutes =
+    blogPosts
+      ?.filter((post) => post.slug)
+      .map((post) => ({
+        url: `${baseUrl}/blog/${post.slug}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.78,
+      })) || []
 
   return [
-    ...staticRoutes.map((route) => ({
-      url: `${baseUrl}${route}`,
+    ...staticRoutes.map((item) => ({
+      url: `${baseUrl}${item.route}`,
       lastModified: new Date(),
-      changeFrequency: route === "" ? ("weekly" as const) : ("monthly" as const),
-      priority: route === "" ? 1 : 0.8,
+      changeFrequency: item.changeFrequency,
+      priority: item.priority,
     })),
-    ...portfolioRoutes,
     ...serviceRoutes,
-  ];
+    ...portfolioRoutes,
+    ...blogRoutes,
+  ]
 }
