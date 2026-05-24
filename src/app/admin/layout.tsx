@@ -92,6 +92,11 @@ export default function AdminLayout({
       icon: '/svgs/services.svg',
     },
     {
+      name: 'Pricing',
+      href: '/admin/pricing',
+      icon: '/svgs/pricing.svg',
+    },
+    {
       name: 'Portfolio',
       href: '/admin/portfolio',
       icon: '/svgs/portfolio-icon.svg',
