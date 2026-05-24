@@ -87,6 +87,16 @@ export default function AdminLayout({
       icon: '/svgs/about.svg',
     },
     {
+      name: 'Email Templates',
+      href: '/admin/email-templates',
+      icon: '/svgs/email.svg',
+    },
+    {
+      name: 'Email Logs',
+      href: '/admin/email-logs',
+      icon: '/svgs/messages.svg',
+},
+    {
       name: 'Services',
       href: '/admin/services',
       icon: '/svgs/services.svg',

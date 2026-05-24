@@ -38,7 +38,7 @@ function LogoMark({
   brandName: string
 }) {
   return (
-    <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-[#39D97A]/25 bg-gradient-to-br from-[#0E1B2D] to-[#13233A] p-2 shadow-[0_0_34px_rgba(57,217,122,0.14)] ring-1 ring-white/5 transition group-hover:border-[#39D97A]/40 group-hover:shadow-[0_0_42px_rgba(57,217,122,0.2)]">
+    <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-[#39D97A]/25 bg-gradient-to-br from-[#0E1B2D] to-[#13233A] p-2 shadow-[0_0_34px_rgba(57,217,122,0.14)] ring-1 ring-white/5 transition group-hover:border-[#39D97A]/40">
       <img
         src={logoUrl}
         alt={`${brandName} logo`}
@@ -80,9 +80,7 @@ export default function Footer() {
   }, [])
 
   const brandName =
-    footerData?.logo_text ||
-    siteSettings.site_name ||
-    'Hbee Digitals'
+    footerData?.logo_text || siteSettings.site_name || 'Hbee Digitals'
 
   const logoUrl = siteSettings.logo_url || '/svgs/logo.svg'
 
@@ -114,6 +112,7 @@ export default function Footer() {
               { label: 'Portfolio', href: '/portfolio' },
               { label: 'Our Process', href: '/process' },
               { label: 'Pricing', href: '/pricing' },
+              { label: 'FAQ', href: '/faq' },
               { label: 'Blog', href: '/blog' },
               { label: 'Contact', href: '/contact' },
             ],
@@ -152,9 +151,7 @@ export default function Footer() {
     },
     {
       label: 'Location',
-      value:
-        siteSettings.contact_address ||
-        'Serving ambitious brands globally',
+      value: siteSettings.contact_address || 'Serving ambitious brands globally',
       href: '#',
       icon: 'location',
     },
@@ -176,21 +173,15 @@ export default function Footer() {
           viewport={{ once: true }}
           className="relative mb-12 overflow-hidden rounded-[2rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#0B1625] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.35)]"
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.16),transparent_55%)]" />
-
           <div className="relative z-10 grid gap-12 lg:grid-cols-[1.2fr_0.8fr]">
             <div>
               <Link href="/" className="group inline-flex items-center gap-4">
-                <LogoMark
-                  logoUrl={logoUrl}
-                  brandName={brandName}
-                />
+                <LogoMark logoUrl={logoUrl} brandName={brandName} />
 
                 <div>
                   <h3 className="text-2xl font-black tracking-[-0.04em]">
                     {brandName}
                   </h3>
-
                   <p className="mt-1 text-sm text-[#39D97A]">
                     Premium Digital Growth Systems
                   </p>
@@ -198,30 +189,10 @@ export default function Footer() {
               </Link>
 
               <p className="mt-6 max-w-xl text-sm leading-8 text-white/60 sm:text-base">
-                We help ambitious brands improve their digital presence
-                through premium websites, ecommerce optimization,
-                conversion systems, and scalable growth infrastructure.
+                We help ambitious brands improve their digital presence through
+                premium websites, ecommerce optimization, conversion systems,
+                and scalable growth infrastructure.
               </p>
-
-              {socialLinks.length > 0 && (
-                <div className="mt-8 flex flex-wrap gap-4">
-                  {socialLinks.map((social) => (
-                    <a
-                      key={social.platform}
-                      href={social.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#1E314A] bg-[#07111F] transition-all duration-300 hover:border-[#39D97A]/30 hover:bg-[#13233A]"
-                    >
-                      <SvgIcon
-                        name={social.icon}
-                        size={18}
-                        color="#39D97A"
-                      />
-                    </a>
-                  ))}
-                </div>
-              )}
             </div>
 
             <div className="grid gap-4">
@@ -229,21 +200,16 @@ export default function Footer() {
                 <a
                   key={item.label}
                   href={item.href}
-                  className="group flex items-start gap-4 rounded-2xl border border-[#1E314A] bg-[#07111F]/70 p-4 transition-all duration-300 hover:border-[#39D97A]/22 hover:bg-[#13233A]"
+                  className="group flex items-start gap-4 rounded-2xl border border-[#1E314A] bg-[#07111F]/70 p-4 transition hover:border-[#39D97A]/22 hover:bg-[#13233A]"
                 >
                   <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-[#39D97A]/16 bg-[#39D97A]/10">
-                    <SvgIcon
-                      name={item.icon}
-                      size={18}
-                      color="#39D97A"
-                    />
+                    <SvgIcon name={item.icon} size={18} color="#39D97A" />
                   </span>
 
                   <span>
                     <span className="block text-xs font-black uppercase tracking-[0.16em] text-[#39D97A]">
                       {item.label}
                     </span>
-
                     <span className="mt-1 block text-sm leading-6 text-white/68">
                       {item.value}
                     </span>
@@ -272,7 +238,7 @@ export default function Footer() {
                   <Link
                     key={`${column.title}-${link.label}`}
                     href={link.href}
-                    className="block text-sm text-white/60 transition-all duration-300 hover:text-[#39D97A]"
+                    className="block text-sm text-white/60 transition hover:text-[#39D97A]"
                   >
                     {link.label}
                   </Link>
@@ -289,38 +255,22 @@ export default function Footer() {
           </p>
 
           <div className="flex flex-wrap items-center gap-5 text-sm">
-            <Link
-              href="/pricing"
-              className="text-white/50 transition-all duration-300 hover:text-[#39D97A]"
-            >
+            <Link href="/pricing" className="text-white/50 transition hover:text-[#39D97A]">
               Pricing
             </Link>
-
-            <Link
-              href="/contact"
-              className="text-white/50 transition-all duration-300 hover:text-[#39D97A]"
-            >
+            <Link href="/faq" className="text-white/50 transition hover:text-[#39D97A]">
+              FAQ
+            </Link>
+            <Link href="/contact" className="text-white/50 transition hover:text-[#39D97A]">
               Contact
             </Link>
-
-            <Link
-              href="/privacy"
-              className="text-white/50 transition-all duration-300 hover:text-[#39D97A]"
-            >
+            <Link href="/privacy" className="text-white/50 transition hover:text-[#39D97A]">
               Privacy Policy
             </Link>
-
-            <Link
-              href="/terms"
-              className="text-white/50 transition-all duration-300 hover:text-[#39D97A]"
-            >
+            <Link href="/terms" className="text-white/50 transition hover:text-[#39D97A]">
               Terms of Service
             </Link>
-
-            <Link
-              href="/cookies"
-              className="text-white/50 transition-all duration-300 hover:text-[#39D97A]"
-            >
+            <Link href="/cookies" className="text-white/50 transition hover:text-[#39D97A]">
               Cookie Policy
             </Link>
           </div>
