@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
 import Navbar from '@/components/Navbar'
@@ -20,38 +21,73 @@ import TabSwitcher from '@/components/ui/TabSwitcher'
 import ServiceOrbit from '@/components/ui/ServiceOrbit'
 import GridPattern from '@/components/ui/GridPattern'
 import GlowOrb from '@/components/ui/GlowOrb'
+import SvgIcon from '@/components/ui/SvgIcon'
+import GradientHeading from '@/components/ui/GradientHeading'
 
 export const revalidate = 60
 
+function normalizeArray(value: any): string[] {
+  if (!value) return []
+  if (Array.isArray(value)) return value
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) return parsed
+    } catch {
+      return value
+        .split(/\n|,/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    }
+  }
+
+  return []
+}
+
 export default async function HomePage() {
-  const [heroRes, servicesRes, aboutRes, faqsRes, ctaRes, portfolioRes] =
-    await Promise.all([
-      supabase.from('hero_section').select('*').single(),
+  const [
+    heroRes,
+    servicesRes,
+    aboutRes,
+    faqsRes,
+    ctaRes,
+    portfolioRes,
+    pricingRes,
+  ] = await Promise.all([
+    supabase.from('hero_section').select('*').single(),
 
-      supabase
-        .from('services')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true }),
+    supabase
+      .from('services')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true }),
 
-      supabase.from('about_section').select('*').single(),
+    supabase.from('about_section').select('*').single(),
 
-      supabase
-        .from('faqs')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true }),
+    supabase
+      .from('faqs')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true }),
 
-      supabase.from('cta_section').select('*').single(),
+    supabase.from('cta_section').select('*').single(),
 
-      supabase
-        .from('portfolio_items')
-        .select('*')
-        .eq('featured', true)
-        .eq('is_active', true)
-        .order('display_order', { ascending: true })
-        .limit(6),
-    ])
+    supabase
+      .from('portfolio_items')
+      .select('*')
+      .eq('featured', true)
+      .eq('is_active', true)
+      .order('display_order', { ascending: true })
+      .limit(6),
+
+    supabase
+      .from('pricing_packages')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true })
+      .limit(3),
+  ])
 
   const hero = heroRes.data || {}
   const services = servicesRes.data || []
@@ -59,6 +95,7 @@ export default async function HomePage() {
   const faqs = faqsRes.data || []
   const cta = ctaRes.data || {}
   const portfolioItems = portfolioRes.data || []
+  const pricingPackages = pricingRes.data || []
 
   const statsData = [
     { value: '87+', label: 'Projects Completed', icon: 'portfolio' },
@@ -206,6 +243,106 @@ export default async function HomePage() {
             <TestimonialsSection />
           </Reveal>
         </section>
+
+        {pricingPackages.length > 0 && (
+          <section className="relative px-5 py-16 sm:px-6 md:px-10 lg:px-12 lg:py-24">
+            <GridPattern />
+
+            <div className="relative z-10 mx-auto max-w-7xl">
+              <div className="mb-12 max-w-4xl">
+                <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
+                  <SvgIcon name="pricing" size={14} color="#39D97A" />
+                  Investment Options
+                </p>
+
+                <h2 className="text-4xl font-black leading-[0.96] tracking-[-0.055em] sm:text-5xl md:text-6xl">
+                  Clear packages for serious{' '}
+                  <GradientHeading>digital growth.</GradientHeading>
+                </h2>
+
+                <p className="mt-6 max-w-2xl text-sm leading-8 text-white/60 sm:text-base">
+                  Explore starting points designed for brands that want better
+                  websites, stronger trust, improved conversion flow, and scalable
+                  digital systems.
+                </p>
+              </div>
+
+              <div className="grid gap-5 lg:grid-cols-3">
+                {pricingPackages.map((item: any) => {
+                  const features = normalizeArray(item.features).slice(0, 4)
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`relative overflow-hidden rounded-[2rem] border p-6 transition hover:-translate-y-1 ${
+                        item.is_featured
+                          ? 'border-[#39D97A]/30 bg-[#39D97A]/10 shadow-[0_32px_100px_rgba(57,217,122,0.12)]'
+                          : 'border-[#1E314A] bg-[#0E1B2D]'
+                      }`}
+                    >
+                      <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-[#39D97A]/10 blur-[70px]" />
+
+                      {item.is_featured && (
+                        <div className="relative mb-5 inline-flex rounded-full bg-[#39D97A] px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#06101F]">
+                          Most Popular
+                        </div>
+                      )}
+
+                      <div className="relative">
+                        <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
+                          {item.subtitle || 'Growth Package'}
+                        </p>
+
+                        <h3 className="text-3xl font-black tracking-[-0.045em] text-white">
+                          {item.name}
+                        </h3>
+
+                        <p className="mt-5 text-5xl font-black tracking-[-0.06em] text-white">
+                          {item.price || 'Custom'}
+                        </p>
+
+                        <p className="mt-5 text-sm leading-7 text-white/58">
+                          {item.description}
+                        </p>
+
+                        <div className="mt-7 space-y-3">
+                          {features.map((feature) => (
+                            <div
+                              key={feature}
+                              className="flex items-start gap-3 rounded-2xl border border-[#1E314A] bg-[#07111F]/75 px-4 py-3"
+                            >
+                              <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl border border-[#39D97A]/16 bg-[#39D97A]/10">
+                                <SvgIcon
+                                  name="verified"
+                                  size={12}
+                                  color="#39D97A"
+                                />
+                              </span>
+
+                              <span className="text-sm leading-6 text-white/68">
+                                {feature}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="mt-12 text-center">
+                <Link
+                  href="/pricing"
+                  className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-full bg-[#39D97A] px-8 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
+                >
+                  View Full Pricing
+                  <SvgIcon name="arrow-diagonal" size={16} color="#06101F" />
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
 
         <section className="relative">
           <Reveal delay={0.3}>

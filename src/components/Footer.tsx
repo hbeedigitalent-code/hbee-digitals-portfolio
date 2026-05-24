@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import SvgIcon from '@/components/ui/SvgIcon'
-import GradientHeading from '@/components/ui/GradientHeading'
 
 interface FooterLink {
   label: string
@@ -31,21 +30,7 @@ const blockedSocialUrls = [
   'https://instagram.com',
 ]
 
-function cleanSvgName(value?: string, fallback = 'services') {
-  if (!value) return fallback
-
-  return value
-    .replace('/public/svgs/', '')
-    .replace('public/svgs/', '')
-    .replace('/svgs/', '')
-    .replace('svgs/', '')
-    .replace('.svg', '')
-    .replace(/^\/+/, '')
-    .trim()
-    .toLowerCase() || fallback
-}
-
-function FooterLogo({
+function LogoMark({
   logoUrl,
   brandName,
 }: {
@@ -95,7 +80,9 @@ export default function Footer() {
   }, [])
 
   const brandName =
-    footerData?.logo_text || siteSettings.site_name || 'Hbee Digitals'
+    footerData?.logo_text ||
+    siteSettings.site_name ||
+    'Hbee Digitals'
 
   const logoUrl = siteSettings.logo_url || '/svgs/logo.svg'
 
@@ -114,10 +101,10 @@ export default function Footer() {
           {
             title: 'Services',
             links: [
-              { label: 'Website Development', href: '/services' },
+              { label: 'Website Design', href: '/services' },
               { label: 'Ecommerce Solutions', href: '/services' },
               { label: 'Shopify Optimization', href: '/services' },
-              { label: 'Brand Strategy', href: '/services' },
+              { label: 'Technical Consulting', href: '/services' },
             ],
           },
           {
@@ -125,8 +112,9 @@ export default function Footer() {
             links: [
               { label: 'About Us', href: '/about' },
               { label: 'Portfolio', href: '/portfolio' },
-              { label: 'Process', href: '/process' },
-              { label: 'FAQ', href: '/faq' },
+              { label: 'Our Process', href: '/process' },
+              { label: 'Pricing', href: '/pricing' },
+              { label: 'Blog', href: '/blog' },
               { label: 'Contact', href: '/contact' },
             ],
           },
@@ -164,7 +152,9 @@ export default function Footer() {
     },
     {
       label: 'Location',
-      value: siteSettings.contact_address || 'Serving ambitious brands globally',
+      value:
+        siteSettings.contact_address ||
+        'Serving ambitious brands globally',
       href: '#',
       icon: 'location',
     },
@@ -184,169 +174,155 @@ export default function Footer() {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.42 }}
           viewport={{ once: true }}
-          className="relative mb-12 overflow-hidden rounded-[2rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#0B1625] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:p-8 lg:p-10"
+          className="relative mb-12 overflow-hidden rounded-[2rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#0B1625] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.35)]"
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.12),transparent_40%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.16),transparent_55%)]" />
 
-          <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="relative z-10 grid gap-12 lg:grid-cols-[1.2fr_0.8fr]">
             <div>
-              <p className="mb-4 inline-flex rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
-                Digital Growth Starts Here
+              <Link href="/" className="group inline-flex items-center gap-4">
+                <LogoMark
+                  logoUrl={logoUrl}
+                  brandName={brandName}
+                />
+
+                <div>
+                  <h3 className="text-2xl font-black tracking-[-0.04em]">
+                    {brandName}
+                  </h3>
+
+                  <p className="mt-1 text-sm text-[#39D97A]">
+                    Premium Digital Growth Systems
+                  </p>
+                </div>
+              </Link>
+
+              <p className="mt-6 max-w-xl text-sm leading-8 text-white/60 sm:text-base">
+                We help ambitious brands improve their digital presence
+                through premium websites, ecommerce optimization,
+                conversion systems, and scalable growth infrastructure.
               </p>
 
-              <h2 className="max-w-3xl text-3xl font-black leading-[0.98] tracking-[-0.04em] sm:text-4xl md:text-5xl">
-                Ready to build a digital system that feels ready to{' '}
-                <GradientHeading>scale?</GradientHeading>
-              </h2>
-
-              <p className="mt-5 max-w-2xl text-sm leading-7 text-white/60 sm:text-base">
-                Let’s improve your website, store experience, brand trust, and
-                conversion structure with a cleaner digital foundation.
-              </p>
+              {socialLinks.length > 0 && (
+                <div className="mt-8 flex flex-wrap gap-4">
+                  {socialLinks.map((social) => (
+                    <a
+                      key={social.platform}
+                      href={social.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#1E314A] bg-[#07111F] transition-all duration-300 hover:border-[#39D97A]/30 hover:bg-[#13233A]"
+                    >
+                      <SvgIcon
+                        name={social.icon}
+                        size={18}
+                        color="#39D97A"
+                      />
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <Link
-              href="/contact"
-              className="group inline-flex min-h-[52px] w-fit items-center justify-center gap-2 rounded-full bg-[#39D97A] px-7 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
-            >
-              Start A Project
-              <SvgIcon name="arrow-diagonal" size={16} color="#06101F" />
-            </Link>
-          </div>
-        </motion.div>
-
-        <div className="grid gap-12 lg:grid-cols-[1.05fr_1fr]">
-          <motion.div
-            initial={reducedMotion ? false : { opacity: 0, x: -18 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.42 }}
-            viewport={{ once: true }}
-          >
-            <Link href="/" className="group inline-flex items-center gap-3">
-              <FooterLogo logoUrl={logoUrl} brandName={brandName} />
-
-              <span>
-                <span className="block text-lg font-black tracking-[-0.035em] text-white">
-                  {brandName}
-                </span>
-                <span className="block text-xs font-black uppercase tracking-[0.2em] text-[#39D97A]">
-                  Digital Growth Studio
-                </span>
-              </span>
-            </Link>
-
-            <p className="mt-6 max-w-md text-sm leading-7 text-white/58 sm:text-base">
-              Premium websites, Shopify optimization, brand systems, and
-              conversion-focused digital experiences for ambitious businesses.
-            </p>
-
-            {socialLinks.length > 0 && (
-              <div className="mt-7 flex flex-wrap gap-3">
-                {socialLinks.map((social, index) => (
-                  <motion.a
-                    key={`${social.platform}-${index}`}
-                    href={social.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    whileHover={reducedMotion ? undefined : { y: -4, scale: 1.04 }}
-                    whileTap={reducedMotion ? undefined : { scale: 0.96 }}
-                    className="group flex h-11 w-11 items-center justify-center rounded-2xl border border-[#1E314A] bg-[#0E1B2D] transition hover:border-[#39D97A]/30 hover:bg-[#13233A]"
-                    aria-label={`Follow ${brandName} on ${social.platform}`}
-                  >
+            <div className="grid gap-4">
+              {contactItems.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  className="group flex items-start gap-4 rounded-2xl border border-[#1E314A] bg-[#07111F]/70 p-4 transition-all duration-300 hover:border-[#39D97A]/22 hover:bg-[#13233A]"
+                >
+                  <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-[#39D97A]/16 bg-[#39D97A]/10">
                     <SvgIcon
-                      name={cleanSvgName(social.icon, social.platform.toLowerCase())}
+                      name={item.icon}
                       size={18}
                       color="#39D97A"
                     />
-                  </motion.a>
-                ))}
-              </div>
-            )}
-          </motion.div>
+                  </span>
 
-          <motion.div
-            initial={reducedMotion ? false : { opacity: 0, x: 18 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.42 }}
-            viewport={{ once: true }}
-            className="grid gap-8 sm:grid-cols-3"
-          >
-            {columns.map((column) => (
-              <div key={column.title}>
-                <h3 className="mb-4 text-sm font-black uppercase tracking-[0.18em] text-[#39D97A]">
-                  {column.title}
-                </h3>
+                  <span>
+                    <span className="block text-xs font-black uppercase tracking-[0.16em] text-[#39D97A]">
+                      {item.label}
+                    </span>
 
-                <ul className="space-y-3">
-                  {column.links.map((link) => (
-                    <li key={`${link.href}-${link.label}`}>
-                      <Link
-                        href={link.href}
-                        className="group inline-flex items-center gap-2 text-sm font-semibold text-white/56 transition hover:text-white"
-                      >
-                        {link.label}
-                        <SvgIcon
-                          name="arrow-diagonal"
-                          size={12}
-                          color="#39D97A"
-                          className="opacity-0 transition group-hover:opacity-100"
-                        />
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-
-        <motion.div
-          initial={reducedMotion ? false : { opacity: 0, y: 18 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.42 }}
-          viewport={{ once: true }}
-          className="mt-12 grid gap-4 border-y border-[#1E314A] py-6 md:grid-cols-3"
-        >
-          {contactItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              target={item.href.startsWith('http') ? '_blank' : undefined}
-              rel={item.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-              className="group flex items-start gap-4 rounded-[1.4rem] border border-[#1E314A] bg-[#0E1B2D] p-4 transition hover:-translate-y-1 hover:border-[#39D97A]/25 hover:bg-[#13233A]"
-            >
-              <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-[#39D97A]/16 bg-[#39D97A]/10">
-                <SvgIcon name={item.icon} size={18} color="#39D97A" />
-              </span>
-
-              <span className="min-w-0 flex-1">
-                <span className="block text-[11px] font-black uppercase tracking-[0.16em] text-[#39D97A]">
-                  {item.label}
-                </span>
-                <span className="mt-1 block break-words text-sm leading-6 text-white/65 transition group-hover:text-white">
-                  {item.value}
-                </span>
-              </span>
-            </Link>
-          ))}
+                    <span className="mt-1 block text-sm leading-6 text-white/68">
+                      {item.value}
+                    </span>
+                  </span>
+                </a>
+              ))}
+            </div>
+          </div>
         </motion.div>
 
-        <div className="mt-10 flex flex-col gap-4 text-sm text-white/42 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p>
-              {footerData?.copyright_text ||
-                `© ${new Date().getFullYear()} ${brandName}. All rights reserved.`}
-            </p>
-            <p className="mt-1 text-xs text-white/30">
-              Built for trust, conversion, and growth.
-            </p>
-          </div>
+        <div className="grid gap-10 border-b border-[#1E314A] pb-12 md:grid-cols-3">
+          {columns.map((column, index) => (
+            <motion.div
+              key={column.title}
+              initial={reducedMotion ? false : { opacity: 0, y: 22 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: index * 0.08 }}
+              viewport={{ once: true }}
+            >
+              <h4 className="mb-5 text-sm font-black uppercase tracking-[0.16em] text-[#39D97A]">
+                {column.title}
+              </h4>
 
-          <div className="flex flex-wrap gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#39D97A]/16 bg-[#39D97A]/8 px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#39D97A]">
-              <SvgIcon name="security" size={13} color="#39D97A" />
-              Premium Digital Partner
-            </div>
+              <div className="space-y-4">
+                {column.links.map((link) => (
+                  <Link
+                    key={`${column.title}-${link.label}`}
+                    href={link.href}
+                    className="block text-sm text-white/60 transition-all duration-300 hover:text-[#39D97A]"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-6 pt-8 md:flex-row md:items-center md:justify-between">
+          <p className="text-sm text-white/40">
+            {footerData?.copyright_text ||
+              `© ${new Date().getFullYear()} Hbee Digitals. All rights reserved.`}
+          </p>
+
+          <div className="flex flex-wrap items-center gap-5 text-sm">
+            <Link
+              href="/pricing"
+              className="text-white/50 transition-all duration-300 hover:text-[#39D97A]"
+            >
+              Pricing
+            </Link>
+
+            <Link
+              href="/contact"
+              className="text-white/50 transition-all duration-300 hover:text-[#39D97A]"
+            >
+              Contact
+            </Link>
+
+            <Link
+              href="/privacy"
+              className="text-white/50 transition-all duration-300 hover:text-[#39D97A]"
+            >
+              Privacy Policy
+            </Link>
+
+            <Link
+              href="/terms"
+              className="text-white/50 transition-all duration-300 hover:text-[#39D97A]"
+            >
+              Terms of Service
+            </Link>
+
+            <Link
+              href="/cookies"
+              className="text-white/50 transition-all duration-300 hover:text-[#39D97A]"
+            >
+              Cookie Policy
+            </Link>
           </div>
         </div>
       </div>
