@@ -27,65 +27,84 @@ const poppins = Poppins({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://hbeedigitals.com'),
+
   title: {
-    default: 'Hbee Digitals - Digital Growth Studio',
+    default: 'Hbee Digitals — Digital Growth Studio',
     template: '%s | Hbee Digitals',
   },
+
   description:
-    'Premium websites, Shopify optimization, brand systems, and conversion-focused digital experiences for ambitious businesses.',
-  metadataBase: new URL('https://hbeedigitals.com'),
-  manifest: '/site.webmanifest',
-  icons: {
-    icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/favicon.svg', type: 'image/svg+xml' },
-      {
-        url: '/favicon-16x16.png',
-        sizes: '16x16',
-        type: 'image/png',
-      },
-      {
-        url: '/favicon-32x32.png',
-        sizes: '32x32',
-        type: 'image/png',
-      },
-    ],
-    apple: [
-      {
-        url: '/apple-touch-icon.png',
-        sizes: '180x180',
-        type: 'image/png',
-      },
-    ],
+    'Premium websites, Shopify optimization, digital infrastructure, and conversion-focused growth systems for ambitious brands.',
+
+  keywords: [
+    'Hbee Digitals',
+    'Shopify expert',
+    'website design',
+    'Shopify optimization',
+    'conversion optimization',
+    'digital growth studio',
+    'ecommerce growth',
+    'branding',
+    'UI UX design',
+    'web development',
+  ],
+
+  authors: [
+    {
+      name: 'Hbee Digitals',
+      url: 'https://hbeedigitals.com',
+    },
+  ],
+
+  creator: 'Hbee Digitals',
+  publisher: 'Hbee Digitals',
+
+  alternates: {
+    canonical: 'https://hbeedigitals.com',
   },
+
   openGraph: {
-    title: 'Hbee Digitals - Digital Growth Studio',
-    description:
-      'Premium websites, Shopify optimization, brand systems, and conversion-focused digital experiences for ambitious businesses.',
-    url: 'https://hbeedigitals.com',
-    siteName: 'Hbee Digitals',
     type: 'website',
     locale: 'en_US',
+    url: 'https://hbeedigitals.com',
+    title: 'Hbee Digitals — Digital Growth Studio',
+    description:
+      'Premium websites, Shopify optimization, digital infrastructure, and conversion-focused growth systems for ambitious brands.',
+    siteName: 'Hbee Digitals',
+
     images: [
       {
         url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Hbee Digitals - Digital Growth Studio',
+        alt: 'Hbee Digitals',
       },
     ],
   },
+
   twitter: {
     card: 'summary_large_image',
-    title: 'Hbee Digitals - Digital Growth Studio',
+    title: 'Hbee Digitals — Digital Growth Studio',
     description:
-      'Premium websites, Shopify optimization, brand systems, and conversion-focused digital experiences for ambitious businesses.',
-    images: ['/og-image.jpg'],
+      'Premium websites, Shopify optimization, digital infrastructure, and conversion-focused growth systems for ambitious brands.',
+    creator: '@hbeedigitals',
+    images: ['/twitter-image.jpg'],
   },
+
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
+
+  category: 'technology',
 }
 
 export const viewport: Viewport = {
