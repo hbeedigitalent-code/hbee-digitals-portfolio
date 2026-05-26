@@ -4,10 +4,44 @@ import Image from 'next/image'
 import { motion, useReducedMotion } from 'framer-motion'
 import { AboutData } from '@/types'
 import SvgIcon from '@/components/ui/SvgIcon'
+import { supabase } from '@/lib/supabase'
 
 interface AboutSectionProps {
-  data: AboutData
+  data: AboutData & Record<string, any>
   compact?: boolean
+}
+
+const ABOUT_BUCKET = 'project-images'
+
+function isFullUrl(value: string) {
+  return value.startsWith('http://') || value.startsWith('https://')
+}
+
+function getPublicImageUrl(value?: string) {
+  if (!value) return ''
+
+  const cleaned = value.trim().replace(/^\/+/, '')
+
+  if (!cleaned) return ''
+  if (isFullUrl(cleaned)) return cleaned
+  if (cleaned.includes('/storage/v1/object/public/')) return cleaned
+
+  return supabase.storage.from(ABOUT_BUCKET).getPublicUrl(cleaned).data.publicUrl
+}
+
+function getAboutImage(data: AboutData & Record<string, any>) {
+  return getPublicImageUrl(
+    data.imageUrl ||
+      data.image_url ||
+      data.founder_image_url ||
+      data.founder_image ||
+      data.founder_photo_url ||
+      data.founder_photo ||
+      data.profile_image ||
+      data.image_path ||
+      data.image ||
+      ''
+  )
 }
 
 function cleanIconName(icon?: string) {
@@ -71,10 +105,21 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
     title = 'About Hbee Digitals',
     subtitle = 'A digital growth studio helping ambitious brands build better websites, stronger stores, and more trusted online experiences.',
     description = 'Hbee Digitals helps businesses turn their digital presence into a clearer, stronger, and more conversion-focused system. We combine strategy, design, development, ecommerce thinking, and support to create websites and online experiences that feel premium and work with purpose.',
-    imageUrl,
     stats = [],
     values = [],
   } = data || {}
+
+  const imageSrc = getAboutImage(data || {})
+  const imageTitle =
+    data.founder_title ||
+    data.image_title ||
+    data.founder_name ||
+    'Hbee Digitals Founder'
+
+  const imageSubtitle =
+    data.founder_role ||
+    data.image_subtitle ||
+    'Strategy • Design • Ecommerce • Growth'
 
   return (
     <section
@@ -132,18 +177,19 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
             className="group relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.045] p-3 shadow-[0_28px_90px_rgba(0,0,0,0.28)] transition duration-500 hover:border-[#39D97A]/25"
           >
             <div className="relative h-[340px] overflow-hidden rounded-[1.5rem] bg-[#071427] sm:h-[430px]">
-              {imageUrl ? (
+              {imageSrc ? (
                 <>
                   <Image
-                    src={imageUrl}
-                    alt="Hbee Digitals homepage mockup on desktop workspace"
+                    src={imageSrc}
+                    alt={imageTitle}
                     fill
                     priority={false}
                     sizes="(max-width: 1024px) 100vw, 50vw"
-                    className="object-cover transition duration-700 group-hover:scale-[1.03]"
+                    className="object-cover object-top transition duration-700 group-hover:scale-[1.03]"
+                    unoptimized
                   />
 
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#060E1C]/78 via-[#060E1C]/10 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#060E1C]/82 via-[#060E1C]/10 to-transparent" />
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(57,217,122,0.18),transparent_35%)]" />
                 </>
               ) : (
@@ -154,15 +200,19 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
                     </div>
 
                     <p className="text-xs font-black uppercase tracking-[0.2em] text-[#39D97A]">
-                      Upload About Image
+                      Upload Founder Image
                     </p>
                   </div>
                 </div>
               )}
 
               <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/10 bg-[#060E1C]/72 p-4 backdrop-blur-xl">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#39D97A]">
-                  Strategy • Design • Ecommerce • Growth
+                <p className="text-sm font-black tracking-[-0.02em] text-white">
+                  {imageTitle}
+                </p>
+
+                <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-[#39D97A]">
+                  {imageSubtitle}
                 </p>
               </div>
             </div>
