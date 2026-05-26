@@ -127,6 +127,11 @@ export default function AdminLayout({
       icon: '/svgs/team.svg',
     },
     {
+      name: 'Trust Section',
+      href: '/admin/trust',
+      icon: '/svgs/verified.svg',
+    },
+    {
       name: 'FAQs',
       href: '/admin/faqs',
       icon: '/svgs/faq.svg',
