@@ -6,24 +6,46 @@ const baseUrl = 'https://hbeedigitals.com'
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = [
     { route: '', priority: 1, changeFrequency: 'weekly' as const },
+
     { route: '/about', priority: 0.85, changeFrequency: 'monthly' as const },
+
     { route: '/services', priority: 0.9, changeFrequency: 'monthly' as const },
+
     { route: '/pricing', priority: 0.88, changeFrequency: 'monthly' as const },
+
     { route: '/portfolio', priority: 0.88, changeFrequency: 'monthly' as const },
+
     { route: '/projects', priority: 0.75, changeFrequency: 'monthly' as const },
+
     { route: '/process', priority: 0.75, changeFrequency: 'monthly' as const },
+
     { route: '/blog', priority: 0.82, changeFrequency: 'weekly' as const },
+
+    { route: '/reviews', priority: 0.82, changeFrequency: 'monthly' as const },
+
     { route: '/faq', priority: 0.72, changeFrequency: 'monthly' as const },
+
     { route: '/contact', priority: 0.9, changeFrequency: 'monthly' as const },
+
     { route: '/privacy', priority: 0.35, changeFrequency: 'yearly' as const },
+
     { route: '/terms', priority: 0.35, changeFrequency: 'yearly' as const },
+
     { route: '/cookies', priority: 0.35, changeFrequency: 'yearly' as const },
   ]
 
   const [{ data: portfolioItems }, { data: services }, { data: blogPosts }] =
     await Promise.all([
-      supabase.from('portfolio_items').select('slug').eq('is_active', true),
-      supabase.from('services').select('slug').eq('is_active', true),
+      supabase
+        .from('portfolio_items')
+        .select('slug')
+        .eq('is_active', true),
+
+      supabase
+        .from('services')
+        .select('slug')
+        .eq('is_active', true),
+
       supabase
         .from('blog_posts')
         .select('slug')
@@ -67,6 +89,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: item.changeFrequency,
       priority: item.priority,
     })),
+
     ...serviceRoutes,
     ...portfolioRoutes,
     ...blogRoutes,
