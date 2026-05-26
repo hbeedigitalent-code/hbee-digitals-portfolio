@@ -63,11 +63,11 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
   const headingParts = headline.split(new RegExp(`(${highlightedWord})`, 'i'))
 
   return (
-    <section className="relative overflow-hidden bg-[#050B16] px-5 py-16 text-white sm:px-6 md:px-10 lg:px-12 lg:py-24">
+    <section className="relative overflow-hidden bg-[#07111F] px-5 py-16 text-white sm:px-6 md:px-10 lg:px-12 lg:py-24">
       <div className="absolute inset-0 -z-0">
-        <div className="absolute left-1/2 top-0 h-[440px] w-[760px] -translate-x-1/2 rounded-full bg-[#39D97A]/8 blur-[150px]" />
-        <div className="absolute bottom-0 right-0 h-[320px] w-[460px] rounded-full bg-[#C6F135]/7 blur-[120px]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.025)_1px,transparent_1px)] bg-[size:82px_82px] opacity-25" />
+        <div className="absolute left-1/2 top-0 h-[440px] w-[760px] -translate-x-1/2 rounded-full bg-[#39D97A]/7 blur-[150px]" />
+        <div className="absolute bottom-0 right-0 h-[320px] w-[460px] rounded-full bg-[#39D97A]/5 blur-[120px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.022)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.022)_1px,transparent_1px)] bg-[size:82px_82px] opacity-20" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl">
@@ -78,14 +78,14 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
           viewport={{ once: true }}
           className="mx-auto max-w-5xl text-center"
         >
-          <p className="mx-auto mb-5 inline-flex rounded-full border border-[#39D97A]/24 bg-[#39D97A]/10 px-5 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-[#B7FF2A]">
+          <p className="mx-auto mb-5 inline-flex rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-5 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-[#39D97A]">
             {badge}
           </p>
 
           <h2 className="text-4xl font-black uppercase leading-[0.96] tracking-[-0.055em] text-white sm:text-5xl md:text-6xl lg:text-7xl">
             {headingParts.map((part, index) =>
               part.toLowerCase() === highlightedWord.toLowerCase() ? (
-                <span key={`${part}-${index}`} className="text-[#B7FF2A]">
+                <span key={`${part}-${index}`} className="text-[#39D97A]">
                   {part}
                 </span>
               ) : (
@@ -108,13 +108,13 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: index * 0.06 }}
                 viewport={{ once: true }}
-                className="rounded-[1.6rem] border border-[#B7FF2A]/16 bg-white/[0.035] p-5 text-center backdrop-blur-xl transition hover:-translate-y-1 hover:border-[#B7FF2A]/35 hover:bg-[#B7FF2A]/5"
+                className="rounded-[1.6rem] border border-[#1E314A] bg-[#0E1B2D] p-5 text-center backdrop-blur-xl transition hover:-translate-y-1 hover:border-[#39D97A]/30 hover:bg-[#13233A]"
               >
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-[#B7FF2A]/28 bg-[#B7FF2A]/10">
-                  <SvgIcon name={stat.icon || 'verified'} size={24} color="#B7FF2A" />
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10">
+                  <SvgIcon name={stat.icon || 'verified'} size={24} color="#39D97A" />
                 </div>
 
-                <p className="text-4xl font-black tracking-[-0.05em] text-[#B7FF2A]">
+                <p className="text-4xl font-black tracking-[-0.05em] text-[#39D97A]">
                   {stat.value}
                 </p>
 
@@ -132,14 +132,14 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
             viewport={{ once: true }}
-            className="mt-10 rounded-[1.6rem] border border-white/10 bg-white/[0.035] p-5 backdrop-blur-xl"
+            className="mt-10 rounded-[1.6rem] border border-[#1E314A] bg-[#0E1B2D] p-5 backdrop-blur-xl"
           >
             <div className="grid gap-6 lg:grid-cols-[0.35fr_1fr] lg:items-center">
               <div>
                 <p className="text-sm font-black uppercase tracking-[0.16em] text-white">
                   Trusted Partner Of
                 </p>
-                <p className="mt-1 text-sm font-black uppercase tracking-[0.16em] text-[#B7FF2A]">
+                <p className="mt-1 text-sm font-black uppercase tracking-[0.16em] text-[#39D97A]">
                   Growing Brands
                 </p>
               </div>
@@ -148,7 +148,7 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
                 {partnerLogos.map((partner, index) => (
                   <div
                     key={`${partner.name}-${index}`}
-                    className="flex min-h-[60px] items-center justify-center rounded-2xl border border-white/8 bg-[#07111F]/70 px-4"
+                    className="flex min-h-[60px] items-center justify-center rounded-2xl border border-[#1E314A] bg-[#07111F]/70 px-4"
                   >
                     {partner.logo ? (
                       <img
@@ -174,18 +174,18 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
             viewport={{ once: true }}
-            className="mt-6 rounded-[1.7rem] border border-white/10 bg-white/[0.035] p-5 backdrop-blur-xl md:p-6"
+            className="mt-6 rounded-[1.7rem] border border-[#1E314A] bg-[#0E1B2D] p-5 backdrop-blur-xl md:p-6"
           >
             <div className="grid gap-5 lg:grid-cols-[0.28fr_1fr]">
-              <div className="rounded-[1.4rem] border border-white/10 bg-[#07111F]/70 p-5">
+              <div className="rounded-[1.4rem] border border-[#1E314A] bg-[#07111F]/70 p-5">
                 <p className="text-lg font-black uppercase leading-tight text-white">
                   What Clients
                 </p>
-                <p className="text-lg font-black uppercase leading-tight text-[#B7FF2A]">
+                <p className="text-lg font-black uppercase leading-tight text-[#39D97A]">
                   Are Saying
                 </p>
 
-                <div className="mt-6 rounded-2xl border border-[#B7FF2A]/18 bg-[#B7FF2A]/10 p-4">
+                <div className="mt-6 rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10 p-4">
                   <p className="text-sm font-black text-white">★★★★★</p>
                   <p className="mt-2 text-sm leading-6 text-white/65">
                     Reviews collected from real client experiences and project feedback.
@@ -197,9 +197,9 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
                 {testimonials.slice(0, 3).map((item, index) => (
                   <article
                     key={`${item.name}-${index}`}
-                    className="rounded-[1.4rem] border border-white/10 bg-[#07111F]/70 p-5 transition hover:-translate-y-1 hover:border-[#B7FF2A]/28"
+                    className="rounded-[1.4rem] border border-[#1E314A] bg-[#07111F]/70 p-5 transition hover:-translate-y-1 hover:border-[#39D97A]/28"
                   >
-                    <p className="text-4xl font-black leading-none text-[#B7FF2A]">
+                    <p className="text-4xl font-black leading-none text-[#39D97A]">
                       “
                     </p>
 
@@ -208,7 +208,7 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
                     </p>
 
                     <div className="mt-5 flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-[#B7FF2A]/20 bg-[#B7FF2A]/10">
+                      <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10">
                         {item.avatar ? (
                           <img
                             src={item.avatar}
@@ -216,7 +216,7 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
                             className="h-full w-full object-cover"
                           />
                         ) : (
-                          <span className="text-sm font-black text-[#B7FF2A]">
+                          <span className="text-sm font-black text-[#39D97A]">
                             {item.name.charAt(0)}
                           </span>
                         )}
@@ -242,16 +242,16 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
             viewport={{ once: true }}
-            className="mt-8 rounded-[1.8rem] border border-[#B7FF2A]/24 bg-[#B7FF2A]/5 p-5 shadow-[0_0_80px_rgba(183,255,42,0.08)] md:p-6"
+            className="mt-8 rounded-[1.8rem] border border-[#39D97A]/20 bg-[#39D97A]/5 p-5 shadow-[0_0_80px_rgba(57,217,122,0.08)] md:p-6"
           >
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {trustBadges.map((item, index) => (
                 <div
                   key={`${item.title}-${index}`}
-                  className="rounded-[1.3rem] border border-white/10 bg-[#07111F]/70 p-5"
+                  className="rounded-[1.3rem] border border-[#1E314A] bg-[#07111F]/70 p-5"
                 >
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-[#B7FF2A]/20 bg-[#B7FF2A]/10">
-                    <SvgIcon name={item.icon || 'verified'} size={22} color="#B7FF2A" />
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-[#39D97A]/20 bg-[#39D97A]/10">
+                    <SvgIcon name={item.icon || 'verified'} size={22} color="#39D97A" />
                   </div>
 
                   <h3 className="text-lg font-black uppercase leading-tight text-white">
@@ -267,19 +267,19 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
               ))}
             </div>
 
-            <div className="mt-8 flex flex-col items-center justify-between gap-5 border-t border-white/10 pt-6 text-center md:flex-row md:text-left">
+            <div className="mt-8 flex flex-col items-center justify-between gap-5 border-t border-[#1E314A] pt-6 text-center md:flex-row md:text-left">
               <div>
                 <p className="text-sm font-black uppercase tracking-[0.16em] text-white">
                   We stand by our work
                 </p>
-                <p className="mt-2 text-xl font-black uppercase tracking-[-0.03em] text-[#B7FF2A]">
+                <p className="mt-2 text-xl font-black uppercase tracking-[-0.03em] text-[#39D97A]">
                   No fluff. Just better systems.
                 </p>
               </div>
 
               <Link
                 href={ctaLink}
-                className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-[#B7FF2A] px-7 py-3 text-sm font-black text-[#07111F] transition hover:scale-[1.02]"
+                className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-[#39D97A] px-7 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
               >
                 {ctaText}
               </Link>
