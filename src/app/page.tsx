@@ -12,6 +12,7 @@ import CTASection from '@/components/sections/CTASection'
 import NewsletterSection from '@/components/sections/NewsletterSection'
 import ClientProofsSection from '@/components/sections/ClientProofsSection'
 import FeaturedPortfolioSection from '@/components/sections/FeaturedPortfolioSection'
+import TrustSection from '@/components/sections/TrustSection'
 
 import Reveal from '@/components/Reveal'
 
@@ -54,6 +55,7 @@ export default async function HomePage() {
     ctaRes,
     portfolioRes,
     pricingRes,
+    trustRes,
   ] = await Promise.all([
     supabase.from('hero_section').select('*').single(),
 
@@ -87,6 +89,13 @@ export default async function HomePage() {
       .eq('is_active', true)
       .order('display_order', { ascending: true })
       .limit(3),
+
+    supabase
+      .from('trust_section')
+      .select('*')
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle(),
   ])
 
   const hero = heroRes.data || {}
@@ -96,6 +105,7 @@ export default async function HomePage() {
   const cta = ctaRes.data || {}
   const portfolioItems = portfolioRes.data || []
   const pricingPackages = pricingRes.data || []
+  const trust = trustRes.data || null
 
   const statsData = [
     { value: '87+', label: 'Projects Completed', icon: 'portfolio' },
@@ -228,6 +238,16 @@ export default async function HomePage() {
                   subtitle: about.subtitle,
                   description: about.description,
                   imageUrl: about.image_url,
+                  image_url: about.image_url,
+                  founder_image_url: about.founder_image_url,
+                  founder_image: about.founder_image,
+                  founder_photo_url: about.founder_photo_url,
+                  founder_photo: about.founder_photo,
+                  founder_title: about.founder_title,
+                  founder_name: about.founder_name,
+                  founder_role: about.founder_role,
+                  image_title: about.image_title,
+                  image_subtitle: about.image_subtitle,
                   stats: about.stats || [],
                   values: about.values || [],
                 }}
@@ -237,6 +257,23 @@ export default async function HomePage() {
         )}
 
         <ClientProofsSection />
+
+        {trust && (
+          <TrustSection
+            data={{
+              badge: trust.badge,
+              headline: trust.headline,
+              highlighted_word: trust.highlighted_word,
+              description: trust.description,
+              stats: trust.stats || [],
+              partner_logos: trust.partner_logos || [],
+              testimonials: trust.testimonials || [],
+              trust_badges: trust.trust_badges || [],
+              cta_text: trust.cta_text,
+              cta_link: trust.cta_link,
+            }}
+          />
+        )}
 
         <section className="relative">
           <Reveal delay={0.2}>
