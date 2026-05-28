@@ -11,7 +11,9 @@ import FAQSection from '@/components/sections/FAQSection'
 import CTASection from '@/components/sections/CTASection'
 import NewsletterSection from '@/components/sections/NewsletterSection'
 import ClientProofsSection from '@/components/sections/ClientProofsSection'
+import FeaturedResults from '@/components/home/FeaturedResults'
 import FeaturedPortfolioSection from '@/components/sections/FeaturedPortfolioSection'
+import TrustStack from '@/components/home/TrustStack'
 import TrustSection from '@/components/sections/TrustSection'
 
 import Reveal from '@/components/Reveal'
@@ -218,6 +220,10 @@ export default async function HomePage() {
             <ServiceOrbit services={services} intervalMs={5500} />
           </div>
         </section>
+
+        <FeaturedResults items={portfolioItems} />
+
+        <TrustStack />
 
         <FeaturedPortfolioSection items={portfolioItems} />
 
