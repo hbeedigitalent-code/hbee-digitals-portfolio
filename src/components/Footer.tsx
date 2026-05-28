@@ -110,6 +110,7 @@ export default function Footer() {
             links: [
               { label: 'About Us', href: '/about' },
               { label: 'Portfolio', href: '/portfolio' },
+              { label: 'Reviews', href: '/reviews' },
               { label: 'Our Process', href: '/process' },
               { label: 'Pricing', href: '/pricing' },
               { label: 'FAQ', href: '/faq' },
@@ -257,6 +258,9 @@ export default function Footer() {
           <div className="flex flex-wrap items-center gap-5 text-sm">
             <Link href="/pricing" className="text-white/50 transition hover:text-[#39D97A]">
               Pricing
+            </Link>
+            <Link href="/reviews" className="text-white/50 transition hover:text-[#39D97A]">
+              Reviews
             </Link>
             <Link href="/faq" className="text-white/50 transition hover:text-[#39D97A]">
               FAQ

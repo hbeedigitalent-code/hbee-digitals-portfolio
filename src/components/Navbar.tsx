@@ -72,6 +72,20 @@ const fallbackMenu: NavGroup[] = [
     ],
   },
   {
+    label: 'Reviews',
+    href: '/reviews',
+    icon: 'verified',
+    children: [
+      {
+        label: 'Client Reviews',
+        href: '/reviews',
+        icon: 'verified',
+        description:
+          'See testimonials, trust signals, and client feedback from Hbee Digitals projects.',
+      },
+    ],
+  },
+  {
     label: 'Company',
     href: '/about',
     icon: 'about',
@@ -115,8 +129,8 @@ const fallbackMenu: NavGroup[] = [
       },
     ],
   },
-  { label: 'Contact', href: '/contact', icon: 'email' },
   { label: 'Pricing', href: '/pricing', icon: 'pricing' },
+  { label: 'Contact', href: '/contact', icon: 'email' },
 ]
 
 function isActiveRoute(pathname: string, href: string) {
@@ -180,7 +194,16 @@ export default function Navbar() {
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const desktopMenu = useMemo(() => {
-    const coreLabels = ['Home', 'Services', 'Portfolio', 'Company', 'Resources', 'Contact', 'Pricing']
+    const coreLabels = [
+      'Home',
+      'Services',
+      'Portfolio',
+      'Reviews',
+      'Company',
+      'Resources',
+      'Pricing',
+      'Contact',
+    ]
 
     const enhanced = fallbackMenu.map((fallback) => {
       const matched = menuItems.find(
