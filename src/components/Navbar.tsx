@@ -64,24 +64,24 @@ const fallbackMenu: NavGroup[] = [
         description: 'Browse selected stores, websites, and growth systems.',
       },
       {
-        label: 'Projects',
-        href: '/projects',
-        icon: 'projects',
-        description: 'Explore project work and implementation examples.',
+        label: 'Before & After',
+        href: '/before-after',
+        icon: 'verified',
+        description:
+          'See visual before and after redesigns focused on trust and conversion improvements.',
       },
-    ],
-  },
-  {
-    label: 'Reviews',
-    href: '/reviews',
-    icon: 'verified',
-    children: [
       {
         label: 'Client Reviews',
         href: '/reviews',
         icon: 'verified',
         description:
           'See testimonials, trust signals, and client feedback from Hbee Digitals projects.',
+      },
+      {
+        label: 'Projects',
+        href: '/projects',
+        icon: 'projects',
+        description: 'Explore project work and implementation examples.',
       },
     ],
   },
@@ -198,7 +198,6 @@ export default function Navbar() {
       'Home',
       'Services',
       'Portfolio',
-      'Reviews',
       'Company',
       'Resources',
       'Pricing',
@@ -221,6 +220,8 @@ export default function Navbar() {
     const extraItems = menuItems.filter(
       (item) =>
         !coreLabels.includes(item.label) &&
+        !['/reviews', '/before-after'].includes(cleanHref(item.href)) &&
+        !['reviews', 'before & after'].includes(item.label.toLowerCase()) &&
         !enhanced.some((nav) => nav.href === cleanHref(item.href))
     )
 
@@ -284,7 +285,19 @@ export default function Navbar() {
       if (menuData?.length) {
         setMenuItems(
           menuData
-            .filter((item) => item.label.toLowerCase() !== 'faqs' && item.label.toLowerCase() !== 'faq')
+            .filter((item) => {
+              const label = item.label.toLowerCase()
+              const href = cleanHref(item.href)
+
+              return (
+                label !== 'faqs' &&
+                label !== 'faq' &&
+                label !== 'reviews' &&
+                label !== 'before & after' &&
+                href !== '/reviews' &&
+                href !== '/before-after'
+              )
+            })
             .map((item) => ({
               label: item.label,
               href: cleanHref(item.href),
