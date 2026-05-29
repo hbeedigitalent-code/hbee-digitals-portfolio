@@ -5,8 +5,10 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 
 import PremiumHomeHero from '@/components/home/PremiumHomeHero'
+import HeroShowcasePanel from '@/components/home/HeroShowcasePanel'
 import TrustedTechnologies from '@/components/home/TrustedTechnologies'
 import FeaturedResults from '@/components/home/FeaturedResults'
+import BeforeAfterPreview from '@/components/home/BeforeAfterPreview'
 import TrustStack from '@/components/home/TrustStack'
 import ReviewCarousel from '@/components/home/ReviewCarousel'
 
@@ -46,45 +48,38 @@ function normalizeArray(value: any): string[] {
 }
 
 export default async function HomePage() {
-  const [
-    servicesRes,
-    aboutRes,
-    faqsRes,
-    ctaRes,
-    portfolioRes,
-    pricingRes,
-  ] = await Promise.all([
-    supabase
-      .from('services')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true }),
+  const [servicesRes, aboutRes, faqsRes, ctaRes, portfolioRes, pricingRes] =
+    await Promise.all([
+      supabase
+        .from('services')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true }),
 
-    supabase.from('about_section').select('*').single(),
+      supabase.from('about_section').select('*').single(),
 
-    supabase
-      .from('faqs')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true }),
+      supabase
+        .from('faqs')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true }),
 
-    supabase.from('cta_section').select('*').single(),
+      supabase.from('cta_section').select('*').single(),
 
-    supabase
-      .from('portfolio_items')
-      .select('*')
-      .eq('featured', true)
-      .eq('is_active', true)
-      .order('display_order', { ascending: true })
-      .limit(12),
+      supabase
+        .from('portfolio_items')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+        .limit(30),
 
-    supabase
-      .from('pricing_packages')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true })
-      .limit(3),
-  ])
+      supabase
+        .from('pricing_packages')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+        .limit(3),
+    ])
 
   const services = servicesRes.data || []
   const about = aboutRes.data || {}
@@ -106,7 +101,7 @@ export default async function HomePage() {
       title: 'Strategy First',
       icon: 'strategy',
       description:
-        'We do not just design pages. We structure digital systems around trust, clarity, conversion, and long-term growth.',
+        'We structure digital systems around trust, clarity, conversion, and long-term growth.',
       points: [
         'Growth-focused planning',
         'Clear brand positioning',
@@ -118,7 +113,7 @@ export default async function HomePage() {
       title: 'Premium Execution',
       icon: 'web-development',
       description:
-        'Every layout, section, and interaction is built to feel clean, modern, responsive, and credible across devices.',
+        'Every layout and interaction is built to feel clean, modern, responsive, and credible.',
       points: [
         'Mobile-first interface',
         'Premium visual hierarchy',
@@ -130,7 +125,7 @@ export default async function HomePage() {
       title: 'Optimization',
       icon: 'growth',
       description:
-        'We focus on improving how visitors move, trust, and take action instead of only making the website look good.',
+        'We improve how visitors move, trust, and take action instead of only making the website look good.',
       points: [
         'Better conversion flow',
         'Improved page experience',
@@ -142,7 +137,7 @@ export default async function HomePage() {
       title: 'Long-Term Support',
       icon: 'support',
       description:
-        'We help brands keep improving after launch with guidance, updates, and practical optimization support.',
+        'We help brands keep improving after launch with guidance, updates, and practical support.',
       points: [
         'Technical support',
         'Performance monitoring',
@@ -171,6 +166,8 @@ export default async function HomePage() {
       <main id="main-content" className="relative z-10">
         <PremiumHomeHero />
 
+        <HeroShowcasePanel />
+
         <TrustedTechnologies />
 
         <section className="relative px-5 py-10 sm:px-6 md:px-10 lg:px-12">
@@ -183,13 +180,14 @@ export default async function HomePage() {
 
         <FeaturedPortfolioSection items={portfolioItems} />
 
+        <BeforeAfterPreview items={portfolioItems} />
+
         <TrustStack />
 
         <ReviewCarousel />
 
         <section className="relative px-5 py-12 sm:px-6 md:px-10 lg:px-12 lg:py-20">
           <GridPattern />
-
           <div className="relative z-10 mx-auto max-w-7xl">
             <ServiceOrbit services={services} intervalMs={5500} />
           </div>
@@ -197,7 +195,6 @@ export default async function HomePage() {
 
         <section className="relative px-5 py-12 sm:px-6 md:px-10 lg:px-12 lg:py-20">
           <GridPattern />
-
           <div className="relative z-10 mx-auto max-w-7xl">
             <TabSwitcher items={whyChooseUsItems} />
           </div>
