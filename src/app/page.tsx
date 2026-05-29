@@ -4,26 +4,23 @@ import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 
-import HeroSection from '@/components/sections/HeroSection'
+import PremiumHomeHero from '@/components/home/PremiumHomeHero'
+import TrustedTechnologies from '@/components/home/TrustedTechnologies'
+import FeaturedResults from '@/components/home/FeaturedResults'
+import TrustStack from '@/components/home/TrustStack'
+import ReviewCarousel from '@/components/home/ReviewCarousel'
+
 import AboutSection from '@/components/sections/AboutSection'
-import TestimonialsSection from '@/components/sections/TestimonialsSection'
 import FAQSection from '@/components/sections/FAQSection'
 import CTASection from '@/components/sections/CTASection'
-import NewsletterSection from '@/components/sections/NewsletterSection'
-import ClientProofsSection from '@/components/sections/ClientProofsSection'
-import FeaturedResults from '@/components/home/FeaturedResults'
 import FeaturedPortfolioSection from '@/components/sections/FeaturedPortfolioSection'
-import TrustStack from '@/components/home/TrustStack'
-import TrustSection from '@/components/sections/TrustSection'
 
 import Reveal from '@/components/Reveal'
 
 import StatsBar from '@/components/ui/StatsBar'
-import LogoMarquee from '@/components/ui/LogoMarquee'
 import TabSwitcher from '@/components/ui/TabSwitcher'
 import ServiceOrbit from '@/components/ui/ServiceOrbit'
 import GridPattern from '@/components/ui/GridPattern'
-import GlowOrb from '@/components/ui/GlowOrb'
 import SvgIcon from '@/components/ui/SvgIcon'
 import GradientHeading from '@/components/ui/GradientHeading'
 
@@ -50,17 +47,13 @@ function normalizeArray(value: any): string[] {
 
 export default async function HomePage() {
   const [
-    heroRes,
     servicesRes,
     aboutRes,
     faqsRes,
     ctaRes,
     portfolioRes,
     pricingRes,
-    trustRes,
   ] = await Promise.all([
-    supabase.from('hero_section').select('*').single(),
-
     supabase
       .from('services')
       .select('*')
@@ -83,7 +76,7 @@ export default async function HomePage() {
       .eq('featured', true)
       .eq('is_active', true)
       .order('display_order', { ascending: true })
-      .limit(6),
+      .limit(12),
 
     supabase
       .from('pricing_packages')
@@ -91,23 +84,14 @@ export default async function HomePage() {
       .eq('is_active', true)
       .order('display_order', { ascending: true })
       .limit(3),
-
-    supabase
-      .from('trust_section')
-      .select('*')
-      .eq('is_active', true)
-      .limit(1)
-      .maybeSingle(),
   ])
 
-  const hero = heroRes.data || {}
   const services = servicesRes.data || []
   const about = aboutRes.data || {}
   const faqs = faqsRes.data || []
   const cta = ctaRes.data || {}
   const portfolioItems = portfolioRes.data || []
   const pricingPackages = pricingRes.data || []
-  const trust = trustRes.data || null
 
   const statsData = [
     { value: '87+', label: 'Projects Completed', icon: 'portfolio' },
@@ -173,6 +157,10 @@ export default async function HomePage() {
       about.subtitle ||
       about.description ||
       about.image_url ||
+      about.founder_image_url ||
+      about.founder_image ||
+      about.founder_photo_url ||
+      about.founder_photo ||
       (Array.isArray(about.stats) && about.stats.length > 0) ||
       (Array.isArray(about.values) && about.values.length > 0))
 
@@ -181,27 +169,9 @@ export default async function HomePage() {
       <Navbar />
 
       <main id="main-content" className="relative z-10">
-        <section className="relative">
-          <GridPattern />
-          <GlowOrb />
+        <PremiumHomeHero />
 
-          <HeroSection
-            data={{
-              title: hero.title,
-              subtitle: hero.subtitle,
-              primaryCtaText: hero.primary_cta_text || 'Get Free Audit',
-              primaryCtaLink: hero.primary_cta_link || '/contact',
-              secondaryCtaText:
-                hero.secondary_cta_text || 'View Case Studies',
-              secondaryCtaLink: hero.secondary_cta_link || '/portfolio',
-              backgroundImage: hero.background_image,
-              featureBullets:
-                hero.feature_bullets ||
-                'Shopify Optimization|Conversion Systems|Accessibility Support',
-              ...(hero.video_url ? { video_url: hero.video_url } : {}),
-            }}
-          />
-        </section>
+        <TrustedTechnologies />
 
         <section className="relative px-5 py-10 sm:px-6 md:px-10 lg:px-12">
           <div className="mx-auto max-w-7xl">
@@ -209,11 +179,15 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="relative bg-white">
-          <LogoMarquee />
-        </section>
+        <FeaturedResults items={portfolioItems} />
 
-        <section className="relative px-5 py-12 sm:px-6 md:px-10 lg:px-12 lg:py-16">
+        <FeaturedPortfolioSection items={portfolioItems} />
+
+        <TrustStack />
+
+        <ReviewCarousel />
+
+        <section className="relative px-5 py-12 sm:px-6 md:px-10 lg:px-12 lg:py-20">
           <GridPattern />
 
           <div className="relative z-10 mx-auto max-w-7xl">
@@ -221,13 +195,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <FeaturedResults items={portfolioItems} />
-
-        <TrustStack />
-
-        <FeaturedPortfolioSection items={portfolioItems} />
-
-        <section className="relative px-5 py-12 sm:px-6 md:px-10 lg:px-12 lg:py-16">
+        <section className="relative px-5 py-12 sm:px-6 md:px-10 lg:px-12 lg:py-20">
           <GridPattern />
 
           <div className="relative z-10 mx-auto max-w-7xl">
@@ -261,31 +229,6 @@ export default async function HomePage() {
             </Reveal>
           </section>
         )}
-
-        <ClientProofsSection />
-
-        {trust && (
-          <TrustSection
-            data={{
-              badge: trust.badge,
-              headline: trust.headline,
-              highlighted_word: trust.highlighted_word,
-              description: trust.description,
-              stats: trust.stats || [],
-              partner_logos: trust.partner_logos || [],
-              testimonials: trust.testimonials || [],
-              trust_badges: trust.trust_badges || [],
-              cta_text: trust.cta_text,
-              cta_link: trust.cta_link,
-            }}
-          />
-        )}
-
-        <section className="relative">
-          <Reveal delay={0.2}>
-            <TestimonialsSection />
-          </Reveal>
-        </section>
 
         {pricingPackages.length > 0 && (
           <section className="relative px-5 py-16 sm:px-6 md:px-10 lg:px-12 lg:py-24">
@@ -404,10 +347,6 @@ export default async function HomePage() {
               }}
             />
           </Reveal>
-        </section>
-
-        <section className="relative">
-          <NewsletterSection />
         </section>
       </main>
 
