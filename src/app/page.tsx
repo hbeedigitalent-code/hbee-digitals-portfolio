@@ -20,13 +20,13 @@ import Reveal from '@/components/Reveal'
 
 import StatsBar from '@/components/ui/StatsBar'
 import TabSwitcher from '@/components/ui/TabSwitcher'
-import ServiceOrbit from '@/components/ui/ServiceOrbit'
 import GridPattern from '@/components/ui/GridPattern'
 import GlowOrb from '@/components/ui/GlowOrb'
 import SvgIcon from '@/components/ui/SvgIcon'
 import GradientHeading from '@/components/ui/GradientHeading'
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 function normalizeArray(value: any): string[] {
   if (!value) return []
@@ -48,50 +48,36 @@ function normalizeArray(value: any): string[] {
 }
 
 export default async function HomePage() {
-  const [
-    heroRes,
-    servicesRes,
-    aboutRes,
-    faqsRes,
-    ctaRes,
-    portfolioRes,
-    pricingRes,
-  ] = await Promise.all([
-    supabase.from('hero_section').select('*').single(),
+  const [heroRes, aboutRes, faqsRes, ctaRes, portfolioRes, pricingRes] =
+    await Promise.all([
+      supabase.from('hero_section').select('*').single(),
 
-    supabase
-      .from('services')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true }),
+      supabase.from('about_section').select('*').single(),
 
-    supabase.from('about_section').select('*').single(),
+      supabase
+        .from('faqs')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true }),
 
-    supabase
-      .from('faqs')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true }),
+      supabase.from('cta_section').select('*').single(),
 
-    supabase.from('cta_section').select('*').single(),
+      supabase
+        .from('portfolio_items')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+        .limit(12),
 
-    supabase
-      .from('portfolio_items')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true })
-      .limit(30),
-
-    supabase
-      .from('pricing_packages')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true })
-      .limit(3),
-  ])
+      supabase
+        .from('pricing_packages')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+        .limit(3),
+    ])
 
   const hero = heroRes.data || {}
-  const services = servicesRes.data || []
   const about = aboutRes.data || {}
   const faqs = faqsRes.data || []
   const cta = ctaRes.data || {}
@@ -213,14 +199,6 @@ export default async function HomePage() {
         <TrustStack />
 
         <ReviewCarousel />
-
-        <section className="relative px-5 py-12 sm:px-6 md:px-10 lg:px-12 lg:py-20">
-          <GridPattern />
-
-          <div className="relative z-10 mx-auto max-w-7xl">
-            <ServiceOrbit services={services} intervalMs={5500} />
-          </div>
-        </section>
 
         <section className="relative px-5 py-12 sm:px-6 md:px-10 lg:px-12 lg:py-20">
           <GridPattern />

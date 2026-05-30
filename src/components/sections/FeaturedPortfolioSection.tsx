@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -47,63 +47,55 @@ function getHref(item: PortfolioItem) {
   return item.slug ? `/portfolio/${item.slug}` : '/portfolio'
 }
 
+function getWrappedIndex(index: number, length: number) {
+  return ((index % length) + length) % length
+}
+
 export default function FeaturedPortfolioSection({
   items = [],
 }: {
   items?: PortfolioItem[]
 }) {
   const reducedMotion = useReducedMotion()
-  const scrollRef = useRef<HTMLDivElement | null>(null)
-  const cardRefs = useRef<(HTMLAnchorElement | null)[]>([])
+  const portfolioItems = useMemo(() => items.filter(Boolean), [items])
   const [activeIndex, setActiveIndex] = useState(0)
 
-  const portfolioItems = useMemo(() => items.filter(Boolean), [items])
-
   useEffect(() => {
-    const container = scrollRef.current
-    if (!container || portfolioItems.length === 0) return
+    if (reducedMotion || portfolioItems.length <= 1) return
 
-    function updateActiveCard() {
-      if (!container) return
+    const timer = setInterval(() => {
+      setActiveIndex((prev) => getWrappedIndex(prev + 1, portfolioItems.length))
+    }, 6500)
 
-      const containerRect = container.getBoundingClientRect()
-      const containerCenter = containerRect.left + containerRect.width / 2
-
-      let closestIndex = 0
-      let closestDistance = Number.POSITIVE_INFINITY
-
-      cardRefs.current.forEach((card, index) => {
-        if (!card) return
-
-        const rect = card.getBoundingClientRect()
-        const cardCenter = rect.left + rect.width / 2
-        const distance = Math.abs(containerCenter - cardCenter)
-
-        if (distance < closestDistance) {
-          closestDistance = distance
-          closestIndex = index
-        }
-      })
-
-      setActiveIndex(closestIndex)
-    }
-
-    updateActiveCard()
-
-    container.addEventListener('scroll', updateActiveCard, { passive: true })
-    window.addEventListener('resize', updateActiveCard)
-
-    return () => {
-      container.removeEventListener('scroll', updateActiveCard)
-      window.removeEventListener('resize', updateActiveCard)
-    }
-  }, [portfolioItems.length])
+    return () => clearInterval(timer)
+  }, [portfolioItems.length, reducedMotion])
 
   if (!portfolioItems.length) return null
 
+  const visibleCards = [-2, -1, 0, 1, 2]
+    .map((offset) => {
+      const index = getWrappedIndex(activeIndex + offset, portfolioItems.length)
+      return {
+        item: portfolioItems[index],
+        index,
+        offset,
+      }
+    })
+    .filter((card, position, array) => {
+      return array.findIndex((item) => item.index === card.index) === position
+    })
+
+  function goNext() {
+    setActiveIndex((prev) => getWrappedIndex(prev + 1, portfolioItems.length))
+  }
+
+  function goPrev() {
+    setActiveIndex((prev) => getWrappedIndex(prev - 1, portfolioItems.length))
+  }
+
   return (
     <section className="relative overflow-hidden bg-[#07111F] py-16 text-white lg:py-24">
-      <div className="absolute inset-0 -z-0">
+      <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/2 top-10 h-[440px] w-[760px] -translate-x-1/2 rounded-full bg-[#39D97A]/7 blur-[140px]" />
         <div className="absolute bottom-0 right-0 h-[360px] w-[520px] rounded-full bg-[#39D97A]/5 blur-[130px]" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.018)_1px,transparent_1px)] bg-[size:82px_82px] opacity-20" />
@@ -115,118 +107,185 @@ export default function FeaturedPortfolioSection({
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45 }}
           viewport={{ once: true }}
-          className="mx-auto max-w-4xl text-center"
+          className="max-w-4xl"
         >
-          <p className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
+          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
             <SvgIcon name="portfolio" size={14} color="#39D97A" />
-            Our Work
+            Featured Work
           </p>
 
           <h2 className="text-4xl font-black leading-[0.96] tracking-[-0.055em] sm:text-5xl md:text-6xl">
-            Selected systems built for <GradientHeading>growth.</GradientHeading>
+            Systems we built for <GradientHeading>growth.</GradientHeading>
           </h2>
 
-          <p className="mx-auto mt-6 max-w-2xl text-sm leading-8 text-white/60 sm:text-base">
-            Scroll through selected ecommerce builds, redesigns, and conversion-focused
-            digital systems created to improve trust, usability, and business growth.
+          <p className="mt-6 max-w-2xl text-sm leading-8 text-white/60 sm:text-base">
+            Real brands. Real results. Explore selected ecommerce builds,
+            redesigns, and conversion-focused systems designed to improve
+            performance and trust.
           </p>
         </motion.div>
       </div>
 
-      <div
-        ref={scrollRef}
-        className="relative z-10 mt-12 flex snap-x snap-mandatory gap-5 overflow-x-auto px-[10vw] pb-8 pt-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:gap-6 lg:mt-16 lg:px-[18vw]"
-        aria-label="Scrollable portfolio showcase"
-      >
-        {portfolioItems.map((item, index) => {
-          const isActive = index === activeIndex
+      <div className="relative z-10 mx-auto mt-10 h-[620px] max-w-7xl px-5 sm:h-[650px] sm:px-6 md:px-10 lg:mt-14 lg:h-[620px] lg:px-12">
+        <div className="relative h-full">
+          {visibleCards.map(({ item, index, offset }) => {
+            const isActive = offset === 0
 
-          return (
-            <Link
-              key={item.id || index}
-              ref={(element) => {
-                cardRefs.current[index] = element
-              }}
-              href={getHref(item)}
-              className={`group relative flex-shrink-0 snap-center overflow-hidden rounded-[2rem] border bg-[#0E1B2D] p-3 transition-all duration-500 ${
-                isActive
-                  ? 'w-[82vw] border-[#39D97A]/35 shadow-[0_28px_100px_rgba(57,217,122,0.12)] sm:w-[620px] lg:w-[720px] lg:scale-105'
-                  : 'w-[72vw] border-[#1E314A] opacity-75 hover:opacity-100 sm:w-[420px] lg:w-[440px] lg:scale-90'
-              }`}
-            >
-              <div className="relative overflow-hidden rounded-[1.5rem] bg-[#07111F]">
-                {getImage(item) ? (
-                  <img
-                    src={getImage(item)}
-                    alt={getTitle(item)}
-                    loading={index < 3 ? 'eager' : 'lazy'}
-                    className={`w-full object-cover transition duration-700 group-hover:scale-[1.04] ${
-                      isActive
-                        ? 'aspect-[16/10] sm:aspect-[16/9]'
-                        : 'aspect-[4/5] sm:aspect-[4/3]'
-                    }`}
-                  />
-                ) : (
-                  <div
-                    className={`flex items-center justify-center ${
-                      isActive
-                        ? 'aspect-[16/10] sm:aspect-[16/9]'
-                        : 'aspect-[4/5] sm:aspect-[4/3]'
-                    }`}
-                  >
-                    <SvgIcon name="portfolio" size={64} color="#39D97A" />
+            const desktopPosition =
+              offset === -2
+                ? 'lg:left-[0%] lg:top-[120px] lg:w-[230px] lg:scale-[0.78] lg:opacity-45 lg:blur-[1.5px]'
+                : offset === -1
+                ? 'lg:left-[13%] lg:top-[85px] lg:w-[310px] lg:scale-[0.9] lg:opacity-75'
+                : offset === 0
+                ? 'lg:left-1/2 lg:top-0 lg:w-[560px] lg:-translate-x-1/2 lg:scale-100 lg:opacity-100'
+                : offset === 1
+                ? 'lg:right-[13%] lg:top-[85px] lg:w-[310px] lg:scale-[0.9] lg:opacity-75'
+                : 'lg:right-[0%] lg:top-[120px] lg:w-[230px] lg:scale-[0.78] lg:opacity-45 lg:blur-[1.5px]'
+
+            const tabletPosition =
+              offset === -1
+                ? 'md:left-[2%] md:top-[100px] md:w-[310px] md:scale-[0.88] md:opacity-70'
+                : offset === 0
+                ? 'md:left-1/2 md:top-0 md:w-[520px] md:-translate-x-1/2 md:scale-100 md:opacity-100'
+                : offset === 1
+                ? 'md:right-[2%] md:top-[100px] md:w-[310px] md:scale-[0.88] md:opacity-70'
+                : 'md:hidden'
+
+            const mobilePosition =
+              offset === 0
+                ? 'left-1/2 top-0 w-[88vw] -translate-x-1/2 opacity-100'
+                : offset === 1
+                ? 'left-[78%] top-[40px] w-[72vw] opacity-35'
+                : offset === -1
+                ? 'right-[78%] top-[40px] w-[72vw] opacity-35'
+                : 'hidden'
+
+            return (
+              <motion.div
+                key={`${item.id}-${index}-${offset}`}
+                initial={reducedMotion ? false : { opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                className={`absolute transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${mobilePosition} ${tabletPosition} ${desktopPosition} ${
+                  isActive ? 'z-30' : 'z-10'
+                }`}
+              >
+                <Link
+                  href={getHref(item)}
+                  className={`group block overflow-hidden rounded-[2rem] border bg-[#0E1B2D] p-3 shadow-[0_28px_100px_rgba(0,0,0,0.28)] transition ${
+                    isActive
+                      ? 'border-[#39D97A]/35'
+                      : 'border-[#1E314A] hover:border-[#39D97A]/20'
+                  }`}
+                >
+                  <div className="relative overflow-hidden rounded-[1.5rem] bg-[#07111F]">
+                    {getImage(item) ? (
+                      <img
+                        src={getImage(item)}
+                        alt={getTitle(item)}
+                        loading={isActive ? 'eager' : 'lazy'}
+                        className={`w-full object-cover transition duration-700 group-hover:scale-[1.04] ${
+                          isActive
+                            ? 'aspect-[4/4.6] sm:aspect-[16/10] lg:aspect-[16/9]'
+                            : 'aspect-[4/5]'
+                        }`}
+                      />
+                    ) : (
+                      <div
+                        className={`flex items-center justify-center ${
+                          isActive
+                            ? 'aspect-[4/4.6] sm:aspect-[16/10] lg:aspect-[16/9]'
+                            : 'aspect-[4/5]'
+                        }`}
+                      >
+                        <SvgIcon name="portfolio" size={58} color="#39D97A" />
+                      </div>
+                    )}
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#07111F]/94 via-[#07111F]/20 to-transparent" />
+
+                    <div className="absolute left-4 top-4 rounded-full bg-[#39D97A] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#06101F]">
+                      {getMetric(item)}
+                    </div>
+
+                    {item.is_before_after && isActive && (
+                      <div className="absolute right-4 top-4 rounded-full border border-white/10 bg-[#07111F]/80 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-white backdrop-blur-xl">
+                        Before / After
+                      </div>
+                    )}
+
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#39D97A]">
+                        {getCategory(item)}
+                      </p>
+
+                      <h3
+                        className={`mt-2 font-black tracking-[-0.04em] text-white ${
+                          isActive ? 'text-2xl sm:text-4xl' : 'text-xl'
+                        }`}
+                      >
+                        {getTitle(item)}
+                      </h3>
+
+                      {isActive && (
+                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-white/62 sm:text-sm sm:leading-6">
+                          {item.project_type ||
+                            item.description ||
+                            'Premium digital system built for clearer trust and better growth.'}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                )}
 
-                <div className="absolute inset-0 bg-gradient-to-t from-[#07111F]/92 via-[#07111F]/15 to-transparent" />
+                  {isActive && (
+                    <div className="flex items-center justify-between px-2 py-4">
+                      <span className="inline-flex items-center gap-2 text-sm font-black text-[#39D97A]">
+                        View Case Study
+                        <SvgIcon
+                          name="arrow-diagonal"
+                          size={14}
+                          color="#39D97A"
+                        />
+                      </span>
 
-                <div className="absolute left-4 top-4 rounded-full bg-[#39D97A] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#06101F] sm:left-5 sm:top-5">
-                  {getMetric(item)}
-                </div>
-
-                {item.is_before_after && (
-                  <div className="absolute right-4 top-4 rounded-full border border-white/10 bg-[#07111F]/80 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white backdrop-blur-xl sm:right-5 sm:top-5">
-                    Before / After
-                  </div>
-                )}
-
-                <div className="absolute bottom-4 left-4 right-4 sm:bottom-5 sm:left-5 sm:right-5">
-                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#39D97A]">
-                    {getCategory(item)}
-                  </p>
-
-                  <h3
-                    className={`mt-2 font-black tracking-[-0.04em] text-white ${
-                      isActive ? 'text-2xl sm:text-4xl' : 'text-xl sm:text-2xl'
-                    }`}
-                  >
-                    {getTitle(item)}
-                  </h3>
-
-                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-white/62">
-                    {item.project_type ||
-                      item.description ||
-                      'Premium digital system built for clearer trust and better growth.'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between px-2 py-4">
-                <span className="inline-flex items-center gap-2 text-sm font-black text-[#39D97A]">
-                  View Case Study
-                  <SvgIcon name="arrow-diagonal" size={14} color="#39D97A" />
-                </span>
-
-                <span className="text-xs font-bold text-white/35">
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-              </div>
-            </Link>
-          )
-        })}
+                      <span className="text-xs font-bold text-white/35">
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                    </div>
+                  )}
+                </Link>
+              </motion.div>
+            )
+          })}
+        </div>
       </div>
 
-      <div className="relative z-10 mx-auto mt-2 max-w-7xl px-5 text-center sm:px-6 md:px-10 lg:px-12">
+      <div className="relative z-10 mx-auto -mt-10 flex max-w-7xl flex-col items-center gap-5 px-5 text-center sm:px-6 md:px-10 lg:px-12">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={goPrev}
+            aria-label="Previous portfolio item"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-[#1E314A] bg-[#0E1B2D] transition hover:border-[#39D97A]/30 hover:bg-[#39D97A]/10"
+          >
+            <SvgIcon name="chevron-left" size={18} color="#39D97A" />
+          </button>
+
+          <button
+            type="button"
+            onClick={goNext}
+            aria-label="Next portfolio item"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-[#1E314A] bg-[#0E1B2D] transition hover:border-[#39D97A]/30 hover:bg-[#39D97A]/10"
+          >
+            <SvgIcon name="chevron-right" size={18} color="#39D97A" />
+          </button>
+        </div>
+
+        <p className="max-w-2xl text-sm leading-7 text-white/55">
+          {portfolioItems.length}+ successful projects across ecommerce, health,
+          food, lifestyle, and digital growth systems.
+        </p>
+
         <Link
           href="/portfolio"
           className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-[#39D97A] px-7 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
