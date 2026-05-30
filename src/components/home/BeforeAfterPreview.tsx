@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
-import GradientHeading from '@/components/ui/GradientHeading'
 
 interface BeforeAfterItem {
   id: string
@@ -27,31 +26,29 @@ function getMetric(item: BeforeAfterItem) {
   return item.metric_value || 'Growth'
 }
 
-export default function BeforeAfterPreview({
-  items = [],
-}: {
-  items?: BeforeAfterItem[]
-}) {
+export default function BeforeAfterPreview({ items = [] }: { items?: BeforeAfterItem[] }) {
   const item = items.find((project) => project.before_image && project.after_image)
 
   if (!item) return null
 
   return (
-    <section className="relative overflow-hidden bg-[#07111F] px-5 py-16 text-white sm:px-6 md:px-10 lg:px-12 lg:py-24">
-      <div className="mx-auto max-w-7xl">
+    <section className="relative overflow-hidden bg-[#F7FAF8] px-5 py-16 text-[#08111F] sm:px-6 md:px-10 lg:px-12 lg:py-24">
+      <div className="absolute left-1/2 top-0 h-[420px] w-[760px] -translate-x-1/2 rounded-full bg-[#39D97A]/10 blur-[130px]" />
+
+      <div className="relative z-10 mx-auto max-w-7xl">
         <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-4xl">
-            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
-              <SvgIcon name="verified" size={14} color="#39D97A" />
+            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/20 bg-white px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#0F7A43] shadow-sm">
+              <SvgIcon name="verified" size={14} color="#0F7A43" />
               Before & After
             </p>
 
             <h2 className="text-4xl font-black leading-[0.96] tracking-[-0.055em] sm:text-5xl md:text-6xl">
               Transforming outdated pages into{' '}
-              <GradientHeading>growth systems.</GradientHeading>
+              <span className="text-[#0F7A43]">growth systems.</span>
             </h2>
 
-            <p className="mt-6 max-w-2xl text-sm leading-8 text-white/60 sm:text-base">
+            <p className="mt-6 max-w-2xl text-sm leading-8 text-[#5B6675] sm:text-base">
               See how better structure, stronger visual hierarchy, trust sections,
               and conversion-focused layouts improve brand perception.
             </p>
@@ -59,16 +56,16 @@ export default function BeforeAfterPreview({
 
           <Link
             href="/before-after"
-            className="inline-flex min-h-[52px] w-fit items-center justify-center rounded-full border border-[#39D97A]/25 bg-[#39D97A]/10 px-6 py-3 text-sm font-black text-[#39D97A]"
+            className="inline-flex min-h-[52px] w-fit items-center justify-center rounded-full border border-[#0F7A43]/20 bg-white px-6 py-3 text-sm font-black text-[#0F7A43] shadow-sm transition hover:bg-[#EAF7EF]"
           >
             View Transformations
           </Link>
         </div>
 
-        <div className="overflow-hidden rounded-[2.4rem] border border-[#1E314A] bg-[#0E1B2D] p-5">
+        <div className="overflow-hidden rounded-[2.4rem] border border-[#E4EAE6] bg-white p-5 shadow-[0_25px_90px_rgba(8,17,31,0.08)]">
           <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#0F7A43]">
                 {getMetric(item)}
               </p>
 
@@ -76,7 +73,7 @@ export default function BeforeAfterPreview({
                 {getTitle(item)}
               </h3>
 
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-white/58">
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-[#5B6675]">
                 {item.project_type ||
                   item.description ||
                   'A focused transformation built around trust, mobile experience, and conversion clarity.'}
@@ -85,7 +82,7 @@ export default function BeforeAfterPreview({
 
             <Link
               href={item.slug ? `/portfolio/${item.slug}` : '/portfolio'}
-              className="inline-flex min-h-[50px] w-fit items-center justify-center gap-2 rounded-full bg-[#39D97A] px-6 py-3 text-sm font-black text-[#06101F]"
+              className="inline-flex min-h-[50px] w-fit items-center justify-center gap-2 rounded-full bg-[#39D97A] px-6 py-3 text-sm font-black text-[#06101F] transition hover:bg-[#C6F135]"
             >
               View Case Study
               <SvgIcon name="arrow-diagonal" size={15} color="#06101F" />
@@ -95,8 +92,8 @@ export default function BeforeAfterPreview({
           <div className="grid gap-5 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
             <PreviewCard title="Before" image={item.before_image} />
 
-            <div className="hidden h-16 w-16 items-center justify-center rounded-full border border-[#39D97A]/25 bg-[#39D97A]/10 lg:flex">
-              <SvgIcon name="arrow-right" size={26} color="#39D97A" />
+            <div className="hidden h-16 w-16 items-center justify-center rounded-full border border-[#39D97A]/25 bg-[#EAF7EF] lg:flex">
+              <SvgIcon name="arrow-right" size={26} color="#0F7A43" />
             </div>
 
             <PreviewCard title="After" image={item.after_image} highlight />
@@ -120,12 +117,12 @@ function PreviewCard({
     <div
       className={`overflow-hidden rounded-[2rem] border p-3 ${
         highlight
-          ? 'border-[#39D97A]/25 bg-[#39D97A]/8'
-          : 'border-[#1E314A] bg-[#07111F]'
+          ? 'border-[#39D97A]/30 bg-[#EAF7EF]'
+          : 'border-[#E4EAE6] bg-[#F7FAF8]'
       }`}
     >
       <div className="mb-4 flex items-center justify-between px-2 pt-2">
-        <p className="text-sm font-black uppercase tracking-[0.16em] text-white">
+        <p className="text-sm font-black uppercase tracking-[0.16em] text-[#08111F]">
           {title}
         </p>
 
@@ -143,8 +140,8 @@ function PreviewCard({
           className="aspect-[4/3] w-full rounded-[1.5rem] object-cover"
         />
       ) : (
-        <div className="flex aspect-[4/3] items-center justify-center rounded-[1.5rem] bg-[#0E1B2D]">
-          <SvgIcon name="portfolio" size={54} color="#39D97A" />
+        <div className="flex aspect-[4/3] items-center justify-center rounded-[1.5rem] bg-white">
+          <SvgIcon name="portfolio" size={54} color="#0F7A43" />
         </div>
       )}
     </div>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 30" fill="white">
+  <text x="0" y="14" font-family="Arial, sans-serif" font-weight="600" font-size="14">Google</text>
+  <text x="0" y="28" font-family="Arial, sans-serif" font-weight="400" font-size="12">Analytics</text>
+  <rect x="65" y="5" width="4" height="18" rx="2" fill="#39D97A"/>
+  <rect x="72" y="10" width="4" height="13" rx="2" fill="#C6F135"/>
+  <rect x="79" y="7" width="4" height="16" rx="2" fill="#39D97A" opacity="0.6"/>
+</svg>

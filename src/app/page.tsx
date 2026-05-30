@@ -4,25 +4,23 @@ import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 
-import PremiumHomeHero from '@/components/home/PremiumHomeHero'
-import HeroShowcasePanel from '@/components/home/HeroShowcasePanel'
-import TrustedTechnologies from '@/components/home/TrustedTechnologies'
-import FeaturedResults from '@/components/home/FeaturedResults'
-import BeforeAfterPreview from '@/components/home/BeforeAfterPreview'
-import TrustStack from '@/components/home/TrustStack'
-import ReviewCarousel from '@/components/home/ReviewCarousel'
-
+import HeroSection from '@/components/sections/HeroSection'
 import AboutSection from '@/components/sections/AboutSection'
 import FAQSection from '@/components/sections/FAQSection'
 import CTASection from '@/components/sections/CTASection'
+import FeaturedResults from '@/components/home/FeaturedResults'
+import ReviewCarousel from '@/components/home/ReviewCarousel'
 import FeaturedPortfolioSection from '@/components/sections/FeaturedPortfolioSection'
+import TrustStack from '@/components/home/TrustStack'
 
 import Reveal from '@/components/Reveal'
 
 import StatsBar from '@/components/ui/StatsBar'
+import LogoMarquee from '@/components/ui/LogoMarquee'
 import TabSwitcher from '@/components/ui/TabSwitcher'
 import ServiceOrbit from '@/components/ui/ServiceOrbit'
 import GridPattern from '@/components/ui/GridPattern'
+import GlowOrb from '@/components/ui/GlowOrb'
 import SvgIcon from '@/components/ui/SvgIcon'
 import GradientHeading from '@/components/ui/GradientHeading'
 
@@ -48,39 +46,50 @@ function normalizeArray(value: any): string[] {
 }
 
 export default async function HomePage() {
-  const [servicesRes, aboutRes, faqsRes, ctaRes, portfolioRes, pricingRes] =
-    await Promise.all([
-      supabase
-        .from('services')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true }),
+  const [
+    heroRes,
+    servicesRes,
+    aboutRes,
+    faqsRes,
+    ctaRes,
+    portfolioRes,
+    pricingRes,
+  ] = await Promise.all([
+    supabase.from('hero_section').select('*').single(),
 
-      supabase.from('about_section').select('*').single(),
+    supabase
+      .from('services')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true }),
 
-      supabase
-        .from('faqs')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true }),
+    supabase.from('about_section').select('*').single(),
 
-      supabase.from('cta_section').select('*').single(),
+    supabase
+      .from('faqs')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true }),
 
-      supabase
-        .from('portfolio_items')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true })
-        .limit(30),
+    supabase.from('cta_section').select('*').single(),
 
-      supabase
-        .from('pricing_packages')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true })
-        .limit(3),
-    ])
+    supabase
+      .from('portfolio_items')
+      .select('*')
+      .eq('featured', true)
+      .eq('is_active', true)
+      .order('display_order', { ascending: true })
+      .limit(12),
 
+    supabase
+      .from('pricing_packages')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true })
+      .limit(3),
+  ])
+
+  const hero = heroRes.data || {}
   const services = servicesRes.data || []
   const about = aboutRes.data || {}
   const faqs = faqsRes.data || []
@@ -101,7 +110,7 @@ export default async function HomePage() {
       title: 'Strategy First',
       icon: 'strategy',
       description:
-        'We structure digital systems around trust, clarity, conversion, and long-term growth.',
+        'We do not just design pages. We structure digital systems around trust, clarity, conversion, and long-term growth.',
       points: [
         'Growth-focused planning',
         'Clear brand positioning',
@@ -113,7 +122,7 @@ export default async function HomePage() {
       title: 'Premium Execution',
       icon: 'web-development',
       description:
-        'Every layout and interaction is built to feel clean, modern, responsive, and credible.',
+        'Every layout, section, and interaction is built to feel clean, modern, responsive, and credible across devices.',
       points: [
         'Mobile-first interface',
         'Premium visual hierarchy',
@@ -125,7 +134,7 @@ export default async function HomePage() {
       title: 'Optimization',
       icon: 'growth',
       description:
-        'We improve how visitors move, trust, and take action instead of only making the website look good.',
+        'We focus on improving how visitors move, trust, and take action instead of only making the website look good.',
       points: [
         'Better conversion flow',
         'Improved page experience',
@@ -137,7 +146,7 @@ export default async function HomePage() {
       title: 'Long-Term Support',
       icon: 'support',
       description:
-        'We help brands keep improving after launch with guidance, updates, and practical support.',
+        'We help brands keep improving after launch with guidance, updates, and practical optimization support.',
       points: [
         'Technical support',
         'Performance monitoring',
@@ -152,10 +161,6 @@ export default async function HomePage() {
       about.subtitle ||
       about.description ||
       about.image_url ||
-      about.founder_image_url ||
-      about.founder_image ||
-      about.founder_photo_url ||
-      about.founder_photo ||
       (Array.isArray(about.stats) && about.stats.length > 0) ||
       (Array.isArray(about.values) && about.values.length > 0))
 
@@ -164,11 +169,27 @@ export default async function HomePage() {
       <Navbar />
 
       <main id="main-content" className="relative z-10">
-        <PremiumHomeHero />
+        <section className="relative">
+          <GridPattern />
+          <GlowOrb />
 
-        <HeroShowcasePanel />
-
-        <TrustedTechnologies />
+          <HeroSection
+            data={{
+              title: hero.title,
+              subtitle: hero.subtitle,
+              primaryCtaText: hero.primary_cta_text || 'Get Free Audit',
+              primaryCtaLink: hero.primary_cta_link || '/contact',
+              secondaryCtaText:
+                hero.secondary_cta_text || 'View Case Studies',
+              secondaryCtaLink: hero.secondary_cta_link || '/portfolio',
+              backgroundImage: hero.background_image,
+              featureBullets:
+                hero.feature_bullets ||
+                'Shopify Optimization|Conversion Systems|Accessibility Support',
+              ...(hero.video_url ? { video_url: hero.video_url } : {}),
+            }}
+          />
+        </section>
 
         <section className="relative px-5 py-10 sm:px-6 md:px-10 lg:px-12">
           <div className="mx-auto max-w-7xl">
@@ -176,11 +197,13 @@ export default async function HomePage() {
           </div>
         </section>
 
+        <section className="relative bg-white">
+          <LogoMarquee />
+        </section>
+
         <FeaturedResults items={portfolioItems} />
 
         <FeaturedPortfolioSection items={portfolioItems} />
-
-        <BeforeAfterPreview items={portfolioItems} />
 
         <TrustStack />
 
@@ -188,6 +211,7 @@ export default async function HomePage() {
 
         <section className="relative px-5 py-12 sm:px-6 md:px-10 lg:px-12 lg:py-20">
           <GridPattern />
+
           <div className="relative z-10 mx-auto max-w-7xl">
             <ServiceOrbit services={services} intervalMs={5500} />
           </div>
@@ -195,6 +219,7 @@ export default async function HomePage() {
 
         <section className="relative px-5 py-12 sm:px-6 md:px-10 lg:px-12 lg:py-20">
           <GridPattern />
+
           <div className="relative z-10 mx-auto max-w-7xl">
             <TabSwitcher items={whyChooseUsItems} />
           </div>

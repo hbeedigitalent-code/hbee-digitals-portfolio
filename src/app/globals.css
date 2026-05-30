@@ -3,42 +3,36 @@
 @tailwind utilities;
 
 /* ----------------------------------------------------------------
-   HBEE DIGITALS SAFE THEME TOKENS
+   HBEE DIGITALS PREMIUM THEME TOKENS
    ---------------------------------------------------------------- */
 
 :root {
-  --primary-color: #060E1C;
-  --secondary-color: #F8FAFC;
-  --accent-color: #39D97A;
-  --highlight-color: #C6F135;
+  --primary-bg: #07111F;
+  --secondary-bg: #0E1B2D;
+  --surface: #13233A;
+  --border: #1E314A;
+  --accent: #39D97A;
+  --highlight: #C6F135;
+  --text-primary: #FFFFFF;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-muted: rgba(255, 255, 255, 0.45);
+  --error: #FF5A5A;
+  --warning: #FACC15;
 
-  --text-color: #F8FAFC;
-  --bg-color: #060E1C;
-  --surface-color: #0B1E38;
-  --surface-secondary: #132847;
-
-  --card-bg: rgba(255, 255, 255, 0.045);
-  --card-border: rgba(255, 255, 255, 0.1);
-  --text-muted: rgba(248, 250, 252, 0.62);
-
-  --heading-font: 'Poppins', system-ui, sans-serif;
-  --body-font: 'Inter', system-ui, sans-serif;
+  --font-heading: 'Poppins', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
 }
 
 [data-theme='light'] {
-  --primary-color: #FFFFFF;
-  --secondary-color: #0A1D37;
-  --accent-color: #007BFF;
-  --highlight-color: #00BFFF;
-
-  --text-color: #1F2937;
-  --bg-color: #F8FAFC;
-  --surface-color: #FFFFFF;
-  --surface-secondary: #EEF2F7;
-
-  --card-bg: #FFFFFF;
-  --card-border: #E2E8F0;
-  --text-muted: #64748B;
+  --primary-bg: #F8FAFC;
+  --secondary-bg: #FFFFFF;
+  --surface: #EEF2F7;
+  --border: #E2E8F0;
+  --accent: #007BFF;
+  --highlight: #00BFFF;
+  --text-primary: #1F2937;
+  --text-secondary: rgba(31, 41, 55, 0.7);
+  --text-muted: rgba(31, 41, 55, 0.5);
 }
 
 html {
@@ -46,20 +40,156 @@ html {
 }
 
 body {
-  color: var(--text-color);
-  font-family: var(--body-font);
-  background-color: var(--bg-color);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  background-color: var(--primary-bg);
   overflow-x: hidden;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--heading-font);
+  font-family: var(--font-heading);
 }
 
-/* KEEP OLD CLASS NAMES SAFE */
+/* Gradient text utility */
 .gradient-text {
-  background: linear-gradient(90deg, var(--accent-color), var(--highlight-color));
+  background: linear-gradient(90deg, var(--accent), var(--highlight));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* ----------------------------------------------------------------
+   SCROLLBAR STYLING
+   ---------------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(57, 217, 122, 0.2);
+  border-radius: 100px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(57, 217, 122, 0.35);
+}
+
+/* ----------------------------------------------------------------
+   MARQUEE ANIMATION
+   ---------------------------------------------------------------- */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* ----------------------------------------------------------------
+   FLOAT ANIMATIONS
+   ---------------------------------------------------------------- */
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-12px) rotate(0.5deg); }
+}
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(-0.3deg); }
+}
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+.animate-float-delayed {
+  animation: float-delayed 5s ease-in-out infinite 1s;
+}
+.animate-float-slow {
+  animation: float-slow 7s ease-in-out infinite 0.5s;
+}
+
+/* ----------------------------------------------------------------
+   GLOW PULSE
+   ---------------------------------------------------------------- */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(57, 217, 122, 0.15); }
+  50% { box-shadow: 0 0 40px rgba(57, 217, 122, 0.3); }
+}
+.animate-glow-pulse {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+/* ----------------------------------------------------------------
+   PULSE BADGE
+   ---------------------------------------------------------------- */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.2); }
+}
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* ----------------------------------------------------------------
+   HORIZONTAL LINE GROW
+   ---------------------------------------------------------------- */
+@keyframes line-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.animate-line-grow {
+  animation: line-grow 0.8s ease-out forwards;
+  transform-origin: left;
+}
+
+/* ----------------------------------------------------------------
+   CAROUSEL 3D
+   ---------------------------------------------------------------- */
+.perspective-1200 {
+  perspective: 1200px;
+}
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* ----------------------------------------------------------------
+   NOISE TEXTURE OVERLAY
+   ---------------------------------------------------------------- */
+.noise-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.018;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ----------------------------------------------------------------
+   CUSTOM SELECTION
+   ---------------------------------------------------------------- */
+::selection {
+  background: rgba(57, 217, 122, 0.25);
+  color: #FFFFFF;
+}
+
+/* ----------------------------------------------------------------
+   REDUCED MOTION
+   ---------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
 }
