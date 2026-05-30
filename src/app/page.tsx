@@ -8,15 +8,17 @@ import HeroSection from '@/components/sections/HeroSection'
 import AboutSection from '@/components/sections/AboutSection'
 import FAQSection from '@/components/sections/FAQSection'
 import CTASection from '@/components/sections/CTASection'
-import FeaturedResults from '@/components/home/FeaturedResults'
-import ReviewCarousel from '@/components/home/ReviewCarousel'
 import FeaturedPortfolioSection from '@/components/sections/FeaturedPortfolioSection'
+
+import TrustedTechnologies from '@/components/home/TrustedTechnologies'
+import FeaturedResults from '@/components/home/FeaturedResults'
+import BeforeAfterPreview from '@/components/home/BeforeAfterPreview'
 import TrustStack from '@/components/home/TrustStack'
+import ReviewCarousel from '@/components/home/ReviewCarousel'
 
 import Reveal from '@/components/Reveal'
 
 import StatsBar from '@/components/ui/StatsBar'
-import LogoMarquee from '@/components/ui/LogoMarquee'
 import TabSwitcher from '@/components/ui/TabSwitcher'
 import ServiceOrbit from '@/components/ui/ServiceOrbit'
 import GridPattern from '@/components/ui/GridPattern'
@@ -76,10 +78,9 @@ export default async function HomePage() {
     supabase
       .from('portfolio_items')
       .select('*')
-      .eq('featured', true)
       .eq('is_active', true)
       .order('display_order', { ascending: true })
-      .limit(12),
+      .limit(30),
 
     supabase
       .from('pricing_packages')
@@ -110,7 +111,7 @@ export default async function HomePage() {
       title: 'Strategy First',
       icon: 'strategy',
       description:
-        'We do not just design pages. We structure digital systems around trust, clarity, conversion, and long-term growth.',
+        'We structure digital systems around trust, clarity, conversion, and long-term growth.',
       points: [
         'Growth-focused planning',
         'Clear brand positioning',
@@ -122,7 +123,7 @@ export default async function HomePage() {
       title: 'Premium Execution',
       icon: 'web-development',
       description:
-        'Every layout, section, and interaction is built to feel clean, modern, responsive, and credible across devices.',
+        'Every layout and interaction is built to feel clean, modern, responsive, and credible.',
       points: [
         'Mobile-first interface',
         'Premium visual hierarchy',
@@ -134,7 +135,7 @@ export default async function HomePage() {
       title: 'Optimization',
       icon: 'growth',
       description:
-        'We focus on improving how visitors move, trust, and take action instead of only making the website look good.',
+        'We improve how visitors move, trust, and take action instead of only making the website look good.',
       points: [
         'Better conversion flow',
         'Improved page experience',
@@ -146,7 +147,7 @@ export default async function HomePage() {
       title: 'Long-Term Support',
       icon: 'support',
       description:
-        'We help brands keep improving after launch with guidance, updates, and practical optimization support.',
+        'We help brands keep improving after launch with guidance, updates, and practical support.',
       points: [
         'Technical support',
         'Performance monitoring',
@@ -161,6 +162,10 @@ export default async function HomePage() {
       about.subtitle ||
       about.description ||
       about.image_url ||
+      about.founder_image_url ||
+      about.founder_image ||
+      about.founder_photo_url ||
+      about.founder_photo ||
       (Array.isArray(about.stats) && about.stats.length > 0) ||
       (Array.isArray(about.values) && about.values.length > 0))
 
@@ -191,17 +196,17 @@ export default async function HomePage() {
           />
         </section>
 
-        <section className="relative px-5 py-10 sm:px-6 md:px-10 lg:px-12">
+        <TrustedTechnologies />
+
+        <section className="relative bg-[#07111F] px-5 py-10 sm:px-6 md:px-10 lg:px-12">
           <div className="mx-auto max-w-7xl">
             <StatsBar stats={statsData} />
           </div>
         </section>
 
-        <section className="relative bg-white">
-          <LogoMarquee />
-        </section>
-
         <FeaturedResults items={portfolioItems} />
+
+        <BeforeAfterPreview items={portfolioItems} />
 
         <FeaturedPortfolioSection items={portfolioItems} />
 
@@ -270,8 +275,8 @@ export default async function HomePage() {
 
                 <p className="mt-6 max-w-2xl text-sm leading-8 text-white/60 sm:text-base">
                   Explore starting points designed for brands that want better
-                  websites, stronger trust, improved conversion flow, and scalable
-                  digital systems.
+                  websites, stronger trust, improved conversion flow, and
+                  scalable digital systems.
                 </p>
               </div>
 
