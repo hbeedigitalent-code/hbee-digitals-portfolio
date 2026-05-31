@@ -85,7 +85,7 @@ export default function HomePageClient() {
           )
           .eq('is_active', true)
           .order('display_order', { ascending: true })
-          .limit(10),
+          .limit(12),
 
         supabase
           .from('pricing_packages')

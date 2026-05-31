@@ -70,7 +70,58 @@ export default function FeaturedPortfolioSection({
     return () => clearInterval(timer)
   }, [portfolioItems.length, reducedMotion])
 
-  if (!portfolioItems.length) return null
+  if (!portfolioItems.length) {
+    return (
+      <section className="relative overflow-hidden bg-[#07111F] px-5 py-16 text-white sm:px-6 md:px-10 lg:px-12 lg:py-24">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute left-1/2 top-10 h-[440px] w-[760px] -translate-x-1/2 rounded-full bg-[#39D97A]/7 blur-[140px]" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.018)_1px,transparent_1px)] bg-[size:82px_82px] opacity-20" />
+        </div>
+
+        <div className="relative z-10 mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div>
+            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
+              <SvgIcon name="portfolio" size={14} color="#39D97A" />
+              Featured Work
+            </p>
+
+            <h2 className="text-4xl font-black leading-[0.96] tracking-[-0.055em] sm:text-5xl md:text-6xl">
+              Systems we built for <GradientHeading>growth.</GradientHeading>
+            </h2>
+
+            <p className="mt-6 max-w-2xl text-sm leading-8 text-white/60 sm:text-base">
+              Featured portfolio items will appear here once active projects are
+              added from the admin dashboard.
+            </p>
+          </div>
+
+          <div className="rounded-[2rem] border border-[#1E314A] bg-[#0E1B2D] p-5 shadow-[0_28px_100px_rgba(0,0,0,0.24)]">
+            <div className="flex min-h-[280px] flex-col items-center justify-center rounded-[1.5rem] border border-[#1E314A] bg-[#07111F] px-6 text-center">
+              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10">
+                <SvgIcon name="portfolio" size={30} color="#39D97A" />
+              </div>
+
+              <h3 className="text-2xl font-black tracking-[-0.04em] text-white">
+                Portfolio coming soon
+              </h3>
+
+              <p className="mt-3 max-w-md text-sm leading-7 text-white/58">
+                Add active portfolio projects in admin to populate this section
+                with case studies, metrics, and project images.
+              </p>
+
+              <Link
+                href="/portfolio"
+                className="mt-6 inline-flex min-h-[50px] items-center justify-center rounded-full bg-[#39D97A] px-6 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
+              >
+                View Portfolio
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   const visibleCards = [-2, -1, 0, 1, 2]
     .map((offset) => {
