@@ -12,23 +12,27 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark')
+  const [theme, setTheme] = useState<Theme>('light')
+
+  const applyTheme = (next: Theme) => {
+    document.documentElement.classList.toggle('dark', next === 'dark')
+    document.documentElement.setAttribute('data-theme', next)
+  }
 
   useEffect(() => {
     const stored = localStorage.getItem('theme') as Theme | null
-    if (stored === 'light' || stored === 'dark') {
-      setTheme(stored)
-      document.documentElement.setAttribute('data-theme', stored)
-    } else {
-      document.documentElement.setAttribute('data-theme', 'dark')
-    }
+    const next = stored === 'light' || stored === 'dark' ? stored : 'light'
+
+    setTheme(next)
+    applyTheme(next)
   }, [])
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
+
     setTheme(next)
     localStorage.setItem('theme', next)
-    document.documentElement.setAttribute('data-theme', next)
+    applyTheme(next)
   }
 
   return (

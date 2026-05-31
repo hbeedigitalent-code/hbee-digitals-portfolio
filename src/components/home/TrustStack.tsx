@@ -25,13 +25,13 @@ const trustItems = [
 
 export default function TrustStack() {
   return (
-    <section className="relative overflow-hidden bg-[#0E1B2D] px-5 py-16 text-white sm:px-6 md:px-10 lg:px-12 lg:py-24">
+    <section className="relative overflow-hidden bg-[var(--bg-section)] px-5 py-16 text-[var(--text-primary)] sm:px-6 md:px-10 lg:px-12 lg:py-24">
       <GridPattern />
 
       <div className="relative z-10 mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
         <div>
-          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
-            <SvgIcon name="verified" size={14} color="#39D97A" />
+          <p className="eyebrow mb-5 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em]">
+            <SvgIcon name="verified" size={14} color="#1AB85C" />
             Trust Stack
           </p>
 
@@ -40,7 +40,7 @@ export default function TrustStack() {
             <GradientHeading>credible growth.</GradientHeading>
           </h2>
 
-          <p className="mt-6 max-w-2xl text-sm leading-8 text-white/62 sm:text-base">
+          <p className="mt-6 max-w-2xl text-sm leading-8 text-[var(--text-secondary)] sm:text-base">
             Hbee Digitals combines strategy, premium implementation, and
             practical support so every website feels polished and purposeful.
           </p>
@@ -50,17 +50,17 @@ export default function TrustStack() {
           {trustItems.map((item) => (
             <article
               key={item.title}
-              className="rounded-[2rem] border border-[#1E314A] bg-[#07111F] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.18)]"
+              className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-page)] p-5 shadow-[0_24px_80px_rgba(10,29,55,0.08)]"
             >
               <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10">
                 <SvgIcon name={item.icon} size={20} color="#39D97A" />
               </div>
 
-              <h3 className="text-lg font-black tracking-[-0.03em] text-white">
+              <h3 className="text-lg font-black tracking-[-0.03em] text-[var(--text-primary)]">
                 {item.title}
               </h3>
 
-              <p className="mt-3 text-sm leading-7 text-white/60">
+              <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)]">
                 {item.description}
               </p>
             </article>

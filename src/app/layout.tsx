@@ -161,7 +161,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body
-        className="font-poppins overflow-x-hidden bg-[#07111F] text-white antialiased"
+        className="font-poppins overflow-x-hidden bg-[var(--bg-page)] text-[var(--text-primary)] antialiased"
         suppressHydrationWarning
       >
         <ThemeProvider>

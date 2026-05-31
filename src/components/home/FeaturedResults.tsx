@@ -43,13 +43,35 @@ export default function FeaturedResults({
 }: {
   items: FeaturedResultItem[]
 }) {
-  if (!items.length) return null
+  if (!items.length) {
+    return (
+      <section className="relative overflow-hidden bg-[var(--bg-page)] px-5 py-16 text-[var(--text-primary)] sm:px-6 md:px-10 lg:px-12 lg:py-24">
+        <div className="absolute left-1/2 top-0 h-[360px] w-[720px] -translate-x-1/2 rounded-full bg-[#39D97A]/10 blur-[130px]" />
+
+        <div className="relative z-10 mx-auto max-w-7xl rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] p-8 text-center shadow-[0_24px_80px_rgba(10,29,55,0.08)]">
+          <p className="eyebrow mx-auto mb-5 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em]">
+            <SvgIcon name="portfolio" size={14} color="#1AB85C" />
+            Featured Results
+          </p>
+
+          <h2 className="mx-auto max-w-3xl text-4xl font-black leading-[0.96] tracking-[-0.055em] sm:text-5xl md:text-6xl">
+            Proof-focused work will appear here soon.
+          </h2>
+
+          <p className="mx-auto mt-6 max-w-2xl text-sm leading-8 text-[var(--text-secondary)] sm:text-base">
+            Active portfolio projects from admin will populate this section once
+            they are added and marked active.
+          </p>
+        </div>
+      </section>
+    )
+  }
 
   const featured = items[0]
   const sideItems = items.slice(1, 4)
 
   return (
-    <section className="relative overflow-hidden bg-[#07111F] px-5 py-16 text-white sm:px-6 md:px-10 lg:px-12 lg:py-24">
+    <section className="relative overflow-hidden bg-[var(--bg-page)] px-5 py-16 text-[var(--text-primary)] sm:px-6 md:px-10 lg:px-12 lg:py-24">
       <div className="absolute inset-0 -z-0">
         <div className="absolute left-1/2 top-0 h-[420px] w-[760px] -translate-x-1/2 rounded-full bg-[#39D97A]/7 blur-[140px]" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.018)_1px,transparent_1px)] bg-[size:82px_82px] opacity-20" />
@@ -58,8 +80,8 @@ export default function FeaturedResults({
       <div className="relative z-10 mx-auto max-w-7xl">
         <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-4xl">
-            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
-              <SvgIcon name="portfolio" size={14} color="#39D97A" />
+            <p className="eyebrow mb-5 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em]">
+              <SvgIcon name="portfolio" size={14} color="#1AB85C" />
               Featured Results
             </p>
 
@@ -68,7 +90,7 @@ export default function FeaturedResults({
               <GradientHeading>growth.</GradientHeading>
             </h2>
 
-            <p className="mt-6 max-w-2xl text-sm leading-8 text-white/60 sm:text-base">
+            <p className="mt-6 max-w-2xl text-sm leading-8 text-[var(--text-secondary)] sm:text-base">
               Selected case studies showing stronger trust, better presentation,
               clearer customer journeys, and conversion-focused improvements.
             </p>
@@ -76,7 +98,7 @@ export default function FeaturedResults({
 
           <Link
             href="/portfolio"
-            className="inline-flex min-h-[52px] w-fit items-center justify-center gap-2 rounded-full border border-[#39D97A]/25 bg-[#39D97A]/10 px-6 py-3 text-sm font-black text-[#39D97A] transition hover:bg-[#39D97A]/15"
+            className="inline-flex min-h-[52px] w-fit items-center justify-center gap-2 rounded-full border border-[#39D97A]/25 bg-[#39D97A]/10 px-6 py-3 text-sm font-black text-[var(--text-accent)] transition hover:bg-[#39D97A]/15"
           >
             View All Work
             <SvgIcon name="arrow-diagonal" size={15} color="#39D97A" />
@@ -86,7 +108,7 @@ export default function FeaturedResults({
         <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
           <Link
             href={getHref(featured)}
-            className="group overflow-hidden rounded-[2.2rem] border border-[#1E314A] bg-[#0E1B2D] p-3 transition hover:-translate-y-1 hover:border-[#39D97A]/25 hover:shadow-[0_28px_90px_rgba(0,0,0,0.32)]"
+            className="group overflow-hidden rounded-[2.2rem] border border-[var(--border)] bg-[var(--bg-card)] p-3 shadow-[0_24px_80px_rgba(10,29,55,0.08)] transition hover:-translate-y-1 hover:border-[#39D97A]/25"
           >
             <div className="relative min-h-[420px] overflow-hidden rounded-[1.7rem] bg-[#07111F]">
               {getImage(featured) ? (
@@ -141,7 +163,7 @@ export default function FeaturedResults({
               <Link
                 key={item.id}
                 href={getHref(item)}
-                className="group grid gap-4 rounded-[1.8rem] border border-[#1E314A] bg-[#0E1B2D] p-3 transition hover:-translate-y-1 hover:border-[#39D97A]/25 sm:grid-cols-[180px_1fr]"
+                className="group grid gap-4 rounded-[1.8rem] border border-[var(--border)] bg-[var(--bg-card)] p-3 shadow-[0_18px_55px_rgba(10,29,55,0.06)] transition hover:-translate-y-1 hover:border-[#39D97A]/25 sm:grid-cols-[180px_1fr]"
               >
                 <div className="relative min-h-[170px] overflow-hidden rounded-[1.35rem] bg-[#07111F]">
                   {getImage(item) ? (
@@ -166,11 +188,11 @@ export default function FeaturedResults({
                     {item.category || item.industry || 'Case Study'}
                   </p>
 
-                  <h3 className="mt-2 text-2xl font-black tracking-[-0.04em] text-white">
+                  <h3 className="mt-2 text-2xl font-black tracking-[-0.04em] text-[var(--text-primary)]">
                     {getTitle(item)}
                   </h3>
 
-                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-white/55">
+                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-[var(--text-secondary)]">
                     {item.project_type ||
                       item.description ||
                       'Growth-focused digital improvement.'}

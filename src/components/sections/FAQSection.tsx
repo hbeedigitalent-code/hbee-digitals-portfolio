@@ -71,7 +71,7 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
   const visibleFaqs = variant === 'home' ? filteredFaqs.slice(0, 5) : filteredFaqs
 
   return (
-    <section className="relative overflow-hidden py-16 text-white sm:py-20 lg:py-24">
+    <section className="relative overflow-hidden bg-[var(--bg-page)] py-16 text-[var(--text-primary)] sm:py-20 lg:py-24">
       <div className="absolute inset-0 -z-10">
         <div className="absolute left-0 top-20 h-[320px] w-[420px] rounded-full bg-[#39D97A]/8 blur-[110px]" />
         <div className="absolute bottom-0 right-0 h-[280px] w-[360px] rounded-full bg-[#C6F135]/7 blur-[100px]" />
@@ -87,16 +87,16 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
             viewport={{ once: true }}
             className="lg:sticky lg:top-28 lg:self-start"
           >
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#39D97A]">
-              <SvgIcon name="faq" size={14} color="#39D97A" />
+            <div className="eyebrow mb-5 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em]">
+              <SvgIcon name="faq" size={14} color="#1AB85C" />
               Questions & Answers
             </div>
 
-            <h2 className="max-w-3xl text-4xl font-black leading-[0.95] tracking-[-0.06em] text-white sm:text-5xl md:text-6xl">
+            <h2 className="max-w-3xl text-4xl font-black leading-[0.95] tracking-[-0.06em] text-[var(--text-primary)] sm:text-5xl md:text-6xl">
               Everything you need to <GradientHeading>know.</GradientHeading>
             </h2>
 
-            <p className="mt-6 max-w-xl text-sm leading-7 text-white/62 sm:text-base">
+            <p className="mt-6 max-w-xl text-sm leading-7 text-[var(--text-secondary)] sm:text-base">
               Answers about our process, timelines, Shopify support, websites,
               digital growth systems, and how we help brands scale online.
             </p>
@@ -105,16 +105,16 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
               {trustCards.map((item) => (
                 <div
                   key={item.label}
-                  className="group flex items-start gap-4 rounded-[1.4rem] border border-[#1E314A] bg-[#0E1B2D]/92 p-4 transition duration-300 hover:border-[#39D97A]/25 hover:bg-[#13233A]"
+                  className="group flex items-start gap-4 rounded-[1.4rem] border border-[var(--border)] bg-[var(--bg-card)] p-4 transition duration-300 hover:border-[#39D97A]/25 hover:bg-[var(--bg-card-hover)]"
                 >
                   <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10">
                     <SvgIcon name={item.icon} size={20} color="#39D97A" />
                   </div>
 
                   <div>
-                    <p className="text-sm font-black text-white">{item.label}</p>
+                    <p className="text-sm font-black text-[var(--text-primary)]">{item.label}</p>
 
-                    <p className="mt-1 text-xs leading-5 text-white/45">
+                    <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
                       {item.description}
                     </p>
                   </div>
@@ -154,7 +154,7 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
                       className={`rounded-full border px-5 py-2.5 text-sm font-bold capitalize transition ${
                         active
                           ? 'border-[#39D97A]/25 bg-[#39D97A]/10 text-[#39D97A]'
-                          : 'border-[#1E314A] bg-[#0E1B2D] text-white/55 hover:border-[#39D97A]/20 hover:text-white'
+                          : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:border-[#39D97A]/20 hover:text-[var(--text-primary)]'
                       }`}
                     >
                       {category === 'all' ? 'All FAQs' : category}
@@ -177,8 +177,8 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
                     transition={{ duration: 0.42, delay: index * 0.04 }}
                     className={`overflow-hidden rounded-[1.7rem] border transition-all duration-300 ${
                       isOpen
-                        ? 'border-[#39D97A]/22 bg-[#13233A]'
-                        : 'border-[#1E314A] bg-[#0E1B2D]/92 hover:border-[#39D97A]/16 hover:bg-[#13233A]'
+                        ? 'border-[#39D97A]/22 bg-[var(--bg-card-hover)]'
+                        : 'border-[var(--border)] bg-[var(--bg-card)] hover:border-[#39D97A]/16 hover:bg-[var(--bg-card-hover)]'
                     }`}
                   >
                     <button
@@ -191,7 +191,7 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
                       </div>
 
                       <div className="flex-1">
-                        <h3 className="text-lg font-black leading-snug text-white sm:text-xl">
+                        <h3 className="text-lg font-black leading-snug text-[var(--text-primary)] sm:text-xl">
                           {faq.question}
                         </h3>
 
@@ -219,17 +219,17 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
                           exit={reducedMotion ? undefined : { opacity: 0, height: 0 }}
                           transition={{ duration: 0.3 }}
                         >
-                          <div className="border-t border-[#1E314A] px-5 pb-6 pt-5 sm:px-6">
+                          <div className="border-t border-[var(--border)] px-5 pb-6 pt-5 sm:px-6">
                             <div className="pl-0 sm:pl-16">
                               {faq.rich_answer ? (
                                 <div
-                                  className="prose prose-invert max-w-none prose-p:text-white/68 prose-p:leading-8 prose-strong:text-white prose-a:text-[#39D97A] prose-li:text-white/68"
+                                  className="prose max-w-none prose-p:text-[var(--text-secondary)] prose-p:leading-8 prose-strong:text-[var(--text-primary)] prose-a:text-[var(--text-accent)] prose-li:text-[var(--text-secondary)]"
                                   dangerouslySetInnerHTML={{
                                     __html: faq.rich_answer,
                                   }}
                                 />
                               ) : (
-                                <p className="text-sm leading-8 text-white/68 sm:text-base">
+                                <p className="text-sm leading-8 text-[var(--text-secondary)] sm:text-base">
                                   {faq.answer}
                                 </p>
                               )}
@@ -247,7 +247,7 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
               <div className="mt-8 text-center lg:hidden">
                 <Link
                   href="/faq"
-                  className="inline-flex items-center gap-2 rounded-full border border-[#1E314A] bg-[#0E1B2D] px-6 py-3 text-sm font-black text-white transition hover:border-[#39D97A]/25 hover:bg-[#13233A]"
+                  className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-6 py-3 text-sm font-black text-[var(--text-primary)] transition hover:border-[#39D97A]/25 hover:bg-[var(--bg-card-hover)]"
                 >
                   See More Answers
                   <SvgIcon name="arrow-diagonal" size={15} color="#39D97A" />

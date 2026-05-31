@@ -180,7 +180,7 @@ export default function HomePageClient() {
       (Array.isArray(about.values) && about.values.length > 0))
 
   return (
-    <div className="relative overflow-hidden bg-[#07111F] text-white">
+    <div className="relative overflow-hidden bg-[var(--bg-page)] text-[var(--text-primary)]">
       <Navbar />
 
       <main id="main-content" className="relative z-10">
@@ -208,7 +208,7 @@ export default function HomePageClient() {
 
         <TrustedTechnologies />
 
-        <section className="relative bg-[#07111F] px-5 py-10 sm:px-6 md:px-10 lg:px-12">
+        <section className="relative bg-[var(--bg-section)] px-5 py-10 sm:px-6 md:px-10 lg:px-12">
           <div className="mx-auto max-w-7xl">
             <StatsBar stats={statsData} />
           </div>
@@ -224,7 +224,7 @@ export default function HomePageClient() {
 
         <ReviewCarousel />
 
-        <section className="relative px-5 py-12 sm:px-6 md:px-10 lg:px-12 lg:py-20">
+        <section className="relative bg-[var(--bg-page)] px-5 py-12 sm:px-6 md:px-10 lg:px-12 lg:py-20">
           <GridPattern />
 
           <div className="relative z-10 mx-auto max-w-7xl">
@@ -260,7 +260,7 @@ export default function HomePageClient() {
         )}
 
         {pricingPackages.length > 0 && (
-          <section className="relative px-5 py-16 sm:px-6 md:px-10 lg:px-12 lg:py-24">
+          <section className="relative bg-[#07111F] px-5 py-16 text-white sm:px-6 md:px-10 lg:px-12 lg:py-24">
             <GridPattern />
 
             <div className="relative z-10 mx-auto max-w-7xl">

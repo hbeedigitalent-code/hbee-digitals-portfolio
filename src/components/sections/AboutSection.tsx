@@ -123,7 +123,7 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
 
   return (
     <section
-      className={`relative overflow-hidden bg-[#060E1C] text-white ${
+      className={`relative overflow-hidden bg-[var(--bg-section)] text-[var(--text-primary)] ${
         compact ? 'py-14 sm:py-16' : 'py-16 sm:py-20 lg:py-24'
       }`}
       aria-labelledby="about-heading"
@@ -142,8 +142,8 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
             transition={{ duration: 0.45 }}
             viewport={{ once: true }}
           >
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/18 bg-white/[0.04] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#39D97A]">
-              <SvgIcon name="services" size={14} color="#39D97A" />
+            <div className="eyebrow mb-5 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em]">
+              <SvgIcon name="services" size={14} color="#1AB85C" />
               About The Studio
             </div>
 
@@ -162,7 +162,7 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: 0.08 }}
             viewport={{ once: true }}
-            className="max-w-2xl text-sm leading-7 text-white/60 sm:text-base md:text-lg lg:justify-self-end"
+            className="max-w-2xl text-sm leading-7 text-[var(--text-secondary)] sm:text-base md:text-lg lg:justify-self-end"
           >
             {subtitle}
           </motion.p>
@@ -174,7 +174,7 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
             viewport={{ once: true }}
-            className="group relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.045] p-3 shadow-[0_28px_90px_rgba(0,0,0,0.28)] transition duration-500 hover:border-[#39D97A]/25"
+            className="group relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] p-3 shadow-[0_24px_80px_rgba(10,29,55,0.08)] transition duration-500 hover:border-[#39D97A]/25"
           >
             <div className="relative h-[340px] overflow-hidden rounded-[1.5rem] bg-[#071427] sm:h-[430px]">
               {imageSrc ? (
@@ -223,9 +223,9 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
             viewport={{ once: true }}
-            className="rounded-[2rem] border border-white/10 bg-white/[0.045] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.22)] backdrop-blur-xl sm:p-8"
+            className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[0_24px_80px_rgba(10,29,55,0.08)] backdrop-blur-xl sm:p-8"
           >
-            <p className="text-base leading-8 text-white/68 md:text-lg">
+            <p className="text-base leading-8 text-[var(--text-secondary)] md:text-lg">
               {description}
             </p>
 
@@ -238,10 +238,10 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="rounded-2xl border border-white/10 bg-[#071427]/72 p-4 transition hover:border-[#39D97A]/25 hover:bg-white/[0.055]"
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--bg-page)] p-4 transition hover:border-[#39D97A]/25 hover:bg-[var(--bg-card-hover)]"
                 >
                   <SvgIcon name={item.icon} size={20} color="#39D97A" className="mb-3" />
-                  <p className="text-sm font-bold text-white/70">{item.label}</p>
+                  <p className="text-sm font-bold text-[var(--text-secondary)]">{item.label}</p>
                 </div>
               ))}
             </div>
@@ -257,13 +257,13 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.38, delay: index * 0.05 }}
                 viewport={{ once: true }}
-                className="rounded-[1.4rem] border border-white/10 bg-white/[0.045] p-5 text-center transition hover:border-[#39D97A]/25 hover:bg-white/[0.065]"
+                className="rounded-[1.4rem] border border-[var(--border)] bg-[var(--bg-card)] p-5 text-center transition hover:border-[#39D97A]/25 hover:bg-[var(--bg-card-hover)]"
               >
                 <dt className="sr-only">{stat.label}</dt>
                 <dd className="text-3xl font-black tracking-[-0.04em] text-[#39D97A]">
                   {stat.number}
                 </dd>
-                <dd className="mt-1 text-sm font-semibold text-white/55">{stat.label}</dd>
+                <dd className="mt-1 text-sm font-semibold text-[var(--text-muted)]">{stat.label}</dd>
               </motion.div>
             ))}
           </dl>
@@ -278,17 +278,17 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.42, delay: index * 0.05 }}
                 viewport={{ once: true }}
-                className="group rounded-[1.6rem] border border-white/10 bg-white/[0.045] p-6 transition duration-300 hover:-translate-y-2 hover:border-[#39D97A]/28 hover:bg-white/[0.065]"
+                className="group rounded-[1.6rem] border border-[var(--border)] bg-[var(--bg-card)] p-6 transition duration-300 hover:-translate-y-2 hover:border-[#39D97A]/28 hover:bg-[var(--bg-card-hover)]"
               >
                 <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10 transition group-hover:scale-105">
                   <SvgIcon name={cleanIconName(value.icon)} size={26} color="#39D97A" />
                 </div>
 
-                <h3 className="text-xl font-black tracking-[-0.03em] text-white">
+                <h3 className="text-xl font-black tracking-[-0.03em] text-[var(--text-primary)]">
                   {value.title}
                 </h3>
 
-                <p className="mt-3 text-sm leading-7 text-white/58">
+                <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)]">
                   {value.description}
                 </p>
               </motion.article>

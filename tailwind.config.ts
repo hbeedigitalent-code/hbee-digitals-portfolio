@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -12,6 +13,9 @@ module.exports = {
         'brand-secondary': '#FFFFFF',
         'brand-dark': '#1F2937',
         'brand-white': '#FFFFFF',
+        'brand-green': '#39D97A',
+        'brand-lime': '#C6F135',
+        'brand-accent-text': '#1AB85C',
       },
       fontFamily: {
         inter: ['var(--font-inter)', 'sans-serif'],

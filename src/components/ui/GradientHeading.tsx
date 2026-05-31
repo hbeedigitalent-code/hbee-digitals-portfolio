@@ -5,7 +5,7 @@ export default function GradientHeading({
 }) {
   return (
     <span className="relative inline-block">
-      <span className="relative z-10 bg-gradient-to-r from-[#39D97A] via-[#7CFFB2] to-[#C6F135] bg-clip-text text-transparent">
+      <span className="relative z-10 bg-gradient-to-r from-[#1AB85C] via-[#20A85A] to-[#0F7A43] bg-clip-text text-transparent dark:from-[#39D97A] dark:via-[#7CFFB2] dark:to-[#C6F135]">
         {children}
       </span>
 

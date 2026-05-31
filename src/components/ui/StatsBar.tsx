@@ -88,7 +88,7 @@ export default function StatsBar({ stats = fallbackStats }: StatsBarProps) {
   const reducedMotion = useReducedMotion()
 
   return (
-    <section className="relative overflow-hidden rounded-[1.9rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#07111F] p-4 text-white shadow-[0_22px_70px_rgba(0,0,0,0.22)] sm:p-5 lg:p-6">
+    <section className="relative overflow-hidden rounded-[1.9rem] border border-[var(--border)] bg-[var(--bg-page)] p-4 text-[var(--text-primary)] shadow-[0_18px_55px_rgba(10,29,55,0.08)] sm:p-5 lg:p-6">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.12),transparent_40%)]" />
 
       <div className="relative grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
@@ -99,7 +99,7 @@ export default function StatsBar({ stats = fallbackStats }: StatsBarProps) {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: index * 0.06 }}
             viewport={{ once: true }}
-            className="group relative overflow-hidden rounded-[1.4rem] border border-[#1E314A] bg-[#0B1728]/90 p-4 transition duration-300 hover:-translate-y-1 hover:border-[#39D97A]/25 hover:bg-[#13233A] sm:p-5"
+            className="group relative overflow-hidden rounded-[1.4rem] border border-[var(--border)] bg-[var(--bg-card)] p-4 transition duration-300 hover:-translate-y-1 hover:border-[#39D97A]/30 hover:bg-[var(--bg-card-hover)] sm:p-5"
           >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(57,217,122,0.08),transparent_55%)] opacity-0 transition duration-300 group-hover:opacity-100" />
 
@@ -114,7 +114,7 @@ export default function StatsBar({ stats = fallbackStats }: StatsBarProps) {
                 </span>
               </h3>
 
-              <p className="mt-3 text-[11px] font-black uppercase tracking-[0.14em] text-white/48 sm:text-xs">
+              <p className="mt-3 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--text-muted)] sm:text-xs">
                 {stat.label}
               </p>
             </div>

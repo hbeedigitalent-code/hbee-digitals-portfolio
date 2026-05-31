@@ -7,15 +7,28 @@
    ---------------------------------------------------------------- */
 
 :root {
-  --primary-bg: #07111F;
-  --secondary-bg: #0E1B2D;
-  --surface: #13233A;
-  --border: #1E314A;
+  --bg-page: #FFFFFF;
+  --bg-section: #F5F7FA;
+  --bg-card: #EEF2F8;
+  --bg-card-hover: #E7EDF6;
+  --border: #DDE3EE;
+  --border-strong: #C9D3E2;
+  --text-primary: #0A1D37;
+  --text-secondary: #3A4A62;
+  --text-muted: #6B7A96;
+  --text-inverse: #FFFFFF;
+  --text-accent: #1AB85C;
   --accent: #39D97A;
-  --highlight: #C6F135;
-  --text-primary: #FFFFFF;
-  --text-secondary: rgba(255, 255, 255, 0.6);
-  --text-muted: rgba(255, 255, 255, 0.45);
+  --accent-lime: #C6F135;
+  --gradient-accent: linear-gradient(90deg, #39D97A 0%, #C6F135 100%);
+  --gradient-hero: linear-gradient(135deg, #07111F 0%, #0A1D37 100%);
+  --gradient-section: linear-gradient(180deg, #FFFFFF 0%, #F5F7FA 100%);
+  --gradient-light: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%);
+
+  --primary-bg: var(--bg-page);
+  --secondary-bg: var(--bg-section);
+  --surface: var(--bg-card);
+  --highlight: var(--accent-lime);
   --error: #FF5A5A;
   --warning: #FACC15;
 
@@ -23,16 +36,29 @@
   --font-body: 'Inter', system-ui, sans-serif;
 }
 
-[data-theme='light'] {
-  --primary-bg: #F8FAFC;
-  --secondary-bg: #FFFFFF;
-  --surface: #EEF2F7;
-  --border: #E2E8F0;
-  --accent: #007BFF;
-  --highlight: #00BFFF;
-  --text-primary: #1F2937;
-  --text-secondary: rgba(31, 41, 55, 0.7);
-  --text-muted: rgba(31, 41, 55, 0.5);
+.dark {
+  --bg-page: #070F1D;
+  --bg-section: #0A1D37;
+  --bg-card: #0F3460;
+  --bg-card-hover: #143E70;
+  --border: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --text-primary: #FFFFFF;
+  --text-secondary: #B8C7DE;
+  --text-muted: #6B82A2;
+  --text-inverse: #07111F;
+  --text-accent: #39D97A;
+  --accent: #39D97A;
+  --accent-lime: #C6F135;
+  --gradient-accent: linear-gradient(90deg, #39D97A 0%, #C6F135 100%);
+  --gradient-hero: linear-gradient(135deg, #070F1D 0%, #0A1D37 100%);
+  --gradient-section: linear-gradient(180deg, #0A1D37 0%, #070F1D 100%);
+  --gradient-light: linear-gradient(135deg, #0A1D37 0%, #0F3460 100%);
+
+  --primary-bg: var(--bg-page);
+  --secondary-bg: var(--bg-section);
+  --surface: var(--bg-card);
+  --highlight: var(--accent-lime);
 }
 
 html {
@@ -42,7 +68,7 @@ html {
 body {
   color: var(--text-primary);
   font-family: var(--font-body);
-  background-color: var(--primary-bg);
+  background-color: var(--bg-page);
   overflow-x: hidden;
 }
 
@@ -52,10 +78,49 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Gradient text utility */
 .gradient-text {
-  background: linear-gradient(90deg, var(--accent), var(--highlight));
+  background: var(--gradient-accent);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.btn-primary {
+  background: var(--gradient-accent);
+  color: #06101F;
+}
+
+.btn-secondary {
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.btn-ghost {
+  color: var(--text-accent);
+}
+
+.card {
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.eyebrow {
+  border: 1px solid rgba(57, 217, 122, 0.22);
+  background: rgba(57, 217, 122, 0.10);
+  color: var(--text-accent);
+}
+
+.text-gradient {
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.badge-accent {
+  background: rgba(57, 217, 122, 0.12);
+  color: var(--text-accent);
 }
 
 /* ----------------------------------------------------------------
