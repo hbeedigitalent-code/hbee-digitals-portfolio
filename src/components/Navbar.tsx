@@ -161,7 +161,7 @@ function LogoMark({
 }) {
   return (
     <span
-      className={`flex flex-shrink-0 items-center justify-center rounded-2xl border border-[#39D97A]/25 bg-gradient-to-br from-[#0E1B2D] to-[#13233A] shadow-[0_0_28px_rgba(57,217,122,0.12)] ring-1 ring-white/5 ${
+      className={`flex flex-shrink-0 items-center justify-center rounded-2xl border border-[var(--accent)]/25 bg-[var(--bg-card)] shadow-[0_0_28px_rgba(57,217,122,0.12)] ring-1 ring-[var(--border)] ${
         size === 'large' ? 'h-12 w-12' : 'h-11 w-11'
       }`}
     >
@@ -367,8 +367,8 @@ export default function Navbar() {
           aria-label="Main navigation"
           className={`mx-auto flex max-w-7xl items-center justify-between rounded-full border px-3 py-2.5 transition-all duration-300 sm:px-4 md:px-5 ${
             scrolled
-              ? 'border-[#1E314A] bg-[#07111F] shadow-[0_18px_70px_rgba(0,0,0,0.38)]'
-              : 'border-[#1E314A]/70 bg-[#0B1728] shadow-[0_12px_45px_rgba(0,0,0,0.25)]'
+              ? 'border-[var(--border)] bg-[var(--bg-section)] shadow-[var(--shadow-md)]'
+              : 'border-[var(--border)]/70 bg-[var(--bg-card)]/80 backdrop-blur-sm shadow-[var(--shadow-sm)]'
           }`}
         >
           <Link href="/" className="group flex min-w-0 items-center gap-3">
@@ -378,7 +378,7 @@ export default function Navbar() {
               onError={() => setLogoUrl('/svgs/logo.svg')}
             />
 
-            <span className="hidden text-sm font-black tracking-[-0.03em] text-white sm:block">
+            <span className="hidden text-sm font-black tracking-[-0.03em] text-[var(--text-primary)] sm:block">
               {siteName}
             </span>
           </Link>
@@ -400,7 +400,7 @@ export default function Navbar() {
                     <Link
                       href={link.href}
                       className={`relative inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition-colors ${
-                        active ? 'text-white' : 'text-white/64 hover:text-white'
+                        active ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                       }`}
                     >
                       <span className="relative z-10">{link.label}</span>
@@ -409,7 +409,7 @@ export default function Navbar() {
                         <SvgIcon
                           name="chevron-down"
                           size={12}
-                          color={active ? '#39D97A' : 'rgba(255,255,255,0.55)'}
+                          color={active ? 'var(--accent)' : 'var(--text-muted)'}
                           className={`relative z-10 transition duration-300 ${
                             opened ? 'rotate-180' : ''
                           }`}
@@ -419,7 +419,7 @@ export default function Navbar() {
                       {active && (
                         <motion.span
                           layoutId="active-nav-pill"
-                          className="absolute inset-0 rounded-full border border-[#39D97A]/24 bg-[#39D97A]/10"
+                          className="absolute inset-0 rounded-full border border-[var(--accent)]/24 bg-[var(--accent)]/10"
                         />
                       )}
                     </Link>
@@ -431,30 +431,30 @@ export default function Navbar() {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={reducedMotion ? undefined : { opacity: 0, y: 8, scale: 0.98 }}
                           transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                          className="absolute left-1/2 top-[calc(100%+14px)] w-[410px] -translate-x-1/2 overflow-hidden rounded-[1.5rem] border border-[#1E314A] bg-[#0B1728] p-3 shadow-[0_30px_90px_rgba(0,0,0,0.46)]"
+                          className="absolute left-1/2 top-[calc(100%+14px)] w-[410px] -translate-x-1/2 overflow-hidden rounded-[1.5rem] border border-[var(--border)] bg-[var(--bg-card)] p-3 shadow-[var(--shadow-lg)]"
                         >
                           <div className="space-y-1">
                             {link.children?.map((child) => (
                               <Link
                                 key={`${child.label}-${child.href}`}
                                 href={child.href}
-                                className="group flex gap-4 rounded-[1.15rem] border border-transparent bg-[#0E1B2D] p-4 transition hover:border-[#39D97A]/20 hover:bg-[#13233A]"
+                                className="group flex gap-4 rounded-[1.15rem] border border-transparent bg-[var(--bg-section)] p-4 transition hover:border-[var(--accent)]/20 hover:bg-[var(--bg-card-hover)]"
                               >
-                                <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10">
+                                <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--accent)]/18 bg-[var(--accent)]/10">
                                   <SvgIcon
                                     name={child.icon || 'services'}
                                     size={20}
-                                    color="#39D97A"
+                                    color="var(--accent)"
                                   />
                                 </span>
 
                                 <span>
-                                  <span className="block text-sm font-black text-white">
+                                  <span className="block text-sm font-black text-[var(--text-primary)]">
                                     {child.label}
                                   </span>
 
                                   {child.description && (
-                                    <span className="mt-1 block text-xs leading-5 text-white/56">
+                                    <span className="mt-1 block text-xs leading-5 text-[var(--text-muted)]">
                                       {child.description}
                                     </span>
                                   )}
@@ -476,23 +476,23 @@ export default function Navbar() {
 
             <Link
               href="/contact"
-              className="group hidden items-center gap-2 rounded-full bg-[#39D97A] px-5 py-2.5 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135] lg:inline-flex"
+              className="group hidden items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] hover:bg-[var(--accent-lime)] lg:inline-flex"
             >
               Get Free Audit
-              <SvgIcon name="arrow-diagonal" size={16} color="#06101F" />
+              <SvgIcon name="arrow-diagonal" size={16} color="var(--btn-primary-text)" />
             </Link>
 
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#1E314A] bg-[#0E1B2D] transition hover:border-[#39D97A]/28 hover:bg-[#13233A] lg:hidden"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-card)] transition hover:border-[var(--accent)]/28 hover:bg-[var(--bg-card-hover)] lg:hidden"
               aria-expanded={isMobileMenuOpen}
               aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             >
               {isMobileMenuOpen ? (
-                <SvgIcon name="close" size={22} color="#ffffff" />
+                <SvgIcon name="close" size={22} color="var(--text-primary)" />
               ) : (
-                <SvgIcon name="menu" size={22} color="#ffffff" />
+                <SvgIcon name="menu" size={22} color="var(--text-primary)" />
               )}
             </button>
           </div>
@@ -509,7 +509,7 @@ export default function Navbar() {
               initial={reducedMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={reducedMotion ? undefined : { opacity: 0 }}
-              className="fixed inset-0 z-40 bg-[#02070F]/78 lg:hidden"
+              className="fixed inset-0 z-40 bg-[var(--bg-page)]/80 backdrop-blur-sm lg:hidden"
             />
 
             <motion.div
@@ -517,9 +517,9 @@ export default function Navbar() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={reducedMotion ? undefined : { opacity: 0, y: -18, scale: 0.98 }}
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-              className="fixed left-3 right-3 top-[74px] z-50 max-h-[calc(100vh-92px)] overflow-hidden rounded-[1.8rem] border border-[#1E314A] bg-[#0B1728] shadow-[0_30px_90px_rgba(0,0,0,0.5)] sm:left-5 sm:right-5 lg:hidden"
+              className="fixed left-3 right-3 top-[74px] z-50 max-h-[calc(100vh-92px)] overflow-hidden rounded-[1.8rem] border border-[var(--border)] bg-[var(--bg-card)] shadow-[var(--shadow-lg)] sm:left-5 sm:right-5 lg:hidden"
             >
-              <div className="flex items-center justify-between border-b border-[#1E314A] p-4">
+              <div className="flex items-center justify-between border-b border-[var(--border)] p-4">
                 <div className="flex items-center gap-3">
                   <LogoMark
                     logoUrl={logoUrl}
@@ -529,8 +529,8 @@ export default function Navbar() {
                   />
 
                   <div>
-                    <p className="text-sm font-black text-white">{siteName}</p>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#39D97A]">
+                    <p className="text-sm font-black text-[var(--text-primary)]">{siteName}</p>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
                       Digital Growth
                     </p>
                   </div>
@@ -539,9 +539,9 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex h-11 w-11 items-center justify-center rounded-full border border-[#1E314A] bg-[#13233A]"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-section)]"
                 >
-                  <SvgIcon name="close" size={20} color="#ffffff" />
+                  <SvgIcon name="close" size={20} color="var(--text-primary)" />
                 </button>
               </div>
 
@@ -569,15 +569,15 @@ export default function Navbar() {
                                 onClick={() => setActiveMobilePanel(item)}
                                 className={`flex w-full items-center justify-between rounded-2xl border px-4 py-4 text-left transition ${
                                   active
-                                    ? 'border-[#39D97A]/24 bg-[#13233A] text-[#39D97A]'
-                                    : 'border-[#1E314A] bg-[#0E1B2D] text-white hover:bg-[#13233A]'
+                                    ? 'border-[var(--accent)]/24 bg-[var(--bg-card-hover)] text-[var(--accent)]'
+                                    : 'border-[var(--border)] bg-[var(--bg-section)] text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
                                 }`}
                               >
                                 <span className="flex items-center gap-3">
                                   <SvgIcon
                                     name={item.icon || 'services'}
                                     size={18}
-                                    color={active ? '#39D97A' : 'rgba(255,255,255,0.7)'}
+                                    color={active ? 'var(--accent)' : 'var(--text-muted)'}
                                   />
 
                                   <span className="text-base font-black">{item.label}</span>
@@ -586,7 +586,7 @@ export default function Navbar() {
                                 <SvgIcon
                                   name="chevron-right"
                                   size={17}
-                                  color={active ? '#39D97A' : 'rgba(255,255,255,0.55)'}
+                                  color={active ? 'var(--accent)' : 'var(--text-muted)'}
                                 />
                               </button>
                             )
@@ -598,15 +598,15 @@ export default function Navbar() {
                               href={item.href}
                               className={`flex items-center justify-between rounded-2xl border px-4 py-4 transition ${
                                 active
-                                  ? 'border-[#39D97A]/24 bg-[#13233A] text-[#39D97A]'
-                                  : 'border-[#1E314A] bg-[#0E1B2D] text-white hover:bg-[#13233A]'
+                                  ? 'border-[var(--accent)]/24 bg-[var(--bg-card-hover)] text-[var(--accent)]'
+                                  : 'border-[var(--border)] bg-[var(--bg-section)] text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
                               }`}
                             >
                               <span className="flex items-center gap-3">
                                 <SvgIcon
                                   name={item.icon || 'services'}
                                   size={18}
-                                  color={active ? '#39D97A' : 'rgba(255,255,255,0.7)'}
+                                  color={active ? 'var(--accent)' : 'var(--text-muted)'}
                                 />
 
                                 <span className="text-base font-black">{item.label}</span>
@@ -615,7 +615,7 @@ export default function Navbar() {
                               <SvgIcon
                                 name="arrow-diagonal"
                                 size={15}
-                                color={active ? '#39D97A' : 'rgba(255,255,255,0.45)'}
+                                color={active ? 'var(--accent)' : 'var(--text-muted)'}
                               />
                             </Link>
                           )
@@ -624,10 +624,10 @@ export default function Navbar() {
 
                       <Link
                         href="/contact"
-                        className="mt-4 flex min-h-[54px] items-center justify-center gap-2 rounded-full bg-[#39D97A] px-5 py-3 text-sm font-black text-[#06101F]"
+                        className="mt-4 flex min-h-[54px] items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-black text-[var(--btn-primary-text)]"
                       >
                         Get Free Audit
-                        <SvgIcon name="arrow-diagonal" size={16} color="#06101F" />
+                        <SvgIcon name="arrow-diagonal" size={16} color="var(--btn-primary-text)" />
                       </Link>
                     </motion.div>
                   ) : (
@@ -642,26 +642,26 @@ export default function Navbar() {
                       <button
                         type="button"
                         onClick={() => setActiveMobilePanel(null)}
-                        className="mb-4 flex items-center gap-2 rounded-full border border-[#1E314A] bg-[#0E1B2D] px-4 py-2.5 text-sm font-bold text-white/70"
+                        className="mb-4 flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-section)] px-4 py-2.5 text-sm font-bold text-[var(--text-secondary)]"
                       >
-                        <SvgIcon name="chevron-left" size={16} color="#39D97A" />
+                        <SvgIcon name="chevron-left" size={16} color="var(--accent)" />
                         Back
                       </button>
 
-                      <div className="mb-5 rounded-[1.4rem] border border-[#39D97A]/18 bg-[#39D97A]/10 p-5">
-                        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#07111F]">
+                      <div className="mb-5 rounded-[1.4rem] border border-[var(--accent)]/18 bg-[var(--accent)]/10 p-5">
+                        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--accent)]/18 bg-[var(--bg-page)]">
                           <SvgIcon
                             name={activeMobilePanel.icon || 'services'}
                             size={22}
-                            color="#39D97A"
+                            color="var(--accent)"
                           />
                         </div>
 
-                        <h3 className="text-2xl font-black text-white">
+                        <h3 className="text-2xl font-black text-[var(--text-primary)]">
                           {activeMobilePanel.label}
                         </h3>
 
-                        <p className="mt-2 text-sm leading-6 text-white/55">
+                        <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
                           Select where you want to go.
                         </p>
                       </div>
@@ -669,29 +669,29 @@ export default function Navbar() {
                       <div className="space-y-2">
                         <Link
                           href={activeMobilePanel.href}
-                          className="flex items-center justify-between rounded-2xl border border-[#1E314A] bg-[#0E1B2D] px-4 py-4 text-white transition hover:bg-[#13233A]"
+                          className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-4 text-[var(--text-primary)] transition hover:bg-[var(--bg-card-hover)]"
                         >
                           <span className="font-black">Overview</span>
-                          <SvgIcon name="arrow-diagonal" size={15} color="#39D97A" />
+                          <SvgIcon name="arrow-diagonal" size={15} color="var(--accent)" />
                         </Link>
 
                         {activeMobilePanel.children?.map((child) => (
                           <Link
                             key={`${child.label}-${child.href}`}
                             href={child.href}
-                            className="flex gap-4 rounded-2xl border border-[#1E314A] bg-[#0E1B2D] p-4 transition hover:border-[#39D97A]/22 hover:bg-[#13233A]"
+                            className="flex gap-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-section)] p-4 transition hover:border-[var(--accent)]/22 hover:bg-[var(--bg-card-hover)]"
                           >
-                            <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-[#39D97A]/16 bg-[#39D97A]/10">
-                              <SvgIcon name={child.icon || 'services'} size={18} color="#39D97A" />
+                            <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-[var(--accent)]/16 bg-[var(--accent)]/10">
+                              <SvgIcon name={child.icon || 'services'} size={18} color="var(--accent)" />
                             </span>
 
                             <span>
-                              <span className="block text-base font-black text-white">
+                              <span className="block text-base font-black text-[var(--text-primary)]">
                                 {child.label}
                               </span>
 
                               {child.description && (
-                                <span className="mt-1 block text-sm leading-6 text-white/50">
+                                <span className="mt-1 block text-sm leading-6 text-[var(--text-muted)]">
                                   {child.description}
                                 </span>
                               )}

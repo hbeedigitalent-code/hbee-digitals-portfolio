@@ -1,266 +1,257 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import {
-  ArrowRight,
-  BarChart3,
-  CheckCircle2,
-  ExternalLink,
-  Filter,
-  Sparkles,
-  TrendingUp,
-} from 'lucide-react'
-import Reveal from '@/components/Reveal'
-import { Project } from '@/types'
+import { motion, useReducedMotion } from 'framer-motion'
 
-interface PortfolioSectionProps {
-  data: Project[]
+import SvgIcon from '@/components/ui/SvgIcon'
+import GradientHeading from '@/components/ui/GradientHeading'
+
+interface PortfolioItem {
+  id: string
   title?: string
-  subtitle?: string
-}
-
-type SafeProject = Project & {
+  name?: string
+  slug?: string
+  description?: string
+  category?: string
+  tag?: string
   image_url?: string
-  image?: string
+  featured_image?: string
+  live_url?: string
   url?: string
   project_url?: string
-  name?: string
-  tag?: string
-  result?: string
-  status?: string
+  industry?: string
+  results?: string[] | string
+  technologies?: string[] | string
+  is_featured?: boolean
 }
 
-const getProjectImage = (project: SafeProject) => {
-  return project.imageUrl || project.image_url || project.image || ''
+interface Props {
+  items: PortfolioItem[]
 }
 
-const getProjectUrl = (project: SafeProject) => {
-  return project.projectUrl || project.project_url || project.url || '/projects'
+function normalizeArray(value: any): string[] {
+  if (!value) return []
+
+  if (Array.isArray(value)) return value
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) return parsed
+    } catch {
+      return value
+        .split(/\n|,/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    }
+  }
+
+  return []
 }
 
-const getProjectTitle = (project: SafeProject) => {
-  return project.title || project.name || 'Growth System Project'
+function getTitle(item: PortfolioItem) {
+  return item.title || item.name || 'Project'
 }
 
-const getProjectCategory = (project: SafeProject) => {
-  return project.category || project.tag || 'Project'
+function getImage(item: PortfolioItem) {
+  return item.featured_image || item.image_url || ''
 }
 
-const getProjectResult = (project: SafeProject) => {
-  return project.result || project.status || 'Growth-focused build'
+function getSlug(item: PortfolioItem) {
+  const base = item.slug || getTitle(item)
+
+  return base
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
 }
 
-export default function PortfolioSection({
-  data,
-  title = 'Real Stores We’ve Grown',
-  subtitle = 'A closer look at selected projects, growth systems, and digital experiences built to improve trust, conversion, and performance.',
-}: PortfolioSectionProps) {
-  const [filter, setFilter] = useState<string>('all')
+export default function PortfolioSection({ items }: Props) {
   const reducedMotion = useReducedMotion()
 
-  const projects = (data || []) as SafeProject[]
+  if (!items?.length) return null
 
-  const categories = useMemo(() => {
-    const uniqueCategories = projects
-      .map((project) => getProjectCategory(project))
-      .filter(Boolean)
-
-    return ['all', ...Array.from(new Set(uniqueCategories))]
-  }, [projects])
-
-  const filteredProjects = useMemo(() => {
-    if (filter === 'all') return projects
-    return projects.filter((project) => getProjectCategory(project) === filter)
-  }, [filter, projects])
-
-  if (!projects.length) return null
+  const orderedItems = [...items].sort((a, b) => {
+    if (a.is_featured && !b.is_featured) return -1
+    if (!a.is_featured && b.is_featured) return 1
+    return 0
+  })
 
   return (
-    <section
-      id="portfolio"
-      aria-labelledby="portfolio-heading"
-      className="relative overflow-hidden bg-[#060E1C] py-24 text-white"
-    >
+    <section className="relative overflow-hidden bg-[var(--bg-page)] py-16 text-[var(--text-primary)] sm:py-20 lg:py-24">
+      {/* Background decorative elements */}
       <div className="absolute inset-0 -z-10">
-        <div className="absolute left-1/2 top-0 h-[420px] w-[760px] -translate-x-1/2 rounded-full bg-[#39D97A]/8 blur-[120px]" />
-        <div className="absolute bottom-0 right-0 h-[360px] w-[460px] rounded-full bg-[#C6F135]/7 blur-[110px]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:72px_72px] opacity-20" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#060E1C]/60 to-[#060E1C]" />
+        <div className="absolute left-0 top-10 h-[340px] w-[440px] rounded-full bg-[var(--accent)]/7 blur-[120px]" />
+        <div className="absolute bottom-0 right-0 h-[320px] w-[400px] rounded-full bg-[var(--accent-lime)]/6 blur-[120px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.018)_1px,transparent_1px)] bg-[size:82px_82px] opacity-20" />
       </div>
 
-      <div className="mx-auto max-w-7xl px-6 md:px-10">
-        <div className="mb-12 grid items-end gap-8 lg:grid-cols-[1fr_auto]">
-          <div>
-            <motion.div
-              initial={reducedMotion ? false : { opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55 }}
-              viewport={{ once: true }}
-              className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#39D97A]"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Case Study Preview
-            </motion.div>
-
-            <Reveal variant="wipe">
-              <h2
-                id="portfolio-heading"
-                className="max-w-3xl text-4xl font-black leading-[0.98] tracking-[-0.055em] text-white md:text-5xl lg:text-6xl"
-              >
-                {title}
-              </h2>
-            </Reveal>
-
-            <p className="mt-5 max-w-2xl text-base leading-8 text-white/60 md:text-lg">
-              {subtitle}
-            </p>
+      <div className="mx-auto max-w-7xl px-5 sm:px-6 md:px-10 lg:px-12">
+        {/* Header */}
+        <motion.div
+          initial={reducedMotion ? false : { opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.42 }}
+          viewport={{ once: true }}
+          className="mb-12 max-w-4xl"
+        >
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/18 bg-[var(--accent)]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
+            <SvgIcon name="portfolio" size={14} color="var(--accent)" />
+            Featured Work
           </div>
 
-          <Link
-            href="/projects"
-            className="group inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm font-bold text-white/80 backdrop-blur-xl transition hover:border-[#39D97A]/30 hover:bg-[#39D97A]/10 hover:text-white"
-          >
-            View All Work
-            <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-          </Link>
-        </div>
+          <h2 className="text-4xl font-black leading-[0.96] tracking-[-0.055em] text-[var(--text-primary)] sm:text-5xl md:text-6xl">
+            Case studies built for <GradientHeading>results.</GradientHeading>
+          </h2>
 
-        {categories.length > 2 && (
-          <div className="mb-10 flex flex-wrap items-center gap-3">
-            <div className="mr-1 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-white/38">
-              <Filter className="h-4 w-4" />
-              Filter
-            </div>
+          <p className="mt-6 max-w-2xl text-sm leading-8 text-[var(--text-secondary)] sm:text-base">
+            Premium digital systems designed to improve trust, customer experience,
+            visual positioning, and conversion performance.
+          </p>
+        </motion.div>
 
-            {categories.map((cat) => {
-              const active = filter === cat
+        {/* Portfolio Grid */}
+        <div className="grid gap-5 lg:grid-cols-2">
+          {orderedItems.map((item, index) => {
+            const title = getTitle(item)
+            const image = getImage(item)
+            const slug = getSlug(item)
+            const results = normalizeArray(item.results).slice(0, 2)
+            const technologies = normalizeArray(item.technologies).slice(0, 4)
 
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setFilter(cat)}
-                  className={`rounded-full border px-4 py-2 text-xs font-bold capitalize transition ${
-                    active
-                      ? 'border-[#39D97A]/35 bg-[#39D97A]/12 text-[#39D97A] shadow-[0_0_26px_rgba(57,217,122,0.12)]'
-                      : 'border-white/10 bg-white/[0.035] text-white/55 hover:border-white/20 hover:text-white'
+            return (
+              <motion.div
+                key={item.id || index}
+                initial={reducedMotion ? false : { opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.42,
+                  delay: index * 0.05,
+                }}
+                viewport={{ once: true }}
+              >
+                <Link
+                  href={`/portfolio/${slug}`}
+                  className={`group relative block overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] transition-all duration-300 hover:-translate-y-1 hover:border-[var(--accent)]/25 hover:shadow-[var(--shadow-lg)] ${
+                    index === 0
+                      ? 'lg:col-span-2 lg:grid lg:grid-cols-[1.05fr_0.95fr]'
+                      : ''
                   }`}
                 >
-                  {cat === 'all' ? 'All Work' : cat}
-                </button>
-              )
-            })}
-          </div>
-        )}
-
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={filter}
-            initial={reducedMotion ? false : { opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reducedMotion ? undefined : { opacity: 0, y: -10 }}
-            transition={{ duration: 0.35 }}
-            className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
-          >
-            {filteredProjects.map((project, index) => {
-              const image = getProjectImage(project)
-              const projectUrl = getProjectUrl(project)
-              const projectTitle = getProjectTitle(project)
-              const category = getProjectCategory(project)
-              const result = getProjectResult(project)
-
-              return (
-                <motion.article
-                  key={project.id || `${projectTitle}-${index}`}
-                  initial={reducedMotion ? false : { opacity: 0, y: 26 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.55, delay: index * 0.07 }}
-                  viewport={{ once: true }}
-                  className="group relative overflow-hidden rounded-[1.7rem] border border-white/10 bg-white/[0.045] shadow-[0_28px_80px_rgba(0,0,0,0.25)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-[#39D97A]/25 hover:bg-white/[0.065]"
-                >
-                  <div className="relative h-56 overflow-hidden bg-[#0B1E38]">
+                  {/* Image Section */}
+                  <div className="relative overflow-hidden">
                     {image ? (
-                      <Image
+                      <img
                         src={image}
-                        alt={projectTitle}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className="object-cover transition duration-700 group-hover:scale-105"
+                        alt={title}
+                        className={`w-full object-cover transition duration-700 group-hover:scale-[1.03] ${
+                          index === 0 ? 'aspect-[16/10] h-full' : 'aspect-[4/3]'
+                        }`}
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center bg-gradient-to-br from-[#0B1E38] to-[#132847]">
-                        <BarChart3 className="h-14 w-14 text-[#39D97A]/50" />
+                      <div className="flex aspect-[4/3] items-center justify-center bg-[var(--bg-section)]">
+                        <SvgIcon name="portfolio" size={50} color="var(--accent)" />
                       </div>
                     )}
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#060E1C] via-[#060E1C]/35 to-transparent" />
+                    {/* Gradient Overlay for text readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-page)]/90 via-[var(--bg-page)]/20 to-transparent" />
 
-                    <div className="absolute left-4 top-4 rounded-full border border-[#39D97A]/20 bg-[#39D97A]/12 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#39D97A] backdrop-blur-xl">
-                      {category}
-                    </div>
-
-                    <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-3">
-                      <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/25 px-3 py-1.5 text-xs font-semibold text-white/75 backdrop-blur-xl">
-                        <TrendingUp className="h-3.5 w-3.5 text-[#C6F135]" />
-                        {result}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-5">
-                    <div className="mb-4 flex items-center gap-2 text-xs font-semibold text-white/45">
-                      <CheckCircle2 className="h-4 w-4 text-[#39D97A]" />
-                      Digital growth system
-                    </div>
-
-                    <h3 className="text-xl font-black leading-tight tracking-[-0.035em] text-white">
-                      {projectTitle}
-                    </h3>
-
-                    <p className="mt-3 line-clamp-3 text-sm leading-6 text-white/55">
-                      {project.description ||
-                        'A refined digital experience focused on stronger trust, cleaner user journeys, better conversion structure, and scalable brand presentation.'}
-                    </p>
-
-                    <div className="mt-5 grid grid-cols-3 gap-2">
-                      {['Problem', 'System', 'Result'].map((item) => (
-                        <div
-                          key={item}
-                          className="rounded-2xl border border-white/8 bg-white/[0.035] px-3 py-2 text-center text-[11px] font-bold text-white/50"
-                        >
-                          {item}
-                        </div>
-                      ))}
-                    </div>
-
-                    <Link
-                      href={projectUrl}
-                      target={projectUrl.startsWith('http') ? '_blank' : undefined}
-                      rel={projectUrl.startsWith('http') ? 'noopener noreferrer' : undefined}
-                      className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#39D97A] transition hover:text-[#C6F135]"
-                    >
-                      View Case Study
-                      {projectUrl.startsWith('http') ? (
-                        <ExternalLink className="h-4 w-4" />
-                      ) : (
-                        <ArrowRight className="h-4 w-4" />
+                    {/* Badges */}
+                    <div className="absolute left-5 top-5 flex flex-wrap gap-2">
+                      {(item.category || item.tag) && (
+                        <span className="rounded-full border border-[var(--accent)]/18 bg-[var(--accent)]/12 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--accent)] backdrop-blur-sm">
+                          {item.category || item.tag}
+                        </span>
                       )}
-                    </Link>
+                      {item.is_featured && (
+                        <span className="rounded-full border border-[var(--border)] bg-[var(--bg-card)]/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-primary)] backdrop-blur-sm">
+                          Featured
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </motion.article>
-              )
-            })}
-          </motion.div>
-        </AnimatePresence>
 
-        {filteredProjects.length === 0 && (
-          <div className="rounded-3xl border border-white/10 bg-white/[0.04] px-6 py-14 text-center">
-            <p className="text-white/55">No projects found in this category yet.</p>
-          </div>
-        )}
+                  {/* Content Section */}
+                  <div className="relative flex flex-col justify-between p-6 sm:p-7">
+                    <div>
+                      <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/16 bg-[var(--accent)]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--accent)]">
+                        Case Study
+                      </div>
+
+                      <h3 className="text-3xl font-black leading-[1] tracking-[-0.045em] text-[var(--text-primary)]">
+                        {title}
+                      </h3>
+
+                      <p className="mt-5 text-sm leading-7 text-[var(--text-secondary)]">
+                        {item.description ||
+                          'A premium digital project focused on trust, conversion, and customer experience improvement.'}
+                      </p>
+
+                      {/* Results */}
+                      {results.length > 0 && (
+                        <div className="mt-6 grid gap-3">
+                          {results.map((result) => (
+                            <div
+                              key={result}
+                              className="flex items-start gap-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-section)]/75 px-4 py-3"
+                            >
+                              <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-[var(--accent)]/16 bg-[var(--accent)]/10">
+                                <SvgIcon name="verified" size={12} color="var(--accent)" />
+                              </span>
+                              <p className="text-sm leading-6 text-[var(--text-secondary)]">
+                                {result}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Technologies */}
+                      {technologies.length > 0 && (
+                        <div className="mt-6 flex flex-wrap gap-2">
+                          {technologies.map((tech) => (
+                            <span
+                              key={tech}
+                              className="rounded-full border border-[var(--border)] bg-[var(--bg-section)] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-[var(--text-muted)]"
+                            >
+                              {tech}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="mt-8 flex items-center justify-between">
+                      <div className="inline-flex items-center gap-2 text-sm font-black text-[var(--accent)] transition group-hover:gap-3">
+                        View Case Study
+                        <SvgIcon name="arrow-diagonal" size={15} color="var(--accent)" />
+                      </div>
+                      {(item.live_url || item.url || item.project_url) && (
+                        <div className="rounded-full border border-[var(--border)] bg-[var(--bg-section)] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                          Live Project
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              </motion.div>
+            )
+          })}
+        </div>
+
+        {/* View All Button */}
+        <div className="mt-12 text-center">
+          <Link
+            href="/portfolio"
+            className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-8 py-3 text-sm font-black text-[var(--text-primary)] transition hover:border-[var(--accent)]/25 hover:bg-[var(--bg-card-hover)]"
+          >
+            Explore Portfolio
+            <SvgIcon name="arrow-diagonal" size={15} color="var(--accent)" />
+          </Link>
+        </div>
       </div>
     </section>
   )

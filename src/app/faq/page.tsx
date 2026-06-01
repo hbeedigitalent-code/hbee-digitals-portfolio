@@ -38,8 +38,8 @@ export default function FAQPage() {
     return (
       <>
         <Navbar />
-        <main className="flex min-h-screen items-center justify-center bg-[#07111F] text-white">
-          <div className="h-12 w-12 animate-spin rounded-full border-2 border-white/10 border-t-[#39D97A]" />
+        <main className="flex min-h-screen items-center justify-center bg-[var(--bg-page)] text-[var(--text-primary)]">
+          <div className="h-12 w-12 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent)]" />
         </main>
         <Footer />
       </>
@@ -49,7 +49,7 @@ export default function FAQPage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-[#07111F] pt-20">
+      <main className="min-h-screen bg-[var(--bg-page)] pt-20">
         <FAQSection data={faqs} variant="page" />
       </main>
       <Footer />

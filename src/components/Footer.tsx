@@ -9,6 +9,7 @@ import SvgIcon from '@/components/ui/SvgIcon'
 interface FooterLink {
   label: string
   href: string
+  icon?: string
 }
 
 interface FooterColumn {
@@ -23,202 +24,204 @@ interface SocialLink {
   is_active?: boolean
 }
 
-const blockedSocialUrls = [
-  'https://facebook.com',
-  'https://twitter.com',
-  'https://linkedin.com',
-  'https://instagram.com',
-]
+interface SiteSettings {
+  site_name?: string
+  logo_url?: string
+  contact_email?: string
+  contact_phone?: string
+  contact_address?: string
+  footer_description?: string
+}
 
-function LogoMark({
-  logoUrl,
-  brandName,
-}: {
-  logoUrl: string
-  brandName: string
-}) {
+function LogoMark({ logoUrl, brandName }: { logoUrl: string; brandName: string }) {
   return (
-    <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-[#39D97A]/25 bg-gradient-to-br from-[#0E1B2D] to-[#13233A] p-2 shadow-[0_0_34px_rgba(57,217,122,0.14)] ring-1 ring-white/5 transition group-hover:border-[#39D97A]/40">
+    <span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-[var(--accent)]/25 bg-[var(--bg-card)] p-2 transition group-hover:border-[var(--accent)]/40">
       <img
         src={logoUrl}
         alt={`${brandName} logo`}
-        className="h-10 w-10 object-contain drop-shadow-[0_0_16px_rgba(57,217,122,0.38)]"
+        className="h-8 w-8 object-contain"
       />
     </span>
   )
 }
 
+function getSocialIcon(platform: string): string {
+  const platformLower = platform.toLowerCase()
+  if (platformLower.includes('facebook')) return 'facebook'
+  if (platformLower.includes('whatsapp')) return 'whatsapp'
+  if (platformLower.includes('instagram')) return 'instagram'
+  if (platformLower.includes('telegram')) return 'telegram'
+  if (platformLower.includes('youtube')) return 'video'
+  if (platformLower.includes('tiktok')) return 'video'
+  return 'verified'
+}
+
+// Collapsible section component for mobile
+function CollapsibleSection({ title, links, defaultOpen = false }: { title: string; links: FooterLink[]; defaultOpen?: boolean }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen)
+
+  return (
+    <div className="border-b border-[var(--border)] md:border-none">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex w-full items-center justify-between py-3 text-left md:cursor-default md:py-0"
+        aria-expanded={isOpen}
+      >
+        <h4 className="text-sm font-black uppercase tracking-[0.16em] text-[var(--accent)]">
+          {title}
+        </h4>
+        <span className="md:hidden">
+          <SvgIcon name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} color="var(--accent)" />
+        </span>
+      </button>
+      <div className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-96' : 'max-h-0 md:max-h-full'} md:!max-h-full`}>
+        <ul className="pb-4 space-y-3 md:pb-0">
+          {links.map((link) => (
+            <li key={link.label}>
+              <Link
+                href={link.href}
+                className="flex items-center gap-2 text-sm text-[var(--text-muted)] transition hover:text-[var(--accent)] hover:translate-x-1"
+              >
+                {link.icon && <SvgIcon name={link.icon} size={14} color="var(--accent)" />}
+                {link.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
 export default function Footer() {
   const reducedMotion = useReducedMotion()
+  const [email, setEmail] = useState('')
+  const [subscribing, setSubscribing] = useState(false)
+  const [subscribeSuccess, setSubscribeSuccess] = useState(false)
 
-  const [footerData, setFooterData] = useState<{
-    logo_text?: string
-    copyright_text?: string
-    columns?: FooterColumn[]
-    social_links?: SocialLink[]
-  } | null>(null)
-
-  const [siteSettings, setSiteSettings] = useState<any>({})
+  const [footerData, setFooterData] = useState<any>(null)
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>({})
 
   useEffect(() => {
     async function fetchData() {
-      const { data: footer } = await supabase
-        .from('footer_settings')
-        .select('*')
-        .single()
-
-      const { data: site } = await supabase
-        .from('site_settings')
-        .select('*')
-        .single()
-
+      const { data: footer } = await supabase.from('footer_settings').select('*').single()
+      const { data: site } = await supabase.from('site_settings').select('*').single()
       if (footer) setFooterData(footer)
       if (site) setSiteSettings(site)
     }
-
     fetchData()
   }, [])
 
-  const brandName =
-    footerData?.logo_text || siteSettings.site_name || 'Hbee Digitals'
-
+  const brandName = footerData?.logo_text || siteSettings.site_name || 'Hbee Digitals'
   const logoUrl = siteSettings.logo_url || '/svgs/logo.svg'
+  const contactEmail = siteSettings.contact_email || 'contact@hbeedigitals.com'
+  const contactPhone = siteSettings.contact_phone || '+234 815 315 3827'
+  const contactAddress = siteSettings.contact_address || 'Abuja, Nigeria - Serving Brands Internationally'
+  const footerDescription = siteSettings.footer_description || 'Premium websites, ecommerce systems, Shopify optimization, and conversion-focused digital experiences.'
 
-  const contactEmail =
-    siteSettings.contact_email || 'contact@hbeedigitals.com'
-
-  const contactPhone =
-    siteSettings.contact_phone || '+234 815 315 3827'
-
-  const cleanPhone = contactPhone.replace(/\s/g, '').replace('+', '')
-
-  const columns: FooterColumn[] =
-    footerData?.columns?.length
-      ? footerData.columns
-      : [
-          {
-            title: 'Services',
-            links: [
-              { label: 'Website Design', href: '/services' },
-              { label: 'Ecommerce Solutions', href: '/services' },
-              { label: 'Shopify Optimization', href: '/services' },
-              { label: 'Technical Consulting', href: '/services' },
-            ],
-          },
-
-          {
-            title: 'Company',
-            links: [
-              { label: 'About Us', href: '/about' },
-
-              { label: 'Portfolio', href: '/portfolio' },
-
-              { label: 'Before & After', href: '/before-after' },
-
-              { label: 'Client Reviews', href: '/reviews' },
-
-              { label: 'Our Process', href: '/process' },
-
-              { label: 'Pricing', href: '/pricing' },
-
-              { label: 'FAQ', href: '/faq' },
-
-              { label: 'Blog', href: '/blog' },
-
-              { label: 'Contact', href: '/contact' },
-            ],
-          },
-
-          {
-            title: 'Legal',
-            links: [
-              { label: 'Privacy Policy', href: '/privacy' },
-
-              { label: 'Terms of Service', href: '/terms' },
-
-              { label: 'Cookie Policy', href: '/cookies' },
-            ],
-          },
-        ]
-
-  const socialLinks: SocialLink[] =
-    footerData?.social_links
-      ?.filter((social) => social.is_active !== false)
-      .filter((social) => social.url?.trim())
-      .filter(
-        (social) =>
-          !blockedSocialUrls.includes(social.url.trim().toLowerCase())
-      ) || []
-
-  const contactItems = [
+  const columns: FooterColumn[] = footerData?.columns?.length ? footerData.columns : [
     {
-      label: 'Email',
-      value: contactEmail,
-      href: `mailto:${contactEmail}`,
-      icon: 'email',
+      title: 'Services',
+      links: [
+        { label: 'Web Development', href: '/services', icon: 'web-development' },
+        { label: 'E-Commerce Solutions', href: '/services', icon: 'ecommerce' },
+        { label: 'UI/UX Design', href: '/services', icon: 'ui-ux' },
+        { label: 'Digital Marketing', href: '/services', icon: 'digital-marketing' },
+        { label: 'Brand Strategy', href: '/services', icon: 'branding' },
+        { label: 'Technical Consulting', href: '/services', icon: 'consulting' },
+      ],
     },
-
     {
-      label: 'WhatsApp',
-      value: contactPhone,
-      href: `https://wa.me/${cleanPhone}`,
-      icon: 'whatsapp',
+      title: 'Company',
+      links: [
+        { label: 'About Us', href: '/about' },
+        { label: 'Portfolio', href: '/portfolio' },
+        { label: 'FAQ', href: '/faq' },
+        { label: 'Blog', href: '/blog' },
+        { label: 'Contact', href: '/contact' },
+      ],
     },
-
     {
-      label: 'Location',
-      value:
-        siteSettings.contact_address ||
-        'Serving ambitious brands globally',
-      href: '#',
-      icon: 'location',
+      title: 'Legal',
+      links: [
+        { label: 'Privacy Policy', href: '/privacy' },
+        { label: 'Terms of Service', href: '/terms' },
+        { label: 'Cookie Policy', href: '/cookies' },
+      ],
     },
   ]
 
+  const socialLinks: SocialLink[] = footerData?.social_links?.length 
+    ? footerData.social_links.filter((social: SocialLink) => social.is_active !== false && social.url?.trim())
+    : []
+
+  async function handleSubscribe(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email) return
+    setSubscribing(true)
+    try {
+      const { error } = await supabase.from('subscribers').insert([{ email, source: 'footer' }])
+      if (!error) {
+        setSubscribeSuccess(true)
+        setEmail('')
+        setTimeout(() => setSubscribeSuccess(false), 3000)
+      }
+    } finally {
+      setSubscribing(false)
+    }
+  }
+
   return (
-    <footer className="relative overflow-hidden border-t border-[#1E314A] bg-[#07111F] text-white">
+    <footer className="relative overflow-hidden bg-[var(--bg-navy)] text-[var(--text-inverse)]">
+      {/* Gradient top border */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[var(--accent)] via-[var(--accent-orange)] to-[var(--accent-lime)]" />
+      
       <div className="absolute inset-0 -z-0 overflow-hidden">
-        <div className="absolute left-0 top-0 h-[340px] w-[420px] rounded-full bg-[#39D97A]/6 blur-[110px]" />
-
-        <div className="absolute bottom-0 right-0 h-[300px] w-[380px] rounded-full bg-[#C6F135]/5 blur-[110px]" />
-
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.022)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.022)_1px,transparent_1px)] bg-[size:82px_82px] opacity-20" />
+        <div className="absolute left-0 top-0 h-[340px] w-[420px] rounded-full bg-[var(--accent)]/6 blur-[110px]" />
+        <div className="absolute bottom-0 right-0 h-[300px] w-[380px] rounded-full bg-[var(--accent-orange)]/8 blur-[110px]" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-5 py-12 sm:px-6 md:px-10 lg:px-12 lg:py-16">
-        <motion.div
-          initial={reducedMotion ? false : { opacity: 0, y: 22 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.42 }}
-          viewport={{ once: true }}
-          className="relative mb-12 overflow-hidden rounded-[2rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#0B1625] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.35)]"
-        >
-          <div className="relative z-10 grid gap-12 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="relative z-10 mx-auto max-w-7xl px-5 py-10 sm:px-6 md:px-10 lg:px-12">
+        {/* Top Section - Brand + Rating + Partner Badges */}
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-6">
+          <Link href="/" className="group inline-flex items-center gap-3">
+            <LogoMark logoUrl={logoUrl} brandName={brandName} />
             <div>
-              <Link href="/" className="group inline-flex items-center gap-4">
-                <LogoMark
-                  logoUrl={logoUrl}
-                  brandName={brandName}
-                />
+              <h2 className="text-lg font-black tracking-[-0.04em] text-[var(--text-inverse)]">
+                {brandName}
+              </h2>
+              <p className="text-[10px] text-[var(--accent)]">Digital Growth Studio</p>
+            </div>
+          </Link>
 
-                <div>
-                  <h2 className="text-2xl font-black tracking-[-0.04em] text-white">
-                    {brandName}
-                  </h2>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="flex text-[var(--accent)]">
+                <span>★★★★★</span>
+              </div>
+              <span className="text-sm font-black text-[var(--text-inverse)]">4.8</span>
+              <span className="text-xs text-[var(--text-muted)]">Excellent • Verified</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-3 py-1 text-[9px] font-black uppercase text-[var(--accent)]">
+                Shopify Partner
+              </span>
+              <span className="rounded-full border border-[var(--accent-orange)]/20 bg-[var(--accent-orange)]/10 px-3 py-1 text-[9px] font-black uppercase text-[var(--accent-orange)]">
+                Google Partner
+              </span>
+            </div>
+          </div>
+        </div>
 
-                  <p className="mt-1 text-sm text-[#39D97A]">
-                    Digital Growth Studio
-                  </p>
-                </div>
-              </Link>
-
-              <p className="mt-6 max-w-2xl text-sm leading-7 text-white/58">
-                Premium websites, ecommerce systems, Shopify optimization,
-                and conversion-focused digital experiences designed for
-                ambitious brands that want to grow with clarity and trust.
-              </p>
-
-              <div className="mt-8 flex flex-wrap gap-3">
+        {/* Main Footer Grid */}
+        <div className="grid gap-6 md:grid-cols-4">
+          {/* Brand Description Column */}
+          <div className="space-y-3">
+            <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
+              {footerDescription}
+            </p>
+            {socialLinks.length > 0 && (
+              <div className="flex gap-2 pt-2">
                 {socialLinks.map((social) => (
                   <a
                     key={social.platform}
@@ -226,146 +229,81 @@ export default function Footer() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={social.platform}
-                    className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#1E314A] bg-[#13233A] transition hover:border-[#39D97A]/25 hover:bg-[#39D97A]/10"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-section)] transition hover:border-[var(--accent)]/25 hover:bg-[var(--accent)]/10 hover:scale-105"
                   >
-                    <SvgIcon
-                      name={social.icon || 'social'}
-                      size={18}
-                      color="#39D97A"
-                    />
+                    <SvgIcon name={getSocialIcon(social.icon || social.platform)} size={14} color="var(--accent)" />
                   </a>
                 ))}
               </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              {contactItems.map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  className="rounded-[1.5rem] border border-[#1E314A] bg-[#07111F] p-5 transition hover:border-[#39D97A]/22 hover:bg-[#0E1B2D]"
-                >
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10">
-                    <SvgIcon
-                      name={item.icon}
-                      size={20}
-                      color="#39D97A"
-                    />
-                  </div>
-
-                  <p className="text-xs font-black uppercase tracking-[0.14em] text-[#39D97A]">
-                    {item.label}
-                  </p>
-
-                  <p className="mt-3 text-sm leading-6 text-white/65">
-                    {item.value}
-                  </p>
-                </a>
-              ))}
-            </div>
+            )}
           </div>
-        </motion.div>
 
-        <div className="grid gap-10 md:grid-cols-3">
-          {columns.map((column, index) => (
-            <motion.div
-              key={column.title}
-              initial={reducedMotion ? false : { opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.35,
-                delay: index * 0.08,
-              }}
-              viewport={{ once: true }}
-            >
-              <h4 className="mb-5 text-sm font-black uppercase tracking-[0.16em] text-[#39D97A]">
-                {column.title}
-              </h4>
-
-              <div className="space-y-4">
-                {column.links.map((link) => (
-                  <Link
-                    key={`${column.title}-${link.label}`}
-                    href={link.href}
-                    className="block text-sm text-white/60 transition hover:text-[#39D97A]"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-            </motion.div>
+          {columns.map((column) => (
+            <CollapsibleSection key={column.title} title={column.title} links={column.links} defaultOpen />
           ))}
         </div>
 
-        <div className="flex flex-col gap-6 pt-8 md:flex-row md:items-center md:justify-between">
-          <p className="text-sm text-white/40">
-            {footerData?.copyright_text ||
-              `© ${new Date().getFullYear()} Hbee Digitals. All rights reserved.`}
-          </p>
+        {/* Newsletter Section */}
+        <div className="mt-8 rounded-xl border border-[var(--border)] bg-gradient-to-r from-[var(--bg-card)] to-[var(--bg-section)] p-5">
+          <div className="grid gap-4 md:grid-cols-2 md:items-center">
+            <div>
+              <h3 className="text-base font-black text-[var(--text-inverse)]">Stay up to date</h3>
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                Get notified about new updates, products, tips and tutorials. No spam. You can always unsubscribe.
+              </p>
+            </div>
+            <form onSubmit={handleSubscribe} className="flex flex-col gap-2 sm:flex-row">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Your Email"
+                required
+                className="flex-1 rounded-full border border-[var(--border)] bg-[var(--bg-section)] px-4 py-2 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]/50"
+              />
+              <button
+                type="submit"
+                disabled={subscribing}
+                className="inline-flex min-h-[40px] items-center justify-center rounded-full bg-gradient-orange-green px-5 py-2 text-sm font-black text-white transition hover:scale-[1.02] disabled:opacity-60"
+              >
+                {subscribing ? 'Subscribing...' : subscribeSuccess ? 'Subscribed!' : 'Subscribe'}
+              </button>
+            </form>
+          </div>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-5 text-sm">
-            <Link
-              href="/portfolio"
-              className="text-white/50 transition hover:text-[#39D97A]"
-            >
-              Portfolio
-            </Link>
+        {/* Contact Info */}
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-4">
+          <div className="flex flex-wrap gap-4 text-xs text-[var(--text-secondary)]">
+            <a href={`mailto:${contactEmail}`} className="flex items-center gap-1.5 hover:text-[var(--accent)]">
+              <SvgIcon name="email" size={14} color="var(--accent)" />
+              {contactEmail}
+            </a>
+            <a href={`tel:${contactPhone.replace(/\s/g, '')}`} className="flex items-center gap-1.5 hover:text-[var(--accent)]">
+              <SvgIcon name="phone" size={14} color="var(--accent)" />
+              {contactPhone}
+            </a>
+            <div className="flex items-center gap-1.5">
+              <SvgIcon name="location" size={14} color="var(--accent)" />
+              {contactAddress}
+            </div>
+          </div>
+        </div>
 
-            <Link
-              href="/before-after"
-              className="text-white/50 transition hover:text-[#39D97A]"
-            >
-              Before & After
-            </Link>
+        {/* Bottom Bar */}
+        <div className="mt-4 flex flex-col gap-3 text-center text-xs text-[var(--text-muted)] md:flex-row md:items-center md:justify-between md:text-left">
+          <p>{footerData?.copyright_text || `© ${new Date().getFullYear()} ${brandName}. All rights reserved.`}</p>
 
-            <Link
-              href="/reviews"
-              className="text-white/50 transition hover:text-[#39D97A]"
-            >
-              Reviews
-            </Link>
-
-            <Link
-              href="/pricing"
-              className="text-white/50 transition hover:text-[#39D97A]"
-            >
-              Pricing
-            </Link>
-
-            <Link
-              href="/faq"
-              className="text-white/50 transition hover:text-[#39D97A]"
-            >
-              FAQ
-            </Link>
-
-            <Link
-              href="/contact"
-              className="text-white/50 transition hover:text-[#39D97A]"
-            >
-              Contact
-            </Link>
-
-            <Link
-              href="/privacy"
-              className="text-white/50 transition hover:text-[#39D97A]"
-            >
-              Privacy Policy
-            </Link>
-
-            <Link
-              href="/terms"
-              className="text-white/50 transition hover:text-[#39D97A]"
-            >
-              Terms of Service
-            </Link>
-
-            <Link
-              href="/cookies"
-              className="text-white/50 transition hover:text-[#39D97A]"
-            >
-              Cookie Policy
-            </Link>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link href="/portfolio" className="hover:text-[var(--accent)]">Portfolio</Link>
+            <Link href="/before-after" className="hover:text-[var(--accent)]">Before & After</Link>
+            <Link href="/reviews" className="hover:text-[var(--accent)]">Reviews</Link>
+            <Link href="/pricing" className="hover:text-[var(--accent)]">Pricing</Link>
+            <Link href="/faq" className="hover:text-[var(--accent)]">FAQ</Link>
+            <Link href="/contact" className="hover:text-[var(--accent)]">Contact</Link>
+            <Link href="/privacy" className="hover:text-[var(--accent)]">Privacy</Link>
+            <Link href="/terms" className="hover:text-[var(--accent)]">Terms</Link>
+            <Link href="/cookies" className="hover:text-[var(--accent)]">Cookies</Link>
           </div>
         </div>
       </div>

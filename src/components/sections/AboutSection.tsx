@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { AboutData } from '@/types'
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -30,18 +31,26 @@ function getPublicImageUrl(value?: string) {
 }
 
 function getAboutImage(data: AboutData & Record<string, any>) {
-  return getPublicImageUrl(
-    data.imageUrl ||
-      data.image_url ||
-      data.founder_image_url ||
-      data.founder_image ||
-      data.founder_photo_url ||
-      data.founder_photo ||
-      data.profile_image ||
-      data.image_path ||
-      data.image ||
-      ''
-  )
+  const imageFields = [
+    data.imageUrl,
+    data.image_url,
+    data.founder_image_url,
+    data.founder_image,
+    data.founder_photo_url,
+    data.founder_photo,
+    data.profile_image,
+    data.image_path,
+    data.image,
+  ]
+
+  for (const field of imageFields) {
+    if (field && typeof field === 'string' && field.trim()) {
+      const url = getPublicImageUrl(field)
+      if (url) return url
+    }
+  }
+
+  return ''
 }
 
 function cleanIconName(icon?: string) {
@@ -58,48 +67,28 @@ function cleanIconName(icon?: string) {
     .toLowerCase()
 
   const aliases: Record<string, string> = {
-    web: 'web',
-    website: 'web',
-    design: 'design',
-    branding: 'design',
+    web: 'web-development',
+    website: 'web-development',
+    design: 'branding',
+    branding: 'branding',
     ecommerce: 'ecommerce',
     shopify: 'ecommerce',
-    marketing: 'marketing',
-    strategy: 'services',
+    marketing: 'growth',
+    strategy: 'strategy',
     consulting: 'consulting',
-    growth: 'analytics',
+    growth: 'growth',
+    support: 'support',
+    precision: 'precision',
+    analytics: 'analytics',
+    search: 'search',
   }
 
   return aliases[cleaned] || cleaned || 'services'
 }
 
-function CurvedUnderlineText({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="relative inline-block">
-      <span className="relative z-10 bg-gradient-to-r from-[#39D97A] to-[#C6F135] bg-clip-text text-transparent">
-        {children}
-      </span>
-
-      <svg
-        className="absolute -bottom-2 left-0 h-4 w-full text-[#39D97A]/70"
-        viewBox="0 0 220 18"
-        fill="none"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M4 13C50 2 142 2 216 11"
-          stroke="currentColor"
-          strokeWidth="5"
-          strokeLinecap="round"
-        />
-      </svg>
-    </span>
-  )
-}
-
 export default function AboutSection({ data, compact = false }: AboutSectionProps) {
   const reducedMotion = useReducedMotion()
+  const [imageError, setImageError] = useState(false)
 
   const {
     title = 'About Hbee Digitals',
@@ -121,6 +110,12 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
     data.image_subtitle ||
     'Strategy • Design • Ecommerce • Growth'
 
+  useEffect(() => {
+    if (imageSrc) {
+      console.log('AboutSection image URL:', imageSrc)
+    }
+  }, [imageSrc])
+
   return (
     <section
       className={`relative overflow-hidden bg-[var(--bg-section)] text-[var(--text-primary)] ${
@@ -128,13 +123,15 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
       }`}
       aria-labelledby="about-heading"
     >
+      {/* Background decorative elements */}
       <div className="absolute inset-0 -z-0">
-        <div className="absolute left-0 top-20 h-[320px] w-[420px] rounded-full bg-[#39D97A]/7 blur-[120px]" />
-        <div className="absolute bottom-0 right-0 h-[300px] w-[420px] rounded-full bg-[#123F2B]/45 blur-[120px]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.025)_1px,transparent_1px)] bg-[size:80px_80px] opacity-20" />
+        <div className="absolute left-0 top-20 h-[320px] w-[420px] rounded-full bg-[var(--accent)]/5 blur-[120px]" />
+        <div className="absolute bottom-0 right-0 h-[300px] w-[420px] rounded-full bg-[var(--accent-lime)]/6 blur-[120px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.015)_1px,transparent_1px)] bg-[size:80px_80px] opacity-15" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-6 md:px-10 lg:px-12">
+        {/* Header */}
         <div className="mb-12 grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-end">
           <motion.div
             initial={reducedMotion ? false : { opacity: 0, y: 22 }}
@@ -142,18 +139,18 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
             transition={{ duration: 0.45 }}
             viewport={{ once: true }}
           >
-            <div className="eyebrow mb-5 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em]">
-              <SvgIcon name="services" size={14} color="#1AB85C" />
+            <div className="eyebrow mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
+              <SvgIcon name="services" size={14} color="var(--accent)" />
               About The Studio
             </div>
 
             <h2
               id="about-heading"
-              className="max-w-4xl text-4xl font-black leading-[0.98] tracking-[-0.04em] sm:text-5xl md:text-6xl"
+              className="max-w-4xl text-4xl font-black leading-[0.98] tracking-[-0.04em] text-[var(--text-primary)] sm:text-5xl md:text-6xl"
             >
               {title}
               <br />
-              <CurvedUnderlineText>Built for digital growth.</CurvedUnderlineText>
+              <span className="text-[var(--accent)]">Built for digital growth.</span>
             </h2>
           </motion.div>
 
@@ -168,16 +165,18 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
           </motion.p>
         </div>
 
+        {/* Main Content Grid */}
         <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+          {/* Founder Image Card */}
           <motion.div
             initial={reducedMotion ? false : { opacity: 0, x: -24 }}
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
             viewport={{ once: true }}
-            className="group relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] p-3 shadow-[0_24px_80px_rgba(10,29,55,0.08)] transition duration-500 hover:border-[#39D97A]/25"
+            className="group relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] p-3 shadow-[var(--shadow-md)] transition duration-500 hover:border-[var(--accent)]/25 hover:shadow-[var(--shadow-lg)]"
           >
-            <div className="relative h-[340px] overflow-hidden rounded-[1.5rem] bg-[#071427] sm:h-[430px]">
-              {imageSrc ? (
+            <div className="relative h-[340px] overflow-hidden rounded-[1.5rem] bg-[var(--bg-section)] sm:h-[430px]">
+              {imageSrc && !imageError ? (
                 <>
                   <Image
                     src={imageSrc}
@@ -186,44 +185,48 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
                     priority={false}
                     sizes="(max-width: 1024px) 100vw, 50vw"
                     className="object-cover object-top transition duration-700 group-hover:scale-[1.03]"
+                    onError={() => setImageError(true)}
                     unoptimized
                   />
-
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#060E1C]/82 via-[#060E1C]/10 to-transparent" />
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(57,217,122,0.18),transparent_35%)]" />
+                  {/* Softer gradient overlay for better text visibility */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-page)]/70 via-[var(--bg-page)]/10 to-transparent" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,var(--accent)/0.12,transparent_35%)]" />
                 </>
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#071427] to-[#0B1E38]">
+                <div className="flex h-full w-full items-center justify-center bg-[var(--bg-card)]">
                   <div className="text-center">
-                    <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-[#39D97A]/18 bg-[#39D97A]/10">
-                      <SvgIcon name="services" size={44} color="#39D97A" />
+                    <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-[var(--accent)]/18 bg-[var(--accent)]/10">
+                      <SvgIcon name="services" size={44} color="var(--accent)" />
                     </div>
-
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-[#39D97A]">
-                      Upload Founder Image
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--accent)]">
+                      {imageSrc ? 'Failed to load image' : 'Upload Founder Image'}
+                    </p>
+                    <p className="mt-2 text-xs text-[var(--text-muted)]">
+                      {imageSrc ? 'Check file path in admin' : 'Go to Admin → About Section'}
                     </p>
                   </div>
                 </div>
               )}
 
-              <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/10 bg-[#060E1C]/72 p-4 backdrop-blur-xl">
-                <p className="text-sm font-black tracking-[-0.02em] text-white">
+              {/* Image Caption */}
+              <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-[var(--border)] bg-[var(--bg-page)]/80 p-4 backdrop-blur-xl">
+                <p className="text-sm font-black tracking-[-0.02em] text-[var(--text-primary)]">
                   {imageTitle}
                 </p>
-
-                <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-[#39D97A]">
+                <p className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-[var(--accent)]">
                   {imageSubtitle}
                 </p>
               </div>
             </div>
           </motion.div>
 
+          {/* Description Card */}
           <motion.div
             initial={reducedMotion ? false : { opacity: 0, x: 24 }}
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
             viewport={{ once: true }}
-            className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[0_24px_80px_rgba(10,29,55,0.08)] backdrop-blur-xl sm:p-8"
+            className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-md)] backdrop-blur-xl transition hover:shadow-[var(--shadow-lg)] sm:p-8"
           >
             <p className="text-base leading-8 text-[var(--text-secondary)] md:text-lg">
               {description}
@@ -238,9 +241,9 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="rounded-2xl border border-[var(--border)] bg-[var(--bg-page)] p-4 transition hover:border-[#39D97A]/25 hover:bg-[var(--bg-card-hover)]"
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--bg-page)] p-4 transition hover:border-[var(--accent)]/25 hover:bg-[var(--bg-card-hover)]"
                 >
-                  <SvgIcon name={item.icon} size={20} color="#39D97A" className="mb-3" />
+                  <SvgIcon name={item.icon} size={20} color="var(--accent)" className="mb-3" />
                   <p className="text-sm font-bold text-[var(--text-secondary)]">{item.label}</p>
                 </div>
               ))}
@@ -248,7 +251,8 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
           </motion.div>
         </div>
 
-        {stats.length > 0 && (
+        {/* Stats Section */}
+        {stats && stats.length > 0 && (
           <dl className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">
             {stats.slice(0, 4).map((stat: any, index: number) => (
               <motion.div
@@ -257,19 +261,22 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.38, delay: index * 0.05 }}
                 viewport={{ once: true }}
-                className="rounded-[1.4rem] border border-[var(--border)] bg-[var(--bg-card)] p-5 text-center transition hover:border-[#39D97A]/25 hover:bg-[var(--bg-card-hover)]"
+                className="rounded-[1.4rem] border border-[var(--border)] bg-[var(--bg-card)] p-5 text-center transition hover:border-[var(--accent)]/25 hover:bg-[var(--bg-card-hover)] hover:shadow-[var(--shadow-sm)]"
               >
                 <dt className="sr-only">{stat.label}</dt>
-                <dd className="text-3xl font-black tracking-[-0.04em] text-[#39D97A]">
-                  {stat.number}
+                <dd className="text-3xl font-black tracking-[-0.04em] text-[var(--accent)]">
+                  {stat.number || stat.value || '—'}
                 </dd>
-                <dd className="mt-1 text-sm font-semibold text-[var(--text-muted)]">{stat.label}</dd>
+                <dd className="mt-1 text-sm font-semibold text-[var(--text-muted)]">
+                  {stat.label}
+                </dd>
               </motion.div>
             ))}
           </dl>
         )}
 
-        {values.length > 0 && (
+        {/* Values Section */}
+        {values && values.length > 0 && (
           <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {values.map((value: any, index: number) => (
               <motion.article
@@ -278,10 +285,10 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.42, delay: index * 0.05 }}
                 viewport={{ once: true }}
-                className="group rounded-[1.6rem] border border-[var(--border)] bg-[var(--bg-card)] p-6 transition duration-300 hover:-translate-y-2 hover:border-[#39D97A]/28 hover:bg-[var(--bg-card-hover)]"
+                className="group rounded-[1.6rem] border border-[var(--border)] bg-[var(--bg-card)] p-6 transition duration-300 hover:-translate-y-2 hover:border-[var(--accent)]/28 hover:bg-[var(--bg-card-hover)] hover:shadow-[var(--shadow-md)]"
               >
-                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10 transition group-hover:scale-105">
-                  <SvgIcon name={cleanIconName(value.icon)} size={26} color="#39D97A" />
+                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--accent)]/18 bg-[var(--accent)]/10 transition group-hover:scale-105">
+                  <SvgIcon name={cleanIconName(value.icon)} size={26} color="var(--accent)" />
                 </div>
 
                 <h3 className="text-xl font-black tracking-[-0.03em] text-[var(--text-primary)]">

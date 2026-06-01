@@ -80,25 +80,33 @@ export default function AdminAboutPage() {
     const fileExt = file.name.split('.').pop()
     const fileName = `about/founder-${Date.now()}.${fileExt}`
 
-    const { error } = await supabase.storage
+    const { error: uploadError, data: uploadData } = await supabase.storage
       .from('project-images')
       .upload(fileName, file, {
         cacheControl: '3600',
         upsert: true,
       })
 
-    if (error) {
-      setMessage(`Image upload failed: ${error.message}`)
+    if (uploadError) {
+      setMessage(`Image upload failed: ${uploadError.message}`)
       setUploading(false)
       return
     }
+
+    // Get the public URL to verify
+    const { data: publicUrlData } = supabase.storage
+      .from('project-images')
+      .getPublicUrl(fileName)
+
+    console.log('Uploaded file path:', fileName)
+    console.log('Public URL:', publicUrlData.publicUrl)
 
     setForm((prev) => ({
       ...prev,
       founder_image: fileName,
     }))
 
-    setMessage('Founder image uploaded successfully.')
+    setMessage('Founder image uploaded successfully. Click Save to apply.')
     setUploading(false)
   }
 
@@ -154,34 +162,34 @@ export default function AdminAboutPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#07111F] px-5 py-10 text-white">
+      <main className="min-h-screen bg-[var(--bg-page)] px-5 py-10 text-[var(--text-primary)]">
         <div className="mx-auto max-w-5xl">
-          <p className="text-white/60">Loading About page settings...</p>
+          <p className="text-[var(--text-secondary)]">Loading About page settings...</p>
         </div>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-[#07111F] px-5 py-10 text-white sm:px-6 md:px-10">
+    <main className="min-h-screen bg-[var(--bg-page)] px-5 py-10 text-[var(--text-primary)] sm:px-6 md:px-10">
       <div className="mx-auto max-w-5xl">
         <div className="mb-8">
-          <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
+          <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
             Admin / About Page
           </p>
 
-          <h1 className="text-4xl font-black tracking-[-0.05em]">
+          <h1 className="text-4xl font-black tracking-[-0.05em] text-[var(--text-primary)]">
             Manage About Page Content
           </h1>
 
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-white/55">
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--text-secondary)]">
             Update the public About page content, founder section, philosophy,
             and authority messaging from here.
           </p>
         </div>
 
         {message && (
-          <div className="mb-6 rounded-2xl border border-[#39D97A]/20 bg-[#39D97A]/10 px-5 py-4 text-sm font-bold text-[#39D97A]">
+          <div className="mb-6 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-5 py-4 text-sm font-bold text-[var(--accent)]">
             {message}
           </div>
         )}
@@ -224,7 +232,7 @@ export default function AdminAboutPage() {
             />
 
             <div>
-              <label className="mb-2 block text-sm font-bold text-white/70">
+              <label className="mb-2 block text-sm font-bold text-[var(--text-secondary)]">
                 Founder Image
               </label>
 
@@ -235,19 +243,37 @@ export default function AdminAboutPage() {
                   const file = e.target.files?.[0]
                   if (file) handleImageUpload(file)
                 }}
-                className="block w-full cursor-pointer rounded-2xl border border-[#1E314A] bg-[#07111F] px-4 py-3 text-sm text-white/70 file:mr-4 file:rounded-full file:border-0 file:bg-[#39D97A] file:px-4 file:py-2 file:text-sm file:font-black file:text-[#06101F]"
+                className="block w-full cursor-pointer rounded-2xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-3 text-sm text-[var(--text-secondary)] file:mr-4 file:rounded-full file:border-0 file:bg-[var(--accent)] file:px-4 file:py-2 file:text-sm file:font-black file:text-[var(--btn-primary-text)]"
               />
 
               {uploading && (
-                <p className="mt-2 text-sm text-[#39D97A]">
+                <p className="mt-2 text-sm text-[var(--accent)]">
                   Uploading image...
                 </p>
               )}
 
               {form.founder_image && (
-                <p className="mt-2 break-all text-xs text-white/45">
-                  Current image path: {form.founder_image}
-                </p>
+                <div className="mt-3 space-y-2">
+                  <p className="break-all text-xs text-[var(--text-muted)]">
+                    Current image path: {form.founder_image}
+                  </p>
+                  
+                  {/* Preview of uploaded image */}
+                  <div className="mt-2 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-2">
+                    <img
+                      src={supabase.storage.from('project-images').getPublicUrl(form.founder_image).data.publicUrl}
+                      alt="Founder preview"
+                      className="max-h-32 w-auto rounded-lg object-contain"
+                      onError={(e) => {
+                        e.currentTarget.src = ''
+                        e.currentTarget.alt = 'Failed to load image'
+                      }}
+                    />
+                    <p className="mt-2 text-center text-xs text-[var(--text-muted)]">
+                      Preview (may require page refresh after save)
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
           </AdminCard>
@@ -285,10 +311,10 @@ export default function AdminAboutPage() {
                 type="checkbox"
                 checked={form.is_active}
                 onChange={(e) => updateField('is_active', e.target.checked)}
-                className="h-5 w-5 rounded border-[#1E314A] accent-[#39D97A]"
+                className="h-5 w-5 rounded border-[var(--border)] bg-[var(--bg-section)] accent-[var(--accent)]"
               />
 
-              <span className="text-sm font-bold text-white/70">
+              <span className="text-sm font-bold text-[var(--text-secondary)]">
                 Make this About page content active
               </span>
             </label>
@@ -298,7 +324,7 @@ export default function AdminAboutPage() {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-[#39D97A] px-8 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-[var(--accent)] px-8 py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] hover:bg-[var(--accent-lime)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? 'Saving...' : 'Save About Page'}
           </button>
@@ -316,8 +342,8 @@ function AdminCard({
   children: React.ReactNode
 }) {
   return (
-    <section className="rounded-[2rem] border border-[#1E314A] bg-[#0E1B2D] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.22)] sm:p-6">
-      <h2 className="mb-5 text-xl font-black tracking-[-0.035em] text-white">
+    <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[var(--shadow-md)] sm:p-6">
+      <h2 className="mb-5 text-xl font-black tracking-[-0.035em] text-[var(--text-primary)]">
         {title}
       </h2>
 
@@ -337,14 +363,14 @@ function Input({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-bold text-white/70">
+      <label className="mb-2 block text-sm font-bold text-[var(--text-secondary)]">
         {label}
       </label>
 
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-2xl border border-[#1E314A] bg-[#07111F] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[#39D97A]/40"
+        className="w-full rounded-2xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]/40"
       />
     </div>
   )
@@ -363,7 +389,7 @@ function Textarea({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm font-bold text-white/70">
+      <label className="mb-2 block text-sm font-bold text-[var(--text-secondary)]">
         {label}
       </label>
 
@@ -371,7 +397,7 @@ function Textarea({
         value={value}
         rows={rows}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full resize-y rounded-2xl border border-[#1E314A] bg-[#07111F] px-4 py-3 text-sm leading-7 text-white outline-none transition placeholder:text-white/30 focus:border-[#39D97A]/40"
+        className="w-full resize-y rounded-2xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-3 text-sm leading-7 text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]/40"
       />
     </div>
   )

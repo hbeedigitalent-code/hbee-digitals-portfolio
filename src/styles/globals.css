@@ -2,59 +2,404 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────
+   FONT SYSTEM - INTER (Force Apply)
+   ───────────────────────────────────────────── */
+
+/* Import Inter font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&display=swap');
+
+/* ── Base reset ── */
+* { 
+  box-sizing: border-box; 
+}
+
+html { 
+  scroll-behavior: smooth;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* ─────────────────────────────────────────────
+   LIGHT MODE (default)
+   ───────────────────────────────────────────── */
 :root {
-  --primary-color: #0A1D37;
-  --secondary-color: #FFFFFF;
-  --accent-color: #007BFF;
-  --text-color: #1F2937;
+  /* ── Backgrounds ── */
+  --bg-page:        #FFFFFF;
+  --bg-section:     #F5F7FA;
+  --bg-card:        #EEF2F8;
+  --bg-card-hover:  #E4EAF5;
+  --bg-navy:        #0A1D37;
+  --bg-navy-mid:    #0F3460;
+
+  /* ── Borders ── */
+  --border:         #DDE3EE;
+  --border-strong:  #B8C5D9;
+
+  /* ── Text ── */
+  --text-primary:   #0A1D37;
+  --text-secondary: #3A4A62;
+  --text-muted:     #6B7A96;
+  --text-inverse:   #FFFFFF;
+  --text-accent:    #1AB85C;
+
+  /* ── Brand / Accent ── */
+  --accent:          #39D97A;
+  --accent-lime:     #C6F135;
+  --accent-mid:      #7DE84A;
+  --accent-orange:   #FF6B35;
+  --accent-orange-light: #FF8C42;
+
+  /* ── Gradients ── */
+  --gradient-accent:  linear-gradient(90deg, #39D97A 0%, #C6F135 100%);
+  --gradient-orange-green: linear-gradient(135deg, #FF6B35 0%, #39D97A 100%);
+  --gradient-dark-blue: linear-gradient(135deg, #0A1D37 0%, #0F3460 50%, #1B4F8A 100%);
+  --gradient-dark-to-accent: linear-gradient(135deg, #0A1D37 0%, #FF6B35 100%);
+  --gradient-light: linear-gradient(135deg, #F5F7FA 0%, #EEF2F8 100%);
+  --gradient-navy-orange: linear-gradient(135deg, #0A1D37 0%, #FF6B35 50%, #39D97A 100%);
+  --gradient-premium: linear-gradient(135deg, #0A1D37 0%, #0F3460 30%, #1B4F8A 60%, #39D97A 100%);
+  --gradient-warm: linear-gradient(135deg, #FF6B35 0%, #FF8C42 50%, #FFA559 100%);
+
+  /* ── Buttons ── */
+  --btn-primary-bg:    linear-gradient(90deg, #39D97A 0%, #C6F135 100%);
+  --btn-primary-text:  #0A1D37;
+  --btn-secondary-bg:  #0A1D37;
+  --btn-secondary-text:#FFFFFF;
+  --btn-ghost-border:  #DDE3EE;
+  --btn-ghost-text:    #0A1D37;
+
+  /* ── Shadows ── */
+  --shadow-sm:  0 1px 3px rgba(10, 29, 55, 0.08);
+  --shadow-md:  0 4px 16px rgba(10, 29, 55, 0.10);
+  --shadow-lg:  0 8px 32px rgba(10, 29, 55, 0.12);
+
+  /* ═══════════════════════════════════════
+     FONT SYSTEM (Inter)
+     ═══════════════════════════════════════ */
+
+  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  /* ── Scale ── */
+  --text-xs:   0.75rem;    /* 12px */
+  --text-sm:   0.875rem;   /* 14px */
+  --text-base: 1rem;       /* 16px */
+  --text-lg:   1.125rem;   /* 18px */
+  --text-xl:   1.25rem;    /* 20px */
+  --text-2xl:  1.5rem;     /* 24px */
+  --text-3xl:  1.875rem;   /* 30px */
+  --text-4xl:  2.25rem;    /* 36px */
+  --text-5xl:  3rem;       /* 48px */
+  --text-6xl:  3.75rem;    /* 60px */
+
+  /* ── Weights ── */
+  --fw-regular:   400;
+  --fw-medium:    500;
+  --fw-semibold:  600;
+  --fw-bold:      700;
+  --fw-extrabold: 800;
+  --fw-black:     900;
+
+  /* ── Line Heights ── */
+  --lh-tight:   1.1;
+  --lh-snug:    1.2;
+  --lh-normal:  1.4;
+  --lh-relaxed: 1.6;
+  --lh-loose:   1.8;
+
+  /* ── Letter Spacing ── */
+  --ls-tight:   -0.03em;
+  --ls-snug:    -0.02em;
+  --ls-normal:  -0.01em;
+  --ls-wide:     0.04em;
+  --ls-wider:    0.08em;
 }
 
-/* Apply Poppins font */
+/* ─────────────────────────────────────────────
+   DARK MODE  (.dark on <html>)
+   ───────────────────────────────────────────── */
+.dark {
+  --bg-page:        #070F1D;
+  --bg-section:     #0A1D37;
+  --bg-card:        #0F3460;
+  --bg-card-hover:  #1B4F8A;
+  --bg-navy:        #0F3460;
+  --bg-navy-mid:    #1B4F8A;
+  --border:         rgba(255, 255, 255, 0.10);
+  --border-strong:  rgba(255, 255, 255, 0.20);
+  --text-primary:   #FFFFFF;
+  --text-secondary: #B8C7DE;
+  --text-muted:     #6B82A2;
+  --text-inverse:   #0A1D37;
+  --text-accent:    #39D97A;
+  --gradient-light: linear-gradient(135deg, #0F3460 0%, #1B4F8A 100%);
+  --btn-secondary-bg:  #0F3460;
+  --btn-ghost-border:  rgba(57, 217, 122, 0.40);
+  --btn-ghost-text:    #39D97A;
+  --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.30);
+  --shadow-md:  0 4px 16px rgba(0, 0, 0, 0.40);
+  --shadow-lg:  0 8px 32px rgba(0, 0, 0, 0.50);
+}
+
+/* ─────────────────────────────────────────────
+   GRADIENT BACKGROUND UTILITIES
+   ───────────────────────────────────────────── */
+
+.bg-gradient-orange-green {
+  background: linear-gradient(135deg, #FF6B35 0%, #39D97A 100%);
+}
+
+.bg-gradient-dark-blue {
+  background: linear-gradient(135deg, #0A1D37 0%, #0F3460 50%, #1B4F8A 100%);
+}
+
+.bg-gradient-dark-to-accent {
+  background: linear-gradient(135deg, #0A1D37 0%, #FF6B35 100%);
+}
+
+.bg-gradient-light {
+  background: linear-gradient(135deg, #FFFFFF 0%, #F5F7FA 100%);
+}
+
+.bg-gradient-navy-orange {
+  background: linear-gradient(135deg, #0A1D37 0%, #FF6B35 50%, #39D97A 100%);
+}
+
+.bg-gradient-premium {
+  background: linear-gradient(135deg, #0A1D37 0%, #0F3460 30%, #1B4F8A 60%, #39D97A 100%);
+}
+
+.bg-gradient-warm {
+  background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 50%, #FFA559 100%);
+}
+
+.bg-glow-orange {
+  background: radial-gradient(circle at center, rgba(255, 107, 53, 0.15), transparent 70%);
+}
+
+.bg-glow-green {
+  background: radial-gradient(circle at center, rgba(57, 217, 122, 0.15), transparent 70%);
+}
+
+/* ─────────────────────────────────────────────
+   BASE ELEMENT STYLES
+   ───────────────────────────────────────────── */
 body {
-  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
-  color: var(--text-color);
-  background-color: #f9fafb;
+  font-family: var(--font-primary);
+  font-size: var(--text-base);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-relaxed);
+  letter-spacing: var(--ls-normal);
+  color: var(--text-secondary);
+  background-color: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Force all elements to inherit font */
+* {
+  font-family: inherit;
+}
+
+/* ── Headings ── */
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Poppins', system-ui, -apple-system, sans-serif;
-  font-weight: 600;
+  font-family: var(--font-primary);
+  color: var(--text-primary);
+  margin: 0;
 }
 
-/* Utility classes */
-.bg-primary {
-  background-color: var(--primary-color);
+h1 {
+  font-size: var(--text-5xl);
+  font-weight: var(--fw-extrabold);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tight);
 }
 
-.text-primary {
-  color: var(--primary-color);
+h2 {
+  font-size: var(--text-3xl);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--ls-snug);
 }
 
-.text-secondary {
-  color: var(--secondary-color);
+h3 {
+  font-size: var(--text-2xl);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--ls-snug);
 }
 
-/* 3D Effects */
-.perspective-container {
-  perspective: 1000px;
-  perspective-origin: 50% 50%;
+h4 {
+  font-size: var(--text-xl);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-normal);
+  letter-spacing: var(--ls-normal);
 }
 
-.preserve-3d {
-  transform-style: preserve-3d;
+p {
+  font-size: var(--text-base);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-relaxed);
+  color: var(--text-secondary);
+  margin: 0;
 }
 
-/* Diamond 3D hover effect */
-.diamond-3d {
-  transition: transform 0.3s ease;
-  transform-style: preserve-3d;
+a {
+  color: var(--text-accent);
+  text-decoration: none;
+  transition: color 0.15s ease;
 }
 
-.diamond-3d:hover {
-  transform: scale(0.96) rotateX(5deg) rotateY(5deg);
+/* ─────────────────────────────────────────────
+   COMPONENT UTILITIES
+   ───────────────────────────────────────────── */
+@layer components {
+  .display-number {
+    font-family: var(--font-primary);
+    font-size: var(--text-4xl);
+    font-weight: var(--fw-black);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--ls-tight);
+    color: var(--text-primary);
+  }
+
+  .hero-heading {
+    font-family: var(--font-primary);
+    font-size: clamp(2.25rem, 5vw, var(--text-6xl));
+    font-weight: var(--fw-extrabold);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--ls-tight);
+    color: var(--text-primary);
+  }
+
+  .section-heading {
+    font-family: var(--font-primary);
+    font-size: clamp(1.75rem, 3vw, var(--text-3xl));
+    font-weight: var(--fw-bold);
+    line-height: var(--lh-snug);
+    letter-spacing: var(--ls-snug);
+    color: var(--text-primary);
+  }
+
+  .card-title {
+    font-family: var(--font-primary);
+    font-size: var(--text-xl);
+    font-weight: var(--fw-semibold);
+    line-height: var(--lh-normal);
+    letter-spacing: var(--ls-normal);
+    color: var(--text-primary);
+  }
+
+  .body-lead {
+    font-size: var(--text-lg);
+    font-weight: var(--fw-regular);
+    line-height: var(--lh-relaxed);
+    color: var(--text-secondary);
+  }
+
+  .eyebrow {
+    font-family: var(--font-primary);
+    font-size: var(--text-xs);
+    font-weight: var(--fw-semibold);
+    line-height: 1;
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+    color: var(--text-accent);
+  }
+
+  .nav-link {
+    font-size: var(--text-sm);
+    font-weight: var(--fw-medium);
+    line-height: 1;
+    color: var(--text-muted);
+    transition: color 0.15s ease;
+  }
+  .nav-link:hover, .nav-link.active {
+    color: var(--text-primary);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center gap-2 rounded-full transition-all duration-200;
+    padding: 0.75rem 1.5rem;
+    font-family: var(--font-primary);
+    font-size: var(--text-sm);
+    font-weight: var(--fw-semibold);
+    letter-spacing: -0.01em;
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+  }
+  .btn-primary:hover { filter: brightness(1.05); transform: scale(1.02); }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 rounded-full transition-all duration-200;
+    padding: 0.75rem 1.5rem;
+    font-family: var(--font-primary);
+    font-size: var(--text-sm);
+    font-weight: var(--fw-semibold);
+    letter-spacing: -0.01em;
+    background: var(--btn-secondary-bg);
+    color: var(--btn-secondary-text);
+  }
+  .btn-secondary:hover { transform: scale(1.02); }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 rounded-full bg-transparent transition-all duration-200;
+    padding: 0.7rem 1.4rem;
+    font-family: var(--font-primary);
+    font-size: var(--text-sm);
+    font-weight: var(--fw-medium);
+    letter-spacing: -0.01em;
+    border: 1.5px solid var(--btn-ghost-border);
+    color: var(--btn-ghost-text);
+  }
+  .btn-ghost:hover { background: var(--bg-card); }
+
+  .card {
+    @apply rounded-2xl p-6 transition-all duration-200;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+  }
+  .card:hover {
+    background: var(--bg-card-hover);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+
+  .text-gradient {
+    background: var(--gradient-accent);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .badge-accent {
+    @apply inline-flex items-center rounded-full;
+    padding: 0.25rem 0.75rem;
+    font-family: var(--font-primary);
+    font-size: var(--text-xs);
+    font-weight: var(--fw-semibold);
+    letter-spacing: var(--ls-wide);
+    background: rgba(57, 217, 122, 0.12);
+    color: var(--text-accent);
+    border: 1px solid rgba(57, 217, 122, 0.25);
+  }
 }
 
-/* Number 3D text effect */
-.text-3d {
-  text-shadow: 2px 2px 0 rgba(0,0,0,0.1), 4px 4px 0 rgba(0,0,0,0.05);
+/* ─────────────────────────────────────────────
+   THEME TRANSITION
+   ───────────────────────────────────────────── */
+.theme-transition * {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease !important;
+}
+
+/* ─────────────────────────────────────────────
+   UTILITY CLASSES
+   ───────────────────────────────────────────── */
+@layer utilities {
+  .font-primary {
+    font-family: var(--font-primary);
+  }
+  
+  .text-balance {
+    text-wrap: balance;
+  }
 }

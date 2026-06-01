@@ -72,27 +72,29 @@ export default async function BlogPage() {
     <>
       <Navbar />
 
-      <main className="relative overflow-hidden bg-[#07111F] text-white">
+      <main className="relative overflow-hidden bg-[var(--bg-page)] text-[var(--text-primary)]">
+        {/* Background decorative elements */}
         <div className="absolute inset-0 -z-10">
-          <div className="absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-[#39D97A]/7 blur-[140px]" />
-          <div className="absolute bottom-0 right-0 h-[420px] w-[520px] rounded-full bg-[#C6F135]/5 blur-[130px]" />
+          <div className="absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-[var(--accent)]/7 blur-[140px]" />
+          <div className="absolute bottom-0 right-0 h-[420px] w-[520px] rounded-full bg-[var(--accent-lime)]/5 blur-[130px]" />
           <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.018)_1px,transparent_1px)] bg-[size:82px_82px] opacity-25" />
         </div>
 
+        {/* Hero Section */}
         <section className="px-5 pb-14 pt-32 sm:px-6 md:px-10 lg:px-12 lg:pb-20 lg:pt-36">
           <div className="mx-auto max-w-7xl">
             <div className="max-w-5xl">
-              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
-                <SvgIcon name="blog" size={14} color="#39D97A" />
+              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/18 bg-[var(--accent)]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
+                <SvgIcon name="blog" size={14} color="var(--accent)" />
                 Insights / Growth Notes
               </p>
 
-              <h1 className="text-5xl font-black leading-[0.94] tracking-[-0.06em] sm:text-6xl lg:text-7xl">
+              <h1 className="text-5xl font-black leading-[0.94] tracking-[-0.06em] text-[var(--text-primary)] sm:text-6xl lg:text-7xl">
                 Practical insights for better websites, stores, and{' '}
                 <GradientHeading>growth.</GradientHeading>
               </h1>
 
-              <p className="mt-7 max-w-3xl text-base leading-8 text-white/62 md:text-lg">
+              <p className="mt-7 max-w-3xl text-base leading-8 text-[var(--text-secondary)] md:text-lg">
                 Articles on Shopify optimization, ecommerce UX, conversion strategy,
                 branding, digital trust, and growth systems for ambitious brands.
               </p>
@@ -100,14 +102,15 @@ export default async function BlogPage() {
           </div>
         </section>
 
+        {/* Featured Post */}
         {featuredPost && (
           <section className="px-5 pb-16 sm:px-6 md:px-10 lg:px-12">
             <div className="mx-auto max-w-7xl">
               <Link
                 href={`/blog/${featuredPost.slug}`}
-                className="group grid overflow-hidden rounded-[2.2rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#0B1625] p-3 shadow-[0_32px_100px_rgba(0,0,0,0.28)] transition hover:-translate-y-1 hover:border-[#39D97A]/25 lg:grid-cols-[1.1fr_0.9fr]"
+                className="group grid overflow-hidden rounded-[2.2rem] border border-[var(--border)] bg-[var(--bg-card)] p-3 shadow-[var(--shadow-lg)] transition hover:-translate-y-1 hover:border-[var(--accent)]/25 lg:grid-cols-[1.1fr_0.9fr]"
               >
-                <div className="relative min-h-[320px] overflow-hidden rounded-[1.7rem] bg-[#07111F] sm:min-h-[440px]">
+                <div className="relative min-h-[320px] overflow-hidden rounded-[1.7rem] bg-[var(--bg-section)] sm:min-h-[440px]">
                   {featuredPost.featured_image ? (
                     <img
                       src={featuredPost.featured_image}
@@ -116,28 +119,28 @@ export default async function BlogPage() {
                     />
                   ) : (
                     <div className="flex h-full min-h-[320px] items-center justify-center">
-                      <SvgIcon name="blog" size={72} color="#39D97A" />
+                      <SvgIcon name="blog" size={72} color="var(--accent)" />
                     </div>
                   )}
 
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#07111F]/90 via-[#07111F]/20 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-page)]/90 via-[var(--bg-page)]/20 to-transparent" />
 
-                  <div className="absolute left-5 top-5 rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#39D97A] backdrop-blur-xl">
+                  <div className="absolute left-5 top-5 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--accent)] backdrop-blur-xl">
                     Featured Insight
                   </div>
                 </div>
 
                 <div className="relative flex flex-col justify-center p-6 sm:p-8 lg:p-10">
-                  <p className="mb-4 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
+                  <p className="mb-4 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
                     {formatDate(featuredPost.published_at || featuredPost.created_at)}
                     {featuredPost.read_time ? ` • ${featuredPost.read_time}` : ''}
                   </p>
 
-                  <h2 className="text-3xl font-black leading-[1] tracking-[-0.045em] text-white sm:text-4xl md:text-5xl">
+                  <h2 className="text-3xl font-black leading-[1] tracking-[-0.045em] text-[var(--text-primary)] sm:text-4xl md:text-5xl">
                     {featuredPost.title}
                   </h2>
 
-                  <p className="mt-5 text-sm leading-7 text-white/62 sm:text-base">
+                  <p className="mt-5 text-sm leading-7 text-[var(--text-secondary)] sm:text-base">
                     {featuredPost.excerpt ||
                       'A practical growth insight for improving digital trust, user experience, and conversion performance.'}
                   </p>
@@ -146,16 +149,16 @@ export default async function BlogPage() {
                     {normalizeArray(featuredPost.tags).slice(0, 4).map((tag) => (
                       <span
                         key={tag}
-                        className="rounded-full border border-[#39D97A]/16 bg-[#39D97A]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#39D97A]"
+                        className="rounded-full border border-[var(--accent)]/16 bg-[var(--accent)]/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--accent)]"
                       >
                         {tag}
                       </span>
                     ))}
                   </div>
 
-                  <div className="mt-8 inline-flex items-center gap-2 text-sm font-black text-[#39D97A]">
+                  <div className="mt-8 inline-flex items-center gap-2 text-sm font-black text-[var(--accent)]">
                     Read Article
-                    <SvgIcon name="arrow-diagonal" size={15} color="#39D97A" />
+                    <SvgIcon name="arrow-diagonal" size={15} color="var(--accent)" />
                   </div>
                 </div>
               </Link>
@@ -163,6 +166,7 @@ export default async function BlogPage() {
           </section>
         )}
 
+        {/* Blog Grid */}
         <section className="px-5 pb-24 sm:px-6 md:px-10 lg:px-12">
           <div className="mx-auto max-w-7xl">
             {otherPosts.length > 0 ? (
@@ -171,9 +175,9 @@ export default async function BlogPage() {
                   <Link
                     key={post.id}
                     href={`/blog/${post.slug}`}
-                    className="group overflow-hidden rounded-[2rem] border border-[#1E314A] bg-[#0E1B2D] p-3 transition hover:-translate-y-1 hover:border-[#39D97A]/25"
+                    className="group overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] p-3 transition hover:-translate-y-1 hover:border-[var(--accent)]/25"
                   >
-                    <div className="relative overflow-hidden rounded-[1.5rem] bg-[#07111F]">
+                    <div className="relative overflow-hidden rounded-[1.5rem] bg-[var(--bg-section)]">
                       {post.featured_image ? (
                         <img
                           src={post.featured_image}
@@ -182,44 +186,44 @@ export default async function BlogPage() {
                         />
                       ) : (
                         <div className="flex aspect-[16/10] items-center justify-center">
-                          <SvgIcon name="blog" size={54} color="#39D97A" />
+                          <SvgIcon name="blog" size={54} color="var(--accent)" />
                         </div>
                       )}
 
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#07111F]/80 via-transparent to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-page)]/80 via-transparent to-transparent" />
                     </div>
 
                     <div className="p-3 pt-5">
-                      <p className="mb-3 text-[10px] font-black uppercase tracking-[0.16em] text-[#39D97A]">
+                      <p className="mb-3 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--accent)]">
                         {formatDate(post.published_at || post.created_at)}
                         {post.read_time ? ` • ${post.read_time}` : ''}
                       </p>
 
-                      <h3 className="text-xl font-black leading-tight text-white">
+                      <h3 className="text-xl font-black leading-tight text-[var(--text-primary)]">
                         {post.title}
                       </h3>
 
-                      <p className="mt-3 line-clamp-3 text-sm leading-7 text-white/56">
+                      <p className="mt-3 line-clamp-3 text-sm leading-7 text-[var(--text-secondary)]">
                         {post.excerpt ||
                           'A practical insight for better digital growth and customer experience.'}
                       </p>
 
-                      <div className="mt-5 inline-flex items-center gap-2 text-sm font-black text-[#39D97A]">
+                      <div className="mt-5 inline-flex items-center gap-2 text-sm font-black text-[var(--accent)]">
                         Read More
-                        <SvgIcon name="arrow-diagonal" size={14} color="#39D97A" />
+                        <SvgIcon name="arrow-diagonal" size={14} color="var(--accent)" />
                       </div>
                     </div>
                   </Link>
                 ))}
               </div>
             ) : !featuredPost ? (
-              <div className="rounded-[2rem] border border-[#1E314A] bg-[#0E1B2D] px-6 py-16 text-center">
-                <SvgIcon name="blog" size={52} color="#39D97A" />
-                <h2 className="mt-5 text-2xl font-black text-white">
+              <div className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] px-6 py-16 text-center">
+                <SvgIcon name="blog" size={52} color="var(--accent)" />
+                <h2 className="mt-5 text-2xl font-black text-[var(--text-primary)]">
                   Blog content coming soon
                 </h2>
-                <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-white/55">
-                  We’re preparing practical articles on ecommerce, websites,
+                <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[var(--text-secondary)]">
+                  We're preparing practical articles on ecommerce, websites,
                   conversion, Shopify, and digital growth systems.
                 </p>
               </div>

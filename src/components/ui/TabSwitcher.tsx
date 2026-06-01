@@ -105,18 +105,18 @@ export default function TabSwitcher({ items = fallbackItems }: TabSwitcherProps)
   }, [activeItem])
 
   return (
-    <section className="relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--bg-section)] p-5 text-[var(--text-primary)] shadow-[0_24px_80px_rgba(10,29,55,0.08)] sm:p-7 lg:p-8">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.12),transparent_42%)]" />
+    <section className="relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--bg-section)] p-5 text-[var(--text-primary)] shadow-[var(--shadow-md)] sm:p-7 lg:p-8">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,var(--accent)/0.12,transparent_42%)]" />
 
       <div className="relative">
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <div className="eyebrow mb-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] sm:text-[11px]">
-              <SvgIcon name="growth" size={13} color="#1AB85C" />
+              <SvgIcon name="growth" size={13} color="var(--accent)" />
               Why Hbee Digitals
             </div>
 
-            <h2 className="text-3xl font-black leading-[0.98] tracking-[-0.055em] sm:text-4xl md:text-5xl">
+            <h2 className="text-3xl font-black leading-[0.98] tracking-[-0.055em] text-[var(--text-primary)] sm:text-4xl md:text-5xl">
               Designed for performance and <GradientHeading>growth.</GradientHeading>
             </h2>
 
@@ -137,7 +137,7 @@ export default function TabSwitcher({ items = fallbackItems }: TabSwitcherProps)
                   onClick={() => setActiveIndex(index)}
                   className={`rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.12em] transition ${
                     active
-                      ? 'border-[#39D97A]/24 bg-[#39D97A]/10 text-[#39D97A]'
+                      ? 'border-[var(--accent)]/24 bg-[var(--accent)]/10 text-[var(--accent)]'
                       : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:bg-[var(--bg-card-hover)]'
                   }`}
                 >
@@ -149,6 +149,7 @@ export default function TabSwitcher({ items = fallbackItems }: TabSwitcherProps)
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[0.42fr_0.58fr] lg:items-start">
+          {/* Mobile Tabs */}
           <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden">
             {safeItems.map((item, index) => {
               const active = index === activeIndex
@@ -160,7 +161,7 @@ export default function TabSwitcher({ items = fallbackItems }: TabSwitcherProps)
                   onClick={() => setActiveIndex(index)}
                   className={`flex-shrink-0 rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.12em] transition ${
                     active
-                      ? 'border-[#39D97A]/24 bg-[#39D97A]/10 text-[#39D97A]'
+                      ? 'border-[var(--accent)]/24 bg-[var(--accent)]/10 text-[var(--accent)]'
                       : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)]'
                   }`}
                 >
@@ -170,6 +171,7 @@ export default function TabSwitcher({ items = fallbackItems }: TabSwitcherProps)
             })}
           </div>
 
+          {/* Active Tab Content */}
           <div className="rounded-[1.7rem] border border-[var(--border)] bg-[var(--bg-card)] p-5 sm:p-6">
             <AnimatePresence mode="wait">
               <motion.div
@@ -179,11 +181,11 @@ export default function TabSwitcher({ items = fallbackItems }: TabSwitcherProps)
                 exit={reducedMotion ? undefined : { opacity: 0, y: -10 }}
                 transition={{ duration: 0.28 }}
               >
-                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10">
+                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--accent)]/18 bg-[var(--accent)]/10">
                   <SvgIcon
                     name={cleanIcon(activeItem.icon)}
                     size={24}
-                    color="#39D97A"
+                    color="var(--accent)"
                   />
                 </div>
 
@@ -198,6 +200,7 @@ export default function TabSwitcher({ items = fallbackItems }: TabSwitcherProps)
             </AnimatePresence>
           </div>
 
+          {/* Points List */}
           <div className="grid gap-4">
             {(points.length
               ? points
@@ -205,14 +208,14 @@ export default function TabSwitcher({ items = fallbackItems }: TabSwitcherProps)
             ).map((point) => (
               <div
                 key={point}
-                className="flex items-start gap-4 rounded-[1.4rem] border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-5"
+                className="flex items-start gap-4 rounded-[1.4rem] border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-5 transition hover:border-[var(--accent)]/25"
               >
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-[#39D97A]/16 bg-[#39D97A]/10">
-                  <SvgIcon name="verified" size={14} color="#39D97A" />
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-[var(--accent)]/16 bg-[var(--accent)]/10">
+                  <SvgIcon name="verified" size={14} color="var(--accent)" />
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-black uppercase tracking-[0.12em] text-[#39D97A]">
+                  <h4 className="text-sm font-black uppercase tracking-[0.12em] text-[var(--accent)]">
                     Premium Advantage
                   </h4>
 

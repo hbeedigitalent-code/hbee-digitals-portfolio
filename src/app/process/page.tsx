@@ -12,7 +12,7 @@ export default function ProcessPage() {
   return (
     <>
       <Navbar />
-      <main>
+      <main className="bg-[var(--bg-page)]">
         <ProcessSection />
       </main>
       <Footer />

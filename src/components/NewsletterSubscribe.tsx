@@ -16,7 +16,6 @@ export default function NewsletterSubscribe() {
     setLoading(true)
     setStatus('idle')
 
-    // Get IP address (simple version)
     let ipAddress = ''
     try {
       const res = await fetch('https://api.ipify.org?format=json')
@@ -44,7 +43,6 @@ export default function NewsletterSubscribe() {
       setEmail('')
       setName('')
       
-      // Send notification to admin
       try {
         await fetch('/api/send-email', {
           method: 'POST',
@@ -66,7 +64,6 @@ export default function NewsletterSubscribe() {
     }
     setLoading(false)
 
-    // Auto-hide success message after 5 seconds
     setTimeout(() => {
       if (status === 'success') {
         setStatus('idle')
@@ -76,9 +73,9 @@ export default function NewsletterSubscribe() {
   }
 
   return (
-    <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-      <h3 className="text-xl font-bold text-white mb-2">Subscribe to Our Newsletter</h3>
-      <p className="text-white/70 text-sm mb-4">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 backdrop-blur-sm">
+      <h3 className="mb-2 text-xl font-bold text-[var(--text-primary)]">Subscribe to Our Newsletter</h3>
+      <p className="mb-4 text-sm text-[var(--text-secondary)]">
         Get the latest updates and exclusive offers.
       </p>
       
@@ -88,7 +85,7 @@ export default function NewsletterSubscribe() {
           placeholder="Your name (optional)"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] px-4 py-2 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
         />
         <input
           type="email"
@@ -96,12 +93,12 @@ export default function NewsletterSubscribe() {
           placeholder="Your email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] px-4 py-2 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
         />
         <button
           type="submit"
           disabled={loading}
-          className="w-full px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-50"
+          className="w-full rounded-lg bg-[var(--accent)] px-4 py-2 font-semibold text-[var(--btn-primary-text)] transition hover:bg-[var(--accent-lime)] hover:scale-[1.02] disabled:opacity-50"
         >
           {loading ? 'Subscribing...' : 'Subscribe'}
         </button>
@@ -113,8 +110,8 @@ export default function NewsletterSubscribe() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className={`mt-3 p-2 rounded text-sm text-center ${
-              status === 'success' ? 'text-green-300' : 'text-red-300'
+            className={`mt-3 rounded p-2 text-center text-sm ${
+              status === 'success' ? 'text-[var(--accent)]' : 'text-red-400'
             }`}
           >
             {message}
@@ -122,7 +119,7 @@ export default function NewsletterSubscribe() {
         )}
       </AnimatePresence>
       
-      <p className="text-white/40 text-xs text-center mt-3">
+      <p className="mt-3 text-center text-xs text-[var(--text-muted)]">
         No spam. Unsubscribe anytime.
       </p>
     </div>

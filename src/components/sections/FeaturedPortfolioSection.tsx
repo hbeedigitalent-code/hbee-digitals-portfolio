@@ -145,23 +145,24 @@ export default function FeaturedPortfolioSection({
     })
   }, [activeIndex, portfolioItems])
 
+  // Fallback when no portfolio items exist (light mode version)
   if (!isLoading && portfolioItems.length === 0) {
     return (
-      <section className="relative overflow-hidden bg-[#07111F] px-5 py-16 text-white sm:px-6 md:px-10 lg:px-12 lg:py-24">
+      <section className="relative overflow-hidden bg-[var(--bg-section)] px-5 py-16 text-[var(--text-primary)] sm:px-6 md:px-10 lg:px-12 lg:py-24">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.025)_1px,transparent_1px)] bg-[size:80px_80px]" />
-        <div className="absolute left-1/2 top-10 h-[360px] w-[680px] -translate-x-1/2 rounded-full bg-[#39D97A]/10 blur-[140px]" />
+        <div className="absolute left-1/2 top-10 h-[360px] w-[680px] -translate-x-1/2 rounded-full bg-[var(--accent)]/10 blur-[140px]" />
 
-        <div className="relative z-10 mx-auto max-w-5xl rounded-[2rem] border border-[#1E314A] bg-[#0E1B2D] p-8 text-center shadow-[0_30px_100px_rgba(0,0,0,0.25)]">
-          <p className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
-            <SvgIcon name="portfolio" size={14} color="#39D97A" />
+        <div className="relative z-10 mx-auto max-w-5xl rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] p-8 text-center shadow-[var(--shadow-md)]">
+          <p className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
+            <SvgIcon name="portfolio" size={14} color="var(--accent)" />
             Featured Work
           </p>
 
-          <h2 className="text-4xl font-black leading-tight tracking-[-0.05em] sm:text-5xl">
+          <h2 className="text-4xl font-black leading-tight tracking-[-0.05em] text-[var(--text-primary)] sm:text-5xl">
             Featured projects will appear here soon.
           </h2>
 
-          <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/60 sm:text-base">
+          <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-[var(--text-secondary)] sm:text-base">
             Active portfolio items were not found yet. Once portfolio projects
             are added or activated from the admin dashboard, they will display
             here automatically.
@@ -169,7 +170,7 @@ export default function FeaturedPortfolioSection({
 
           <Link
             href="/portfolio"
-            className="mt-8 inline-flex min-h-[52px] items-center justify-center rounded-full bg-[#39D97A] px-7 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
+            className="mt-8 inline-flex min-h-[52px] items-center justify-center rounded-full bg-[var(--accent)] px-7 py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] hover:bg-[var(--accent-lime)]"
           >
             View Portfolio
           </Link>
@@ -179,10 +180,10 @@ export default function FeaturedPortfolioSection({
   }
 
   return (
-    <section className="relative overflow-hidden bg-[#07111F] py-16 text-white lg:py-24">
+    <section className="relative overflow-hidden bg-[var(--bg-navy)] py-16 text-[var(--text-inverse)] lg:py-24">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-10 h-[440px] w-[760px] -translate-x-1/2 rounded-full bg-[#39D97A]/7 blur-[140px]" />
-        <div className="absolute bottom-0 right-0 h-[360px] w-[520px] rounded-full bg-[#39D97A]/5 blur-[130px]" />
+        <div className="absolute left-1/2 top-10 h-[440px] w-[760px] -translate-x-1/2 rounded-full bg-[var(--accent)]/7 blur-[140px]" />
+        <div className="absolute bottom-0 right-0 h-[360px] w-[520px] rounded-full bg-[var(--accent)]/5 blur-[130px]" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.018)_1px,transparent_1px)] bg-[size:82px_82px] opacity-20" />
       </div>
 
@@ -194,16 +195,16 @@ export default function FeaturedPortfolioSection({
           viewport={{ once: true }}
           className="max-w-4xl"
         >
-          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
-            <SvgIcon name="portfolio" size={14} color="#39D97A" />
+          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/18 bg-[var(--accent)]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
+            <SvgIcon name="portfolio" size={14} color="var(--accent)" />
             Featured Work
           </p>
 
-          <h2 className="text-4xl font-black leading-[0.96] tracking-[-0.055em] sm:text-5xl md:text-6xl">
+          <h2 className="text-4xl font-black leading-[0.96] tracking-[-0.055em] text-[var(--text-inverse)] sm:text-5xl md:text-6xl">
             Systems we built for <GradientHeading>growth.</GradientHeading>
           </h2>
 
-          <p className="mt-6 max-w-2xl text-sm leading-8 text-white/60 sm:text-base">
+          <p className="mt-6 max-w-2xl text-sm leading-8 text-[var(--text-secondary)] sm:text-base">
             Real brands. Real results. Explore selected ecommerce builds,
             redesigns, and conversion-focused systems designed to improve
             performance and trust.
@@ -266,13 +267,13 @@ export default function FeaturedPortfolioSection({
               >
                 <Link
                   href={getHref(item)}
-                  className={`group block overflow-hidden rounded-[2rem] border bg-[#0E1B2D] p-3 shadow-[0_28px_100px_rgba(0,0,0,0.28)] transition ${
+                  className={`group block overflow-hidden rounded-[2rem] border bg-[var(--bg-card)] p-3 shadow-[var(--shadow-lg)] transition ${
                     isActive
-                      ? 'border-[#39D97A]/35'
-                      : 'border-[#1E314A] hover:border-[#39D97A]/20'
+                      ? 'border-[var(--accent)]/35'
+                      : 'border-[var(--border)] hover:border-[var(--accent)]/20'
                   }`}
                 >
-                  <div className="relative overflow-hidden rounded-[1.5rem] bg-[#07111F]">
+                  <div className="relative overflow-hidden rounded-[1.5rem] bg-[var(--bg-section)]">
                     {getImage(item) ? (
                       <img
                         src={getImage(item)}
@@ -292,29 +293,29 @@ export default function FeaturedPortfolioSection({
                             : 'aspect-[4/5]'
                         }`}
                       >
-                        <SvgIcon name="portfolio" size={58} color="#39D97A" />
+                        <SvgIcon name="portfolio" size={58} color="var(--accent)" />
                       </div>
                     )}
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#07111F]/94 via-[#07111F]/20 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-page)]/94 via-[var(--bg-page)]/20 to-transparent" />
 
-                    <div className="absolute left-4 top-4 rounded-full bg-[#39D97A] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#06101F]">
+                    <div className="absolute left-4 top-4 rounded-full bg-[var(--accent)] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-[var(--btn-primary-text)]">
                       {getMetric(item)}
                     </div>
 
                     {item.is_before_after && isActive && (
-                      <div className="absolute right-4 top-4 rounded-full border border-white/10 bg-[#07111F]/80 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-white backdrop-blur-xl">
+                      <div className="absolute right-4 top-4 rounded-full border border-[var(--border)] bg-[var(--bg-section)]/80 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-[var(--text-primary)] backdrop-blur-xl">
                         Before / After
                       </div>
                     )}
 
                     <div className="absolute bottom-4 left-4 right-4">
-                      <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#39D97A]">
+                      <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[var(--accent)]">
                         {getCategory(item)}
                       </p>
 
                       <h3
-                        className={`mt-2 font-black tracking-[-0.04em] text-white ${
+                        className={`mt-2 font-black tracking-[-0.04em] text-[var(--text-inverse)] ${
                           isActive ? 'text-2xl sm:text-4xl' : 'text-xl'
                         }`}
                       >
@@ -322,7 +323,7 @@ export default function FeaturedPortfolioSection({
                       </h3>
 
                       {isActive && (
-                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-white/62 sm:text-sm sm:leading-6">
+                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--text-secondary)] sm:text-sm sm:leading-6">
                           {item.project_type ||
                             item.description ||
                             'Premium digital system built for clearer trust and better growth.'}
@@ -333,16 +334,16 @@ export default function FeaturedPortfolioSection({
 
                   {isActive && (
                     <div className="flex items-center justify-between px-2 py-4">
-                      <span className="inline-flex items-center gap-2 text-sm font-black text-[#39D97A]">
+                      <span className="inline-flex items-center gap-2 text-sm font-black text-[var(--accent)]">
                         View Case Study
                         <SvgIcon
                           name="arrow-diagonal"
                           size={14}
-                          color="#39D97A"
+                          color="var(--accent)"
                         />
                       </span>
 
-                      <span className="text-xs font-bold text-white/35">
+                      <span className="text-xs font-bold text-[var(--text-muted)]">
                         {String(index + 1).padStart(2, '0')}
                       </span>
                     </div>
@@ -360,7 +361,7 @@ export default function FeaturedPortfolioSection({
             type="button"
             onClick={goPrev}
             aria-label="Previous portfolio item"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-[#1E314A] bg-[#0E1B2D] text-xl font-black text-[#39D97A] transition hover:border-[#39D97A]/30 hover:bg-[#39D97A]/10"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-card)] text-xl font-black text-[var(--accent)] transition hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/10"
           >
             ‹
           </button>
@@ -369,20 +370,20 @@ export default function FeaturedPortfolioSection({
             type="button"
             onClick={goNext}
             aria-label="Next portfolio item"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-[#1E314A] bg-[#0E1B2D] text-xl font-black text-[#39D97A] transition hover:border-[#39D97A]/30 hover:bg-[#39D97A]/10"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-card)] text-xl font-black text-[var(--accent)] transition hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/10"
           >
             ›
           </button>
         </div>
 
-        <p className="max-w-2xl text-sm leading-7 text-white/55">
+        <p className="max-w-2xl text-sm leading-7 text-[var(--text-secondary)]">
           {portfolioItems.length}+ selected projects across ecommerce, health,
           food, lifestyle, and digital growth systems.
         </p>
 
         <Link
           href="/portfolio"
-          className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-[#39D97A] px-7 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
+          className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-[var(--accent)] px-7 py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] hover:bg-[var(--accent-lime)]"
         >
           View All Work
         </Link>

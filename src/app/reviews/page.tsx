@@ -25,18 +25,19 @@ export default async function ReviewsPage() {
     <>
       <Navbar />
 
-      <main className="bg-[#07111F] pt-28 text-white">
+      <main className="bg-[var(--bg-page)] pt-28 text-[var(--text-primary)]">
+        {/* Hero Section */}
         <section className="px-5 py-16 sm:px-6 md:px-10 lg:px-12">
           <div className="mx-auto max-w-7xl text-center">
-            <p className="mx-auto mb-5 inline-flex rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-5 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-[#39D97A]">
+            <p className="mx-auto mb-5 inline-flex rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-5 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--accent)]">
               Reviews & Trust
             </p>
 
-            <h1 className="mx-auto max-w-5xl text-5xl font-black uppercase leading-[0.95] tracking-[-0.06em] sm:text-6xl lg:text-7xl">
+            <h1 className="mx-auto max-w-5xl text-5xl font-black uppercase leading-[0.95] tracking-[-0.06em] text-[var(--text-primary)] sm:text-6xl lg:text-7xl">
               Proof, feedback, and trust signals from our digital work.
             </h1>
 
-            <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-white/62">
+            <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-[var(--text-secondary)]">
               Hbee Digitals is built around reliable communication, premium
               execution, and conversion-focused improvements for ambitious brands.
             </p>
@@ -44,22 +45,23 @@ export default async function ReviewsPage() {
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
               <Link
                 href="/contact"
-                className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-[#39D97A] px-7 py-3 text-sm font-black text-[#06101F]"
+                className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-[var(--accent)] px-7 py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] hover:bg-[var(--accent-lime)]"
               >
                 Start Your Growth Review
               </Link>
 
               <Link
                 href="/portfolio"
-                className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full border border-[#39D97A]/25 bg-[#39D97A]/10 px-7 py-3 text-sm font-black text-[#39D97A]"
+                className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-7 py-3 text-sm font-black text-[var(--accent)] transition hover:bg-[var(--accent)]/15"
               >
                 View Case Studies
-                <SvgIcon name="arrow-diagonal" size={15} color="#39D97A" />
+                <SvgIcon name="arrow-diagonal" size={15} color="var(--accent)" />
               </Link>
             </div>
           </div>
         </section>
 
+        {/* Trust Section */}
         {trust && (
           <TrustSection
             data={{

@@ -56,33 +56,35 @@ export default function ContactSection() {
   }
 
   return (
-    <section className="relative overflow-hidden bg-[#07111F] pb-20 pt-32 text-white lg:pt-36">
+    <section className="relative overflow-hidden bg-[var(--bg-page)] pb-20 pt-32 text-[var(--text-primary)] lg:pt-36">
+      {/* Background decorative elements */}
       <div className="absolute inset-0 -z-0">
-        <div className="absolute left-0 top-0 h-[520px] w-[680px] rounded-full bg-[#39D97A]/10 blur-[130px]" />
-        <div className="absolute bottom-0 right-0 h-[420px] w-[520px] rounded-full bg-[#C6F135]/6 blur-[120px]" />
+        <div className="absolute left-0 top-0 h-[520px] w-[680px] rounded-full bg-[var(--accent)]/10 blur-[130px]" />
+        <div className="absolute bottom-0 right-0 h-[420px] w-[520px] rounded-full bg-[var(--accent-lime)]/6 blur-[120px]" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.025)_1px,transparent_1px)] bg-[size:82px_82px] opacity-25" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-6 md:px-10 lg:px-12">
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+          {/* Left Column - Info */}
           <motion.div
             initial={reducedMotion ? false : { opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55 }}
             className="lg:sticky lg:top-28"
           >
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
-              <SvgIcon name="growth" size={14} color="#39D97A" />
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
+              <SvgIcon name="growth" size={14} color="var(--accent)" />
               Start A Project
             </div>
 
-            <h1 className="max-w-3xl text-5xl font-black leading-[0.95] tracking-[-0.06em] sm:text-6xl lg:text-7xl">
-              Let’s build your digital <GradientHeading>growth system.</GradientHeading>
+            <h1 className="max-w-3xl text-5xl font-black leading-[0.95] tracking-[-0.06em] text-[var(--text-primary)] sm:text-6xl lg:text-7xl">
+              Let's build your digital <GradientHeading>growth system.</GradientHeading>
             </h1>
 
-            <p className="mt-6 max-w-2xl text-base leading-8 text-white/62 md:text-lg">
-              Tell us what you’re building, what needs fixing, or where your brand needs to grow.
-              We’ll review your request and respond with a clear next step.
+            <p className="mt-6 max-w-2xl text-base leading-8 text-[var(--text-secondary)] md:text-lg">
+              Tell us what you're building, what needs fixing, or where your brand needs to grow.
+              We'll review your request and respond with a clear next step.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
@@ -105,23 +107,19 @@ export default function ContactSection() {
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="rounded-[1.4rem] border border-[#1E314A] bg-[#0E1B2D] p-4 transition hover:border-[#39D97A]/28 hover:bg-[#13233A]"
+                  className="group rounded-[1.4rem] border border-[var(--border)] bg-[var(--bg-card)] p-4 transition hover:border-[var(--accent)]/28 hover:bg-[var(--bg-card-hover)]"
                 >
-                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl border border-[#39D97A]/16 bg-[#39D97A]/10">
-                    <SvgIcon name={item.icon} size={19} color="#39D97A" />
+                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--accent)]/16 bg-[var(--accent)]/10 transition group-hover:scale-105">
+                    <SvgIcon name={item.icon} size={19} color="var(--accent)" />
                   </div>
-
-                  <p className="text-sm font-black text-white">{item.label}</p>
-
-                  <p className="mt-2 text-xs leading-5 text-white/45">
-                    {item.text}
-                  </p>
+                  <p className="text-sm font-black text-[var(--text-primary)]">{item.label}</p>
+                  <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">{item.text}</p>
                 </div>
               ))}
             </div>
 
-            <div className="mt-8 rounded-[1.6rem] border border-[#1E314A] bg-[#0E1B2D] p-5">
-              <p className="mb-4 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
+            <div className="mt-8 rounded-[1.6rem] border border-[var(--border)] bg-[var(--bg-card)] p-5">
+              <p className="mb-4 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
                 Prefer direct conversation?
               </p>
 
@@ -129,47 +127,43 @@ export default function ContactSection() {
                 href="https://wa.me/2348153153827"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group inline-flex w-full items-center gap-4 rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/8 px-5 py-4 text-sm font-bold text-white/70 transition hover:border-[#39D97A]/35 hover:bg-[#39D97A]/14 hover:text-white"
+                className="group inline-flex w-full items-center gap-4 rounded-2xl border border-[var(--accent)]/18 bg-[var(--accent)]/8 px-5 py-4 text-sm font-bold text-[var(--text-secondary)] transition hover:border-[var(--accent)]/35 hover:bg-[var(--accent)]/14 hover:text-[var(--text-primary)]"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#39D97A] shadow-[0_0_25px_rgba(57,217,122,0.28)]">
-                  <SvgIcon name="whatsapp" size={21} color="#06101F" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent)] shadow-[0_0_25px_rgba(57,217,122,0.28)] transition group-hover:scale-105">
+                  <SvgIcon name="whatsapp" size={21} color="var(--btn-primary-text)" />
                 </div>
-
                 <div className="min-w-0 flex-1 text-left">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/45">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
                     WhatsApp Support
                   </p>
-
-                  <p className="mt-1 text-sm font-black tracking-[0.02em] text-white">
+                  <p className="mt-1 text-sm font-black tracking-[0.02em] text-[var(--text-primary)]">
                     +234 815 315 3827
                   </p>
                 </div>
-
-                <SvgIcon name="arrow-diagonal" size={16} color="#39D97A" />
+                <SvgIcon name="arrow-diagonal" size={16} color="var(--accent)" />
               </a>
             </div>
           </motion.div>
 
+          {/* Right Column - Form */}
           <motion.form
             onSubmit={handleSubmit}
             initial={reducedMotion ? false : { opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, delay: 0.1 }}
-            className="relative overflow-hidden rounded-[2rem] border border-[#1E314A] bg-[#0E1B2D]/95 p-5 shadow-[0_35px_110px_rgba(0,0,0,0.35)] backdrop-blur-2xl sm:p-6 md:p-8"
+            className="relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)]/95 p-5 shadow-[var(--shadow-lg)] backdrop-blur-2xl sm:p-6 md:p-8"
           >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.14),transparent_38%)]" />
 
             <div className="relative">
               <div className="mb-7">
-                <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
+                <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
                   Project Inquiry
                 </p>
-
-                <h2 className="text-3xl font-black leading-tight tracking-[-0.045em] text-white sm:text-4xl">
+                <h2 className="text-3xl font-black leading-tight tracking-[-0.045em] text-[var(--text-primary)] sm:text-4xl">
                   Tell us about your project.
                 </h2>
-
-                <p className="mt-3 text-sm leading-7 text-white/55">
+                <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)]">
                   The more context you give, the better we can recommend the right next step.
                 </p>
               </div>
@@ -221,17 +215,17 @@ export default function ContactSection() {
 
                 <textarea
                   name="message"
-                  className="min-h-[180px] rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-4 text-sm leading-7 text-white outline-none placeholder:text-white/35 transition focus:border-[#39D97A]/55 focus:bg-[#39D97A]/8"
+                  className="min-h-[180px] rounded-2xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-4 text-sm leading-7 text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] transition focus:border-[var(--accent)]/55 focus:bg-[var(--bg-card-hover)]"
                   placeholder="Tell us about your project, current problem, goals, or what you want improved..."
                   required
                 />
 
                 <button
                   disabled={status === 'loading'}
-                  className="group inline-flex min-h-[56px] items-center justify-center gap-2 rounded-full bg-[#39D97A] px-7 py-3 text-sm font-black text-[#06101F] shadow-[0_0_36px_rgba(57,217,122,0.25)] transition hover:scale-[1.02] hover:bg-[#C6F135] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="group inline-flex min-h-[56px] items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-7 py-3 text-sm font-black text-[var(--btn-primary-text)] shadow-[0_0_36px_rgba(57,217,122,0.25)] transition hover:scale-[1.02] hover:bg-[var(--accent-lime)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {status === 'loading' ? 'Submitting Inquiry...' : 'Submit Project Inquiry'}
-                  <SvgIcon name="arrow-diagonal" size={16} color="#06101F" />
+                  <SvgIcon name="arrow-diagonal" size={16} color="var(--btn-primary-text)" />
                 </button>
 
                 {status === 'error' && (
@@ -240,7 +234,7 @@ export default function ContactSection() {
                   </p>
                 )}
 
-                <p className="text-center text-xs leading-6 text-white/38">
+                <p className="text-center text-xs leading-6 text-[var(--text-muted)]">
                   By submitting this form, you agree to be contacted about your project inquiry.
                 </p>
               </div>
@@ -249,10 +243,11 @@ export default function ContactSection() {
         </div>
       </div>
 
+      {/* Success Modal */}
       <AnimatePresence>
         {showSuccessModal && (
           <motion.div
-            className="fixed inset-0 z-[999] flex items-center justify-center bg-[#02070F]/80 px-5 backdrop-blur-xl"
+            className="fixed inset-0 z-[999] flex items-center justify-center bg-[var(--bg-page)]/80 px-5 backdrop-blur-xl"
             initial={reducedMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={reducedMotion ? undefined : { opacity: 0 }}
@@ -262,25 +257,25 @@ export default function ContactSection() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={reducedMotion ? undefined : { opacity: 0, y: 20, scale: 0.96 }}
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              className="relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-[#39D97A]/25 bg-[#071427] p-6 text-center shadow-[0_40px_130px_rgba(0,0,0,0.5)] sm:p-8"
+              className="relative w-full max-w-xl overflow-hidden rounded-[2rem] border border-[var(--accent)]/25 bg-[var(--bg-card)] p-6 text-center shadow-[var(--shadow-lg)] sm:p-8"
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(57,217,122,0.22),transparent_45%)]" />
 
               <div className="relative">
-                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#39D97A] shadow-[0_0_60px_rgba(57,217,122,0.4)]">
-                  <SvgIcon name="verified" size={36} color="#06101F" />
+                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[var(--accent)] shadow-[0_0_60px_rgba(57,217,122,0.4)] transition hover:scale-105">
+                  <SvgIcon name="verified" size={36} color="var(--btn-primary-text)" />
                 </div>
 
-                <p className="mb-3 text-[11px] font-black uppercase tracking-[0.2em] text-[#39D97A]">
+                <p className="mb-3 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--accent)]">
                   Inquiry Submitted
                 </p>
 
-                <h2 className="text-3xl font-black leading-tight tracking-[-0.045em] text-white sm:text-4xl">
+                <h2 className="text-3xl font-black leading-tight tracking-[-0.045em] text-[var(--text-primary)] sm:text-4xl">
                   Your request has been received.
                 </h2>
 
-                <p className="mx-auto mt-5 max-w-md text-sm leading-7 text-white/65 sm:text-base">
-                  Thank you for reaching out to Hbee Digitals. We’ll review your inquiry and respond
+                <p className="mx-auto mt-5 max-w-md text-sm leading-7 text-[var(--text-secondary)] sm:text-base">
+                  Thank you for reaching out to Hbee Digitals. We'll review your inquiry and respond
                   within the next 24 hours with the best next step.
                 </p>
 
@@ -290,7 +285,7 @@ export default function ContactSection() {
                     setShowSuccessModal(false)
                     setStatus('idle')
                   }}
-                  className="mt-8 inline-flex min-h-[52px] items-center justify-center rounded-full bg-[#39D97A] px-8 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
+                  className="mt-8 inline-flex min-h-[52px] items-center justify-center rounded-full bg-[var(--accent)] px-8 py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] hover:bg-[var(--accent-lime)]"
                 >
                   Continue
                 </button>
@@ -319,7 +314,7 @@ function Field({
       name={name}
       type={type}
       required={required}
-      className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-4 text-sm text-white outline-none placeholder:text-white/35 transition focus:border-[#39D97A]/55 focus:bg-[#39D97A]/8"
+      className="rounded-2xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-4 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] transition focus:border-[var(--accent)]/55 focus:bg-[var(--bg-card-hover)]"
       placeholder={placeholder}
     />
   )
@@ -338,7 +333,7 @@ function Select({
     <select
       name={name}
       defaultValue={defaultValue}
-      className="rounded-2xl border border-white/10 bg-[#071427] px-4 py-4 text-sm text-white outline-none transition focus:border-[#39D97A]/55"
+      className="rounded-2xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)]/55"
     >
       {children}
     </select>

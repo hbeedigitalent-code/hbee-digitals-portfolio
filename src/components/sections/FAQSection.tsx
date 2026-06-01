@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import SvgIcon from '@/components/ui/SvgIcon'
-import GradientHeading from '@/components/ui/GradientHeading'
 
 interface FAQ {
   id: string
@@ -62,7 +61,6 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
 
   const filteredFaqs = useMemo(() => {
     if (activeCategory === 'all') return sortedFaqs
-
     return sortedFaqs.filter((faq) => faq.category?.trim() === activeCategory)
   }, [sortedFaqs, activeCategory])
 
@@ -72,14 +70,16 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
 
   return (
     <section className="relative overflow-hidden bg-[var(--bg-page)] py-16 text-[var(--text-primary)] sm:py-20 lg:py-24">
+      {/* Background decorative elements */}
       <div className="absolute inset-0 -z-10">
-        <div className="absolute left-0 top-20 h-[320px] w-[420px] rounded-full bg-[#39D97A]/8 blur-[110px]" />
-        <div className="absolute bottom-0 right-0 h-[280px] w-[360px] rounded-full bg-[#C6F135]/7 blur-[100px]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.022)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.022)_1px,transparent_1px)] bg-[size:82px_82px] opacity-15" />
+        <div className="absolute left-0 top-20 h-[320px] w-[420px] rounded-full bg-[var(--accent)]/8 blur-[110px]" />
+        <div className="absolute bottom-0 right-0 h-[280px] w-[360px] rounded-full bg-[var(--accent-lime)]/7 blur-[100px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.018)_1px,transparent_1px)] bg-[size:82px_82px] opacity-20" />
       </div>
 
       <div className="mx-auto max-w-7xl px-5 sm:px-6 md:px-10 lg:px-12">
         <div className="grid gap-12 lg:grid-cols-[0.88fr_1.12fr]">
+          {/* Left Column - Info & Trust Cards */}
           <motion.div
             initial={reducedMotion ? false : { opacity: 0, x: -22 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -87,13 +87,14 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
             viewport={{ once: true }}
             className="lg:sticky lg:top-28 lg:self-start"
           >
-            <div className="eyebrow mb-5 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em]">
-              <SvgIcon name="faq" size={14} color="#1AB85C" />
+            <div className="eyebrow mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
+              <SvgIcon name="faq" size={14} color="var(--accent)" />
               Questions & Answers
             </div>
 
             <h2 className="max-w-3xl text-4xl font-black leading-[0.95] tracking-[-0.06em] text-[var(--text-primary)] sm:text-5xl md:text-6xl">
-              Everything you need to <GradientHeading>know.</GradientHeading>
+              Everything you need to{' '}
+              <span className="text-[var(--accent)]">know.</span>
             </h2>
 
             <p className="mt-6 max-w-xl text-sm leading-7 text-[var(--text-secondary)] sm:text-base">
@@ -101,19 +102,21 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
               digital growth systems, and how we help brands scale online.
             </p>
 
+            {/* Trust Cards */}
             <div className="mt-7 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
               {trustCards.map((item) => (
                 <div
                   key={item.label}
-                  className="group flex items-start gap-4 rounded-[1.4rem] border border-[var(--border)] bg-[var(--bg-card)] p-4 transition duration-300 hover:border-[#39D97A]/25 hover:bg-[var(--bg-card-hover)]"
+                  className="group flex items-start gap-4 rounded-[1.4rem] border border-[var(--border)] bg-[var(--bg-card)] p-4 transition duration-300 hover:border-[var(--accent)]/25 hover:bg-[var(--bg-card-hover)] hover:shadow-[var(--shadow-sm)]"
                 >
-                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10">
-                    <SvgIcon name={item.icon} size={20} color="#39D97A" />
+                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-[var(--accent)]/18 bg-[var(--accent)]/10 transition group-hover:scale-105">
+                    <SvgIcon name={item.icon} size={20} color="var(--accent)" />
                   </div>
 
                   <div>
-                    <p className="text-sm font-black text-[var(--text-primary)]">{item.label}</p>
-
+                    <p className="text-sm font-black text-[var(--text-primary)]">
+                      {item.label}
+                    </p>
                     <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
                       {item.description}
                     </p>
@@ -122,18 +125,21 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
               ))}
             </div>
 
+            {/* View All Link */}
             {variant === 'home' && (
               <Link
                 href="/faq"
-                className="group mt-8 inline-flex items-center gap-2 rounded-full bg-[#39D97A] px-7 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
+                className="group mt-8 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-7 py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] hover:bg-[var(--accent-lime)] hover:shadow-[0_0_30px_rgba(57,217,122,0.3)]"
               >
                 View All FAQs
-                <SvgIcon name="arrow-diagonal" size={16} color="#06101F" />
+                <SvgIcon name="arrow-diagonal" size={16} color="var(--btn-primary-text)" />
               </Link>
             )}
           </motion.div>
 
+          {/* Right Column - FAQ Accordion */}
           <div>
+            {/* Category Filter */}
             {variant === 'page' && categories.length > 1 && (
               <motion.div
                 initial={reducedMotion ? false : { opacity: 0, y: 16 }}
@@ -151,10 +157,10 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
                         setActiveCategory(category)
                         setOpenIndex(0)
                       }}
-                      className={`rounded-full border px-5 py-2.5 text-sm font-bold capitalize transition ${
+                      className={`rounded-full border px-5 py-2.5 text-sm font-bold capitalize transition-all duration-200 ${
                         active
-                          ? 'border-[#39D97A]/25 bg-[#39D97A]/10 text-[#39D97A]'
-                          : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:border-[#39D97A]/20 hover:text-[var(--text-primary)]'
+                          ? 'border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--accent)] shadow-[var(--shadow-sm)]'
+                          : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:border-[var(--accent)]/20 hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)]'
                       }`}
                     >
                       {category === 'all' ? 'All FAQs' : category}
@@ -164,6 +170,7 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
               </motion.div>
             )}
 
+            {/* FAQ Items */}
             <div className="space-y-4">
               {visibleFaqs.map((faq, index) => {
                 const isOpen = openIndex === index
@@ -177,17 +184,18 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
                     transition={{ duration: 0.42, delay: index * 0.04 }}
                     className={`overflow-hidden rounded-[1.7rem] border transition-all duration-300 ${
                       isOpen
-                        ? 'border-[#39D97A]/22 bg-[var(--bg-card-hover)]'
-                        : 'border-[var(--border)] bg-[var(--bg-card)] hover:border-[#39D97A]/16 hover:bg-[var(--bg-card-hover)]'
+                        ? 'border-[var(--accent)]/22 bg-[var(--bg-card-hover)] shadow-[var(--shadow-md)]'
+                        : 'border-[var(--border)] bg-[var(--bg-card)] hover:border-[var(--accent)]/16 hover:bg-[var(--bg-card-hover)]'
                     }`}
                   >
                     <button
                       type="button"
                       onClick={() => setOpenIndex(isOpen ? null : index)}
                       className="flex w-full items-start gap-5 p-5 text-left sm:p-6"
+                      aria-expanded={isOpen}
                     >
-                      <div className="mt-1 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10">
-                        <SvgIcon name="faq" size={18} color="#39D97A" />
+                      <div className="mt-1 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-[var(--accent)]/18 bg-[var(--accent)]/10 transition group-hover:scale-105">
+                        <SvgIcon name="faq" size={18} color="var(--accent)" />
                       </div>
 
                       <div className="flex-1">
@@ -196,7 +204,7 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
                         </h3>
 
                         {faq.category && (
-                          <div className="mt-3 inline-flex items-center rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[#39D97A]">
+                          <div className="mt-3 inline-flex items-center rounded-full border border-[var(--accent)]/18 bg-[var(--accent)]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">
                             {faq.category}
                           </div>
                         )}
@@ -205,9 +213,9 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
                       <motion.div
                         animate={{ rotate: isOpen ? 180 : 0 }}
                         transition={{ duration: 0.25 }}
-                        className="mt-2 flex h-8 w-8 items-center justify-center rounded-full border border-[#1E314A] bg-[#07111F]"
+                        className="mt-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-section)]"
                       >
-                        <SvgIcon name="chevron-down" size={14} color="#39D97A" />
+                        <SvgIcon name="chevron-down" size={14} color="var(--accent)" />
                       </motion.div>
                     </button>
 
@@ -217,13 +225,13 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
                           initial={reducedMotion ? false : { opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={reducedMotion ? undefined : { opacity: 0, height: 0 }}
-                          transition={{ duration: 0.3 }}
+                          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                         >
                           <div className="border-t border-[var(--border)] px-5 pb-6 pt-5 sm:px-6">
                             <div className="pl-0 sm:pl-16">
                               {faq.rich_answer ? (
                                 <div
-                                  className="prose max-w-none prose-p:text-[var(--text-secondary)] prose-p:leading-8 prose-strong:text-[var(--text-primary)] prose-a:text-[var(--text-accent)] prose-li:text-[var(--text-secondary)]"
+                                  className="prose max-w-none prose-p:text-[var(--text-secondary)] prose-p:leading-8 prose-strong:text-[var(--text-primary)] prose-a:text-[var(--accent)] prose-li:text-[var(--text-secondary)]"
                                   dangerouslySetInnerHTML={{
                                     __html: faq.rich_answer,
                                   }}
@@ -243,14 +251,15 @@ export default function FAQSection({ data, variant = 'home' }: FAQSectionProps) 
               })}
             </div>
 
+            {/* Mobile View More Link */}
             {variant === 'home' && sortedFaqs.length > 5 && (
               <div className="mt-8 text-center lg:hidden">
                 <Link
                   href="/faq"
-                  className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-6 py-3 text-sm font-black text-[var(--text-primary)] transition hover:border-[#39D97A]/25 hover:bg-[var(--bg-card-hover)]"
+                  className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-6 py-3 text-sm font-black text-[var(--text-primary)] transition hover:border-[var(--accent)]/25 hover:bg-[var(--bg-card-hover)]"
                 >
                   See More Answers
-                  <SvgIcon name="arrow-diagonal" size={15} color="#39D97A" />
+                  <SvgIcon name="arrow-diagonal" size={15} color="var(--accent)" />
                 </Link>
               </div>
             )}

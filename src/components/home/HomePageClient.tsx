@@ -66,27 +66,22 @@ export default function HomePageClient() {
         pricingRes,
       ] = await Promise.all([
         supabase.from('hero_section').select('*').single(),
-
         supabase.from('about_section').select('*').single(),
-
         supabase
           .from('faqs')
           .select('*')
           .eq('is_active', true)
           .order('display_order', { ascending: true })
           .limit(8),
-
         supabase.from('cta_section').select('*').single(),
-
         supabase
           .from('portfolio_items')
           .select(
-            'id,title,name,client_name,slug,category,industry,project_type,description,image_url,featured_image,metric_value,metric_label,before_image,after_image,is_before_after,is_active,display_order'
+            'id,title,name,client_name,slug,category,industry,project_type,description,image_url,featured_image,metric_value,metric_label,before_image,after_image,is_before_after,is_active,display_order,featured'
           )
           .eq('is_active', true)
           .order('display_order', { ascending: true })
           .limit(12),
-
         supabase
           .from('pricing_packages')
           .select(
@@ -184,46 +179,47 @@ export default function HomePageClient() {
       <Navbar />
 
       <main id="main-content" className="relative z-10">
-        <section className="relative">
-          <GridPattern />
-          <GlowOrb />
+        {/* Hero Section - Premium Gradient */}
+        <HeroSection
+          data={{
+            title: hero.title,
+            subtitle: hero.subtitle,
+            primaryCtaText: hero.primary_cta_text || 'Get Free Audit',
+            primaryCtaLink: hero.primary_cta_link || '/contact',
+            secondaryCtaText: hero.secondary_cta_text || 'View Case Studies',
+            secondaryCtaLink: hero.secondary_cta_link || '/portfolio',
+            backgroundImage: hero.background_image,
+            featureBullets: hero.feature_bullets || 'Shopify Optimization|Conversion Systems|Accessibility Support',
+            ...(hero.video_url ? { video_url: hero.video_url } : {}),
+          }}
+        />
 
-          <HeroSection
-            data={{
-              title: hero.title,
-              subtitle: hero.subtitle,
-              primaryCtaText: hero.primary_cta_text || 'Get Free Audit',
-              primaryCtaLink: hero.primary_cta_link || '/contact',
-              secondaryCtaText:
-                hero.secondary_cta_text || 'View Case Studies',
-              secondaryCtaLink: hero.secondary_cta_link || '/portfolio',
-              backgroundImage: hero.background_image,
-              featureBullets:
-                hero.feature_bullets ||
-                'Shopify Optimization|Conversion Systems|Accessibility Support',
-              ...(hero.video_url ? { video_url: hero.video_url } : {}),
-            }}
-          />
-        </section>
-
+        {/* Trusted Technologies */}
         <TrustedTechnologies />
 
-        <section className="relative bg-[var(--bg-section)] px-5 py-10 sm:px-6 md:px-10 lg:px-12">
+        {/* Stats Bar - Light Gradient */}
+        <section className="relative bg-gradient-light px-5 py-10 sm:px-6 md:px-10 lg:px-12">
           <div className="mx-auto max-w-7xl">
             <StatsBar stats={statsData} />
           </div>
         </section>
 
+        {/* Featured Results */}
         <FeaturedResults items={portfolioItems} />
 
+        {/* Before & After Preview */}
         <BeforeAfterPreview items={portfolioItems} />
 
+        {/* Featured Portfolio Section - Signature Section */}
         <FeaturedPortfolioSection items={portfolioItems} />
 
+        {/* Trust Stack */}
         <TrustStack />
 
+        {/* Review Carousel */}
         <ReviewCarousel />
 
+        {/* Why Choose Us - Tab Switcher */}
         <section className="relative bg-[var(--bg-page)] px-5 py-12 sm:px-6 md:px-10 lg:px-12 lg:py-20">
           <GridPattern />
 
@@ -232,6 +228,7 @@ export default function HomePageClient() {
           </div>
         </section>
 
+        {/* About Section */}
         {hasAboutContent && (
           <section className="relative">
             <Reveal>
@@ -259,23 +256,26 @@ export default function HomePageClient() {
           </section>
         )}
 
+        {/* Pricing Section - Dark Blue Gradient */}
         {pricingPackages.length > 0 && (
-          <section className="relative bg-[#07111F] px-5 py-16 text-white sm:px-6 md:px-10 lg:px-12 lg:py-24">
-            <GridPattern />
-
+          <section className="relative bg-gradient-dark-blue px-5 py-16 text-white sm:px-6 md:px-10 lg:px-12 lg:py-24">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center, rgba(255,107,53,0.1), transparent 70%)]" />
+            
             <div className="relative z-10 mx-auto max-w-7xl">
               <div className="mb-12 max-w-4xl">
-                <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
-                  <SvgIcon name="pricing" size={14} color="#39D97A" />
+                <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/15 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)] backdrop-blur-sm">
+                  <SvgIcon name="pricing" size={14} color="var(--accent)" />
                   Investment Options
                 </p>
 
-                <h2 className="text-4xl font-black leading-[0.96] tracking-[-0.055em] sm:text-5xl md:text-6xl">
+                <h2 className="text-4xl font-black leading-[0.96] tracking-[-0.055em] text-white sm:text-5xl md:text-6xl">
                   Clear packages for serious{' '}
-                  <GradientHeading>digital growth.</GradientHeading>
+                  <span className="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-orange)] bg-clip-text text-transparent">
+                    digital growth.
+                  </span>
                 </h2>
 
-                <p className="mt-6 max-w-2xl text-sm leading-8 text-white/60 sm:text-base">
+                <p className="mt-6 max-w-2xl text-sm leading-8 text-white/70 sm:text-base">
                   Explore starting points designed for brands that want better
                   websites, stronger trust, improved conversion flow, and
                   scalable digital systems.
@@ -291,20 +291,20 @@ export default function HomePageClient() {
                       key={item.id}
                       className={`relative overflow-hidden rounded-[2rem] border p-6 transition hover:-translate-y-1 ${
                         item.is_featured
-                          ? 'border-[#39D97A]/30 bg-[#39D97A]/10 shadow-[0_32px_100px_rgba(57,217,122,0.12)]'
-                          : 'border-[#1E314A] bg-[#0E1B2D]'
+                          ? 'border-[var(--accent)]/30 bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent-orange)]/10 shadow-[0_32px_100px_rgba(57,217,122,0.12)]'
+                          : 'border-white/20 bg-white/10 backdrop-blur-sm'
                       }`}
                     >
-                      <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-[#39D97A]/10 blur-[70px]" />
+                      <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-[var(--accent-orange)]/20 blur-[70px]" />
 
                       {item.is_featured && (
-                        <div className="relative mb-5 inline-flex rounded-full bg-[#39D97A] px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#06101F]">
+                        <div className="relative mb-5 inline-flex rounded-full bg-gradient-orange-green px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white">
                           Most Popular
                         </div>
                       )}
 
                       <div className="relative">
-                        <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
+                        <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
                           {item.subtitle || 'Growth Package'}
                         </p>
 
@@ -316,25 +316,25 @@ export default function HomePageClient() {
                           {item.price || 'Custom'}
                         </p>
 
-                        <p className="mt-5 text-sm leading-7 text-white/58">
+                        <p className="mt-5 text-sm leading-7 text-white/70">
                           {item.description}
                         </p>
 
                         <div className="mt-7 space-y-3">
-                          {features.map((feature) => (
+                          {features.map((feature: string) => (
                             <div
                               key={feature}
-                              className="flex items-start gap-3 rounded-2xl border border-[#1E314A] bg-[#07111F]/75 px-4 py-3"
+                              className="flex items-start gap-3 rounded-2xl border border-white/20 bg-white/5 px-4 py-3 backdrop-blur-sm"
                             >
-                              <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl border border-[#39D97A]/16 bg-[#39D97A]/10">
+                              <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/20">
                                 <SvgIcon
                                   name="verified"
                                   size={12}
-                                  color="#39D97A"
+                                  color="var(--accent)"
                                 />
                               </span>
 
-                              <span className="text-sm leading-6 text-white/68">
+                              <span className="text-sm leading-6 text-white/70">
                                 {feature}
                               </span>
                             </div>
@@ -349,34 +349,32 @@ export default function HomePageClient() {
               <div className="mt-12 text-center">
                 <Link
                   href="/pricing"
-                  className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-full bg-[#39D97A] px-8 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
+                  className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-full bg-gradient-orange-green px-8 py-3 text-sm font-black text-white shadow-[0_0_30px_rgba(255,107,53,0.3)] transition hover:scale-[1.02] hover:shadow-[0_0_50px_rgba(255,107,53,0.5)]"
                 >
                   View Full Pricing
-                  <SvgIcon name="arrow-diagonal" size={16} color="#06101F" />
+                  <SvgIcon name="arrow-diagonal" size={16} color="white" />
                 </Link>
               </div>
             </div>
           </section>
         )}
 
+        {/* FAQ Section */}
         <section className="relative">
           <Reveal delay={0.3}>
             <FAQSection data={faqs} variant="home" />
           </Reveal>
         </section>
 
-        <section className="relative">
-          <Reveal delay={0.4}>
-            <CTASection
-              data={{
-                title: cta.title,
-                subtitle: cta.subtitle,
-                buttonText: cta.button_text,
-                buttonLink: cta.button_link,
-              }}
-            />
-          </Reveal>
-        </section>
+        {/* CTA Section - Navy to Orange Gradient */}
+        <CTASection
+          data={{
+            title: cta.title,
+            subtitle: cta.subtitle,
+            buttonText: cta.button_text,
+            buttonLink: cta.button_link,
+          }}
+        />
       </main>
 
       <Footer />

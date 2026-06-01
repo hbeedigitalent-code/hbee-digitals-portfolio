@@ -114,32 +114,33 @@ export default function TestimonialsSection() {
   const active = verifiedTestimonials[activeIndex]
 
   return (
-    <section className="relative overflow-hidden bg-[#07111F] py-16 text-white sm:py-20 lg:py-24">
+    <section className="relative overflow-hidden bg-[var(--bg-page)] py-16 text-[var(--text-primary)] sm:py-20 lg:py-24">
       <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute left-0 top-0 h-[320px] w-[420px] rounded-full bg-[#39D97A]/7 blur-[120px]" />
-        <div className="absolute bottom-0 right-0 h-[300px] w-[380px] rounded-full bg-[#C6F135]/6 blur-[120px]" />
+        <div className="absolute left-0 top-0 h-[320px] w-[420px] rounded-full bg-[var(--accent)]/7 blur-[120px]" />
+        <div className="absolute bottom-0 right-0 h-[300px] w-[380px] rounded-full bg-[var(--accent-lime)]/6 blur-[120px]" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.02)_1px,transparent_1px)] bg-[size:82px_82px] opacity-20" />
       </div>
 
       <div className="mx-auto max-w-7xl px-5 sm:px-6 md:px-10 lg:px-12">
         <div className="mb-12 max-w-4xl">
-          <div className="mb-5 inline-flex items-center gap-3 rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
+          <div className="mb-5 inline-flex items-center gap-3 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
             <StarRating size={12} />
             <span>Verified Client Feedback</span>
           </div>
 
-          <h2 className="text-4xl font-black leading-[0.96] tracking-[-0.055em] sm:text-5xl md:text-6xl">
+          <h2 className="text-4xl font-black leading-[0.96] tracking-[-0.055em] text-[var(--text-primary)] sm:text-5xl md:text-6xl">
             Trusted by brands serious about <GradientHeading>growth.</GradientHeading>
           </h2>
 
-          <p className="mt-6 max-w-2xl text-sm leading-8 text-white/60 sm:text-base">
-            Real feedback from businesses we’ve helped through websites, Shopify
+          <p className="mt-6 max-w-2xl text-sm leading-8 text-[var(--text-secondary)] sm:text-base">
+            Real feedback from businesses we've helped through websites, Shopify
             optimization, branding, and digital growth systems.
           </p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="relative overflow-hidden rounded-[2rem] border border-[#1E314A] bg-gradient-to-br from-[#0E1B2D] to-[#0B1625] shadow-[0_30px_90px_rgba(0,0,0,0.28)]">
+          {/* Main Testimonial Card */}
+          <div className="relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] shadow-[var(--shadow-lg)]">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.12),transparent_40%)]" />
 
             <div className="relative p-6 sm:p-8 lg:p-10">
@@ -163,7 +164,7 @@ export default function TestimonialsSection() {
                     />
                   </div>
 
-                  <blockquote className="max-w-3xl text-xl font-medium leading-9 text-white/85 sm:text-2xl sm:leading-[1.7]">
+                  <blockquote className="max-w-3xl text-xl font-medium leading-9 text-[var(--text-secondary)] sm:text-2xl sm:leading-[1.7]">
                     “{active?.content}”
                   </blockquote>
 
@@ -172,22 +173,21 @@ export default function TestimonialsSection() {
                       <img
                         src={active.image_url || active.avatar_url}
                         alt={active.name}
-                        className="h-14 w-14 rounded-[1.3rem] border border-[#39D97A]/18 object-cover"
+                        className="h-14 w-14 rounded-[1.3rem] border border-[var(--accent)]/18 object-cover"
                       />
                     ) : (
-                      <div className="flex h-14 w-14 items-center justify-center rounded-[1.3rem] border border-[#39D97A]/18 bg-[#39D97A]/10">
-                        <span className="text-lg font-black text-[#39D97A]">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-[1.3rem] border border-[var(--accent)]/18 bg-[var(--accent)]/10">
+                        <span className="text-lg font-black text-[var(--accent)]">
                           {active?.name?.charAt(0) || 'H'}
                         </span>
                       </div>
                     )}
 
                     <div>
-                      <p className="text-lg font-black text-white">
+                      <p className="text-lg font-black text-[var(--text-primary)]">
                         {active?.name}
                       </p>
-
-                      <p className="mt-1 text-sm text-white/50">
+                      <p className="mt-1 text-sm text-[var(--text-muted)]">
                         {active?.role || active?.position || 'Client'}
                         {active?.company ? ` • ${active.company}` : ''}
                       </p>
@@ -198,6 +198,7 @@ export default function TestimonialsSection() {
             </div>
           </div>
 
+          {/* Sidebar - Other Testimonials */}
           <div className="grid gap-4">
             {verifiedTestimonials.map((testimonial, index) => {
               const isActive = activeIndex === index
@@ -212,21 +213,21 @@ export default function TestimonialsSection() {
                   onClick={() => setActiveIndex(index)}
                   className={`group rounded-[1.6rem] border p-5 text-left transition-all duration-300 ${
                     isActive
-                      ? 'border-[#39D97A]/24 bg-[#13233A]'
-                      : 'border-[#1E314A] bg-[#0E1B2D]/92 hover:border-[#39D97A]/18 hover:bg-[#13233A]'
+                      ? 'border-[var(--accent)]/24 bg-[var(--bg-card-hover)]'
+                      : 'border-[var(--border)] bg-[var(--bg-card)]/92 hover:border-[var(--accent)]/18 hover:bg-[var(--bg-card-hover)]'
                   }`}
                 >
                   <div className="mb-4 flex items-center justify-between">
                     <StarRating rating={testimonial.rating || 5} size={13} />
 
                     {isActive && (
-                      <span className="rounded-full border border-[#39D97A]/18 bg-[#39D97A]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#39D97A]">
+                      <span className="rounded-full border border-[var(--accent)]/18 bg-[var(--accent)]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--accent)]">
                         Active
                       </span>
                     )}
                   </div>
 
-                  <p className="line-clamp-3 text-sm leading-7 text-white/65 transition duration-300 group-hover:text-white/78">
+                  <p className="line-clamp-3 text-sm leading-7 text-[var(--text-secondary)] transition duration-300 group-hover:text-[var(--text-primary)]">
                     {testimonial.content}
                   </p>
 
@@ -235,22 +236,21 @@ export default function TestimonialsSection() {
                       <img
                         src={testimonial.image_url || testimonial.avatar_url}
                         alt={testimonial.name}
-                        className="h-11 w-11 rounded-[1rem] border border-[#39D97A]/16 object-cover"
+                        className="h-11 w-11 rounded-[1rem] border border-[var(--accent)]/16 object-cover"
                       />
                     ) : (
-                      <div className="flex h-11 w-11 items-center justify-center rounded-[1rem] border border-[#39D97A]/16 bg-[#39D97A]/10">
-                        <span className="text-sm font-black text-[#39D97A]">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-[1rem] border border-[var(--accent)]/16 bg-[var(--accent)]/10">
+                        <span className="text-sm font-black text-[var(--accent)]">
                           {testimonial.name.charAt(0)}
                         </span>
                       </div>
                     )}
 
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-black text-white">
+                      <p className="truncate text-sm font-black text-[var(--text-primary)]">
                         {testimonial.name}
                       </p>
-
-                      <p className="truncate text-xs text-white/45">
+                      <p className="truncate text-xs text-[var(--text-muted)]">
                         {testimonial.company ||
                           testimonial.role ||
                           testimonial.position ||

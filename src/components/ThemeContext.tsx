@@ -1,33 +1,52 @@
 'use client'
 
-import { createContext, useContext, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 
-// Simple settings that never change
-const defaultSettings = {
-  logo_text: 'Hbee Digitals',
-  primary_color: '#0A1D37',
-  secondary_color: '#FFFFFF',
-  navbar_style: 'transparent'
+interface ThemeContextType {
+  theme: 'light' | 'dark'
+  toggleTheme: () => void
 }
 
-// Create context
-const ThemeContext = createContext(defaultSettings)
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
-// Simple hook - no error throwing
 export const useTheme = () => {
-  return useContext(ThemeContext)
+  const context = useContext(ThemeContext)
+  if (!context) {
+    throw new Error('useTheme must be used within a ThemeProvider')
+  }
+  return context
 }
 
-// Provider component
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Apply colors to document
-  if (typeof document !== 'undefined') {
-    document.documentElement.style.setProperty('--primary-color', defaultSettings.primary_color)
-    document.documentElement.style.setProperty('--secondary-color', defaultSettings.secondary_color)
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const initialTheme = savedTheme || (prefersDark ? 'dark' : 'light')
+    setTheme(initialTheme)
+    
+    if (initialTheme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [])
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light'
+    setTheme(newTheme)
+    localStorage.setItem('theme', newTheme)
+    
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
   }
 
   return (
-    <ThemeContext.Provider value={defaultSettings}>
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   )

@@ -31,7 +31,7 @@ export default function TrustStack() {
       <div className="relative z-10 mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
         <div>
           <p className="eyebrow mb-5 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em]">
-            <SvgIcon name="verified" size={14} color="#1AB85C" />
+            <SvgIcon name="verified" size={14} color="var(--accent)" />
             Trust Stack
           </p>
 
@@ -50,10 +50,10 @@ export default function TrustStack() {
           {trustItems.map((item) => (
             <article
               key={item.title}
-              className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-page)] p-5 shadow-[0_24px_80px_rgba(10,29,55,0.08)]"
+              className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-page)] p-5 shadow-[var(--shadow-md)] transition hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]"
             >
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10">
-                <SvgIcon name={item.icon} size={20} color="#39D97A" />
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--accent)]/18 bg-[var(--accent)]/10 transition group-hover:scale-105">
+                <SvgIcon name={item.icon} size={20} color="var(--accent)" />
               </div>
 
               <h3 className="text-lg font-black tracking-[-0.03em] text-[var(--text-primary)]">

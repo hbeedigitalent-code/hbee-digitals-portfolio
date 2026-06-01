@@ -117,7 +117,7 @@ function SvgIcon({ name, size = 20, color = 'currentColor', className = '' }: Sv
   const pathD = iconPaths[name]
 
   if (!pathD) {
-    // Fallback: return a circle with first letter
+    // Fallback: return a circle with first letter using CSS variable for color
     return (
       <svg
         width={size}
@@ -131,7 +131,7 @@ function SvgIcon({ name, size = 20, color = 'currentColor', className = '' }: Sv
         className={className}
         aria-hidden="true"
       >
-        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="12" r="10" stroke={color} />
         <text
           x="12"
           y="16"

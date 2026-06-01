@@ -18,17 +18,17 @@ export default function TrustedTechnologies() {
   const loopItems = [...technologies, ...technologies]
 
   return (
-    <section className="relative overflow-hidden border-y border-[#E4EAE6] bg-[#F7FAF8] py-10 text-[#08111F] sm:py-12">
+    <section className="relative overflow-hidden border-y border-[var(--border)] bg-[var(--bg-section)] py-10 text-[var(--text-primary)] sm:py-12">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-0 h-[220px] w-[520px] -translate-x-1/2 rounded-full bg-[#39D97A]/10 blur-[110px]" />
+        <div className="absolute left-1/2 top-0 h-[220px] w-[520px] -translate-x-1/2 rounded-full bg-[var(--accent)]/10 blur-[110px]" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-5 text-center sm:px-6 md:px-10 lg:px-12">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#0F7A43]">
+        <p className="eyebrow text-[11px] font-black uppercase tracking-[0.2em] text-[var(--accent)]">
           Trusted Technologies & Platforms
         </p>
 
-        <h2 className="mx-auto mt-3 max-w-2xl text-2xl font-black leading-tight tracking-[-0.04em] sm:text-3xl md:text-4xl">
+        <h2 className="mx-auto mt-3 max-w-2xl text-2xl font-black leading-tight tracking-[-0.04em] text-[var(--text-primary)] sm:text-3xl md:text-4xl">
           Built around reliable tools your business can trust.
         </h2>
       </div>
@@ -50,9 +50,9 @@ export default function TrustedTechnologies() {
           {loopItems.map((tech, index) => (
             <div
               key={`${tech.name}-${index}`}
-              className="flex min-w-[155px] items-center justify-center gap-3 rounded-2xl border border-[#E4EAE6] bg-white px-4 py-3 shadow-[0_12px_35px_rgba(8,17,31,0.06)] sm:min-w-[190px] sm:px-6 sm:py-4"
+              className="flex min-w-[155px] items-center justify-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 shadow-[var(--shadow-sm)] sm:min-w-[190px] sm:px-6 sm:py-4"
             >
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-[#E4EAE6] bg-[#F7FAF8] p-2 sm:h-11 sm:w-11">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-2 sm:h-11 sm:w-11">
                 <img
                   src={tech.logo}
                   alt={`${tech.name} logo`}
@@ -61,7 +61,7 @@ export default function TrustedTechnologies() {
                 />
               </div>
 
-              <span className="whitespace-nowrap text-sm font-black text-[#08111F]">
+              <span className="whitespace-nowrap text-sm font-black text-[var(--text-primary)]">
                 {tech.name}
               </span>
             </div>

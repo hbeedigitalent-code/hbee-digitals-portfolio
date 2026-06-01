@@ -63,14 +63,15 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
   const headingParts = headline.split(new RegExp(`(${highlightedWord})`, 'i'))
 
   return (
-    <section className="relative overflow-hidden bg-[#07111F] px-5 py-16 text-white sm:px-6 md:px-10 lg:px-12 lg:py-24">
+    <section className="relative overflow-hidden bg-[var(--bg-page)] px-5 py-16 text-[var(--text-primary)] sm:px-6 md:px-10 lg:px-12 lg:py-24">
       <div className="absolute inset-0 -z-0">
-        <div className="absolute left-1/2 top-0 h-[440px] w-[760px] -translate-x-1/2 rounded-full bg-[#39D97A]/7 blur-[150px]" />
-        <div className="absolute bottom-0 right-0 h-[320px] w-[460px] rounded-full bg-[#39D97A]/5 blur-[120px]" />
+        <div className="absolute left-1/2 top-0 h-[440px] w-[760px] -translate-x-1/2 rounded-full bg-[var(--accent)]/7 blur-[150px]" />
+        <div className="absolute bottom-0 right-0 h-[320px] w-[460px] rounded-full bg-[var(--accent)]/5 blur-[120px]" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.022)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.022)_1px,transparent_1px)] bg-[size:82px_82px] opacity-20" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl">
+        {/* Header */}
         <motion.div
           initial={reducedMotion ? false : { opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -78,14 +79,14 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
           viewport={{ once: true }}
           className="mx-auto max-w-5xl text-center"
         >
-          <p className="mx-auto mb-5 inline-flex rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10 px-5 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-[#39D97A]">
+          <p className="mx-auto mb-5 inline-flex rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-5 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--accent)]">
             {badge}
           </p>
 
-          <h2 className="text-4xl font-black uppercase leading-[0.96] tracking-[-0.055em] text-white sm:text-5xl md:text-6xl lg:text-7xl">
+          <h2 className="text-4xl font-black uppercase leading-[0.96] tracking-[-0.055em] text-[var(--text-primary)] sm:text-5xl md:text-6xl lg:text-7xl">
             {headingParts.map((part, index) =>
               part.toLowerCase() === highlightedWord.toLowerCase() ? (
-                <span key={`${part}-${index}`} className="text-[#39D97A]">
+                <span key={`${part}-${index}`} className="text-[var(--accent)]">
                   {part}
                 </span>
               ) : (
@@ -94,11 +95,12 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
             )}
           </h2>
 
-          <p className="mx-auto mt-6 max-w-3xl text-sm leading-7 text-white/62 sm:text-base md:text-lg">
+          <p className="mx-auto mt-6 max-w-3xl text-sm leading-7 text-[var(--text-secondary)] sm:text-base md:text-lg">
             {description}
           </p>
         </motion.div>
 
+        {/* Stats Section */}
         {stats.length > 0 && (
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {stats.map((stat, index) => (
@@ -108,17 +110,15 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: index * 0.06 }}
                 viewport={{ once: true }}
-                className="rounded-[1.6rem] border border-[#1E314A] bg-[#0E1B2D] p-5 text-center backdrop-blur-xl transition hover:-translate-y-1 hover:border-[#39D97A]/30 hover:bg-[#13233A]"
+                className="rounded-[1.6rem] border border-[var(--border)] bg-[var(--bg-card)] p-5 text-center backdrop-blur-xl transition hover:-translate-y-1 hover:border-[var(--accent)]/30 hover:bg-[var(--bg-card-hover)]"
               >
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10">
-                  <SvgIcon name={stat.icon || 'verified'} size={24} color="#39D97A" />
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10">
+                  <SvgIcon name={stat.icon || 'verified'} size={24} color="var(--accent)" />
                 </div>
-
-                <p className="text-4xl font-black tracking-[-0.05em] text-[#39D97A]">
+                <p className="text-4xl font-black tracking-[-0.05em] text-[var(--accent)]">
                   {stat.value}
                 </p>
-
-                <p className="mt-2 text-sm font-semibold text-white/68">
+                <p className="mt-2 text-sm font-semibold text-[var(--text-secondary)]">
                   {stat.label}
                 </p>
               </motion.div>
@@ -126,20 +126,21 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
           </div>
         )}
 
+        {/* Partner Logos */}
         {partnerLogos.length > 0 && (
           <motion.div
             initial={reducedMotion ? false : { opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
             viewport={{ once: true }}
-            className="mt-10 rounded-[1.6rem] border border-[#1E314A] bg-[#0E1B2D] p-5 backdrop-blur-xl"
+            className="mt-10 rounded-[1.6rem] border border-[var(--border)] bg-[var(--bg-card)] p-5 backdrop-blur-xl"
           >
             <div className="grid gap-6 lg:grid-cols-[0.35fr_1fr] lg:items-center">
               <div>
-                <p className="text-sm font-black uppercase tracking-[0.16em] text-white">
+                <p className="text-sm font-black uppercase tracking-[0.16em] text-[var(--text-primary)]">
                   Trusted Partner Of
                 </p>
-                <p className="mt-1 text-sm font-black uppercase tracking-[0.16em] text-[#39D97A]">
+                <p className="mt-1 text-sm font-black uppercase tracking-[0.16em] text-[var(--accent)]">
                   Growing Brands
                 </p>
               </div>
@@ -148,7 +149,7 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
                 {partnerLogos.map((partner, index) => (
                   <div
                     key={`${partner.name}-${index}`}
-                    className="flex min-h-[60px] items-center justify-center rounded-2xl border border-[#1E314A] bg-[#07111F]/70 px-4"
+                    className="flex min-h-[60px] items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg-section)]/70 px-4"
                   >
                     {partner.logo ? (
                       <img
@@ -157,7 +158,7 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
                         className="max-h-8 max-w-[130px] object-contain brightness-0 invert"
                       />
                     ) : (
-                      <span className="text-sm font-black uppercase tracking-[0.12em] text-white/70">
+                      <span className="text-sm font-black uppercase tracking-[0.12em] text-[var(--text-muted)]">
                         {partner.name}
                       </span>
                     )}
@@ -168,26 +169,27 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
           </motion.div>
         )}
 
+        {/* Testimonials */}
         {testimonials.length > 0 && (
           <motion.div
             initial={reducedMotion ? false : { opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
             viewport={{ once: true }}
-            className="mt-6 rounded-[1.7rem] border border-[#1E314A] bg-[#0E1B2D] p-5 backdrop-blur-xl md:p-6"
+            className="mt-6 rounded-[1.7rem] border border-[var(--border)] bg-[var(--bg-card)] p-5 backdrop-blur-xl md:p-6"
           >
             <div className="grid gap-5 lg:grid-cols-[0.28fr_1fr]">
-              <div className="rounded-[1.4rem] border border-[#1E314A] bg-[#07111F]/70 p-5">
-                <p className="text-lg font-black uppercase leading-tight text-white">
+              <div className="rounded-[1.4rem] border border-[var(--border)] bg-[var(--bg-section)]/70 p-5">
+                <p className="text-lg font-black uppercase leading-tight text-[var(--text-primary)]">
                   What Clients
                 </p>
-                <p className="text-lg font-black uppercase leading-tight text-[#39D97A]">
+                <p className="text-lg font-black uppercase leading-tight text-[var(--accent)]">
                   Are Saying
                 </p>
 
-                <div className="mt-6 rounded-2xl border border-[#39D97A]/18 bg-[#39D97A]/10 p-4">
-                  <p className="text-sm font-black text-white">★★★★★</p>
-                  <p className="mt-2 text-sm leading-6 text-white/65">
+                <div className="mt-6 rounded-2xl border border-[var(--accent)]/18 bg-[var(--accent)]/10 p-4">
+                  <p className="text-sm font-black text-[var(--text-primary)]">★★★★★</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
                     Reviews collected from real client experiences and project feedback.
                   </p>
                 </div>
@@ -197,18 +199,15 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
                 {testimonials.slice(0, 3).map((item, index) => (
                   <article
                     key={`${item.name}-${index}`}
-                    className="rounded-[1.4rem] border border-[#1E314A] bg-[#07111F]/70 p-5 transition hover:-translate-y-1 hover:border-[#39D97A]/28"
+                    className="rounded-[1.4rem] border border-[var(--border)] bg-[var(--bg-section)]/70 p-5 transition hover:-translate-y-1 hover:border-[var(--accent)]/28"
                   >
-                    <p className="text-4xl font-black leading-none text-[#39D97A]">
-                      “
-                    </p>
-
-                    <p className="mt-2 text-sm leading-7 text-white/76">
+                    <p className="text-4xl font-black leading-none text-[var(--accent)]">“</p>
+                    <p className="mt-2 text-sm leading-7 text-[var(--text-secondary)]">
                       {item.quote}
                     </p>
 
                     <div className="mt-5 flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-[#39D97A]/20 bg-[#39D97A]/10">
+                      <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10">
                         {item.avatar ? (
                           <img
                             src={item.avatar}
@@ -216,16 +215,16 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
                             className="h-full w-full object-cover"
                           />
                         ) : (
-                          <span className="text-sm font-black text-[#39D97A]">
+                          <span className="text-sm font-black text-[var(--accent)]">
                             {item.name.charAt(0)}
                           </span>
                         )}
                       </div>
 
                       <div>
-                        <p className="text-sm font-black text-white">{item.name}</p>
+                        <p className="text-sm font-black text-[var(--text-primary)]">{item.name}</p>
                         {item.role && (
-                          <p className="mt-0.5 text-xs text-white/50">{item.role}</p>
+                          <p className="mt-0.5 text-xs text-[var(--text-muted)]">{item.role}</p>
                         )}
                       </div>
                     </div>
@@ -236,30 +235,29 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
           </motion.div>
         )}
 
+        {/* Trust Badges */}
         {trustBadges.length > 0 && (
           <motion.div
             initial={reducedMotion ? false : { opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
             viewport={{ once: true }}
-            className="mt-8 rounded-[1.8rem] border border-[#39D97A]/20 bg-[#39D97A]/5 p-5 shadow-[0_0_80px_rgba(57,217,122,0.08)] md:p-6"
+            className="mt-8 rounded-[1.8rem] border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-5 shadow-[0_0_80px_rgba(57,217,122,0.08)] md:p-6"
           >
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {trustBadges.map((item, index) => (
                 <div
                   key={`${item.title}-${index}`}
-                  className="rounded-[1.3rem] border border-[#1E314A] bg-[#07111F]/70 p-5"
+                  className="rounded-[1.3rem] border border-[var(--border)] bg-[var(--bg-section)]/70 p-5"
                 >
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-[#39D97A]/20 bg-[#39D97A]/10">
-                    <SvgIcon name={item.icon || 'verified'} size={22} color="#39D97A" />
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/10">
+                    <SvgIcon name={item.icon || 'verified'} size={22} color="var(--accent)" />
                   </div>
-
-                  <h3 className="text-lg font-black uppercase leading-tight text-white">
+                  <h3 className="text-lg font-black uppercase leading-tight text-[var(--text-primary)]">
                     {item.title}
                   </h3>
-
                   {item.description && (
-                    <p className="mt-3 text-sm leading-7 text-white/58">
+                    <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)]">
                       {item.description}
                     </p>
                   )}
@@ -267,19 +265,19 @@ export default function TrustSection({ data }: { data?: TrustSectionData }) {
               ))}
             </div>
 
-            <div className="mt-8 flex flex-col items-center justify-between gap-5 border-t border-[#1E314A] pt-6 text-center md:flex-row md:text-left">
+            <div className="mt-8 flex flex-col items-center justify-between gap-5 border-t border-[var(--border)] pt-6 text-center md:flex-row md:text-left">
               <div>
-                <p className="text-sm font-black uppercase tracking-[0.16em] text-white">
+                <p className="text-sm font-black uppercase tracking-[0.16em] text-[var(--text-primary)]">
                   We stand by our work
                 </p>
-                <p className="mt-2 text-xl font-black uppercase tracking-[-0.03em] text-[#39D97A]">
+                <p className="mt-2 text-xl font-black uppercase tracking-[-0.03em] text-[var(--accent)]">
                   No fluff. Just better systems.
                 </p>
               </div>
 
               <Link
                 href={ctaLink}
-                className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-[#39D97A] px-7 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135]"
+                className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-[var(--accent)] px-7 py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] hover:bg-[var(--accent-lime)]"
               >
                 {ctaText}
               </Link>

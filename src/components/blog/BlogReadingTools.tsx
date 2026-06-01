@@ -56,16 +56,18 @@ export default function BlogReadingTools({
 
   return (
     <>
-      <div className="fixed left-0 top-0 z-[9999] h-1 w-full bg-[#07111F]">
+      {/* Progress Bar */}
+      <div className="fixed left-0 top-0 z-[9999] h-1 w-full bg-[var(--bg-section)]">
         <div
-          className="h-full bg-gradient-to-r from-[#39D97A] to-[#C6F135]"
+          className="h-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-lime)]"
           style={{ width: `${progress}%` }}
         />
       </div>
 
+      {/* Desktop Share Sidebar */}
       <div className="hidden lg:sticky lg:top-32 lg:block">
-        <div className="rounded-[1.5rem] border border-[#1E314A] bg-[#0E1B2D]/90 p-3">
-          <p className="mb-3 text-center text-[10px] font-black uppercase tracking-[0.16em] text-white/40">
+        <div className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--bg-card)]/90 p-3 backdrop-blur-sm">
+          <p className="mb-3 text-center text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)]">
             Share
           </p>
 
@@ -77,41 +79,42 @@ export default function BlogReadingTools({
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`Share on ${item.label}`}
-                className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#1E314A] bg-[#07111F] transition hover:border-[#39D97A]/25 hover:bg-[#13233A]"
+                className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg-section)] transition hover:border-[var(--accent)]/25 hover:bg-[var(--bg-card-hover)]"
               >
-                <SvgIcon name={item.icon} size={17} color="#39D97A" />
+                <SvgIcon name={item.icon} size={17} color="var(--accent)" />
               </a>
             ))}
 
             <button
               type="button"
               onClick={copyLink}
-              className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#1E314A] bg-[#07111F] transition hover:border-[#39D97A]/25 hover:bg-[#13233A]"
+              className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg-section)] transition hover:border-[var(--accent)]/25 hover:bg-[var(--bg-card-hover)]"
               aria-label="Copy article link"
             >
-              <SvgIcon name={copied ? 'verified' : 'link'} size={17} color="#39D97A" />
+              <SvgIcon name={copied ? 'verified' : 'link'} size={17} color="var(--accent)" />
             </button>
           </div>
         </div>
       </div>
 
-      <div className="fixed inset-x-4 bottom-4 z-50 flex items-center justify-center gap-2 rounded-full border border-[#1E314A] bg-[#07111F]/92 p-2 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl lg:hidden">
+      {/* Mobile Share Bar */}
+      <div className="fixed inset-x-4 bottom-4 z-50 flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-page)]/92 p-2 shadow-[var(--shadow-lg)] backdrop-blur-xl lg:hidden">
         {links.map((item) => (
           <a
             key={item.label}
             href={item.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0E1B2D]"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg-card)] transition hover:bg-[var(--bg-card-hover)]"
           >
-            <SvgIcon name={item.icon} size={16} color="#39D97A" />
+            <SvgIcon name={item.icon} size={16} color="var(--accent)" />
           </a>
         ))}
 
         <button
           type="button"
           onClick={copyLink}
-          className="flex h-10 items-center justify-center rounded-full bg-[#39D97A] px-4 text-xs font-black text-[#06101F]"
+          className="flex h-10 items-center justify-center rounded-full bg-[var(--accent)] px-4 text-xs font-black text-[var(--btn-primary-text)] transition hover:bg-[var(--accent-lime)]"
         >
           {copied ? 'Copied' : 'Copy Link'}
         </button>
