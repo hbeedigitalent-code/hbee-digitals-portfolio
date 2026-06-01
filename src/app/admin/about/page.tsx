@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import SvgIcon from '@/components/ui/SvgIcon'
 
 interface AboutPageData {
   id?: string
@@ -41,6 +42,7 @@ export default function AdminAboutPage() {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState('')
+  const [previewUrl, setPreviewUrl] = useState('')
 
   useEffect(() => {
     async function fetchAboutPage() {
@@ -55,6 +57,13 @@ export default function AdminAboutPage() {
           ...defaultForm,
           ...data,
         })
+        // Set preview URL if founder_image exists
+        if (data.founder_image) {
+          const { data: urlData } = supabase.storage
+            .from('project-images')
+            .getPublicUrl(data.founder_image)
+          setPreviewUrl(urlData.publicUrl)
+        }
       }
 
       setLoading(false)
@@ -63,10 +72,7 @@ export default function AdminAboutPage() {
     fetchAboutPage()
   }, [])
 
-  function updateField(
-    field: keyof AboutPageData,
-    value: string | boolean
-  ) {
+  function updateField(field: keyof AboutPageData, value: string | boolean) {
     setForm((prev) => ({
       ...prev,
       [field]: value,
@@ -77,10 +83,24 @@ export default function AdminAboutPage() {
     setUploading(true)
     setMessage('')
 
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setMessage('Please upload an image file (JPG, PNG, GIF, WEBP)')
+      setUploading(false)
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage('Image must be less than 5MB')
+      setUploading(false)
+      return
+    }
+
     const fileExt = file.name.split('.').pop()
     const fileName = `about/founder-${Date.now()}.${fileExt}`
 
-    const { error: uploadError, data: uploadData } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('project-images')
       .upload(fileName, file, {
         cacheControl: '3600',
@@ -93,19 +113,16 @@ export default function AdminAboutPage() {
       return
     }
 
-    // Get the public URL to verify
-    const { data: publicUrlData } = supabase.storage
+    // Get the public URL
+    const { data: urlData } = supabase.storage
       .from('project-images')
       .getPublicUrl(fileName)
-
-    console.log('Uploaded file path:', fileName)
-    console.log('Public URL:', publicUrlData.publicUrl)
 
     setForm((prev) => ({
       ...prev,
       founder_image: fileName,
     }))
-
+    setPreviewUrl(urlData.publicUrl)
     setMessage('Founder image uploaded successfully. Click Save to apply.')
     setUploading(false)
   }
@@ -138,6 +155,7 @@ export default function AdminAboutPage() {
         setMessage(`Save failed: ${error.message}`)
       } else {
         setMessage('About page updated successfully.')
+        setTimeout(() => setMessage(''), 3000)
       }
     } else {
       const { data, error } = await supabase
@@ -154,251 +172,146 @@ export default function AdminAboutPage() {
           id: data.id,
         })
         setMessage('About page created successfully.')
+        setTimeout(() => setMessage(''), 3000)
       }
     }
 
     setSaving(false)
   }
 
+  async function handleRemoveImage() {
+    if (!form.founder_image) return
+
+    if (confirm('Remove the founder image?')) {
+      setUploading(true)
+      
+      // Delete from storage
+      await supabase.storage
+        .from('project-images')
+        .remove([form.founder_image])
+
+      setForm((prev) => ({
+        ...prev,
+        founder_image: '',
+      }))
+      setPreviewUrl('')
+      setMessage('Image removed. Click Save to apply changes.')
+      setUploading(false)
+    }
+  }
+
   if (loading) {
     return (
-      <main className="min-h-screen bg-[var(--bg-page)] px-5 py-10 text-[var(--text-primary)]">
-        <div className="mx-auto max-w-5xl">
-          <p className="text-[var(--text-secondary)]">Loading About page settings...</p>
-        </div>
-      </main>
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-page)]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+      </div>
     )
   }
 
   return (
-    <main className="min-h-screen bg-[var(--bg-page)] px-5 py-10 text-[var(--text-primary)] sm:px-6 md:px-10">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-8">
-          <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
-            Admin / About Page
-          </p>
-
-          <h1 className="text-4xl font-black tracking-[-0.05em] text-[var(--text-primary)]">
-            Manage About Page Content
-          </h1>
-
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--text-secondary)]">
-            Update the public About page content, founder section, philosophy,
-            and authority messaging from here.
-          </p>
-        </div>
-
-        {message && (
-          <div className="mb-6 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-5 py-4 text-sm font-bold text-[var(--accent)]">
-            {message}
-          </div>
-        )}
-
-        <div className="space-y-6">
-          <AdminCard title="Hero Section">
-            <Input
-              label="Hero Badge"
-              value={form.hero_badge}
-              onChange={(value) => updateField('hero_badge', value)}
-            />
-
-            <Textarea
-              label="Hero Title"
-              value={form.hero_title}
-              onChange={(value) => updateField('hero_title', value)}
-              rows={3}
-            />
-
-            <Textarea
-              label="Hero Description"
-              value={form.hero_description}
-              onChange={(value) => updateField('hero_description', value)}
-              rows={5}
-            />
-          </AdminCard>
-
-          <AdminCard title="Founder Section">
-            <Input
-              label="Founder Title"
-              value={form.founder_title}
-              onChange={(value) => updateField('founder_title', value)}
-            />
-
-            <Textarea
-              label="Founder Description"
-              value={form.founder_description}
-              onChange={(value) => updateField('founder_description', value)}
-              rows={6}
-            />
-
-            <div>
-              <label className="mb-2 block text-sm font-bold text-[var(--text-secondary)]">
-                Founder Image
-              </label>
-
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) handleImageUpload(file)
-                }}
-                className="block w-full cursor-pointer rounded-2xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-3 text-sm text-[var(--text-secondary)] file:mr-4 file:rounded-full file:border-0 file:bg-[var(--accent)] file:px-4 file:py-2 file:text-sm file:font-black file:text-[var(--btn-primary-text)]"
-              />
-
-              {uploading && (
-                <p className="mt-2 text-sm text-[var(--accent)]">
-                  Uploading image...
-                </p>
-              )}
-
-              {form.founder_image && (
-                <div className="mt-3 space-y-2">
-                  <p className="break-all text-xs text-[var(--text-muted)]">
-                    Current image path: {form.founder_image}
-                  </p>
-                  
-                  {/* Preview of uploaded image */}
-                  <div className="mt-2 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-2">
-                    <img
-                      src={supabase.storage.from('project-images').getPublicUrl(form.founder_image).data.publicUrl}
-                      alt="Founder preview"
-                      className="max-h-32 w-auto rounded-lg object-contain"
-                      onError={(e) => {
-                        e.currentTarget.src = ''
-                        e.currentTarget.alt = 'Failed to load image'
-                      }}
-                    />
-                    <p className="mt-2 text-center text-xs text-[var(--text-muted)]">
-                      Preview (may require page refresh after save)
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </AdminCard>
-
-          <AdminCard title="Philosophy Section">
-            <Textarea
-              label="Philosophy Title"
-              value={form.philosophy_title}
-              onChange={(value) => updateField('philosophy_title', value)}
-              rows={3}
-            />
-
-            <Textarea
-              label="Philosophy Description One"
-              value={form.philosophy_description_one}
-              onChange={(value) =>
-                updateField('philosophy_description_one', value)
-              }
-              rows={4}
-            />
-
-            <Textarea
-              label="Philosophy Description Two"
-              value={form.philosophy_description_two}
-              onChange={(value) =>
-                updateField('philosophy_description_two', value)
-              }
-              rows={4}
-            />
-          </AdminCard>
-
-          <AdminCard title="Visibility">
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={form.is_active}
-                onChange={(e) => updateField('is_active', e.target.checked)}
-                className="h-5 w-5 rounded border-[var(--border)] bg-[var(--bg-section)] accent-[var(--accent)]"
-              />
-
-              <span className="text-sm font-bold text-[var(--text-secondary)]">
-                Make this About page content active
-              </span>
-            </label>
-          </AdminCard>
-
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-[var(--accent)] px-8 py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] hover:bg-[var(--accent-lime)] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {saving ? 'Saving...' : 'Save About Page'}
-          </button>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-black text-[var(--text-primary)]">About Page</h2>
+        <p className="text-sm text-[var(--text-secondary)]">Manage your about page content, founder section, and philosophy.</p>
       </div>
-    </main>
-  )
-}
 
-function AdminCard({
-  title,
-  children,
-}: {
-  title: string
-  children: React.ReactNode
-}) {
-  return (
-    <section className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[var(--shadow-md)] sm:p-6">
-      <h2 className="mb-5 text-xl font-black tracking-[-0.035em] text-[var(--text-primary)]">
-        {title}
-      </h2>
+      {message && (
+        <div className={`rounded-xl border p-4 text-sm ${message.includes('failed') ? 'border-red-500/20 bg-red-500/10 text-red-400' : 'border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)]'}`}>
+          {message}
+        </div>
+      )}
 
-      <div className="space-y-5">{children}</div>
-    </section>
-  )
-}
+      <form onSubmit={(e) => { e.preventDefault(); handleSave() }} className="space-y-6">
+        {/* Hero Section */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+          <h3 className="mb-4 text-lg font-black text-[var(--text-primary)]">Hero Section</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Hero Badge</label>
+              <input value={form.hero_badge} onChange={(e) => updateField('hero_badge', e.target.value)} className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Hero Title</label>
+              <textarea rows={3} value={form.hero_title} onChange={(e) => updateField('hero_title', e.target.value)} className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Hero Description</label>
+              <textarea rows={5} value={form.hero_description} onChange={(e) => updateField('hero_description', e.target.value)} className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3" />
+            </div>
+          </div>
+        </div>
 
-function Input({
-  label,
-  value,
-  onChange,
-}: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-}) {
-  return (
-    <div>
-      <label className="mb-2 block text-sm font-bold text-[var(--text-secondary)]">
-        {label}
-      </label>
+        {/* Founder Section */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+          <h3 className="mb-4 text-lg font-black text-[var(--text-primary)]">Founder Section</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Founder Title</label>
+              <input value={form.founder_title} onChange={(e) => updateField('founder_title', e.target.value)} className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Founder Description</label>
+              <textarea rows={6} value={form.founder_description} onChange={(e) => updateField('founder_description', e.target.value)} className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Founder Image</label>
+              <div className="flex flex-col gap-3">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) handleImageUpload(file)
+                  }}
+                  className="block w-full cursor-pointer rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-2 text-sm file:mr-2 file:rounded-full file:border-0 file:bg-[var(--accent)] file:px-3 file:py-1 file:text-xs file:font-black file:text-[var(--btn-primary-text)]"
+                />
+                {uploading && <p className="text-sm text-[var(--accent)]">Uploading...</p>}
+                {previewUrl && (
+                  <div className="mt-2 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-2">
+                    <img src={previewUrl} alt="Founder preview" className="mx-auto max-h-32 rounded object-contain" />
+                    <button type="button" onClick={handleRemoveImage} className="mt-2 w-full rounded-lg border border-red-500/30 py-1 text-sm text-red-400 hover:bg-red-500/10">
+                      Remove Image
+                    </button>
+                  </div>
+                )}
+                {form.founder_image && !previewUrl && <p className="text-xs text-[var(--text-muted)]">Path: {form.founder_image}</p>}
+              </div>
+            </div>
+          </div>
+        </div>
 
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-2xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]/40"
-      />
-    </div>
-  )
-}
+        {/* Philosophy Section */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+          <h3 className="mb-4 text-lg font-black text-[var(--text-primary)]">Philosophy Section</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Philosophy Title</label>
+              <textarea rows={3} value={form.philosophy_title} onChange={(e) => updateField('philosophy_title', e.target.value)} className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Description One</label>
+              <textarea rows={4} value={form.philosophy_description_one} onChange={(e) => updateField('philosophy_description_one', e.target.value)} className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Description Two</label>
+              <textarea rows={4} value={form.philosophy_description_two} onChange={(e) => updateField('philosophy_description_two', e.target.value)} className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3" />
+            </div>
+          </div>
+        </div>
 
-function Textarea({
-  label,
-  value,
-  onChange,
-  rows = 4,
-}: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-  rows?: number
-}) {
-  return (
-    <div>
-      <label className="mb-2 block text-sm font-bold text-[var(--text-secondary)]">
-        {label}
-      </label>
+        {/* Visibility */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+          <label className="flex items-center gap-3">
+            <input type="checkbox" checked={form.is_active} onChange={(e) => updateField('is_active', e.target.checked)} className="h-4 w-4 rounded border-[var(--border)] accent-[var(--accent)]" />
+            <span className="text-sm font-bold text-[var(--text-secondary)]">Make this About page content active on the website</span>
+          </label>
+        </div>
 
-      <textarea
-        value={value}
-        rows={rows}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full resize-y rounded-2xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-3 text-sm leading-7 text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]/40"
-      />
+        {/* Save Button */}
+        <button type="submit" disabled={saving} className="w-full rounded-full bg-[var(--accent)] py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] disabled:opacity-50">
+          {saving ? 'Saving...' : 'Save About Page'}
+        </button>
+      </form>
     </div>
   )
 }

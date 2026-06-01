@@ -2,22 +2,27 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import SvgIcon from '@/components/ui/SvgIcon'
+
+interface MenuItem {
+  id: string
+  label: string
+  href: string
+  display_order: number
+  is_active: boolean
+}
 
 export default function MenuManagement() {
-  const [menuItems, setMenuItems] = useState<any[]>([])
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [editingItem, setEditingItem] = useState<any>(null)
-  const router = useRouter()
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
+  const [message, setMessage] = useState('')
+  const [formLabel, setFormLabel] = useState('')
+  const [formHref, setFormHref] = useState('')
+  const [formOrder, setFormOrder] = useState(0)
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) router.push('/admin/login')
-      else fetchMenuItems()
-    }
-    checkUser()
+    fetchMenuItems()
   }, [])
 
   const fetchMenuItems = async () => {
@@ -29,45 +34,63 @@ export default function MenuManagement() {
     setLoading(false)
   }
 
-  const handleSave = async (e: React.FormEvent) => {
+  const resetForm = () => {
+    setEditingItem(null)
+    setFormLabel('')
+    setFormHref('')
+    setFormOrder(0)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const form = e.target as HTMLFormElement
-    const formData = new FormData(form)
     
+    if (!formLabel.trim() || !formHref.trim()) {
+      setMessage('Label and URL are required.')
+      setTimeout(() => setMessage(''), 3000)
+      return
+    }
+
     const newItem = {
-      label: formData.get('label'),
-      href: formData.get('href'),
-      display_order: parseInt(formData.get('display_order') as string) || 0,
+      label: formLabel.trim(),
+      href: formHref.trim(),
+      display_order: formOrder,
       is_active: true
     }
 
     if (editingItem) {
-      await supabase.from('menu_items').update(newItem).eq('id', editingItem.id)
+      const { error } = await supabase
+        .from('menu_items')
+        .update(newItem)
+        .eq('id', editingItem.id)
+      if (error) setMessage(`Error: ${error.message}`)
+      else setMessage('Menu item updated!')
     } else {
-      await supabase.from('menu_items').insert([newItem])
+      const { error } = await supabase
+        .from('menu_items')
+        .insert([newItem])
+      if (error) setMessage(`Error: ${error.message}`)
+      else setMessage('Menu item added!')
     }
-    
-    setEditingItem(null)
-    form.reset()
+
+    resetForm()
     fetchMenuItems()
+    setTimeout(() => setMessage(''), 3000)
   }
 
-  const handleEdit = (item: any) => {
+  const handleEdit = (item: MenuItem) => {
     setEditingItem(item)
-    // Populate form
-    const form = document.querySelector('form') as HTMLFormElement
-    if (form) {
-      ;(form.querySelector('[name="label"]') as HTMLInputElement).value = item.label
-      ;(form.querySelector('[name="href"]') as HTMLInputElement).value = item.href
-      ;(form.querySelector('[name="display_order"]') as HTMLInputElement).value = item.display_order
-    }
+    setFormLabel(item.label)
+    setFormHref(item.href)
+    setFormOrder(item.display_order)
   }
 
   const handleDelete = async (id: string) => {
-    if (confirm('Delete this menu item?')) {
-      await supabase.from('menu_items').delete().eq('id', id)
-      fetchMenuItems()
-    }
+    if (!confirm('Delete this menu item?')) return
+    const { error } = await supabase.from('menu_items').delete().eq('id', id)
+    if (error) setMessage(`Error: ${error.message}`)
+    else setMessage('Menu item deleted!')
+    fetchMenuItems()
+    setTimeout(() => setMessage(''), 3000)
   }
 
   const toggleStatus = async (id: string, currentStatus: boolean) => {
@@ -76,163 +99,126 @@ export default function MenuManagement() {
   }
 
   const cancelEdit = () => {
-    setEditingItem(null)
-    const form = document.querySelector('form') as HTMLFormElement
-    if (form) form.reset()
+    resetForm()
   }
 
-  if (loading) return <div className="p-8">Loading...</div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <nav className="p-4" style={{ backgroundColor: 'var(--primary-color)' }}>
-        <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-bold text-white">Menu Management</h1>
-          <Link href="/admin/dashboard" className="text-white hover:opacity-80">
-            ← Back to Dashboard
-          </Link>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-black text-[var(--text-primary)]">Menu Management</h2>
+        <p className="text-sm text-[var(--text-secondary)]">Control your website navigation menu items.</p>
+      </div>
+
+      {message && (
+        <div className={`rounded-xl border p-4 text-sm ${message.includes('Error') ? 'border-red-500/20 bg-red-500/10 text-red-400' : 'border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)]'}`}>
+          {message}
         </div>
-      </nav>
+      )}
 
-      <div className="container mx-auto p-6">
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Add/Edit Form */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4">
-              {editingItem ? 'Edit Menu Item' : 'Add New Menu Item'}
-            </h2>
-            
-            <form onSubmit={handleSave}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Label *</label>
-                <input
-                  type="text"
-                  name="label"
-                  required
-                  className="w-full p-2 border rounded"
-                  placeholder="e.g., Home, About, Contact"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">URL / Link *</label>
-                <input
-                  type="text"
-                  name="href"
-                  required
-                  className="w-full p-2 border rounded"
-                  placeholder="e.g., /, /about, /contact"
-                />
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-1">Display Order</label>
-                <input
-                  type="number"
-                  name="display_order"
-                  defaultValue="0"
-                  className="w-full p-2 border rounded"
-                  placeholder="0, 1, 2, 3..."
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-white rounded"
-                  style={{ backgroundColor: 'var(--primary-color)' }}
-                >
-                  {editingItem ? 'Update' : 'Add'} Menu Item
-                </button>
-                {editingItem && (
-                  <button
-                    type="button"
-                    onClick={cancelEdit}
-                    className="px-4 py-2 bg-gray-300 rounded"
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
-            </form>
-          </div>
-
-          {/* Menu Items List */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-4 border-b">
-              <h2 className="text-xl font-bold">Current Menu Items</h2>
-              <p className="text-sm text-gray-500">Drag to reorder (coming soon)</p>
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Form */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+          <h3 className="mb-4 text-lg font-black text-[var(--text-primary)]">
+            {editingItem ? 'Edit Menu Item' : 'Add New Menu Item'}
+          </h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Label *</label>
+              <input
+                type="text"
+                value={formLabel}
+                onChange={(e) => setFormLabel(e.target.value)}
+                required
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)]"
+                placeholder="Home, About, Services"
+              />
             </div>
-            
-            <div className="divide-y">
-              {menuItems.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
-                  No menu items yet. Add your first one!
-                </div>
-              ) : (
-                menuItems.map((item) => (
-                  <div key={item.id} className="p-4 flex justify-between items-center hover:bg-gray-50">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <span className={`w-2 h-2 rounded-full ${item.is_active ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                        <span className="font-semibold">{item.label}</span>
-                        <span className="text-gray-400 text-sm">→</span>
-                        <span className="text-gray-600 text-sm">{item.href}</span>
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">Order: {item.display_order}</div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => toggleStatus(item.id, item.is_active)}
-                        className={`px-2 py-1 text-xs rounded ${
-                          item.is_active 
-                            ? 'bg-yellow-100 text-yellow-700' 
-                            : 'bg-green-100 text-green-700'
-                        }`}
-                      >
-                        {item.is_active ? 'Hide' : 'Show'}
-                      </button>
-                      <button
-                        onClick={() => handleEdit(item)}
-                        className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))
+            <div>
+              <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">URL / Link *</label>
+              <input
+                type="text"
+                value={formHref}
+                onChange={(e) => setFormHref(e.target.value)}
+                required
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)]"
+                placeholder="/, /about, /services"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Display Order</label>
+              <input
+                type="number"
+                value={formOrder}
+                onChange={(e) => setFormOrder(parseInt(e.target.value) || 0)}
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)]"
+              />
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button type="submit" className="rounded-full bg-[var(--accent)] px-6 py-2 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02]">
+                {editingItem ? 'Update' : 'Add'} Menu Item
+              </button>
+              {editingItem && (
+                <button type="button" onClick={cancelEdit} className="rounded-full border border-[var(--border)] px-6 py-2 text-sm font-black text-[var(--text-muted)]">
+                  Cancel
+                </button>
               )}
             </div>
-          </div>
+          </form>
         </div>
 
-        {/* Preview Section */}
-        <div className="mt-6 bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold mb-4">Live Preview</h2>
-          <div className="border rounded-lg p-4" style={{ backgroundColor: 'var(--primary-color)' }}>
-            <div className="flex gap-6">
-              {menuItems.filter(item => item.is_active).map((item) => (
-                <a
-                  key={item.id}
-                  href={item.href}
-                  className="text-white hover:opacity-80 transition"
-                >
-                  {item.label}
-                </a>
+        {/* List */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+          <h3 className="mb-4 text-lg font-black text-[var(--text-primary)]">Current Menu Items</h3>
+          {menuItems.length === 0 ? (
+            <p className="py-8 text-center text-[var(--text-muted)]">No menu items yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {menuItems.map((item) => (
+                <div key={item.id} className="flex items-center justify-between rounded-lg border border-[var(--border)] p-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`h-2 w-2 rounded-full ${item.is_active ? 'bg-green-500' : 'bg-gray-500'}`} />
+                      <span className="font-bold text-[var(--text-primary)]">{item.label}</span>
+                      <span className="text-sm text-[var(--text-muted)]">→</span>
+                      <span className="text-sm text-[var(--text-muted)]">{item.href}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">Order: {item.display_order}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => toggleStatus(item.id, item.is_active)} className={`rounded-lg px-2 py-1 text-xs font-bold ${item.is_active ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}`}>
+                      {item.is_active ? 'Hide' : 'Show'}
+                    </button>
+                    <button onClick={() => handleEdit(item)} className="rounded-lg border border-[var(--border)] px-2 py-1 text-xs hover:bg-[var(--bg-section)]">Edit</button>
+                    <button onClick={() => handleDelete(item.id)} className="rounded-lg border border-red-500/30 px-2 py-1 text-xs text-red-400 hover:bg-red-500/10">Delete</button>
+                  </div>
+                </div>
               ))}
             </div>
-          </div>
-          <p className="text-sm text-gray-500 mt-3">
-            This is how your menu will appear on the website.
-          </p>
+          )}
         </div>
+      </div>
+
+      {/* Live Preview */}
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+        <h3 className="mb-4 text-lg font-black text-[var(--text-primary)]">Live Preview</h3>
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-4">
+          <div className="flex flex-wrap gap-4">
+            {menuItems.filter(item => item.is_active).map((item) => (
+              <a key={item.id} href={item.href} className="text-sm font-bold text-[var(--accent)] hover:underline">
+                {item.label}
+              </a>
+            ))}
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-[var(--text-muted)]">This is how your navigation menu will appear on the website.</p>
       </div>
     </div>
   )
