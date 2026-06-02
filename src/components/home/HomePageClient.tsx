@@ -103,11 +103,12 @@ export default function HomePageClient() {
     fetchHomeData()
   }, [])
 
+  // Stats for counter animation (without + sign)
   const statsData = [
-    { value: '87+', label: 'Projects Completed', icon: 'portfolio' },
-    { value: '45+', label: 'Happy Clients', icon: 'growth' },
-    { value: '5+', label: 'Years Experience', icon: 'strategy' },
-    { value: '98%', label: 'Success Rate', icon: 'analytics' },
+    { value: '87', label: 'Projects Completed', icon: 'portfolio', description: 'Successful digital systems delivered.' },
+    { value: '45', label: 'Happy Clients', icon: 'star', description: 'Trusted partners across ecommerce.' },
+    { value: '5', label: 'Years Experience', icon: 'growth', description: 'Years of expertise in digital growth.' },
+    { value: '98', label: 'Client Satisfaction', icon: 'analytics', description: 'Focused on measurable client success.' },
   ]
 
   const whyChooseUsItems = [
@@ -179,7 +180,7 @@ export default function HomePageClient() {
       <Navbar />
 
       <main id="main-content" className="relative z-10">
-        {/* Hero Section - Premium Gradient */}
+        {/* Hero Section */}
         <HeroSection
           data={{
             title: hero.title,
@@ -194,15 +195,24 @@ export default function HomePageClient() {
           }}
         />
 
-        {/* Trusted Technologies */}
+        {/* Spacing between Hero and Trusted Technologies */}
+        <div className="h-6 sm:h-8 lg:h-10" />
+
+        {/* Trusted Technologies - Icons only, no text */}
         <TrustedTechnologies />
 
-        {/* Stats Bar - Light Gradient */}
-        <section className="relative bg-gradient-light px-5 py-10 sm:px-6 md:px-10 lg:px-12">
+        {/* Spacing */}
+        <div className="h-8 sm:h-10 lg:h-12" />
+
+        {/* Stats Bar - With Counter Animation */}
+        <section className="relative bg-[var(--bg-section)] px-5 py-10 sm:px-6 md:px-10 lg:px-12">
           <div className="mx-auto max-w-7xl">
             <StatsBar stats={statsData} />
           </div>
         </section>
+
+        {/* Spacing */}
+        <div className="h-8 sm:h-10 lg:h-12" />
 
         {/* Featured Results */}
         <FeaturedResults items={portfolioItems} />
@@ -210,7 +220,7 @@ export default function HomePageClient() {
         {/* Before & After Preview */}
         <BeforeAfterPreview items={portfolioItems} />
 
-        {/* Featured Portfolio Section - Signature Section */}
+        {/* Featured Portfolio Section - SIGNATURE SECTION */}
         <FeaturedPortfolioSection items={portfolioItems} />
 
         {/* Trust Stack */}
@@ -256,26 +266,24 @@ export default function HomePageClient() {
           </section>
         )}
 
-        {/* Pricing Section - Dark Blue Gradient */}
+        {/* Pricing Section */}
         {pricingPackages.length > 0 && (
-          <section className="relative bg-gradient-dark-blue px-5 py-16 text-white sm:px-6 md:px-10 lg:px-12 lg:py-24">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center, rgba(255,107,53,0.1), transparent 70%)]" />
-            
+          <section className="relative bg-[var(--bg-navy)] px-5 py-16 text-[var(--text-inverse)] sm:px-6 md:px-10 lg:px-12 lg:py-24">
+            <GridPattern />
+
             <div className="relative z-10 mx-auto max-w-7xl">
               <div className="mb-12 max-w-4xl">
-                <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/15 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)] backdrop-blur-sm">
+                <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/18 bg-[var(--accent)]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
                   <SvgIcon name="pricing" size={14} color="var(--accent)" />
                   Investment Options
                 </p>
 
-                <h2 className="text-4xl font-black leading-[0.96] tracking-[-0.055em] text-white sm:text-5xl md:text-6xl">
+                <h2 className="text-4xl font-black leading-[0.96] tracking-[-0.055em] text-[var(--text-inverse)] sm:text-5xl md:text-6xl">
                   Clear packages for serious{' '}
-                  <span className="bg-gradient-to-r from-[var(--accent)] to-[var(--accent-orange)] bg-clip-text text-transparent">
-                    digital growth.
-                  </span>
+                  <GradientHeading>digital growth.</GradientHeading>
                 </h2>
 
-                <p className="mt-6 max-w-2xl text-sm leading-8 text-white/70 sm:text-base">
+                <p className="mt-6 max-w-2xl text-sm leading-8 text-[var(--text-secondary)] sm:text-base">
                   Explore starting points designed for brands that want better
                   websites, stronger trust, improved conversion flow, and
                   scalable digital systems.
@@ -291,14 +299,14 @@ export default function HomePageClient() {
                       key={item.id}
                       className={`relative overflow-hidden rounded-[2rem] border p-6 transition hover:-translate-y-1 ${
                         item.is_featured
-                          ? 'border-[var(--accent)]/30 bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent-orange)]/10 shadow-[0_32px_100px_rgba(57,217,122,0.12)]'
-                          : 'border-white/20 bg-white/10 backdrop-blur-sm'
+                          ? 'border-[var(--accent)]/30 bg-[var(--accent)]/10 shadow-[0_32px_100px_rgba(57,217,122,0.12)]'
+                          : 'border-[var(--border)] bg-[var(--bg-card)]'
                       }`}
                     >
-                      <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-[var(--accent-orange)]/20 blur-[70px]" />
+                      <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-[var(--accent)]/10 blur-[70px]" />
 
                       {item.is_featured && (
-                        <div className="relative mb-5 inline-flex rounded-full bg-gradient-orange-green px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white">
+                        <div className="relative mb-5 inline-flex rounded-full bg-[var(--accent)] px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--btn-primary-text)]">
                           Most Popular
                         </div>
                       )}
@@ -308,15 +316,15 @@ export default function HomePageClient() {
                           {item.subtitle || 'Growth Package'}
                         </p>
 
-                        <h3 className="text-3xl font-black tracking-[-0.045em] text-white">
+                        <h3 className="text-3xl font-black tracking-[-0.045em] text-[var(--text-inverse)]">
                           {item.name}
                         </h3>
 
-                        <p className="mt-5 text-5xl font-black tracking-[-0.06em] text-white">
+                        <p className="mt-5 text-5xl font-black tracking-[-0.06em] text-[var(--text-inverse)]">
                           {item.price || 'Custom'}
                         </p>
 
-                        <p className="mt-5 text-sm leading-7 text-white/70">
+                        <p className="mt-5 text-sm leading-7 text-[var(--text-secondary)]">
                           {item.description}
                         </p>
 
@@ -324,9 +332,9 @@ export default function HomePageClient() {
                           {features.map((feature: string) => (
                             <div
                               key={feature}
-                              className="flex items-start gap-3 rounded-2xl border border-white/20 bg-white/5 px-4 py-3 backdrop-blur-sm"
+                              className="flex items-start gap-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-section)]/75 px-4 py-3"
                             >
-                              <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/20">
+                              <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl border border-[var(--accent)]/16 bg-[var(--accent)]/10">
                                 <SvgIcon
                                   name="verified"
                                   size={12}
@@ -334,7 +342,7 @@ export default function HomePageClient() {
                                 />
                               </span>
 
-                              <span className="text-sm leading-6 text-white/70">
+                              <span className="text-sm leading-6 text-[var(--text-secondary)]">
                                 {feature}
                               </span>
                             </div>
@@ -349,10 +357,10 @@ export default function HomePageClient() {
               <div className="mt-12 text-center">
                 <Link
                   href="/pricing"
-                  className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-full bg-gradient-orange-green px-8 py-3 text-sm font-black text-white shadow-[0_0_30px_rgba(255,107,53,0.3)] transition hover:scale-[1.02] hover:shadow-[0_0_50px_rgba(255,107,53,0.5)]"
+                  className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-8 py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] hover:bg-[var(--accent-lime)]"
                 >
                   View Full Pricing
-                  <SvgIcon name="arrow-diagonal" size={16} color="white" />
+                  <SvgIcon name="arrow-diagonal" size={16} color="var(--btn-primary-text)" />
                 </Link>
               </div>
             </div>
@@ -366,15 +374,19 @@ export default function HomePageClient() {
           </Reveal>
         </section>
 
-        {/* CTA Section - Navy to Orange Gradient */}
-        <CTASection
-          data={{
-            title: cta.title,
-            subtitle: cta.subtitle,
-            buttonText: cta.button_text,
-            buttonLink: cta.button_link,
-          }}
-        />
+        {/* CTA Section */}
+        <section className="relative">
+          <Reveal delay={0.4}>
+            <CTASection
+              data={{
+                title: cta.title,
+                subtitle: cta.subtitle,
+                buttonText: cta.button_text,
+                buttonLink: cta.button_link,
+              }}
+            />
+          </Reveal>
+        </section>
       </main>
 
       <Footer />
