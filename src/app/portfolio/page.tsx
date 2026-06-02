@@ -69,7 +69,34 @@ function getCategory(item: PortfolioItem) {
   return item.category || item.tag || item.industry || 'Case Study'
 }
 
-function getCategoryIcon(category?: string) {
+// Updated to use custom SVG icons from /icons/portfolio/ folder
+function getCategoryIconPath(category?: string): string {
+  const value = (category || '').toLowerCase()
+  
+  // Map categories to your custom SVG icons
+  if (value.includes('fashion') || value.includes('clothing')) return '/icons/portfolio/clothing-fashion.svg'
+  if (value.includes('ecommerce') || value.includes('store') || value.includes('shopify')) return '/icons/portfolio/ecommerce.svg'
+  if (value.includes('food') || value.includes('restaurant')) return '/icons/portfolio/food.svg'
+  if (value.includes('health') || value.includes('medical') || value.includes('care')) return '/icons/portfolio/health-care.svg'
+  if (value.includes('jewellery') || value.includes('jewelry')) return '/icons/portfolio/jewellery.svg'
+  if (value.includes('kid') || value.includes('children')) return '/icons/portfolio/kids-clothing.svg'
+  if (value.includes('brand') || value.includes('logo')) return '/icons/portfolio/logos.svg'
+  if (value.includes('pet')) return '/icons/portfolio/pets.svg'
+  if (value.includes('skin') || value.includes('beauty')) return '/icons/portfolio/skin-care.svg'
+  if (value.includes('sport') || value.includes('fitness')) return '/icons/portfolio/sports-fitness.svg'
+  if (value.includes('redesign')) return '/icons/portfolio/store-redesign.svg'
+  if (value.includes('tea') || value.includes('coffee')) return '/icons/portfolio/tea-coffee.svg'
+  
+  // Default fallbacks
+  if (value.includes('saas') || value.includes('software')) return '/icons/portfolio/ecommerce.svg'
+  if (value.includes('real estate') || value.includes('property')) return '/icons/portfolio/ecommerce.svg'
+  if (value.includes('interior') || value.includes('design')) return '/icons/portfolio/clothing-fashion.svg'
+  
+  return '/icons/portfolio/all.svg'
+}
+
+// Keep this for backward compatibility but use the path version for images
+function getCategoryIconName(category?: string) {
   const value = (category || '').toLowerCase()
   if (value.includes('ecommerce') || value.includes('store') || value.includes('shopify')) return 'ecommerce'
   if (value.includes('brand')) return 'branding'
@@ -79,6 +106,22 @@ function getCategoryIcon(category?: string) {
   if (value.includes('logo')) return 'branding'
   if (value.includes('cro')) return 'analytics'
   return 'portfolio'
+}
+
+// Category Icon Component using actual SVG files
+function CategoryIcon({ category, active = false }: { category: string; active?: boolean }) {
+  const iconPath = getCategoryIconPath(category)
+  
+  return (
+    <img
+      src={iconPath}
+      alt={category}
+      className="h-5 w-5 object-contain"
+      style={{
+        filter: active ? 'brightness(0) saturate(100%) invert(82%) sepia(58%) saturate(626%) hue-rotate(73deg) brightness(94%) contrast(89%)' : 'brightness(0) saturate(100%) invert(80%) sepia(0%) saturate(0%) brightness(90%) contrast(80%)'
+      }}
+    />
+  )
 }
 
 export default function PortfolioPage() {
@@ -298,6 +341,7 @@ export default function PortfolioPage() {
                 </h2>
               </div>
 
+              {/* Category Filters with Custom SVG Icons */}
               <div className="flex gap-2 overflow-x-auto pb-2 lg:max-w-[58%]">
                 {categories.map((category) => {
                   const active = activeCategory === category
@@ -312,11 +356,20 @@ export default function PortfolioPage() {
                           : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                       }`}
                     >
-                      <SvgIcon
-                        name={category === 'all' ? 'portfolio' : getCategoryIcon(category)}
-                        size={13}
-                        color={active ? 'var(--accent)' : 'var(--text-muted)'}
-                      />
+                      {category === 'all' ? (
+                        <SvgIcon name="portfolio" size={13} color={active ? 'var(--accent)' : 'var(--text-muted)'} />
+                      ) : (
+                        <img
+                          src={getCategoryIconPath(category)}
+                          alt={category}
+                          className="h-4 w-4 object-contain"
+                          style={{
+                            filter: active 
+                              ? 'brightness(0) saturate(100%) invert(82%) sepia(58%) saturate(626%) hue-rotate(73deg) brightness(94%) contrast(89%)' 
+                              : 'brightness(0) saturate(100%) invert(80%) sepia(0%) saturate(0%) brightness(90%) contrast(80%)'
+                          }}
+                        />
+                      )}
                       {category === 'all' ? 'All Work' : category}
                     </button>
                   )

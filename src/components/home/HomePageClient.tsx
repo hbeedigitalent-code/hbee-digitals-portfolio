@@ -196,23 +196,23 @@ export default function HomePageClient() {
         />
 
         {/* Spacing between Hero and Trusted Technologies */}
-        <div className="h-6 sm:h-8 lg:h-10" />
+        <div className="h-4 sm:h-6 lg:h-8" />
 
         {/* Trusted Technologies - Icons only, no text */}
         <TrustedTechnologies />
 
-        {/* Spacing */}
-        <div className="h-8 sm:h-10 lg:h-12" />
+        {/* Spacing after Trusted Technologies */}
+        <div className="h-6 sm:h-8 lg:h-10" />
 
         {/* Stats Bar - With Counter Animation */}
-        <section className="relative bg-[var(--bg-section)] px-5 py-10 sm:px-6 md:px-10 lg:px-12">
+        <section className="relative bg-[var(--bg-section)] px-5 py-8 sm:px-6 md:px-10 lg:px-12">
           <div className="mx-auto max-w-7xl">
             <StatsBar stats={statsData} />
           </div>
         </section>
 
-        {/* Spacing */}
-        <div className="h-8 sm:h-10 lg:h-12" />
+        {/* Spacing after Stats Bar */}
+        <div className="h-6 sm:h-8 lg:h-10" />
 
         {/* Featured Results */}
         <FeaturedResults items={portfolioItems} />
