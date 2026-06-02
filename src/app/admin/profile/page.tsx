@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import SvgIcon from '@/components/ui/SvgIcon'
 
 export default function AdminProfile() {
   const [user, setUser] = useState<any>(null)
@@ -18,17 +19,42 @@ export default function AdminProfile() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
+  // 2FA States
+  const [twoFAEnabled, setTwoFAEnabled] = useState(false)
+  const [show2FASetup, setShow2FASetup] = useState(false)
+  const [qrCode, setQrCode] = useState('')
+  const [twoFASecret, setTwoFASecret] = useState('')
+  const [twoFAToken, setTwoFAToken] = useState('')
+  const [backupCodes, setBackupCodes] = useState<string[]>([])
+  const [verifying2FA, setVerifying2FA] = useState(false)
+
   useEffect(() => {
     const getUser = async () => {
       const { data: { user: authUser } } = await supabase.auth.getUser()
       if (!authUser) {
         router.push('/admin/login')
       } else {
-        const { data: { user: refreshed } } = await supabase.auth.getUser()
-        setUser(refreshed)
-        setEmail(refreshed?.email || '')
-        setFullName(refreshed?.user_metadata?.full_name || '')
-        setAvatarUrl(refreshed?.user_metadata?.avatar_url || '')
+        setUser(authUser)
+        setEmail(authUser?.email || '')
+        setFullName(authUser?.user_metadata?.full_name || '')
+        setAvatarUrl(authUser?.user_metadata?.avatar_url || '')
+        
+        // Save to localStorage for navbar/sidebar to access
+        if (authUser?.user_metadata?.avatar_url) {
+          localStorage.setItem('admin_avatar', authUser.user_metadata.avatar_url)
+        }
+        if (authUser?.user_metadata?.full_name) {
+          localStorage.setItem('admin_name', authUser.user_metadata.full_name)
+        }
+        
+        // Check if 2FA is enabled
+        const { data: twoFAData } = await supabase
+          .from('admin_2fa')
+          .select('is_enabled')
+          .eq('user_id', authUser.id)
+          .single()
+        
+        setTwoFAEnabled(twoFAData?.is_enabled || false)
       }
       setLoading(false)
     }
@@ -41,6 +67,17 @@ export default function AdminProfile() {
       setUser(refreshed)
       setFullName(refreshed.user_metadata?.full_name || '')
       setAvatarUrl(refreshed.user_metadata?.avatar_url || '')
+      
+      // Update localStorage
+      if (refreshed.user_metadata?.avatar_url) {
+        localStorage.setItem('admin_avatar', refreshed.user_metadata.avatar_url)
+      }
+      if (refreshed.user_metadata?.full_name) {
+        localStorage.setItem('admin_name', refreshed.user_metadata.full_name)
+      }
+      
+      // Dispatch event for navbar/sidebar to update
+      window.dispatchEvent(new Event('adminProfileUpdate'))
     }
   }
 
@@ -72,7 +109,7 @@ export default function AdminProfile() {
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath)
 
       const { error: updateError } = await supabase.auth.updateUser({
-        data: { avatar_url: publicUrl }
+        data: { avatar_url: publicUrl, full_name: fullName }
       })
       if (updateError) throw updateError
 
@@ -92,7 +129,7 @@ export default function AdminProfile() {
 
     try {
       const { error: updateError } = await supabase.auth.updateUser({
-        data: { avatar_url: null }
+        data: { avatar_url: null, full_name: fullName }
       })
       if (updateError) throw updateError
 
@@ -113,7 +150,7 @@ export default function AdminProfile() {
 
     try {
       const { error: updateError } = await supabase.auth.updateUser({
-        data: { full_name: fullName }
+        data: { full_name: fullName, avatar_url: avatarUrl }
       })
       if (updateError) throw updateError
 
@@ -156,100 +193,288 @@ export default function AdminProfile() {
     }
   }
 
-  if (loading) return <div className="text-center py-12">Loading profile...</div>
+  // 2FA Setup Functions
+  const setup2FA = async () => {
+    setMessage(null)
+    try {
+      const response = await fetch('/api/admin/2fa/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id, email: user?.email })
+      })
+      const data = await response.json()
+      if (data.success) {
+        setQrCode(data.qrCode)
+        setTwoFASecret(data.secret)
+        setShow2FASetup(true)
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to setup 2FA' })
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Failed to setup 2FA' })
+    }
+  }
+
+  const verify2FA = async () => {
+    if (!twoFAToken || twoFAToken.length !== 6) {
+      setMessage({ type: 'error', text: 'Please enter a valid 6-digit code' })
+      return
+    }
+
+    setVerifying2FA(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/admin/2fa/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id, token: twoFAToken })
+      })
+      const data = await response.json()
+      if (data.success) {
+        setBackupCodes(data.backupCodes)
+        setTwoFAEnabled(true)
+        setShow2FASetup(false)
+        setTwoFAToken('')
+        setMessage({ type: 'success', text: '2FA enabled successfully! Save your backup codes.' })
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Invalid verification code' })
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Failed to verify 2FA' })
+    } finally {
+      setVerifying2FA(false)
+    }
+  }
+
+  const disable2FA = async () => {
+    if (!confirm('Are you sure you want to disable two-factor authentication? This will make your account less secure.')) return
+
+    setSaving(true)
+    try {
+      const { error } = await supabase
+        .from('admin_2fa')
+        .update({ is_enabled: false, secret: null, backup_codes: null })
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      setTwoFAEnabled(false)
+      setMessage({ type: 'success', text: '2FA disabled successfully' })
+    } catch {
+      setMessage({ type: 'error', text: 'Failed to disable 2FA' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) return <div className="flex items-center justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" /></div>
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Admin Profile</h2>
+    <div className="max-w-5xl mx-auto space-y-6">
+      <h2 className="text-2xl font-black text-[var(--text-primary)]">Admin Profile</h2>
 
       {message && (
-        <div className={`mb-6 p-4 rounded-lg flex items-center gap-2 ${
-          message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+        <div className={`flex items-center gap-2 rounded-xl border p-4 text-sm ${
+          message.type === 'success' 
+            ? 'border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)]' 
+            : 'border-red-500/20 bg-red-500/10 text-red-400'
         }`}>
-          {message.type === 'success' ? (
-            <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-          ) : (
-            <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-          )}
+          <SvgIcon name={message.type === 'success' ? 'verified' : 'error'} size={16} color={message.type === 'success' ? 'var(--accent)' : '#f87171'} />
           {message.text}
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <div className="flex flex-col items-center gap-4 mb-6">
+      {/* 2FA Setup Modal */}
+      {show2FASetup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-xl font-black text-[var(--text-primary)]">Setup Two-Factor Authentication</h3>
+              <button onClick={() => setShow2FASetup(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">✕</button>
+            </div>
+            
+            {!backupCodes.length ? (
+              <>
+                <div className="mb-4 rounded-lg bg-[var(--bg-section)] p-4 text-center">
+                  {qrCode && <img src={qrCode} alt="2FA QR Code" className="mx-auto mb-3 w-48 rounded-lg" />}
+                  {twoFASecret && (
+                    <p className="text-xs text-[var(--text-muted)]">
+                      Secret Key: <span className="font-mono font-bold text-[var(--accent)]">{twoFASecret}</span>
+                    </p>
+                  )}
+                  <p className="mt-3 text-sm text-[var(--text-secondary)]">
+                    1. Scan the QR code with Google Authenticator or Authy
+                  </p>
+                  <p className="text-sm text-[var(--text-secondary)]">
+                    2. Enter the 6-digit code below to verify
+                  </p>
+                </div>
+                
+                <div className="mb-4">
+                  <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Verification Code</label>
+                  <input
+                    type="text"
+                    value={twoFAToken}
+                    onChange={(e) => setTwoFAToken(e.target.value)}
+                    maxLength={6}
+                    placeholder="000000"
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] px-4 py-3 text-center text-2xl tracking-wider text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
+                    autoFocus
+                  />
+                </div>
+                
+                <button
+                  onClick={verify2FA}
+                  disabled={verifying2FA || twoFAToken.length !== 6}
+                  className="w-full rounded-full bg-[var(--accent)] py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] disabled:opacity-50"
+                >
+                  {verifying2FA ? 'Verifying...' : 'Verify & Enable 2FA'}
+                </button>
+              </>
+            ) : (
+              <div>
+                <div className="mb-4 rounded-lg bg-green-500/10 p-4 text-center">
+                  <SvgIcon name="verified" size={32} color="var(--accent)" className="mx-auto mb-3" />
+                  <p className="font-bold text-[var(--accent)]">2FA Enabled Successfully!</p>
+                  <p className="mt-2 text-sm text-[var(--text-secondary)]">Save these backup codes in a safe place:</p>
+                </div>
+                <div className="mb-4 grid grid-cols-2 gap-2 rounded-lg bg-[var(--bg-section)] p-4">
+                  {backupCodes.map((code, i) => (
+                    <code key={i} className="rounded bg-[var(--bg-card)] px-2 py-1 text-center font-mono text-sm">{code}</code>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setShow2FASetup(false)}
+                  className="w-full rounded-full bg-[var(--accent)] py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02]"
+                >
+                  Done
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Profile Section */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+          <div className="mb-6 flex flex-col items-center gap-4">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 flex items-center justify-center text-3xl font-bold text-white overflow-hidden">
+              <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[var(--accent)] to-[var(--accent-orange)] text-3xl font-bold text-white">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                  <img src={avatarUrl} alt="Profile" className="h-full w-full object-cover" />
                 ) : (
                   <span>{fullName ? fullName.charAt(0).toUpperCase() : email.charAt(0).toUpperCase()}</span>
                 )}
               </div>
-              <label className="absolute bottom-0 right-0 cursor-pointer bg-white rounded-full p-1.5 shadow-md hover:bg-gray-50 transition">
+              <label className="absolute bottom-0 right-0 cursor-pointer rounded-full bg-[var(--bg-card)] p-1.5 shadow-md transition hover:scale-105">
                 <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploading} ref={fileInputRef} />
-                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+                <SvgIcon name="edit" size={14} color="var(--accent)" />
               </label>
             </div>
-            {uploading && <p className="text-sm text-gray-500">Uploading...</p>}
+            {uploading && <p className="text-sm text-[var(--accent)]">Uploading...</p>}
             {avatarUrl && (
-              <button onClick={handleRemoveAvatar} className="text-sm text-red-600 hover:text-red-700 transition" disabled={uploading}>
+              <button onClick={handleRemoveAvatar} className="text-sm text-red-400 transition hover:text-red-300" disabled={uploading}>
                 Remove Photo
               </button>
             )}
-            <p className="text-xs text-gray-400 text-center">Click camera icon to upload<br />JPG, PNG, GIF (max 2MB)</p>
+            <p className="text-center text-xs text-[var(--text-muted)]">Click camera icon to upload<br />JPG, PNG, GIF (max 2MB)</p>
           </div>
 
           <form onSubmit={handleUpdateProfile} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-              <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
-                className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Your full name" />
+              <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Full Name</label>
+              <input 
+                type="text" 
+                value={fullName} 
+                onChange={(e) => setFullName(e.target.value)} 
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50" 
+                placeholder="Your full name"
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input type="email" value={email} disabled className="w-full p-2.5 border rounded-lg bg-gray-50 text-gray-500" />
-              <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
+              <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Email</label>
+              <input type="email" value={email} disabled className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-muted)]" />
+              <p className="mt-1 text-xs text-[var(--text-muted)]">Email cannot be changed</p>
             </div>
-            <button type="submit" disabled={saving || uploading}
-              className="w-full px-4 py-2.5 text-white rounded-lg hover:opacity-90 disabled:opacity-50 font-medium"
-              style={{ backgroundColor: 'var(--primary-color)' }}>
+            <button type="submit" disabled={saving} className="w-full rounded-full bg-[var(--accent)] py-2.5 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] disabled:opacity-50">
               {saving ? 'Saving...' : 'Update Profile'}
             </button>
           </form>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-            </svg>
-            Change Password
-          </h3>
-          
-          <form onSubmit={handleUpdatePassword} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="••••••••" minLength={6} />
+        {/* Security Section */}
+        <div className="space-y-6">
+          {/* Change Password */}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+            <h3 className="mb-4 flex items-center gap-2 text-lg font-black text-[var(--text-primary)]">
+              <SvgIcon name="security" size={18} color="var(--accent)" />
+              Change Password
+            </h3>
+            <form onSubmit={handleUpdatePassword} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">New Password</label>
+                <input 
+                  type="password" 
+                  value={newPassword} 
+                  onChange={(e) => setNewPassword(e.target.value)} 
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50" 
+                  minLength={6} 
+                  placeholder="••••••••"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Confirm Password</label>
+                <input 
+                  type="password" 
+                  value={confirmPassword} 
+                  onChange={(e) => setConfirmPassword(e.target.value)} 
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50" 
+                  placeholder="••••••••"
+                />
+              </div>
+              <button type="submit" disabled={saving} className="w-full rounded-full border border-red-500/30 bg-red-500/10 py-2.5 text-sm font-black text-red-400 transition hover:bg-red-500/20">
+                {saving ? 'Updating...' : 'Change Password'}
+              </button>
+            </form>
+          </div>
+
+          {/* Two-Factor Authentication */}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="flex items-center gap-2 text-lg font-black text-[var(--text-primary)]">
+                <SvgIcon name="shield" size={18} color="var(--accent)" />
+                Two-Factor Authentication
+              </h3>
+              {twoFAEnabled && (
+                <span className="rounded-full bg-green-500/20 px-2 py-1 text-xs font-bold text-green-400">Enabled</span>
+              )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="••••••••" />
-            </div>
-            <button type="submit" disabled={saving || uploading}
-              className="w-full px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 font-medium">
-              {saving ? 'Updating...' : 'Change Password'}
-            </button>
-          </form>
+            
+            <p className="mb-4 text-sm text-[var(--text-secondary)]">
+              {twoFAEnabled 
+                ? 'Two-factor authentication is enabled. Your account is more secure.'
+                : 'Add an extra layer of security to your account by enabling two-factor authentication.'}
+            </p>
+            
+            {twoFAEnabled ? (
+              <button
+                onClick={disable2FA}
+                disabled={saving}
+                className="w-full rounded-full border border-red-500/30 bg-red-500/10 py-2.5 text-sm font-black text-red-400 transition hover:bg-red-500/20"
+              >
+                Disable 2FA
+              </button>
+            ) : (
+              <button
+                onClick={setup2FA}
+                className="w-full rounded-full bg-gradient-orange-green py-2.5 text-sm font-black text-white transition hover:scale-[1.02]"
+              >
+                Enable Two-Factor Authentication
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

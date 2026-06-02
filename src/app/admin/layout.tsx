@@ -23,6 +23,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [unreadInquiries, setUnreadInquiries] = useState(0)
   const [profileOpen, setProfileOpen] = useState(false)
+  
+  // Profile image and name states
+  const [adminAvatar, setAdminAvatar] = useState('')
+  const [adminName, setAdminName] = useState('')
 
   useEffect(() => {
     async function checkAuth() {
@@ -31,10 +35,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         router.push('/admin/login')
       } else {
         setUser(data.user)
+        
+        // Load profile data from user metadata
+        const avatar = data.user?.user_metadata?.avatar_url || ''
+        const name = data.user?.user_metadata?.full_name || ''
+        setAdminAvatar(avatar)
+        setAdminName(name)
+        
+        // Save to localStorage for persistence
+        if (avatar) localStorage.setItem('admin_avatar', avatar)
+        if (name) localStorage.setItem('admin_name', name)
       }
       setLoading(false)
     }
     checkAuth()
+    
+    // Listen for profile updates from the profile page
+    const handleProfileUpdate = () => {
+      const avatar = localStorage.getItem('admin_avatar') || ''
+      const name = localStorage.getItem('admin_name') || ''
+      setAdminAvatar(avatar)
+      setAdminName(name)
+    }
+    
+    window.addEventListener('adminProfileUpdate', handleProfileUpdate)
+    return () => window.removeEventListener('adminProfileUpdate', handleProfileUpdate)
   }, [pathname, router])
 
   useEffect(() => {
@@ -50,13 +75,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   async function handleLogout() {
     await supabase.auth.signOut()
+    // Clear stored profile data
+    localStorage.removeItem('admin_avatar')
+    localStorage.removeItem('admin_name')
     router.push('/admin/login')
   }
 
-  // Complete navigation items - ALL sections included
+  // Complete navigation items - ALL sections included (no duplicates)
   const navItems: NavItem[] = [
-    // Dashboard
+    // Main
     { name: 'Dashboard', href: '/admin/dashboard', icon: 'analytics', group: 'Main' },
+    { name: 'Analytics', href: '/admin/analytics', icon: 'chart', group: 'Main' },
     
     // Communications
     { name: 'Inquiries', href: '/admin/inquiries', icon: 'email', badge: unreadInquiries, group: 'Communications' },
@@ -120,6 +149,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   if (!user) return null
+
+  // Get first letter for avatar fallback
+  const avatarLetter = adminName ? adminName.charAt(0).toUpperCase() : (user?.email?.charAt(0)?.toUpperCase() || 'A')
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)]">
@@ -210,15 +242,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ))}
         </nav>
 
-        {/* Footer */}
+        {/* Footer - Updated with profile image */}
         <div className="border-t border-[var(--border)] p-4">
           {sidebarOpen && (
             <div className="mb-3 flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--accent)]/18 bg-[var(--accent)]/10">
-                <SvgIcon name="profile" size={14} color="var(--accent)" />
+              <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border border-[var(--accent)]/18 bg-[var(--accent)]/10">
+                {adminAvatar ? (
+                  <img src={adminAvatar} alt="Admin" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-xs font-bold text-[var(--accent)]">{avatarLetter}</span>
+                )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-black">Admin User</p>
+                <p className="truncate text-xs font-black">{adminName || 'Admin User'}</p>
                 <p className="truncate text-[10px] text-[var(--text-muted)]">{user?.email}</p>
               </div>
             </div>
@@ -253,8 +289,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </Link>
               <div className="relative">
                 <button onClick={() => setProfileOpen(!profileOpen)} className="flex h-9 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-section)] px-3 transition hover:border-[var(--accent)]/25">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[var(--accent)] text-[10px] font-black text-[var(--btn-primary-text)]">{user?.email?.charAt(0)?.toUpperCase() || 'A'}</span>
-                  <span className="hidden text-xs font-bold text-[var(--text-secondary)] md:block">Admin</span>
+                  <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-md bg-[var(--accent)] text-[10px] font-black text-[var(--btn-primary-text)]">
+                    {adminAvatar ? (
+                      <img src={adminAvatar} alt="Admin" className="h-full w-full object-cover" />
+                    ) : (
+                      avatarLetter
+                    )}
+                  </span>
+                  <span className="hidden text-xs font-bold text-[var(--text-secondary)] md:block">{adminName || 'Admin'}</span>
                 </button>
                 {profileOpen && (
                   <div className="absolute right-0 mt-2 w-64 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 shadow-[var(--shadow-lg)]">
