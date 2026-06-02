@@ -28,24 +28,8 @@ interface PortfolioItem {
   display_order?: number
 }
 
-function getTitle(item: PortfolioItem) {
-  return item.client_name || item.title || item.name || 'Portfolio Project'
-}
-
 function getImage(item: PortfolioItem) {
   return item.featured_image || item.image_url || ''
-}
-
-function getCategory(item: PortfolioItem) {
-  return item.category || item.industry || 'Case Study'
-}
-
-function getMetric(item: PortfolioItem) {
-  if (item.metric_value && item.metric_label) {
-    return `${item.metric_value} ${item.metric_label}`
-  }
-
-  return item.metric_value || 'Growth System'
 }
 
 function getHref(item: PortfolioItem) {
@@ -74,19 +58,34 @@ export default function FeaturedPortfolioSection({
     async function fetchPortfolioItems() {
       setIsLoading(true)
 
-      const { data, error } = await supabase
+      // First try: Get featured items
+      let { data: featuredData } = await supabase
         .from('portfolio_items')
         .select(
           'id,title,name,client_name,slug,category,industry,project_type,description,image_url,featured_image,metric_value,metric_label,before_image,after_image,is_before_after,is_active,display_order'
         )
         .eq('is_active', true)
+        .eq('featured', true)
         .order('display_order', { ascending: true })
         .limit(12)
 
+      // Fallback to all active items if no featured
+      if (!featuredData?.length) {
+        let { data: allData } = await supabase
+          .from('portfolio_items')
+          .select(
+            'id,title,name,client_name,slug,category,industry,project_type,description,image_url,featured_image,metric_value,metric_label,before_image,after_image,is_before_after,is_active,display_order'
+          )
+          .eq('is_active', true)
+          .order('display_order', { ascending: true })
+          .limit(12)
+        featuredData = allData
+      }
+
       if (!mounted) return
 
-      if (!error && data) {
-        setFetchedItems(data)
+      if (featuredData) {
+        setFetchedItems(featuredData)
       }
 
       setIsLoading(false)
@@ -101,13 +100,11 @@ export default function FeaturedPortfolioSection({
 
   const portfolioItems = useMemo(() => {
     const source = items.length > 0 ? items : fetchedItems
-
     return source.filter((item) => item && item.id)
   }, [items, fetchedItems])
 
   useEffect(() => {
     if (portfolioItems.length === 0) return
-
     setActiveIndex(0)
   }, [portfolioItems.length])
 
@@ -116,7 +113,7 @@ export default function FeaturedPortfolioSection({
 
     const timer = setInterval(() => {
       setActiveIndex((prev) => wrapIndex(prev + 1, portfolioItems.length))
-    }, 6500)
+    }, 6000)
 
     return () => clearInterval(timer)
   }, [portfolioItems.length, reducedMotion])
@@ -136,7 +133,6 @@ export default function FeaturedPortfolioSection({
 
     return [-2, -1, 0, 1, 2].map((offset) => {
       const index = wrapIndex(activeIndex + offset, portfolioItems.length)
-
       return {
         item: portfolioItems[index],
         index,
@@ -145,10 +141,10 @@ export default function FeaturedPortfolioSection({
     })
   }, [activeIndex, portfolioItems])
 
-  // Fallback when no portfolio items exist (light mode version)
+  // Fallback when no portfolio items exist
   if (!isLoading && portfolioItems.length === 0) {
     return (
-      <section className="relative overflow-hidden bg-[var(--bg-section)] px-5 py-16 text-[var(--text-primary)] sm:px-6 md:px-10 lg:px-12 lg:py-24">
+      <section className="relative overflow-hidden bg-[var(--bg-navy)] px-5 py-16 text-[var(--text-inverse)] sm:px-6 md:px-10 lg:px-12 lg:py-24">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.025)_1px,transparent_1px)] bg-[size:80px_80px]" />
         <div className="absolute left-1/2 top-10 h-[360px] w-[680px] -translate-x-1/2 rounded-full bg-[var(--accent)]/10 blur-[140px]" />
 
@@ -158,14 +154,13 @@ export default function FeaturedPortfolioSection({
             Featured Work
           </p>
 
-          <h2 className="text-4xl font-black leading-tight tracking-[-0.05em] text-[var(--text-primary)] sm:text-5xl">
+          <h2 className="text-4xl font-black leading-tight tracking-[-0.05em] text-[var(--text-inverse)] sm:text-5xl">
             Featured projects will appear here soon.
           </h2>
 
           <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-[var(--text-secondary)] sm:text-base">
-            Active portfolio items were not found yet. Once portfolio projects
-            are added or activated from the admin dashboard, they will display
-            here automatically.
+            Active portfolio projects have not been added yet. Once projects
+            are featured or starred from the admin dashboard, they will appear here automatically.
           </p>
 
           <Link
@@ -181,19 +176,21 @@ export default function FeaturedPortfolioSection({
 
   return (
     <section className="relative overflow-hidden bg-[var(--bg-navy)] py-16 text-[var(--text-inverse)] lg:py-24">
+      {/* Background effects */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/2 top-10 h-[440px] w-[760px] -translate-x-1/2 rounded-full bg-[var(--accent)]/7 blur-[140px]" />
         <div className="absolute bottom-0 right-0 h-[360px] w-[520px] rounded-full bg-[var(--accent)]/5 blur-[130px]" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.018)_1px,transparent_1px)] bg-[size:82px_82px] opacity-20" />
       </div>
 
+      {/* Header */}
       <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-6 md:px-10 lg:px-12">
         <motion.div
           initial={reducedMotion ? false : { opacity: 0, y: 22 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45 }}
           viewport={{ once: true }}
-          className="max-w-4xl"
+          className="mb-12 text-center"
         >
           <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/18 bg-[var(--accent)]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
             <SvgIcon name="portfolio" size={14} color="var(--accent)" />
@@ -201,20 +198,19 @@ export default function FeaturedPortfolioSection({
           </p>
 
           <h2 className="text-4xl font-black leading-[0.96] tracking-[-0.055em] text-[var(--text-inverse)] sm:text-5xl md:text-6xl">
-            Systems we built for <GradientHeading>growth.</GradientHeading>
+            Selected projects we're <GradientHeading>proud of.</GradientHeading>
           </h2>
 
-          <p className="mt-6 max-w-2xl text-sm leading-8 text-[var(--text-secondary)] sm:text-base">
-            Real brands. Real results. Explore selected ecommerce builds,
-            redesigns, and conversion-focused systems designed to improve
-            performance and trust.
+          <p className="mx-auto mt-6 max-w-2xl text-sm leading-8 text-[var(--text-secondary)] sm:text-base">
+            Explore our featured case studies and see how we help brands grow.
           </p>
         </motion.div>
       </div>
 
-      <div className="relative z-10 mx-auto mt-10 h-[610px] max-w-7xl px-5 sm:h-[650px] sm:px-6 md:px-10 lg:mt-14 lg:h-[620px] lg:px-12">
+      {/* Coverflow Carousel - Images Only, No Text */}
+      <div className="relative z-10 mx-auto mt-10 h-[400px] max-w-7xl px-5 sm:h-[500px] sm:px-6 md:px-10 lg:mt-14 lg:h-[550px] lg:px-12">
         <motion.div
-          className="relative h-full"
+          className="relative h-full w-full"
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={0.12}
@@ -225,129 +221,76 @@ export default function FeaturedPortfolioSection({
         >
           {visibleCards.map(({ item, index, offset }) => {
             const isActive = offset === 0
+            const image = getImage(item)
 
-            const mobilePosition =
-              offset === 0
-                ? 'left-1/2 top-0 w-[88vw] -translate-x-1/2 opacity-100'
-                : offset === 1
-                  ? 'left-[78%] top-[44px] w-[70vw] opacity-30'
-                  : offset === -1
-                    ? 'right-[78%] top-[44px] w-[70vw] opacity-30'
-                    : 'hidden'
+            // Mobile positioning
+            const mobilePosition = offset === 0
+              ? 'left-1/2 top-0 w-[85vw] -translate-x-1/2 opacity-100 z-30'
+              : offset === 1
+              ? 'left-[75%] top-[30px] w-[60vw] opacity-40 z-20'
+              : offset === -1
+              ? 'right-[75%] top-[30px] w-[60vw] opacity-40 z-20'
+              : 'hidden'
 
-            const tabletPosition =
-              offset === -1
-                ? 'md:left-[1%] md:top-[96px] md:block md:w-[310px] md:scale-[0.86] md:opacity-65'
-                : offset === 0
-                  ? 'md:left-1/2 md:top-0 md:w-[520px] md:-translate-x-1/2 md:scale-100 md:opacity-100'
-                  : offset === 1
-                    ? 'md:right-[1%] md:top-[96px] md:block md:w-[310px] md:scale-[0.86] md:opacity-65'
-                    : 'md:hidden'
+            // Tablet positioning (3 cards)
+            const tabletPosition = offset === 0
+              ? 'md:left-1/2 md:top-0 md:w-[450px] md:-translate-x-1/2 md:scale-100 md:opacity-100 md:z-30'
+              : offset === 1
+              ? 'md:right-[5%] md:top-[40px] md:block md:w-[280px] md:scale-90 md:opacity-60 md:z-20'
+              : offset === -1
+              ? 'md:left-[5%] md:top-[40px] md:block md:w-[280px] md:scale-90 md:opacity-60 md:z-20'
+              : 'md:hidden'
 
-            const desktopPosition =
-              offset === -2
-                ? 'lg:left-[0%] lg:top-[140px] lg:block lg:w-[230px] lg:scale-[0.72] lg:opacity-40 lg:blur-[1.5px]'
-                : offset === -1
-                  ? 'lg:left-[12%] lg:top-[90px] lg:block lg:w-[330px] lg:scale-[0.86] lg:opacity-70'
-                  : offset === 0
-                    ? 'lg:left-1/2 lg:top-0 lg:w-[580px] lg:-translate-x-1/2 lg:scale-100 lg:opacity-100'
-                    : offset === 1
-                      ? 'lg:right-[12%] lg:top-[90px] lg:block lg:w-[330px] lg:scale-[0.86] lg:opacity-70'
-                      : 'lg:right-[0%] lg:top-[140px] lg:block lg:w-[230px] lg:scale-[0.72] lg:opacity-40 lg:blur-[1.5px]'
+            // Desktop positioning (5 cards)
+            const desktopPosition = offset === 0
+              ? 'lg:left-1/2 lg:top-0 lg:w-[500px] lg:-translate-x-1/2 lg:scale-100 lg:opacity-100 lg:z-30'
+              : offset === 1
+              ? 'lg:right-[10%] lg:top-[60px] lg:block lg:w-[300px] lg:scale-85 lg:opacity-70 lg:z-20'
+              : offset === -1
+              ? 'lg:left-[10%] lg:top-[60px] lg:block lg:w-[300px] lg:scale-85 lg:opacity-70 lg:z-20'
+              : offset === 2
+              ? 'lg:right-[2%] lg:top-[100px] lg:block lg:w-[220px] lg:scale-75 lg:opacity-40 lg:z-10'
+              : offset === -2
+              ? 'lg:left-[2%] lg:top-[100px] lg:block lg:w-[220px] lg:scale-75 lg:opacity-40 lg:z-10'
+              : 'lg:hidden'
 
             return (
               <motion.div
                 key={`${item.id}-${index}-${offset}`}
-                initial={reducedMotion ? false : { opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={reducedMotion ? false : { opacity: 0, y: 30, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                className={`absolute transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${mobilePosition} ${tabletPosition} ${desktopPosition} ${
-                  isActive ? 'z-30' : 'z-10'
-                }`}
+                className={`absolute transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${mobilePosition} ${tabletPosition} ${desktopPosition}`}
               >
                 <Link
                   href={getHref(item)}
-                  className={`group block overflow-hidden rounded-[2rem] border bg-[var(--bg-card)] p-3 shadow-[var(--shadow-lg)] transition ${
-                    isActive
-                      ? 'border-[var(--accent)]/35'
-                      : 'border-[var(--border)] hover:border-[var(--accent)]/20'
-                  }`}
+                  className="group block overflow-hidden rounded-2xl shadow-xl transition-all duration-500 hover:shadow-2xl"
                 >
-                  <div className="relative overflow-hidden rounded-[1.5rem] bg-[var(--bg-section)]">
-                    {getImage(item) ? (
+                  <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-[var(--bg-section)]">
+                    {image ? (
                       <img
-                        src={getImage(item)}
-                        alt={getTitle(item)}
+                        src={image}
+                        alt={item.client_name || item.title || 'Portfolio project'}
                         loading={isActive ? 'eager' : 'lazy'}
-                        className={`w-full object-cover transition duration-700 group-hover:scale-[1.04] ${
-                          isActive
-                            ? 'aspect-[4/4.8] sm:aspect-[16/10] lg:aspect-[16/9]'
-                            : 'aspect-[4/5]'
-                        }`}
+                        className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
                       />
                     ) : (
-                      <div
-                        className={`flex items-center justify-center ${
-                          isActive
-                            ? 'aspect-[4/4.8] sm:aspect-[16/10] lg:aspect-[16/9]'
-                            : 'aspect-[4/5]'
-                        }`}
-                      >
+                      <div className="flex h-full w-full items-center justify-center">
                         <SvgIcon name="portfolio" size={58} color="var(--accent)" />
                       </div>
                     )}
-
-                    <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-page)]/94 via-[var(--bg-page)]/20 to-transparent" />
-
-                    <div className="absolute left-4 top-4 rounded-full bg-[var(--accent)] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-[var(--btn-primary-text)]">
-                      {getMetric(item)}
-                    </div>
-
-                    {item.is_before_after && isActive && (
-                      <div className="absolute right-4 top-4 rounded-full border border-[var(--border)] bg-[var(--bg-section)]/80 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-[var(--text-primary)] backdrop-blur-xl">
-                        Before / After
-                      </div>
-                    )}
-
-                    <div className="absolute bottom-4 left-4 right-4">
-                      <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[var(--accent)]">
-                        {getCategory(item)}
-                      </p>
-
-                      <h3
-                        className={`mt-2 font-black tracking-[-0.04em] text-[var(--text-inverse)] ${
-                          isActive ? 'text-2xl sm:text-4xl' : 'text-xl'
-                        }`}
-                      >
-                        {getTitle(item)}
-                      </h3>
-
-                      {isActive && (
-                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--text-secondary)] sm:text-sm sm:leading-6">
-                          {item.project_type ||
-                            item.description ||
-                            'Premium digital system built for clearer trust and better growth.'}
-                        </p>
-                      )}
+                    
+                    {/* Subtle gradient overlay for better visibility of case study link on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                    
+                    {/* View Case Study button on hover */}
+                    <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full transition-transform duration-500 group-hover:translate-y-0">
+                      <span className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-black text-[var(--btn-primary-text)]">
+                        View Case Study
+                        <SvgIcon name="arrow-diagonal" size={12} color="var(--btn-primary-text)" />
+                      </span>
                     </div>
                   </div>
-
-                  {isActive && (
-                    <div className="flex items-center justify-between px-2 py-4">
-                      <span className="inline-flex items-center gap-2 text-sm font-black text-[var(--accent)]">
-                        View Case Study
-                        <SvgIcon
-                          name="arrow-diagonal"
-                          size={14}
-                          color="var(--accent)"
-                        />
-                      </span>
-
-                      <span className="text-xs font-bold text-[var(--text-muted)]">
-                        {String(index + 1).padStart(2, '0')}
-                      </span>
-                    </div>
-                  )}
                 </Link>
               </motion.div>
             )
@@ -355,37 +298,48 @@ export default function FeaturedPortfolioSection({
         </motion.div>
       </div>
 
-      <div className="relative z-10 mx-auto -mt-6 flex max-w-7xl flex-col items-center gap-5 px-5 text-center sm:px-6 md:px-10 lg:px-12">
-        <div className="flex items-center gap-3">
+      {/* Navigation dots / indicators */}
+      <div className="relative z-10 mx-auto mt-8 flex items-center justify-center gap-2">
+        {portfolioItems.map((_, idx) => (
           <button
-            type="button"
-            onClick={goPrev}
-            aria-label="Previous portfolio item"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-card)] text-xl font-black text-[var(--accent)] transition hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/10"
-          >
-            ‹
-          </button>
+            key={idx}
+            onClick={() => setActiveIndex(idx)}
+            className={`h-2 rounded-full transition-all duration-300 ${
+              idx === activeIndex ? 'w-8 bg-[var(--accent)]' : 'w-2 bg-[var(--text-muted)]'
+            }`}
+            aria-label={`Go to slide ${idx + 1}`}
+          />
+        ))}
+      </div>
 
-          <button
-            type="button"
-            onClick={goNext}
-            aria-label="Next portfolio item"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-card)] text-xl font-black text-[var(--accent)] transition hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/10"
-          >
-            ›
-          </button>
-        </div>
+      {/* Navigation arrows */}
+      <div className="relative z-10 mx-auto mt-6 flex items-center justify-center gap-4">
+        <button
+          type="button"
+          onClick={goPrev}
+          aria-label="Previous project"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-card)] text-xl font-black text-[var(--accent)] transition hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/10"
+        >
+          ‹
+        </button>
+        <button
+          type="button"
+          onClick={goNext}
+          aria-label="Next project"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-card)] text-xl font-black text-[var(--accent)] transition hover:border-[var(--accent)]/30 hover:bg-[var(--accent)]/10"
+        >
+          ›
+        </button>
+      </div>
 
-        <p className="max-w-2xl text-sm leading-7 text-[var(--text-secondary)]">
-          {portfolioItems.length}+ selected projects across ecommerce, health,
-          food, lifestyle, and digital growth systems.
-        </p>
-
+      {/* View all link */}
+      <div className="relative z-10 mx-auto mt-8 text-center">
         <Link
           href="/portfolio"
-          className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-[var(--accent)] px-7 py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] hover:bg-[var(--accent-lime)]"
+          className="inline-flex items-center gap-2 text-sm font-bold text-[var(--accent)] transition hover:gap-3"
         >
           View All Work
+          <SvgIcon name="arrow-diagonal" size={14} color="var(--accent)" />
         </Link>
       </div>
     </section>

@@ -74,14 +74,7 @@ export default function HomePageClient() {
           .order('display_order', { ascending: true })
           .limit(8),
         supabase.from('cta_section').select('*').single(),
-        supabase
-          .from('portfolio_items')
-          .select(
-            'id,title,name,client_name,slug,category,industry,project_type,description,image_url,featured_image,metric_value,metric_label,before_image,after_image,is_before_after,is_active,display_order,featured'
-          )
-          .eq('is_active', true)
-          .order('display_order', { ascending: true })
-          .limit(12),
+        fetchPortfolioItems(),
         supabase
           .from('pricing_packages')
           .select(
@@ -96,12 +89,43 @@ export default function HomePageClient() {
       setAbout(aboutRes.data || {})
       setFaqs(faqsRes.data || [])
       setCta(ctaRes.data || {})
-      setPortfolioItems(portfolioRes.data || [])
+      setPortfolioItems(portfolioRes || [])
       setPricingPackages(pricingRes.data || [])
     }
 
     fetchHomeData()
   }, [])
+
+  // Fetch portfolio items - prioritize featured items
+  async function fetchPortfolioItems() {
+    // First try: Get featured items
+    let { data: featuredItems } = await supabase
+      .from('portfolio_items')
+      .select(
+        'id,title,name,client_name,slug,category,industry,project_type,description,image_url,featured_image,metric_value,metric_label,before_image,after_image,is_before_after,is_active,display_order,featured'
+      )
+      .eq('is_active', true)
+      .eq('featured', true)
+      .order('display_order', { ascending: true })
+      .limit(12)
+
+    // If featured items exist, use them
+    if (featuredItems && featuredItems.length > 0) {
+      return featuredItems
+    }
+
+    // Fallback: Get all active items
+    let { data: allItems } = await supabase
+      .from('portfolio_items')
+      .select(
+        'id,title,name,client_name,slug,category,industry,project_type,description,image_url,featured_image,metric_value,metric_label,before_image,after_image,is_before_after,is_active,display_order,featured'
+      )
+      .eq('is_active', true)
+      .order('display_order', { ascending: true })
+      .limit(12)
+
+    return allItems || []
+  }
 
   // Stats for counter animation (without + sign)
   const statsData = [

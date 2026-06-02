@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -12,6 +13,22 @@ export const metadata = {
 }
 
 export const revalidate = 60
+
+interface PortfolioItem {
+  id: string
+  name?: string
+  client_name?: string
+  title?: string
+  slug?: string
+  category?: string
+  description?: string
+  before_image?: string
+  after_image?: string
+  metric_value?: string
+  metric_label?: string
+  project_type?: string
+  results_summary?: string
+}
 
 export default async function BeforeAfterPage() {
   const { data: projects } = await supabase
@@ -31,7 +48,7 @@ export default async function BeforeAfterPage() {
         {/* Background decorative elements */}
         <div className="absolute inset-0 -z-10">
           <div className="absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-[var(--accent)]/7 blur-[140px]" />
-          <div className="absolute bottom-0 right-0 h-[420px] w-[520px] rounded-full bg-[var(--accent)]/5 blur-[130px]" />
+          <div className="absolute bottom-0 right-0 h-[420px] w-[520px] rounded-full bg-[var(--accent-lime)]/5 blur-[130px]" />
           <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.018)_1px,transparent_1px)] bg-[size:82px_82px] opacity-25" />
         </div>
 
@@ -40,179 +57,159 @@ export default async function BeforeAfterPage() {
           <div className="mx-auto max-w-7xl text-center">
             <p className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-5 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--accent)]">
               <SvgIcon name="portfolio" size={14} color="var(--accent)" />
-              Before & After Web Designs
+              Before & After Transformations
             </p>
 
-            <h1 className="mx-auto max-w-5xl text-5xl font-black uppercase leading-[0.95] tracking-[-0.06em] text-[var(--text-primary)] sm:text-6xl lg:text-7xl">
-              Transforming visions into <GradientHeading>reality.</GradientHeading>
+            <h1 className="mx-auto max-w-5xl text-5xl font-black leading-[0.95] tracking-[-0.06em] text-[var(--text-primary)] sm:text-6xl lg:text-7xl">
+              See the <GradientHeading>transformation.</GradientHeading>
             </h1>
 
             <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-[var(--text-secondary)]">
-              See how outdated stores and websites can be transformed into modern,
+              Witness how outdated websites and stores are transformed into modern,
               premium, conversion-focused digital experiences.
             </p>
 
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
               <Link
                 href="/contact"
-                className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-[var(--accent)] px-7 py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] hover:bg-[var(--accent-lime)]"
+                className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-gradient-orange-green px-7 py-3 text-sm font-black text-white transition hover:scale-[1.02]"
               >
-                Get Free Audit
+                Start Your Transformation
               </Link>
-
               <Link
                 href="/portfolio"
                 className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-7 py-3 text-sm font-black text-[var(--accent)] transition hover:bg-[var(--accent)]/15"
               >
-                View Portfolio
+                View All Work
                 <SvgIcon name="arrow-diagonal" size={15} color="var(--accent)" />
               </Link>
             </div>
           </div>
         </section>
 
-        {/* Before/After Projects Grid */}
+        {/* Before/After Grid */}
         <section className="px-5 pb-24 sm:px-6 md:px-10 lg:px-12">
-          <div className="mx-auto max-w-7xl space-y-10">
-            {items.map((item: any, index: number) => {
-              const title = item.client_name || item.title || 'Project Transformation'
-              const metric =
-                item.metric_value && item.metric_label
-                  ? `${item.metric_value} ${item.metric_label}`
-                  : item.metric_value || item.result || 'Growth'
+          <div className="mx-auto max-w-7xl space-y-12">
+            {items.map((item: PortfolioItem, index: number) => {
+              const title = item.client_name || item.title || item.name || 'Project Transformation'
+              const metric = item.metric_value && item.metric_label
+                ? `${item.metric_value} ${item.metric_label}`
+                : item.metric_value || 'Growth'
 
               return (
-                <article
+                <div
                   key={item.id}
-                  className="overflow-hidden rounded-[2.4rem] border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[var(--shadow-lg)] transition hover:shadow-[var(--shadow-xl)] sm:p-6"
+                  className="group overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 transition hover:shadow-[var(--shadow-lg)]"
                 >
-                  <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                  {/* Header */}
+                  <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
+                      <p className="text-xs font-black uppercase tracking-wider text-[var(--accent)]">
                         Transformation {String(index + 1).padStart(2, '0')}
                       </p>
-
-                      <h2 className="mt-3 text-4xl font-black tracking-[-0.05em] text-[var(--text-primary)] sm:text-5xl">
+                      <h2 className="mt-2 text-2xl font-black text-[var(--text-primary)] sm:text-3xl">
                         {title}
                       </h2>
-
-                      <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--text-secondary)]">
-                        {item.project_type ||
-                          item.description ||
-                          'A visual transformation focused on trust, usability, mobile experience, and conversion clarity.'}
-                      </p>
+                      {item.category && (
+                        <p className="mt-1 text-sm text-[var(--text-muted)]">{item.category}</p>
+                      )}
                     </div>
-
                     <div className="flex flex-wrap gap-3">
-                      <span className="rounded-full bg-[var(--accent)] px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--btn-primary-text)]">
+                      <span className="rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-black text-[var(--btn-primary-text)]">
                         {metric}
                       </span>
-
-                      <span className="rounded-full border border-[var(--border)] bg-[var(--bg-section)] px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                      <span className="rounded-full border border-[var(--border)] bg-[var(--bg-section)] px-3 py-1.5 text-xs font-black text-[var(--text-muted)]">
                         Before → After
                       </span>
                     </div>
                   </div>
 
-                  <div className="grid gap-6 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
-                    <BeforeAfterImage
-                      title="Before"
-                      image={item.before_image}
-                      fallbackIcon="portfolio"
-                    />
-
-                    <div className="hidden h-16 w-16 items-center justify-center rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 lg:flex">
-                      <SvgIcon name="arrow-right" size={26} color="var(--accent)" />
+                  {/* Before/After Images */}
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    <div className="space-y-2">
+                      <p className="text-sm font-bold text-[var(--text-muted)]">Before</p>
+                      <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-section)]">
+                        {item.before_image ? (
+                          <img
+                            src={item.before_image}
+                            alt={`${title} before transformation`}
+                            className="w-full object-cover transition duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="flex aspect-video items-center justify-center">
+                            <SvgIcon name="image" size={48} color="var(--text-muted)" />
+                          </div>
+                        )}
+                      </div>
                     </div>
 
-                    <BeforeAfterImage
-                      title="After"
-                      image={item.after_image}
-                      highlight
-                      fallbackIcon="verified"
-                    />
+                    <div className="space-y-2">
+                      <p className="text-sm font-bold text-[var(--accent)]">After</p>
+                      <div className="overflow-hidden rounded-xl border border-[var(--accent)]/20 bg-[var(--bg-section)]">
+                        {item.after_image ? (
+                          <img
+                            src={item.after_image}
+                            alt={`${title} after transformation`}
+                            className="w-full object-cover transition duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="flex aspect-video items-center justify-center">
+                            <SvgIcon name="image" size={48} color="var(--accent)" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="mt-8 flex flex-col justify-between gap-4 border-t border-[var(--border)] pt-6 sm:flex-row sm:items-center">
-                    <p className="max-w-2xl text-sm leading-7 text-[var(--text-secondary)]">
+                  {/* Description and Link */}
+                  <div className="mt-6 flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-[var(--border)]">
+                    <p className="text-sm text-[var(--text-secondary)]">
                       {item.results_summary ||
-                        'This transformation improved the visual structure, brand perception, trust flow, and user experience of the digital system.'}
+                        item.description ||
+                        'A focused transformation built around trust, mobile experience, and conversion clarity.'}
                     </p>
-
                     <Link
                       href={item.slug ? `/portfolio/${item.slug}` : '/portfolio'}
-                      className="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-6 py-3 text-sm font-black text-[var(--accent)] transition hover:bg-[var(--accent)]/15"
+                      className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)]/10 px-4 py-2 text-sm font-black text-[var(--accent)] transition hover:bg-[var(--accent)]/20"
                     >
-                      View Case Study
-                      <SvgIcon name="arrow-diagonal" size={15} color="var(--accent)" />
+                      View Full Case Study
+                      <SvgIcon name="arrow-diagonal" size={14} color="var(--accent)" />
                     </Link>
                   </div>
-                </article>
+                </div>
               )
             })}
 
             {items.length === 0 && (
-              <div className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] px-6 py-16 text-center">
-                <SvgIcon name="portfolio" size={54} color="var(--accent)" />
-                <h2 className="mt-5 text-3xl font-black tracking-[-0.04em] text-[var(--text-primary)]">
-                  No before and after projects yet.
-                </h2>
-                <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[var(--text-secondary)]">
-                  Add projects from the admin portfolio page and enable the Before / After option.
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
+                <SvgIcon name="portfolio" size={48} color="var(--text-muted)" className="mx-auto mb-4" />
+                <h2 className="text-xl font-black text-[var(--text-primary)]">No before/after projects yet</h2>
+                <p className="mt-2 text-[var(--text-secondary)]">
+                  Add projects from the admin portfolio page and enable the "Show in Before/After" option.
                 </p>
               </div>
             )}
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="px-5 pb-24 sm:px-6 md:px-10 lg:px-12">
+          <div className="mx-auto max-w-7xl rounded-2xl border border-[var(--accent)]/20 bg-gradient-to-r from-[var(--accent)]/5 to-transparent p-8 text-center sm:p-12">
+            <p className="text-xs font-black uppercase tracking-wider text-[var(--accent)]">Ready for your transformation?</p>
+            <h2 className="mx-auto mt-4 max-w-2xl text-3xl font-black leading-tight text-[var(--text-primary)] sm:text-4xl">
+              Let's create a digital experience that works harder for your business.
+            </h2>
+            <Link
+              href="/contact"
+              className="mt-6 inline-flex min-h-[50px] items-center justify-center rounded-full bg-gradient-orange-green px-8 py-3 text-sm font-black text-white transition hover:scale-[1.02]"
+            >
+              Get Free Consultation
+            </Link>
           </div>
         </section>
       </main>
 
       <Footer />
     </>
-  )
-}
-
-function BeforeAfterImage({
-  title,
-  image,
-  highlight = false,
-  fallbackIcon,
-}: {
-  title: string
-  image?: string
-  highlight?: boolean
-  fallbackIcon: string
-}) {
-  return (
-    <div
-      className={`overflow-hidden rounded-[2rem] border p-3 ${
-        highlight
-          ? 'border-[var(--accent)]/25 bg-[var(--accent)]/8'
-          : 'border-[var(--border)] bg-[var(--bg-section)]'
-      }`}
-    >
-      <div className="mb-4 flex items-center justify-between px-2 pt-2">
-        <p className="text-sm font-black uppercase tracking-[0.16em] text-[var(--text-primary)]">
-          {title}
-        </p>
-
-        {highlight && (
-          <span className="rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--btn-primary-text)]">
-            Optimized
-          </span>
-        )}
-      </div>
-
-      {image ? (
-        <img
-          src={image}
-          alt={`${title} website view`}
-          className="aspect-[4/3] w-full rounded-[1.5rem] object-cover"
-        />
-      ) : (
-        <div className="flex aspect-[4/3] items-center justify-center rounded-[1.5rem] bg-[var(--bg-card)]">
-          <SvgIcon name={fallbackIcon} size={56} color="var(--accent)" />
-        </div>
-      )}
-    </div>
   )
 }
