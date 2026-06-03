@@ -69,67 +69,21 @@ function getCategory(item: PortfolioItem) {
   return item.category || item.tag || item.industry || 'Case Study'
 }
 
-// Updated to use custom SVG icons from /icons/portfolio/ folder
-function getCategoryIconPath(category?: string): string {
-  const value = (category || '').toLowerCase()
-  
-  const iconMap: Record<string, string> = {
-    'all': '/icons/portfolio/all.svg',
-    'fashion': '/icons/portfolio/clothing-fashion.svg',
-    'clothing': '/icons/portfolio/clothing-fashion.svg',
-    'ecommerce': '/icons/portfolio/ecommerce.svg',
-    'store': '/icons/portfolio/ecommerce.svg',
-    'shopify': '/icons/portfolio/ecommerce.svg',
-    'food': '/icons/portfolio/food.svg',
-    'restaurant': '/icons/portfolio/food.svg',
-    'healthcare': '/icons/portfolio/health-care.svg',
-    'health': '/icons/portfolio/health-care.svg',
-    'medical': '/icons/portfolio/health-care.svg',
-    'care': '/icons/portfolio/health-care.svg',
-    'jewellery': '/icons/portfolio/jewellery.svg',
-    'jewelry': '/icons/portfolio/jewellery.svg',
-    'kids': '/icons/portfolio/kids-clothing.svg',
-    'children': '/icons/portfolio/kids-clothing.svg',
-    'branding': '/icons/portfolio/logos.svg',
-    'logo': '/icons/portfolio/logos.svg',
-    'pets': '/icons/portfolio/pets.svg',
-    'skincare': '/icons/portfolio/skin-care.svg',
-    'beauty': '/icons/portfolio/skin-care.svg',
-    'skin': '/icons/portfolio/skin-care.svg',
-    'sports': '/icons/portfolio/sports-fitness.svg',
-    'fitness': '/icons/portfolio/sports-fitness.svg',
-    'gym': '/icons/portfolio/sports-fitness.svg',
-    'redesign': '/icons/portfolio/store-redesign.svg',
-    'tea': '/icons/portfolio/tea-coffee.svg',
-    'coffee': '/icons/portfolio/tea-coffee.svg',
-    'saas': '/icons/portfolio/ecommerce.svg',
-    'software': '/icons/portfolio/ecommerce.svg',
-    'real estate': '/icons/portfolio/ecommerce.svg',
-    'property': '/icons/portfolio/ecommerce.svg',
-    'interior': '/icons/portfolio/clothing-fashion.svg',
-    'design': '/icons/portfolio/clothing-fashion.svg',
-  }
-  
-  // Find matching key
-  for (const [key, path] of Object.entries(iconMap)) {
-    if (value.includes(key)) return path
-  }
-  
-  return '/icons/portfolio/all.svg'
-}
-
-// Keep this for backward compatibility
-function getCategoryIconName(category?: string) {
-  const value = (category || '').toLowerCase()
-  if (value.includes('ecommerce') || value.includes('store') || value.includes('shopify')) return 'ecommerce'
-  if (value.includes('brand')) return 'branding'
-  if (value.includes('marketing')) return 'digital-marketing'
-  if (value.includes('ui') || value.includes('ux')) return 'ui-ux'
-  if (value.includes('web')) return 'web-development'
-  if (value.includes('logo')) return 'branding'
-  if (value.includes('cro')) return 'analytics'
-  return 'portfolio'
-}
+// Vertex Dimension Style Categories - Proper capitalization
+const CATEGORIES = [
+  { id: 'all', name: 'All', icon: '/icons/portfolio/all.svg.png' },
+  { id: 'clothing', name: 'Clothing', icon: '/icons/portfolio/clothing.svg.png' },
+  { id: 'food', name: 'Food', icon: '/icons/portfolio/food.svg.png' },
+  { id: 'healthcare', name: 'Healthcare', icon: '/icons/portfolio/health-care.svg.png' },
+  { id: 'jewellery', name: 'Jewellery', icon: '/icons/portfolio/jewellery.svg.png' },
+  { id: 'kids', name: 'Kids', icon: '/icons/portfolio/kids-clothing.svg.png' },
+  { id: 'branding', name: 'Branding', icon: '/icons/portfolio/logos.svg.png' },
+  { id: 'pets', name: 'Pets', icon: '/icons/portfolio/pets.svg.png' },
+  { id: 'skincare', name: 'Skin care', icon: '/icons/portfolio/skin-care.svg.png' },
+  { id: 'sports', name: 'Sports', icon: '/icons/portfolio/sports-fitness.svg.png' },
+  { id: 'redesign', name: 'Redesign', icon: '/icons/portfolio/store-redesign.svg' },
+  { id: 'teacoffee', name: 'Tea/Coffee', icon: '/icons/portfolio/tea-coffee.svg.png' },
+]
 
 export default function PortfolioPage() {
   const reducedMotion = useReducedMotion()
@@ -152,26 +106,17 @@ export default function PortfolioPage() {
     fetchItems()
   }, [])
 
-  const categories = useMemo(() => {
-    const unique = Array.from(
-      new Set(items.map((item) => getCategory(item)).filter(Boolean))
-    ) as string[]
-    return ['all', ...unique]
-  }, [items])
-
   const filteredItems = useMemo(() => {
     if (activeCategory === 'all') return items
-    return items.filter((item) => getCategory(item) === activeCategory)
+    return items.filter((item) => {
+      const itemCategory = (item.category || '').toLowerCase()
+      return itemCategory.includes(activeCategory)
+    })
   }, [activeCategory, items])
 
-  const featuredItem = useMemo(() => {
-    return items.find((item) => item.featured) || items[0]
-  }, [items])
-
   const visibleItems = useMemo(() => {
-    if (activeCategory !== 'all') return filteredItems
-    return filteredItems.filter((item) => item.id !== featuredItem?.id)
-  }, [activeCategory, filteredItems, featuredItem])
+    return filteredItems
+  }, [filteredItems])
 
   if (loading) {
     return (
@@ -199,6 +144,7 @@ export default function PortfolioPage() {
           <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.018)_1px,transparent_1px)] bg-[size:82px_82px] opacity-25" />
         </div>
 
+        {/* Hero Section */}
         <section className="relative px-5 pb-12 pt-32 sm:px-6 md:px-10 lg:px-12">
           <div className="mx-auto max-w-7xl">
             <motion.div
@@ -220,170 +166,74 @@ export default function PortfolioPage() {
                 Explore selected ecommerce builds, redesigns, before-and-after improvements,
                 and conversion-focused systems created to improve trust, usability, and growth.
               </p>
-
-              <div className="mt-8 flex flex-wrap gap-3">
-                {['Shopify Optimization', 'Conversion Systems', 'Premium UI/UX', 'Before & After Proof'].map((item) => (
-                  <span
-                    key={item}
-                    className="rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-[var(--text-muted)]"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
             </motion.div>
           </div>
         </section>
 
-        {/* Featured Case Study */}
-        {featuredItem && activeCategory === 'all' && (
-          <section className="relative px-5 pb-12 sm:px-6 md:px-10 lg:px-12">
-            <div className="mx-auto max-w-7xl">
-              <motion.div
-                initial={reducedMotion ? false : { opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.55, delay: 0.08 }}
-                className="group grid overflow-hidden rounded-[2.2rem] border border-[var(--border)] bg-[var(--bg-card)] p-3 shadow-[var(--shadow-lg)] lg:grid-cols-[1.08fr_0.92fr]"
-              >
-                <Link
-                  href={getHref(featuredItem)}
-                  className="relative block min-h-[360px] overflow-hidden rounded-[1.7rem] bg-[var(--bg-section)] sm:min-h-[480px]"
-                >
-                  {getImage(featuredItem) ? (
-                    <img
-                      src={getImage(featuredItem)}
-                      alt={getTitle(featuredItem)}
-                      loading="eager"
-                      className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]"
-                    />
-                  ) : (
-                    <div className="flex h-full min-h-[360px] items-center justify-center">
-                      <SvgIcon name="portfolio" size={72} color="var(--accent)" />
-                    </div>
-                  )}
-
-                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-page)]/88 via-[var(--bg-page)]/20 to-transparent" />
-
-                  <div className="absolute left-5 top-5 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--accent)] backdrop-blur-xl">
-                    Featured Case Study
-                  </div>
-
-                  <div className="absolute bottom-5 left-5 rounded-full bg-[var(--accent)] px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--btn-primary-text)] shadow-[0_0_40px_rgba(57,217,122,0.22)]">
-                    {getMetric(featuredItem)}
-                  </div>
-
-                  {featuredItem.is_before_after && (
-                    <div className="absolute bottom-5 right-5 rounded-full border border-[var(--border)] bg-[var(--bg-page)]/80 px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--text-primary)] backdrop-blur-xl">
-                      Before / After
-                    </div>
-                  )}
-                </Link>
-
-                <div className="relative p-6 sm:p-8 lg:p-10">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,var(--accent)/0.11,transparent_40%)]" />
-
-                  <div className="relative">
-                    <p className="mb-4 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--accent)]">
-                      {getCategory(featuredItem)}
-                    </p>
-
-                    <h2 className="text-3xl font-black leading-[1] tracking-[-0.04em] text-[var(--text-primary)] sm:text-4xl md:text-5xl">
-                      {getTitle(featuredItem)}
-                    </h2>
-
-                    <p className="mt-5 max-w-2xl text-sm leading-7 text-[var(--text-secondary)] sm:text-base">
-                      {getProjectType(featuredItem)}
-                    </p>
-
-                    <div className="mt-7 grid gap-3 sm:grid-cols-3">
-                      <MiniMetric label="Problem" value="Trust gaps" />
-                      <MiniMetric label="System" value={featuredItem.technology || 'Growth system'} />
-                      <MiniMetric label="Result" value={getMetric(featuredItem)} />
-                    </div>
-
-                    <div className="mt-7 rounded-2xl border border-[var(--border)] bg-[var(--bg-section)]/70 p-5">
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                        Case Study Summary
-                      </p>
-                      <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)]">
-                        {featuredItem.results_summary ||
-                          featuredItem.description ||
-                          'A selected project focused on improving design credibility, customer trust, mobile experience, and conversion flow.'}
-                      </p>
-                    </div>
-
-                    <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                      <Link
-                        href={getHref(featuredItem)}
-                        className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] hover:bg-[var(--accent-lime)]"
-                      >
-                        View Case Study
-                        <SvgIcon name="arrow-diagonal" size={15} color="var(--btn-primary-text)" />
-                      </Link>
-
-                      <Link
-                        href="/contact"
-                        className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full border border-[var(--accent)]/24 bg-[var(--accent)]/10 px-6 py-3 text-sm font-black text-[var(--accent)] transition hover:bg-[var(--accent)]/15"
-                      >
-                        Get Similar Results
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
+        {/* Category Filters - Vertex Dimension Style */}
+        <section className="relative px-5 py-10 sm:px-6 md:px-10 lg:px-12">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-8 text-center">
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
+                Our Work
+              </p>
             </div>
-          </section>
-        )}
 
-        {/* Category Filter & Grid */}
+            {/* Categories Grid - Centered with flex wrap */}
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {CATEGORIES.map((category) => {
+                const active = activeCategory === category.id
+                
+                return (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => setActiveCategory(category.id)}
+                    className={`group relative flex flex-col items-center rounded-2xl px-4 py-3 transition-all duration-300 ${
+                      active
+                        ? 'border-[var(--accent)] bg-[var(--accent)]/10'
+                        : 'border border-[var(--border)] bg-[var(--bg-card)] hover:border-[var(--accent)]/30 hover:shadow-md'
+                    }`}
+                  >
+                    {/* Icon */}
+                    <div className="flex h-10 w-10 items-center justify-center transition-all duration-300 group-hover:scale-105">
+                      <img
+                        src={category.icon}
+                        alt={category.name}
+                        className="h-6 w-6 object-contain"
+                        style={{
+                          filter: active 
+                            ? 'brightness(0) saturate(100%) invert(82%) sepia(58%) saturate(626%) hue-rotate(73deg) brightness(94%) contrast(89%)' 
+                            : 'brightness(0) saturate(100%) invert(60%) sepia(0%) saturate(0%) brightness(90%) contrast(80%)'
+                        }}
+                      />
+                    </div>
+                    
+                    {/* Category Name */}
+                    <span className={`mt-2 text-xs font-medium transition-all duration-300 ${
+                      active ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'
+                    }`}>
+                      {category.name}
+                    </span>
+                    
+                    {/* Active Indicator - Small dot under active category */}
+                    {active && (
+                      <motion.div
+                        layoutId="activeCategoryDot"
+                        className="absolute -bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[var(--accent)]"
+                        transition={{ duration: 0.2 }}
+                      />
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* Portfolio Grid */}
         <section className="relative px-5 pb-20 sm:px-6 md:px-10 lg:px-12">
           <div className="mx-auto max-w-7xl">
-            <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
-                  Selected Work
-                </p>
-                <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-[var(--text-primary)] sm:text-4xl">
-                  Case studies with proof-focused outcomes.
-                </h2>
-              </div>
-
-              {/* Category Filters with Custom SVG Icons */}
-              <div className="flex gap-2 overflow-x-auto pb-2 lg:max-w-[58%]">
-                {categories.map((category) => {
-                  const active = activeCategory === category
-                  return (
-                    <button
-                      key={category}
-                      type="button"
-                      onClick={() => setActiveCategory(category)}
-                      className={`flex flex-shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.12em] transition ${
-                        active
-                          ? 'border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]'
-                          : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                      }`}
-                    >
-                      {category === 'all' ? (
-                        <SvgIcon name="portfolio" size={13} color={active ? 'var(--accent)' : 'var(--text-muted)'} />
-                      ) : (
-                        <img
-                          src={getCategoryIconPath(category)}
-                          alt={category}
-                          className="h-4 w-4 object-contain"
-                          style={{
-                            filter: active 
-                              ? 'brightness(0) saturate(100%) invert(82%) sepia(58%) saturate(626%) hue-rotate(73deg) brightness(94%) contrast(89%)' 
-                              : 'brightness(0) saturate(100%) invert(80%) sepia(0%) saturate(0%) brightness(90%) contrast(80%)'
-                          }}
-                        />
-                      )}
-                      {category === 'all' ? 'All Work' : category}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeCategory}
@@ -391,71 +241,80 @@ export default function PortfolioPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={reducedMotion ? undefined : { opacity: 0, y: -10 }}
                 transition={{ duration: 0.35 }}
-                className="grid gap-5 md:grid-cols-2 lg:grid-cols-3"
+                className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
               >
-                {visibleItems.map((item, index) => (
+                {visibleItems.slice(0, 12).map((item, index) => (
                   <motion.article
                     key={item.id || getTitle(item)}
                     initial={reducedMotion ? false : { opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: index * 0.04 }}
+                    transition={{ duration: 0.4, delay: index * 0.05 }}
                     viewport={{ once: true }}
+                    className="group relative"
                   >
                     <Link
                       href={getHref(item)}
-                      className="group block h-full overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] p-3 transition hover:-translate-y-1 hover:border-[var(--accent)]/25 hover:shadow-[var(--shadow-lg)]"
+                      className="block overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[var(--shadow-lg)]"
                     >
-                      <div className="relative overflow-hidden rounded-[1.5rem] bg-[var(--bg-section)]">
+                      {/* Image Container */}
+                      <div className="relative overflow-hidden">
                         {getImage(item) ? (
                           <img
                             src={getImage(item)}
                             alt={getTitle(item)}
-                            className="aspect-[4/3] w-full object-cover transition duration-700 group-hover:scale-[1.05]"
+                            className="aspect-[4/3] w-full object-cover transition duration-700 group-hover:scale-105"
                           />
                         ) : (
-                          <div className="flex aspect-[4/3] items-center justify-center">
-                            <SvgIcon name="portfolio" size={60} color="var(--accent)" />
+                          <div className="flex aspect-[4/3] items-center justify-center bg-[var(--bg-section)]">
+                            <SvgIcon name="portfolio" size={48} color="var(--accent)" />
                           </div>
                         )}
-
-                        <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-page)]/90 via-[var(--bg-page)]/10 to-transparent" />
-
-                        <div className="absolute left-4 top-4 rounded-full bg-[var(--accent)] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--btn-primary-text)]">
+                        
+                        {/* Metric Badge */}
+                        <div className="absolute left-3 top-3 rounded-full bg-[var(--accent)] px-2.5 py-1 text-[10px] font-black text-[var(--btn-primary-text)]">
                           {getMetric(item)}
                         </div>
-
+                        
+                        {/* Before/After Badge */}
                         {item.is_before_after && (
-                          <div className="absolute right-4 top-4 rounded-full border border-[var(--border)] bg-[var(--bg-page)]/80 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-primary)] backdrop-blur-xl">
-                            Before / After
+                          <div className="absolute right-3 top-3 rounded-full border border-[var(--border)] bg-[var(--bg-page)]/80 px-2.5 py-1 text-[10px] font-black text-[var(--text-primary)] backdrop-blur-sm">
+                            Before/After
                           </div>
                         )}
-
-                        <div className="absolute bottom-4 left-4 right-4">
-                          <p className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--accent)]">
-                            {getCategory(item)}
-                          </p>
-                          <h3 className="text-xl font-black text-[var(--text-inverse)]">
-                            {getTitle(item)}
-                          </h3>
-                          <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--text-secondary)]">
-                            {getProjectType(item)}
-                          </p>
-                        </div>
                       </div>
-
-                      <div className="grid gap-3 px-2 py-4">
-                        <div className="grid grid-cols-2 gap-2">
-                          <SmallProof label="Industry" value={item.industry || getCategory(item)} />
-                          <SmallProof label="System" value={item.technology || 'Digital Growth'} />
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <span className="inline-flex items-center gap-2 text-sm font-black text-[var(--accent)] transition group-hover:gap-3">
-                            View Case Study
-                            <SvgIcon name="arrow-diagonal" size={14} color="var(--accent)" />
-                          </span>
+                      
+                      {/* Content */}
+                      <div className="p-5">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-xs font-black uppercase tracking-wider text-[var(--accent)]">
+                              {getCategory(item)}
+                            </p>
+                            <h3 className="mt-2 text-xl font-black leading-tight text-[var(--text-primary)]">
+                              {getTitle(item)}
+                            </h3>
+                          </div>
                           <span className="text-xs font-bold text-[var(--text-muted)]">
-                            0{index + 1}
+                            {String(index + 1).padStart(2, '0')}
+                          </span>
+                        </div>
+                        
+                        <p className="mt-3 line-clamp-2 text-sm text-[var(--text-secondary)]">
+                          {getProjectType(item)}
+                        </p>
+                        
+                        <div className="mt-4 flex items-center justify-between pt-3">
+                          <div className="flex gap-2">
+                            <span className="rounded-full border border-[var(--border)] bg-[var(--bg-section)] px-2 py-1 text-[9px] font-black uppercase text-[var(--text-muted)]">
+                              {item.industry || getCategory(item)}
+                            </span>
+                            <span className="rounded-full border border-[var(--border)] bg-[var(--bg-section)] px-2 py-1 text-[9px] font-black uppercase text-[var(--text-muted)]">
+                              {item.technology || 'Digital Growth'}
+                            </span>
+                          </div>
+                          <span className="inline-flex items-center gap-1 text-sm font-black text-[var(--accent)] transition group-hover:gap-2">
+                            View
+                            <SvgIcon name="arrow-diagonal" size={12} color="var(--accent)" />
                           </span>
                         </div>
                       </div>
@@ -466,38 +325,48 @@ export default function PortfolioPage() {
             </AnimatePresence>
 
             {visibleItems.length === 0 && (
-              <div className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] px-6 py-14 text-center">
-                <SvgIcon name="portfolio" size={50} color="var(--accent)" />
-                <h3 className="mt-5 text-2xl font-black text-[var(--text-primary)]">No projects found</h3>
-                <p className="mt-3 text-[var(--text-secondary)]">Try selecting another category.</p>
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] px-6 py-14 text-center">
+                <SvgIcon name="portfolio" size={48} color="var(--text-muted)" className="mx-auto mb-4" />
+                <h3 className="text-xl font-black text-[var(--text-primary)]">No projects found</h3>
+                <p className="mt-2 text-[var(--text-secondary)]">Try selecting another category.</p>
               </div>
             )}
           </div>
         </section>
 
+        {/* View All Link */}
+        {visibleItems.length > 9 && (
+          <div className="px-5 pb-12 text-center sm:px-6 md:px-10 lg:px-12">
+            <Link
+              href="/portfolio"
+              className="inline-flex items-center gap-2 text-sm font-black text-[var(--accent)] transition hover:gap-3"
+            >
+              View All Work
+              <SvgIcon name="arrow-diagonal" size={14} color="var(--accent)" />
+            </Link>
+          </div>
+        )}
+
         {/* CTA Section */}
         <section className="relative px-5 pb-24 sm:px-6 md:px-10 lg:px-12">
           <div className="mx-auto max-w-7xl">
-            <div className="overflow-hidden rounded-[2.2rem] border border-[var(--accent)]/20 bg-[var(--accent)]/8 p-6 text-center shadow-[0_0_90px_rgba(57,217,122,0.08)] sm:p-10">
+            <div className="overflow-hidden rounded-2xl border border-[var(--accent)]/20 bg-gradient-to-r from-[var(--accent)]/5 to-transparent p-8 text-center sm:p-12">
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--accent)]">
                 Ready for your transformation?
               </p>
-
-              <h2 className="mx-auto mt-4 max-w-3xl text-4xl font-black leading-[0.96] tracking-[-0.05em] text-[var(--text-primary)] sm:text-5xl">
+              <h2 className="mx-auto mt-4 max-w-3xl text-3xl font-black leading-tight text-[var(--text-primary)] sm:text-4xl">
                 Let's build a digital system that improves trust and drives growth.
               </h2>
-
-              <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <Link
                   href="/contact"
-                  className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-[var(--accent)] px-7 py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] hover:bg-[var(--accent-lime)]"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-gradient-orange-green px-6 py-2.5 text-sm font-black text-white transition hover:scale-[1.02]"
                 >
                   Get Free Audit
                 </Link>
-
                 <Link
                   href="/pricing"
-                  className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-[var(--accent)]/25 bg-[var(--bg-page)]/60 px-7 py-3 text-sm font-black text-[var(--accent)] transition hover:bg-[var(--accent)]/10"
+                  className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-6 py-2.5 text-sm font-black text-[var(--accent)] transition hover:bg-[var(--accent)]/15"
                 >
                   View Pricing
                 </Link>
@@ -509,31 +378,5 @@ export default function PortfolioPage() {
 
       <Footer />
     </>
-  )
-}
-
-function MiniMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-section)]/90 px-4 py-3">
-      <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
-        {label}
-      </p>
-      <p className="mt-2 line-clamp-1 text-sm font-black text-[var(--text-primary)]">
-        {value}
-      </p>
-    </div>
-  )
-}
-
-function SmallProof({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-section)]/70 px-3 py-3">
-      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)]">
-        {label}
-      </p>
-      <p className="mt-1 line-clamp-1 text-xs font-bold text-[var(--text-secondary)]">
-        {value}
-      </p>
-    </div>
   )
 }
