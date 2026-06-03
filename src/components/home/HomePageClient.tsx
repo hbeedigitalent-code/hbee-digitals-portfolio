@@ -96,25 +96,9 @@ export default function HomePageClient() {
     fetchHomeData()
   }, [])
 
-  // Fetch portfolio items - prioritize featured items
+  // Fetch portfolio items - gets all active items for the rotary carousel
   async function fetchPortfolioItems() {
-    // First try: Get featured items
-    let { data: featuredItems } = await supabase
-      .from('portfolio_items')
-      .select(
-        'id,title,name,client_name,slug,category,industry,project_type,description,image_url,featured_image,metric_value,metric_label,before_image,after_image,is_before_after,is_active,display_order,featured'
-      )
-      .eq('is_active', true)
-      .eq('featured', true)
-      .order('display_order', { ascending: true })
-      .limit(12)
-
-    // If featured items exist, use them
-    if (featuredItems && featuredItems.length > 0) {
-      return featuredItems
-    }
-
-    // Fallback: Get all active items
+    // Get all active items (not just featured)
     let { data: allItems } = await supabase
       .from('portfolio_items')
       .select(
@@ -122,7 +106,7 @@ export default function HomePageClient() {
       )
       .eq('is_active', true)
       .order('display_order', { ascending: true })
-      .limit(12)
+      .limit(30) // Get up to 30 items for the rotary carousel
 
     return allItems || []
   }
@@ -244,7 +228,7 @@ export default function HomePageClient() {
         {/* Before & After Preview */}
         <BeforeAfterPreview items={portfolioItems} />
 
-        {/* Featured Portfolio Section - SIGNATURE SECTION */}
+        {/* Featured Portfolio Section - Rotary Carousel with Images Only */}
         <FeaturedPortfolioSection items={portfolioItems} />
 
         {/* Trust Stack */}
