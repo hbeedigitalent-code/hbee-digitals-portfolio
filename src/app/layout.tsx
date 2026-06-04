@@ -13,14 +13,14 @@ import CursorGlow from '@/components/ui/CursorGlow'
 import PageUtilities from '@/components/ui/PageUtilities'
 import FloatingWhatsApp from '@/components/ui/FloatingWhatsApp'
 
-// Configure Inter font with all weights
+// Optimize font loading
 const inter = Inter({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800', '900'],
   variable: '--font-inter',
-  display: 'swap',
+  display: 'swap', // Prevents FOIT
   preload: true,
-  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
 })
 
 const siteUrl = 'https://hbeedigitals.com'
@@ -74,7 +74,13 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
-    googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 },
+    googleBot: { 
+      index: true, 
+      follow: true, 
+      'max-video-preview': -1, 
+      'max-image-preview': 'large', 
+      'max-snippet': -1 
+    },
   },
   category: 'technology',
 }
@@ -91,31 +97,62 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="en" className={`${inter.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Preconnect to critical origins */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        
+        {/* DNS Prefetch for external resources */}
+        <link rel="dns-prefetch" href="https://your-supabase-url.supabase.co" />
+        
+        {/* Preload critical assets */}
+        <link rel="preload" as="style" href="/critical.css" />
+        <link rel="preload" as="font" href="/fonts/Inter-var.woff2" type="font/woff2" crossOrigin="anonymous" />
+      </head>
       <body
         className="antialiased"
         style={{ fontFamily: "var(--font-inter), 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}
         suppressHydrationWarning
       >
+        {/* Skip to main content for accessibility */}
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[9999] focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-gray-900 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
+          Skip to main content
+        </a>
+
         <ThemeProvider>
-          <CursorGlow />
-          <a
-            href="#main-content"
-            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[9999] focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-gray-900 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-          >
-            Skip to main content
-          </a>
+          {/* Load non-critical components after paint */}
+          <Suspense fallback={null}>
+            <CursorGlow />
+          </Suspense>
+
           <Providers>
             <Suspense fallback={null}>
               <GoogleAnalytics />
             </Suspense>
+            
             <StructuredData />
+            
             {children}
           </Providers>
+
           <CookieConsent />
           <PageUtilities />
           <FloatingWhatsApp />
         </ThemeProvider>
+
+        {/* Load analytics after page load */}
         {gaId && <NextGoogleAnalytics gaId={gaId} />}
+        
+        {/* Service Worker for caching (optional) */}
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {
+              window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(console.error);
+              });
+            }
+          `
+        }} />
       </body>
     </html>
   )
