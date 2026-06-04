@@ -12,13 +12,14 @@ import { ThemeProvider } from '@/context/ThemeContext'
 import CursorGlow from '@/components/ui/CursorGlow'
 import PageUtilities from '@/components/ui/PageUtilities'
 import FloatingWhatsApp from '@/components/ui/FloatingWhatsApp'
+import ScrollToTop from '@/components/ui/ScrollToTop'
 
 // Optimize font loading
 const inter = Inter({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800', '900'],
   variable: '--font-inter',
-  display: 'swap', // Prevents FOIT
+  display: 'swap',
   preload: true,
   fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
 })
@@ -108,19 +109,32 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Preload critical assets */}
         <link rel="preload" as="style" href="/critical.css" />
         <link rel="preload" as="font" href="/fonts/Inter-var.woff2" type="font/woff2" crossOrigin="anonymous" />
+        
+        {/* Critical CSS inlined */}
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            /* Critical CSS - Above the fold styles */
+            *{margin:0;padding:0;box-sizing:border-box}
+            nav{position:fixed;top:0;left:0;right:0;z-index:50;background:var(--bg-page);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+            .hero-section{min-height:100vh;background:linear-gradient(135deg,#0A1D37 0%,#0F3460 30%,#1B4F8A 60%,#39D97A 100%);padding-top:80px}
+            .hero-title{font-size:clamp(2.5rem,5vw,4rem);font-weight:900;line-height:1.1;color:#fff}
+            .btn-primary{display:inline-flex;align-items:center;gap:8px;border-radius:9999px;background:linear-gradient(135deg,#FF6B35 0%,#39D97A 100%);padding:12px 28px;font-weight:900;color:#fff;transition:transform .2s}
+            .btn-primary:hover{transform:scale(1.02)}
+            .hero-image{aspect-ratio:1/1;width:100%;max-width:480px;object-fit:cover;border-radius:16px}
+            .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0}
+          `
+        }} />
       </head>
       <body
         className="antialiased"
         style={{ fontFamily: "var(--font-inter), 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}
         suppressHydrationWarning
       >
-        {/* Skip to main content for accessibility */}
         <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[9999] focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-gray-900 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
           Skip to main content
         </a>
 
         <ThemeProvider>
-          {/* Load non-critical components after paint */}
           <Suspense fallback={null}>
             <CursorGlow />
           </Suspense>
@@ -138,12 +152,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <CookieConsent />
           <PageUtilities />
           <FloatingWhatsApp />
+          <ScrollToTop />
         </ThemeProvider>
 
         {/* Load analytics after page load */}
         {gaId && <NextGoogleAnalytics gaId={gaId} />}
         
-        {/* Service Worker for caching (optional) */}
+        {/* Service Worker for caching */}
         <script dangerouslySetInnerHTML={{
           __html: `
             if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {

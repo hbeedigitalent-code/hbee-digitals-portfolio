@@ -8,7 +8,7 @@ export default function ScrollToTop() {
 
   useEffect(() => {
     const toggleVisibility = () => {
-      if (window.scrollY > 300) {
+      if (window.scrollY > 500) {
         setIsVisible(true);
       } else {
         setIsVisible(false);
@@ -31,7 +31,7 @@ export default function ScrollToTop() {
   return (
     <button
       onClick={scrollToTop}
-      className="fixed bottom-24 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--btn-primary-text)] shadow-lg transition-all hover:scale-110 hover:bg-[var(--accent-lime)] sm:bottom-8"
+      className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--btn-primary-text)] shadow-lg transition-all hover:scale-110 hover:bg-[var(--accent-lime)]"
       aria-label="Scroll to top"
     >
       <SvgIcon name="chevron-up" size={20} color="currentColor" />
