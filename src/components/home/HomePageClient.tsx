@@ -98,7 +98,6 @@ export default function HomePageClient() {
 
   // Fetch portfolio items - gets all active items for the rotary carousel
   async function fetchPortfolioItems() {
-    // Get all active items (not just featured)
     let { data: allItems } = await supabase
       .from('portfolio_items')
       .select(
@@ -106,7 +105,7 @@ export default function HomePageClient() {
       )
       .eq('is_active', true)
       .order('display_order', { ascending: true })
-      .limit(30) // Get up to 30 items for the rotary carousel
+      .limit(30)
 
     return allItems || []
   }
@@ -274,14 +273,14 @@ export default function HomePageClient() {
           </section>
         )}
 
-        {/* Pricing Section */}
+        {/* Pricing Section - Updated with better theme visibility */}
         {pricingPackages.length > 0 && (
           <section className="relative bg-[var(--bg-navy)] px-5 py-16 text-[var(--text-inverse)] sm:px-6 md:px-10 lg:px-12 lg:py-24">
-            <GridPattern />
-
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center, rgba(57,217,122,0.08), transparent 60%)]" />
+            
             <div className="relative z-10 mx-auto max-w-7xl">
               <div className="mb-12 max-w-4xl">
-                <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/18 bg-[var(--accent)]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
+                <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/15 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)] backdrop-blur-sm">
                   <SvgIcon name="pricing" size={14} color="var(--accent)" />
                   Investment Options
                 </p>
@@ -305,16 +304,16 @@ export default function HomePageClient() {
                   return (
                     <div
                       key={item.id}
-                      className={`relative overflow-hidden rounded-[2rem] border p-6 transition hover:-translate-y-1 ${
+                      className={`relative overflow-hidden rounded-2xl border p-6 transition hover:-translate-y-1 ${
                         item.is_featured
-                          ? 'border-[var(--accent)]/30 bg-[var(--accent)]/10 shadow-[0_32px_100px_rgba(57,217,122,0.12)]'
-                          : 'border-[var(--border)] bg-[var(--bg-card)]'
+                          ? 'border-[var(--accent)]/30 bg-gradient-to-br from-[var(--accent)]/15 to-[var(--accent-orange)]/5 shadow-[0_32px_100px_rgba(57,217,122,0.12)]'
+                          : 'border-[var(--border)] bg-[var(--bg-card)]/50 backdrop-blur-sm'
                       }`}
                     >
                       <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-[var(--accent)]/10 blur-[70px]" />
 
                       {item.is_featured && (
-                        <div className="relative mb-5 inline-flex rounded-full bg-[var(--accent)] px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--btn-primary-text)]">
+                        <div className="relative mb-5 inline-flex rounded-full bg-gradient-orange-green px-4 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white">
                           Most Popular
                         </div>
                       )}
@@ -340,16 +339,11 @@ export default function HomePageClient() {
                           {features.map((feature: string) => (
                             <div
                               key={feature}
-                              className="flex items-start gap-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-section)]/75 px-4 py-3"
+                              className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-section)]/50 px-4 py-3 backdrop-blur-sm"
                             >
-                              <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl border border-[var(--accent)]/16 bg-[var(--accent)]/10">
-                                <SvgIcon
-                                  name="verified"
-                                  size={12}
-                                  color="var(--accent)"
-                                />
+                              <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/10">
+                                <SvgIcon name="verified" size={12} color="var(--accent)" />
                               </span>
-
                               <span className="text-sm leading-6 text-[var(--text-secondary)]">
                                 {feature}
                               </span>
@@ -365,10 +359,10 @@ export default function HomePageClient() {
               <div className="mt-12 text-center">
                 <Link
                   href="/pricing"
-                  className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-8 py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] hover:bg-[var(--accent-lime)]"
+                  className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-full bg-gradient-orange-green px-8 py-3 text-sm font-black text-white shadow-lg transition hover:scale-[1.02] hover:shadow-xl"
                 >
                   View Full Pricing
-                  <SvgIcon name="arrow-diagonal" size={16} color="var(--btn-primary-text)" />
+                  <SvgIcon name="arrow-diagonal" size={16} color="white" />
                 </Link>
               </div>
             </div>

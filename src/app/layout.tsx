@@ -12,7 +12,7 @@ import { ThemeProvider } from '@/context/ThemeContext'
 import CursorGlow from '@/components/ui/CursorGlow'
 import PageUtilities from '@/components/ui/PageUtilities'
 import FloatingWhatsApp from '@/components/ui/FloatingWhatsApp'
-import ScrollToTop from '@/components/ui/ScrollToTop'
+// ScrollToTop removed - PageUtilities already has scroll-to-top + progress bar
 
 // Optimize font loading
 const inter = Inter({
@@ -150,9 +150,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </Providers>
 
           <CookieConsent />
-          <PageUtilities />
+          <PageUtilities />  {/* This handles: reading progress bar + scroll-to-top button */}
           <FloatingWhatsApp />
-          <ScrollToTop />
         </ThemeProvider>
 
         {/* Load analytics after page load */}
