@@ -25,6 +25,7 @@ function createSlug(value: string) {
 export default function NewBlogPost() {
   const router = useRouter()
   const [authors, setAuthors] = useState<any[]>([])
+  const [categories, setCategories] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
 
   // Basic fields
@@ -33,15 +34,22 @@ export default function NewBlogPost() {
   const [excerpt, setExcerpt] = useState('')
   const [content, setContent] = useState('')
   const [featuredImage, setFeaturedImage] = useState('')
+  const [altText, setAltText] = useState('')
   const [authorId, setAuthorId] = useState('')
-  const [readTime, setReadTime] = useState('5 min read')
+  const [categoryId, setCategoryId] = useState('')
+  const [readTime, setReadTime] = useState('8 min read')
   const [tags, setTags] = useState('')
   const [postType, setPostType] = useState('blog')
   const [isFeatured, setIsFeatured] = useState(false)
-  const [status, setStatus] = useState('draft')
+  const [status, setStatus] = useState('published')
+
+  // Featured card fields
+  const [featuredBadge, setFeaturedBadge] = useState('Growth Strategy')
+  const [cardTitle, setCardTitle] = useState('')
+  const [cardDescription, setCardDescription] = useState('')
 
   // CTA fields
-  const [ctaText, setCtaText] = useState('Start A Project')
+  const [ctaText, setCtaText] = useState('Request a Growth Review')
   const [ctaLink, setCtaLink] = useState('/contact')
 
   // SEO fields
@@ -52,13 +60,16 @@ export default function NewBlogPost() {
   const [ogDescription, setOgDescription] = useState('')
   const [ogImage, setOgImage] = useState('')
   const [canonicalUrl, setCanonicalUrl] = useState('')
+  const [socialCaption, setSocialCaption] = useState('')
 
   // UI states
-  const [showSeoPanel, setShowSeoPanel] = useState(false)
-  const [showCtaPanel, setShowCtaPanel] = useState(false)
+  const [showSeoPanel, setShowSeoPanel] = useState(true) // Open by default
+  const [showCtaPanel, setShowCtaPanel] = useState(true)
+  const [showFeaturedPanel, setShowFeaturedPanel] = useState(true)
 
   useEffect(() => {
     fetchAuthors()
+    fetchCategories()
   }, [])
 
   async function fetchAuthors() {
@@ -70,7 +81,24 @@ export default function NewBlogPost() {
     
     if (data && data.length > 0) {
       setAuthors(data)
-      setAuthorId(data[0].id)
+      // Find Habeeb or use first author
+      const habeeb = data.find(a => a.name.includes('Habeeb'))
+      setAuthorId(habeeb?.id || data[0].id)
+    }
+  }
+
+  async function fetchCategories() {
+    const { data } = await supabase
+      .from('blog_categories')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true })
+    
+    if (data && data.length > 0) {
+      setCategories(data)
+      // Find Ecommerce Growth Strategy category
+      const growthCat = data.find(c => c.name.includes('Ecommerce Growth'))
+      setCategoryId(growthCat?.id || data[0].id)
     }
   }
 
@@ -82,6 +110,13 @@ export default function NewBlogPost() {
     const tagArray = tags.split(',').map(t => t.trim()).filter(Boolean)
     const now = new Date().toISOString()
 
+    // Validate required fields
+    if (!authorId || authorId === '') {
+      alert('Please select an author')
+      setSaving(false)
+      return
+    }
+
     const { error } = await supabase.from('blog_posts').insert([
       {
         title,
@@ -89,13 +124,18 @@ export default function NewBlogPost() {
         excerpt,
         content,
         featured_image: featuredImage,
+        alt_text: altText,
         author_id: authorId,
+        category_id: categoryId || null,
         read_time: readTime,
         tags: tagArray,
         cta_text: ctaText,
         cta_link: ctaLink,
         post_type: postType,
         is_featured: isFeatured,
+        featured_badge: featuredBadge,
+        card_title: cardTitle || title,
+        card_description: cardDescription || excerpt?.slice(0, 120),
         status,
         created_at: now,
         updated_at: now,
@@ -107,12 +147,14 @@ export default function NewBlogPost() {
         og_description: ogDescription || excerpt?.slice(0, 200),
         og_image: ogImage || featuredImage,
         canonical_url: canonicalUrl || null,
+        social_caption: socialCaption,
         published_at: status === 'published' ? now : null,
       },
     ])
 
     if (error) {
       alert(error.message)
+      console.error(error)
     } else {
       router.push('/admin/blog')
     }
@@ -120,23 +162,21 @@ export default function NewBlogPost() {
     setSaving(false)
   }
 
-  // Auto-generate SEO title when title changes
+  // Auto-generate fields from title
   useEffect(() => {
-    if (title && !seoTitle) {
-      setSeoTitle(title)
-    }
-    if (title && !ogTitle) {
-      setOgTitle(title)
+    if (title) {
+      if (!seoTitle) setSeoTitle(title)
+      if (!ogTitle) setOgTitle(title)
+      if (!cardTitle) setCardTitle(title.length > 60 ? title.slice(0, 57) + '...' : title)
     }
   }, [title])
 
-  // Auto-generate SEO description when excerpt changes
+  // Auto-generate from excerpt
   useEffect(() => {
-    if (excerpt && !seoDescription) {
-      setSeoDescription(excerpt.slice(0, 160))
-    }
-    if (excerpt && !ogDescription) {
-      setOgDescription(excerpt.slice(0, 200))
+    if (excerpt) {
+      if (!seoDescription) setSeoDescription(excerpt.slice(0, 160))
+      if (!ogDescription) setOgDescription(excerpt.slice(0, 200))
+      if (!cardDescription) setCardDescription(excerpt.slice(0, 120))
     }
   }, [excerpt])
 
@@ -193,7 +233,7 @@ export default function NewBlogPost() {
 
         {/* Basic Info Grid */}
         <div className="grid gap-5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5 md:grid-cols-2">
-          <div>
+          <div className="md:col-span-2">
             <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Title *</label>
             <input
               type="text"
@@ -204,7 +244,7 @@ export default function NewBlogPost() {
               }}
               required
               className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-              placeholder="e.g., 10 Ecommerce Conversion Mistakes"
+              placeholder="e.g., Q3 Growth Readiness: Why Most Ecommerce Stores Struggle to Scale"
             />
           </div>
 
@@ -217,18 +257,34 @@ export default function NewBlogPost() {
               className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
               placeholder="auto-generated"
             />
-            <p className="mt-1 text-xs text-[var(--text-muted)]">/{slug || '...'}</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">/blog/{slug || '...'}</p>
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Author</label>
+            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Author *</label>
             <select
               value={authorId}
               onChange={(e) => setAuthorId(e.target.value)}
+              required
               className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
             >
+              <option value="">Select an author</option>
               {authors.map((author) => (
                 <option key={author.id} value={author.id}>{author.name} - {author.role}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Category</label>
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+            >
+              <option value="">Select a category</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>{category.name}</option>
               ))}
             </select>
           </div>
@@ -240,8 +296,34 @@ export default function NewBlogPost() {
               value={readTime}
               onChange={(e) => setReadTime(e.target.value)}
               className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-              placeholder="5 min read"
+              placeholder="8 min read"
             />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Status</label>
+            <div className="flex gap-4 pt-2">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="radio"
+                  value="draft"
+                  checked={status === 'draft'}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="h-4 w-4 accent-[var(--accent)]"
+                />
+                <span className="text-sm">📝 Draft</span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="radio"
+                  value="published"
+                  checked={status === 'published'}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="h-4 w-4 accent-[var(--accent)]"
+                />
+                <span className="text-sm">🚀 Published</span>
+              </label>
+            </div>
           </div>
         </div>
 
@@ -254,6 +336,16 @@ export default function NewBlogPost() {
             folder="blog"
             label="Upload featured image"
           />
+          <div className="mt-3">
+            <label className="mb-1 block text-sm font-bold text-[var(--text-primary)]">Alt Text (for SEO)</label>
+            <input
+              type="text"
+              value={altText}
+              onChange={(e) => setAltText(e.target.value)}
+              placeholder="Describe the image for screen readers and SEO"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-sm"
+            />
+          </div>
           <p className="mt-2 text-xs text-[var(--text-muted)]">Recommended size: 1200 x 630px for optimal sharing</p>
         </div>
 
@@ -264,7 +356,7 @@ export default function NewBlogPost() {
             value={excerpt}
             onChange={(e) => setExcerpt(e.target.value)}
             required
-            rows={3}
+            rows={4}
             className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
             placeholder="Brief summary that appears in blog listings and search results..."
           />
@@ -284,53 +376,84 @@ export default function NewBlogPost() {
           />
         </div>
 
-        {/* Tags & CTA */}
-        <div className="grid gap-5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5 md:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Tags</label>
-            <input
-              type="text"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-              placeholder="Shopify, Ecommerce, Conversion, CRO"
-            />
-            <p className="mt-1 text-xs text-[var(--text-muted)]">Separate with commas</p>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Status</label>
-            <div className="flex gap-4">
-              <label className="flex cursor-pointer items-center gap-2">
-                <input
-                  type="radio"
-                  value="draft"
-                  checked={status === 'draft'}
-                  onChange={(e) => setStatus(e.target.value)}
-                />
-                <span>📝 Draft</span>
-              </label>
-              <label className="flex cursor-pointer items-center gap-2">
-                <input
-                  type="radio"
-                  value="published"
-                  checked={status === 'published'}
-                  onChange={(e) => setStatus(e.target.value)}
-                />
-                <span>🚀 Publish Now</span>
-              </label>
-            </div>
-          </div>
+        {/* Tags */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+          <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Tags</label>
+          <input
+            type="text"
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
+            className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+            placeholder="Ecommerce, Ecommerce Growth, Q3 Growth, Conversion Optimization, Shopify, Customer Experience"
+          />
+          <p className="mt-1 text-xs text-[var(--text-muted)]">Separate with commas</p>
         </div>
 
-        {/* CTA Panel - Collapsible */}
+        {/* Featured Card Settings Panel */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
+          <button
+            type="button"
+            onClick={() => setShowFeaturedPanel(!showFeaturedPanel)}
+            className="flex w-full items-center justify-between p-5 text-left"
+          >
+            <span className="font-bold text-[var(--text-primary)]">⭐ Homepage Featured Card Settings</span>
+            <SvgIcon name="chevron-down" size={18} color="var(--accent)" className={`transition ${showFeaturedPanel ? 'rotate-180' : ''}`} />
+          </button>
+          {showFeaturedPanel && (
+            <div className="space-y-4 border-t border-[var(--border)] p-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Featured Badge</label>
+                  <input
+                    type="text"
+                    value={featuredBadge}
+                    onChange={(e) => setFeaturedBadge(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                    placeholder="Growth Strategy"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Card Title (Short)</label>
+                  <input
+                    type="text"
+                    value={cardTitle}
+                    onChange={(e) => setCardTitle(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                    placeholder={title?.slice(0, 60)}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Card Description</label>
+                <textarea
+                  value={cardDescription}
+                  onChange={(e) => setCardDescription(e.target.value)}
+                  rows={2}
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  placeholder={excerpt?.slice(0, 120)}
+                />
+              </div>
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={isFeatured}
+                  onChange={(e) => setIsFeatured(e.target.checked)}
+                  className="h-5 w-5 accent-[var(--accent)]"
+                />
+                <span className="text-sm font-bold text-[var(--text-primary)]">Feature this post on homepage</span>
+              </label>
+            </div>
+          )}
+        </div>
+
+        {/* CTA Panel */}
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
           <button
             type="button"
             onClick={() => setShowCtaPanel(!showCtaPanel)}
             className="flex w-full items-center justify-between p-5 text-left"
           >
-            <span className="font-bold text-[var(--text-primary)]">🎯 Call to Action (Optional)</span>
+            <span className="font-bold text-[var(--text-primary)]">🎯 Call to Action</span>
             <SvgIcon name="chevron-down" size={18} color="var(--accent)" className={`transition ${showCtaPanel ? 'rotate-180' : ''}`} />
           </button>
           {showCtaPanel && (
@@ -342,6 +465,7 @@ export default function NewBlogPost() {
                   value={ctaText}
                   onChange={(e) => setCtaText(e.target.value)}
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  placeholder="Request a Growth Review"
                 />
               </div>
               <div>
@@ -351,20 +475,21 @@ export default function NewBlogPost() {
                   value={ctaLink}
                   onChange={(e) => setCtaLink(e.target.value)}
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  placeholder="/contact"
                 />
               </div>
             </div>
           )}
         </div>
 
-        {/* SEO Panel - Collapsible */}
+        {/* SEO Panel */}
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
           <button
             type="button"
             onClick={() => setShowSeoPanel(!showSeoPanel)}
             className="flex w-full items-center justify-between p-5 text-left"
           >
-            <span className="font-bold text-[var(--text-primary)]">🔍 SEO Settings (Recommended)</span>
+            <span className="font-bold text-[var(--text-primary)]">🔍 SEO Settings</span>
             <SvgIcon name="chevron-down" size={18} color="var(--accent)" className={`transition ${showSeoPanel ? 'rotate-180' : ''}`} />
           </button>
           {showSeoPanel && (
@@ -377,7 +502,6 @@ export default function NewBlogPost() {
                     value={seoTitle}
                     onChange={(e) => setSeoTitle(e.target.value)}
                     className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                    placeholder={title}
                   />
                   <p className="mt-1 text-xs text-[var(--text-muted)]">{seoTitle.length} / 60 characters</p>
                 </div>
@@ -388,7 +512,7 @@ export default function NewBlogPost() {
                     value={focusKeyword}
                     onChange={(e) => setFocusKeyword(e.target.value)}
                     className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                    placeholder="e.g., ecommerce conversion mistakes"
+                    placeholder="e.g., Q3 Growth Readiness"
                   />
                 </div>
               </div>
@@ -400,7 +524,6 @@ export default function NewBlogPost() {
                   onChange={(e) => setSeoDescription(e.target.value)}
                   rows={2}
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                  placeholder={excerpt?.slice(0, 160)}
                 />
                 <p className="mt-1 text-right text-xs text-[var(--text-muted)]">{seoDescription.length} / 160 characters</p>
               </div>
@@ -413,7 +536,6 @@ export default function NewBlogPost() {
                     value={ogTitle}
                     onChange={(e) => setOgTitle(e.target.value)}
                     className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                    placeholder={title}
                   />
                 </div>
                 <div>
@@ -435,34 +557,34 @@ export default function NewBlogPost() {
                   onChange={(e) => setOgDescription(e.target.value)}
                   rows={2}
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                  placeholder={excerpt?.slice(0, 200)}
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Canonical URL (Optional)</label>
+                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Social Share Caption</label>
+                <textarea
+                  value={socialCaption}
+                  onChange={(e) => setSocialCaption(e.target.value)}
+                  rows={4}
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  placeholder="More traffic doesn't automatically create more sales..."
+                />
+                <p className="mt-1 text-xs text-[var(--text-muted)]">Used for LinkedIn, Facebook, WhatsApp, and X shares</p>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Canonical URL</label>
                 <input
                   type="url"
                   value={canonicalUrl}
                   onChange={(e) => setCanonicalUrl(e.target.value)}
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                  placeholder="https://hbeedigitals.com/blog/..."
+                  placeholder="https://www.hbeedigitals.com/blog/q3-growth-readiness..."
                 />
               </div>
             </div>
           )}
         </div>
-
-        {/* Featured Toggle */}
-        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
-          <input
-            type="checkbox"
-            checked={isFeatured}
-            onChange={(e) => setIsFeatured(e.target.checked)}
-            className="h-5 w-5 accent-[var(--accent)]"
-          />
-          <span className="text-sm font-bold text-[var(--text-primary)]">⭐ Feature this post on homepage</span>
-        </label>
 
         {/* Submit Buttons */}
         <div className="flex flex-wrap gap-4 pb-10">

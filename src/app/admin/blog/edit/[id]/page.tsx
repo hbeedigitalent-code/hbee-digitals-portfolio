@@ -48,6 +48,7 @@ export default function EditBlogPost() {
   const id = params?.id as string
 
   const [authors, setAuthors] = useState<any[]>([])
+  const [categories, setCategories] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -59,15 +60,22 @@ export default function EditBlogPost() {
   const [excerpt, setExcerpt] = useState('')
   const [content, setContent] = useState('')
   const [featuredImage, setFeaturedImage] = useState('')
+  const [altText, setAltText] = useState('')
   const [authorId, setAuthorId] = useState('')
-  const [readTime, setReadTime] = useState('5 min read')
+  const [categoryId, setCategoryId] = useState('')
+  const [readTime, setReadTime] = useState('8 min read')
   const [tags, setTags] = useState('')
   const [postType, setPostType] = useState('blog')
   const [isFeatured, setIsFeatured] = useState(false)
-  const [status, setStatus] = useState('draft')
+  const [status, setStatus] = useState('published')
+
+  // Featured card fields
+  const [featuredBadge, setFeaturedBadge] = useState('Growth Strategy')
+  const [cardTitle, setCardTitle] = useState('')
+  const [cardDescription, setCardDescription] = useState('')
 
   // CTA fields
-  const [ctaText, setCtaText] = useState('Start A Project')
+  const [ctaText, setCtaText] = useState('Request a Growth Review')
   const [ctaLink, setCtaLink] = useState('/contact')
 
   // SEO fields
@@ -78,13 +86,16 @@ export default function EditBlogPost() {
   const [ogDescription, setOgDescription] = useState('')
   const [ogImage, setOgImage] = useState('')
   const [canonicalUrl, setCanonicalUrl] = useState('')
+  const [socialCaption, setSocialCaption] = useState('')
 
   // UI states
   const [showSeoPanel, setShowSeoPanel] = useState(false)
   const [showCtaPanel, setShowCtaPanel] = useState(false)
+  const [showFeaturedPanel, setShowFeaturedPanel] = useState(false)
 
   useEffect(() => {
     fetchAuthors()
+    fetchCategories()
     fetchPost()
   }, [])
 
@@ -97,6 +108,18 @@ export default function EditBlogPost() {
     
     if (data && data.length > 0) {
       setAuthors(data)
+    }
+  }
+
+  async function fetchCategories() {
+    const { data } = await supabase
+      .from('blog_categories')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true })
+    
+    if (data) {
+      setCategories(data)
     }
   }
 
@@ -120,13 +143,18 @@ export default function EditBlogPost() {
       setExcerpt(data.excerpt || '')
       setContent(data.content || '')
       setFeaturedImage(data.featured_image || '')
-      setAuthorId(data.author_id || (authors[0]?.id || ''))
-      setReadTime(data.read_time || '5 min read')
+      setAltText(data.alt_text || '')
+      setAuthorId(data.author_id || '')
+      setCategoryId(data.category_id || '')
+      setReadTime(data.read_time || '8 min read')
       setTags(arrayToText(data.tags))
       setPostType(data.post_type || 'blog')
       setIsFeatured(data.is_featured || false)
       setStatus(data.status || 'draft')
-      setCtaText(data.cta_text || 'Start A Project')
+      setFeaturedBadge(data.featured_badge || 'Growth Strategy')
+      setCardTitle(data.card_title || '')
+      setCardDescription(data.card_description || '')
+      setCtaText(data.cta_text || 'Request a Growth Review')
       setCtaLink(data.cta_link || '/contact')
       setSeoTitle(data.seo_title || '')
       setSeoDescription(data.seo_description || '')
@@ -135,6 +163,7 @@ export default function EditBlogPost() {
       setOgDescription(data.og_description || '')
       setOgImage(data.og_image || '')
       setCanonicalUrl(data.canonical_url || '')
+      setSocialCaption(data.social_caption || '')
     }
 
     setLoading(false)
@@ -154,13 +183,18 @@ export default function EditBlogPost() {
       excerpt,
       content,
       featured_image: featuredImage,
+      alt_text: altText,
       author_id: authorId,
+      category_id: categoryId || null,
       read_time: readTime,
       tags: tagArray,
       cta_text: ctaText,
       cta_link: ctaLink,
       post_type: postType,
       is_featured: isFeatured,
+      featured_badge: featuredBadge,
+      card_title: cardTitle || title,
+      card_description: cardDescription || excerpt?.slice(0, 120),
       status,
       seo_title: seoTitle || title,
       seo_description: seoDescription || excerpt?.slice(0, 160),
@@ -169,6 +203,7 @@ export default function EditBlogPost() {
       og_description: ogDescription || excerpt?.slice(0, 200),
       og_image: ogImage || featuredImage,
       canonical_url: canonicalUrl || null,
+      social_caption: socialCaption,
       updated_at: new Date().toISOString(),
     }
 
@@ -231,7 +266,7 @@ export default function EditBlogPost() {
           <h2 className="text-2xl font-black text-[var(--text-primary)] sm:text-3xl">
             Edit {postType === 'case_study' ? 'Case Study' : 'Blog Post'}
           </h2>
-          <p className="mt-1 text-sm text-[var(--text-muted])">
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
             Update content, SEO, and publishing settings
           </p>
         </div>
@@ -273,7 +308,7 @@ export default function EditBlogPost() {
 
         {/* Basic Info Grid */}
         <div className="grid gap-5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5 md:grid-cols-2">
-          <div>
+          <div className="md:col-span-2">
             <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Title *</label>
             <input
               type="text"
@@ -292,17 +327,34 @@ export default function EditBlogPost() {
               onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
               className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
             />
+            <p className="mt-1 text-xs text-[var(--text-muted)]">/blog/{slug}</p>
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Author</label>
+            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Author *</label>
             <select
               value={authorId}
               onChange={(e) => setAuthorId(e.target.value)}
+              required
               className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
             >
+              <option value="">Select an author</option>
               {authors.map((author) => (
                 <option key={author.id} value={author.id}>{author.name} - {author.role}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Category</label>
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+            >
+              <option value="">Select a category</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>{category.name}</option>
               ))}
             </select>
           </div>
@@ -314,7 +366,34 @@ export default function EditBlogPost() {
               value={readTime}
               onChange={(e) => setReadTime(e.target.value)}
               className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+              placeholder="8 min read"
             />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Status</label>
+            <div className="flex gap-4 pt-2">
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="radio"
+                  value="draft"
+                  checked={status === 'draft'}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="h-4 w-4 accent-[var(--accent)]"
+                />
+                <span className="text-sm">📝 Draft</span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="radio"
+                  value="published"
+                  checked={status === 'published'}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="h-4 w-4 accent-[var(--accent)]"
+                />
+                <span className="text-sm">🚀 Published</span>
+              </label>
+            </div>
           </div>
         </div>
 
@@ -327,18 +406,30 @@ export default function EditBlogPost() {
             folder="blog"
             label="Upload featured image"
           />
+          <div className="mt-3">
+            <label className="mb-1 block text-sm font-bold text-[var(--text-primary)]">Alt Text (for SEO)</label>
+            <input
+              type="text"
+              value={altText}
+              onChange={(e) => setAltText(e.target.value)}
+              placeholder="Describe the image for screen readers and SEO"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-sm"
+            />
+          </div>
+          <p className="mt-2 text-xs text-[var(--text-muted)]">Recommended size: 1200 x 630px for optimal sharing</p>
         </div>
 
         {/* Excerpt */}
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-          <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Excerpt *</label>
+          <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Excerpt / Summary *</label>
           <textarea
             value={excerpt}
             onChange={(e) => setExcerpt(e.target.value)}
             required
-            rows={3}
+            rows={4}
             className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
           />
+          <p className="mt-1 text-right text-xs text-[var(--text-muted)]">{excerpt.length} / 160 recommended</p>
         </div>
 
         {/* Content Editor */}
@@ -354,43 +445,74 @@ export default function EditBlogPost() {
           />
         </div>
 
-        {/* Tags & Status */}
-        <div className="grid gap-5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5 md:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Tags</label>
-            <input
-              type="text"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-              placeholder="Shopify, Ecommerce, Conversion"
-            />
-            <p className="mt-1 text-xs text-[var(--text-muted)]">Separate with commas</p>
-          </div>
+        {/* Tags */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+          <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Tags</label>
+          <input
+            type="text"
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
+            className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+            placeholder="Ecommerce, Ecommerce Growth, Q3 Growth, Conversion Optimization"
+          />
+          <p className="mt-1 text-xs text-[var(--text-muted)]">Separate with commas</p>
+        </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Status</label>
-            <div className="flex gap-4">
-              <label className="flex cursor-pointer items-center gap-2">
-                <input
-                  type="radio"
-                  value="draft"
-                  checked={status === 'draft'}
-                  onChange={(e) => setStatus(e.target.value)}
+        {/* Featured Card Settings Panel */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
+          <button
+            type="button"
+            onClick={() => setShowFeaturedPanel(!showFeaturedPanel)}
+            className="flex w-full items-center justify-between p-5 text-left"
+          >
+            <span className="font-bold text-[var(--text-primary)]">⭐ Homepage Featured Card Settings</span>
+            <SvgIcon name="chevron-down" size={18} color="var(--accent)" className={`transition ${showFeaturedPanel ? 'rotate-180' : ''}`} />
+          </button>
+          {showFeaturedPanel && (
+            <div className="space-y-4 border-t border-[var(--border)] p-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Featured Badge</label>
+                  <input
+                    type="text"
+                    value={featuredBadge}
+                    onChange={(e) => setFeaturedBadge(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                    placeholder="Growth Strategy"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Card Title (Short)</label>
+                  <input
+                    type="text"
+                    value={cardTitle}
+                    onChange={(e) => setCardTitle(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                    placeholder={title?.slice(0, 60)}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Card Description</label>
+                <textarea
+                  value={cardDescription}
+                  onChange={(e) => setCardDescription(e.target.value)}
+                  rows={2}
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  placeholder={excerpt?.slice(0, 120)}
                 />
-                <span>📝 Draft</span>
-              </label>
-              <label className="flex cursor-pointer items-center gap-2">
+              </div>
+              <label className="flex cursor-pointer items-center gap-3">
                 <input
-                  type="radio"
-                  value="published"
-                  checked={status === 'published'}
-                  onChange={(e) => setStatus(e.target.value)}
+                  type="checkbox"
+                  checked={isFeatured}
+                  onChange={(e) => setIsFeatured(e.target.checked)}
+                  className="h-5 w-5 accent-[var(--accent)]"
                 />
-                <span>🚀 Published</span>
+                <span className="text-sm font-bold text-[var(--text-primary)]">Feature this post on homepage</span>
               </label>
             </div>
-          </div>
+          )}
         </div>
 
         {/* CTA Panel */}
@@ -412,6 +534,7 @@ export default function EditBlogPost() {
                   value={ctaText}
                   onChange={(e) => setCtaText(e.target.value)}
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  placeholder="Request a Growth Review"
                 />
               </div>
               <div>
@@ -421,6 +544,7 @@ export default function EditBlogPost() {
                   value={ctaLink}
                   onChange={(e) => setCtaLink(e.target.value)}
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  placeholder="/contact"
                 />
               </div>
             </div>
@@ -447,7 +571,6 @@ export default function EditBlogPost() {
                     value={seoTitle}
                     onChange={(e) => setSeoTitle(e.target.value)}
                     className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                    placeholder={title}
                   />
                   <p className="mt-1 text-xs text-[var(--text-muted)]">{seoTitle.length} / 60 characters</p>
                 </div>
@@ -458,7 +581,7 @@ export default function EditBlogPost() {
                     value={focusKeyword}
                     onChange={(e) => setFocusKeyword(e.target.value)}
                     className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                    placeholder="e.g., ecommerce conversion mistakes"
+                    placeholder="e.g., Q3 Growth Readiness"
                   />
                 </div>
               </div>
@@ -470,7 +593,6 @@ export default function EditBlogPost() {
                   onChange={(e) => setSeoDescription(e.target.value)}
                   rows={2}
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                  placeholder={excerpt?.slice(0, 160)}
                 />
                 <p className="mt-1 text-right text-xs text-[var(--text-muted)]">{seoDescription.length} / 160 characters</p>
               </div>
@@ -483,7 +605,6 @@ export default function EditBlogPost() {
                     value={ogTitle}
                     onChange={(e) => setOgTitle(e.target.value)}
                     className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                    placeholder={title}
                   />
                 </div>
                 <div>
@@ -505,34 +626,34 @@ export default function EditBlogPost() {
                   onChange={(e) => setOgDescription(e.target.value)}
                   rows={2}
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                  placeholder={excerpt?.slice(0, 200)}
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-bold">Canonical URL (Optional)</label>
+                <label className="mb-2 block text-sm font-bold">Social Share Caption</label>
+                <textarea
+                  value={socialCaption}
+                  onChange={(e) => setSocialCaption(e.target.value)}
+                  rows={4}
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  placeholder="More traffic doesn't automatically create more sales..."
+                />
+                <p className="mt-1 text-xs text-[var(--text-muted)]">Used for LinkedIn, Facebook, WhatsApp, and X shares</p>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-bold">Canonical URL</label>
                 <input
                   type="url"
                   value={canonicalUrl}
                   onChange={(e) => setCanonicalUrl(e.target.value)}
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                  placeholder="https://hbeedigitals.com/blog/..."
+                  placeholder="https://www.hbeedigitals.com/blog/..."
                 />
               </div>
             </div>
           )}
         </div>
-
-        {/* Featured Toggle */}
-        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
-          <input
-            type="checkbox"
-            checked={isFeatured}
-            onChange={(e) => setIsFeatured(e.target.checked)}
-            className="h-5 w-5 accent-[var(--accent)]"
-          />
-          <span className="text-sm font-bold">⭐ Feature this post on homepage</span>
-        </label>
 
         {/* Submit Buttons */}
         <div className="flex flex-wrap gap-4 pb-10">
