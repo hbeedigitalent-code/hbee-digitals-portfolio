@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import ImageUpload from '@/components/ImageUpload'
@@ -14,18 +14,44 @@ const ReactQuill = dynamic(() => import('react-quill'), {
 
 import 'react-quill/dist/quill.snow.css'
 
-function createSlug(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/&/g, 'and')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
+function toArray(value: any): string[] {
+  if (!value) return []
+  if (Array.isArray(value)) return value
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) return parsed
+    } catch {
+      return value.split(',').map((t) => t.trim()).filter(Boolean)
+    }
+  }
+  return []
 }
 
-export default function NewBlogPost() {
+function arrayToText(value: any): string {
+  if (!value) return ''
+  if (Array.isArray(value)) return value.join(', ')
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) return parsed.join(', ')
+    } catch {
+      return value
+    }
+  }
+  return ''
+}
+
+export default function EditBlogPost() {
   const router = useRouter()
+  const params = useParams()
+  const id = params?.id as string
+
   const [authors, setAuthors] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
+  const [originalPost, setOriginalPost] = useState<any>(null)
 
   // Basic fields
   const [title, setTitle] = useState('')
@@ -59,6 +85,7 @@ export default function NewBlogPost() {
 
   useEffect(() => {
     fetchAuthors()
+    fetchPost()
   }, [])
 
   async function fetchAuthors() {
@@ -70,49 +97,93 @@ export default function NewBlogPost() {
     
     if (data && data.length > 0) {
       setAuthors(data)
-      setAuthorId(data[0].id)
     }
+  }
+
+  async function fetchPost() {
+    const { data, error } = await supabase
+      .from('blog_posts')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (error) {
+      setMessage(error.message)
+      setLoading(false)
+      return
+    }
+
+    if (data) {
+      setOriginalPost(data)
+      setTitle(data.title || '')
+      setSlug(data.slug || '')
+      setExcerpt(data.excerpt || '')
+      setContent(data.content || '')
+      setFeaturedImage(data.featured_image || '')
+      setAuthorId(data.author_id || (authors[0]?.id || ''))
+      setReadTime(data.read_time || '5 min read')
+      setTags(arrayToText(data.tags))
+      setPostType(data.post_type || 'blog')
+      setIsFeatured(data.is_featured || false)
+      setStatus(data.status || 'draft')
+      setCtaText(data.cta_text || 'Start A Project')
+      setCtaLink(data.cta_link || '/contact')
+      setSeoTitle(data.seo_title || '')
+      setSeoDescription(data.seo_description || '')
+      setFocusKeyword(data.focus_keyword || '')
+      setOgTitle(data.og_title || '')
+      setOgDescription(data.og_description || '')
+      setOgImage(data.og_image || '')
+      setCanonicalUrl(data.canonical_url || '')
+    }
+
+    setLoading(false)
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
+    setMessage('')
 
-    const finalSlug = slug.trim() || createSlug(title)
     const tagArray = tags.split(',').map(t => t.trim()).filter(Boolean)
-    const now = new Date().toISOString()
 
-    const { error } = await supabase.from('blog_posts').insert([
-      {
-        title,
-        slug: finalSlug,
-        excerpt,
-        content,
-        featured_image: featuredImage,
-        author_id: authorId,
-        read_time: readTime,
-        tags: tagArray,
-        cta_text: ctaText,
-        cta_link: ctaLink,
-        post_type: postType,
-        is_featured: isFeatured,
-        status,
-        created_at: now,
-        updated_at: now,
-        // SEO fields
-        seo_title: seoTitle || title,
-        seo_description: seoDescription || excerpt?.slice(0, 160),
-        focus_keyword: focusKeyword,
-        og_title: ogTitle || title,
-        og_description: ogDescription || excerpt?.slice(0, 200),
-        og_image: ogImage || featuredImage,
-        canonical_url: canonicalUrl || null,
-        published_at: status === 'published' ? now : null,
-      },
-    ])
+    // Prepare update data
+    const updateData: any = {
+      title,
+      slug,
+      excerpt,
+      content,
+      featured_image: featuredImage,
+      author_id: authorId,
+      read_time: readTime,
+      tags: tagArray,
+      cta_text: ctaText,
+      cta_link: ctaLink,
+      post_type: postType,
+      is_featured: isFeatured,
+      status,
+      seo_title: seoTitle || title,
+      seo_description: seoDescription || excerpt?.slice(0, 160),
+      focus_keyword: focusKeyword,
+      og_title: ogTitle || title,
+      og_description: ogDescription || excerpt?.slice(0, 200),
+      og_image: ogImage || featuredImage,
+      canonical_url: canonicalUrl || null,
+      updated_at: new Date().toISOString(),
+    }
+
+    // Only set published_at if changing from draft to published AND it wasn't published before
+    if (status === 'published' && originalPost?.status !== 'published') {
+      updateData.published_at = new Date().toISOString()
+    }
+
+    const { error } = await supabase
+      .from('blog_posts')
+      .update(updateData)
+      .eq('id', id)
 
     if (error) {
-      alert(error.message)
+      setMessage(error.message)
     } else {
       router.push('/admin/blog')
     }
@@ -120,25 +191,20 @@ export default function NewBlogPost() {
     setSaving(false)
   }
 
-  // Auto-generate SEO title when title changes
-  useEffect(() => {
-    if (title && !seoTitle) {
-      setSeoTitle(title)
-    }
-    if (title && !ogTitle) {
-      setOgTitle(title)
-    }
-  }, [title])
+  async function handleDelete() {
+    if (!confirm('Delete this article? This action cannot be undone.')) return
 
-  // Auto-generate SEO description when excerpt changes
-  useEffect(() => {
-    if (excerpt && !seoDescription) {
-      setSeoDescription(excerpt.slice(0, 160))
+    const { error } = await supabase
+      .from('blog_posts')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      setMessage(error.message)
+    } else {
+      router.push('/admin/blog')
     }
-    if (excerpt && !ogDescription) {
-      setOgDescription(excerpt.slice(0, 200))
-    }
-  }, [excerpt])
+  }
 
   const quillModules = {
     toolbar: [
@@ -150,21 +216,35 @@ export default function NewBlogPost() {
     ],
   }
 
+  if (loading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+      </div>
+    )
+  }
+
   return (
     <div className="mx-auto max-w-6xl">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-black text-[var(--text-primary)] sm:text-3xl">
-            Create New {postType === 'case_study' ? 'Case Study' : 'Blog Post'}
+            Edit {postType === 'case_study' ? 'Case Study' : 'Blog Post'}
           </h2>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Publish {postType === 'case_study' ? 'client success stories' : 'SEO content and growth insights'}
+          <p className="mt-1 text-sm text-[var(--text-muted])">
+            Update content, SEO, and publishing settings
           </p>
         </div>
         <Link href="/admin/blog" className="text-[var(--accent)] hover:underline">
           ← Back to Blog
         </Link>
       </div>
+
+      {message && (
+        <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
+          {message}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Post Type Selector */}
@@ -198,13 +278,9 @@ export default function NewBlogPost() {
             <input
               type="text"
               value={title}
-              onChange={(e) => {
-                setTitle(e.target.value)
-                if (!slug) setSlug(createSlug(e.target.value))
-              }}
+              onChange={(e) => setTitle(e.target.value)}
               required
               className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-              placeholder="e.g., 10 Ecommerce Conversion Mistakes"
             />
           </div>
 
@@ -213,11 +289,9 @@ export default function NewBlogPost() {
             <input
               type="text"
               value={slug}
-              onChange={(e) => setSlug(createSlug(e.target.value))}
+              onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
               className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-              placeholder="auto-generated"
             />
-            <p className="mt-1 text-xs text-[var(--text-muted)]">/{slug || '...'}</p>
           </div>
 
           <div>
@@ -239,8 +313,7 @@ export default function NewBlogPost() {
               type="text"
               value={readTime}
               onChange={(e) => setReadTime(e.target.value)}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-              placeholder="5 min read"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
             />
           </div>
         </div>
@@ -254,21 +327,18 @@ export default function NewBlogPost() {
             folder="blog"
             label="Upload featured image"
           />
-          <p className="mt-2 text-xs text-[var(--text-muted)]">Recommended size: 1200 x 630px for optimal sharing</p>
         </div>
 
         {/* Excerpt */}
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-          <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Excerpt / Summary *</label>
+          <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Excerpt *</label>
           <textarea
             value={excerpt}
             onChange={(e) => setExcerpt(e.target.value)}
             required
             rows={3}
             className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-            placeholder="Brief summary that appears in blog listings and search results..."
           />
-          <p className="mt-1 text-right text-xs text-[var(--text-muted)]">{excerpt.length} / 160 recommended</p>
         </div>
 
         {/* Content Editor */}
@@ -284,7 +354,7 @@ export default function NewBlogPost() {
           />
         </div>
 
-        {/* Tags & CTA */}
+        {/* Tags & Status */}
         <div className="grid gap-5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5 md:grid-cols-2">
           <div>
             <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Tags</label>
@@ -292,8 +362,8 @@ export default function NewBlogPost() {
               type="text"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-              placeholder="Shopify, Ecommerce, Conversion, CRO"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+              placeholder="Shopify, Ecommerce, Conversion"
             />
             <p className="mt-1 text-xs text-[var(--text-muted)]">Separate with commas</p>
           </div>
@@ -317,26 +387,26 @@ export default function NewBlogPost() {
                   checked={status === 'published'}
                   onChange={(e) => setStatus(e.target.value)}
                 />
-                <span>🚀 Publish Now</span>
+                <span>🚀 Published</span>
               </label>
             </div>
           </div>
         </div>
 
-        {/* CTA Panel - Collapsible */}
+        {/* CTA Panel */}
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
           <button
             type="button"
             onClick={() => setShowCtaPanel(!showCtaPanel)}
             className="flex w-full items-center justify-between p-5 text-left"
           >
-            <span className="font-bold text-[var(--text-primary)]">🎯 Call to Action (Optional)</span>
+            <span className="font-bold text-[var(--text-primary)]">🎯 Call to Action</span>
             <SvgIcon name="chevron-down" size={18} color="var(--accent)" className={`transition ${showCtaPanel ? 'rotate-180' : ''}`} />
           </button>
           {showCtaPanel && (
             <div className="grid gap-4 border-t border-[var(--border)] p-5 md:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">CTA Button Text</label>
+                <label className="mb-2 block text-sm font-bold">CTA Button Text</label>
                 <input
                   type="text"
                   value={ctaText}
@@ -345,7 +415,7 @@ export default function NewBlogPost() {
                 />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">CTA Button Link</label>
+                <label className="mb-2 block text-sm font-bold">CTA Button Link</label>
                 <input
                   type="text"
                   value={ctaLink}
@@ -357,21 +427,21 @@ export default function NewBlogPost() {
           )}
         </div>
 
-        {/* SEO Panel - Collapsible */}
+        {/* SEO Panel */}
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
           <button
             type="button"
             onClick={() => setShowSeoPanel(!showSeoPanel)}
             className="flex w-full items-center justify-between p-5 text-left"
           >
-            <span className="font-bold text-[var(--text-primary)]">🔍 SEO Settings (Recommended)</span>
+            <span className="font-bold text-[var(--text-primary)]">🔍 SEO Settings</span>
             <SvgIcon name="chevron-down" size={18} color="var(--accent)" className={`transition ${showSeoPanel ? 'rotate-180' : ''}`} />
           </button>
           {showSeoPanel && (
             <div className="space-y-4 border-t border-[var(--border)] p-5">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">SEO Title</label>
+                  <label className="mb-2 block text-sm font-bold">SEO Title</label>
                   <input
                     type="text"
                     value={seoTitle}
@@ -382,7 +452,7 @@ export default function NewBlogPost() {
                   <p className="mt-1 text-xs text-[var(--text-muted)]">{seoTitle.length} / 60 characters</p>
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Focus Keyword</label>
+                  <label className="mb-2 block text-sm font-bold">Focus Keyword</label>
                   <input
                     type="text"
                     value={focusKeyword}
@@ -394,7 +464,7 @@ export default function NewBlogPost() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Meta Description</label>
+                <label className="mb-2 block text-sm font-bold">Meta Description</label>
                 <textarea
                   value={seoDescription}
                   onChange={(e) => setSeoDescription(e.target.value)}
@@ -407,7 +477,7 @@ export default function NewBlogPost() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">OG Title (Social Media)</label>
+                  <label className="mb-2 block text-sm font-bold">OG Title (Social Media)</label>
                   <input
                     type="text"
                     value={ogTitle}
@@ -417,7 +487,7 @@ export default function NewBlogPost() {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">OG Image</label>
+                  <label className="mb-2 block text-sm font-bold">OG Image</label>
                   <input
                     type="url"
                     value={ogImage}
@@ -429,7 +499,7 @@ export default function NewBlogPost() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">OG Description</label>
+                <label className="mb-2 block text-sm font-bold">OG Description</label>
                 <textarea
                   value={ogDescription}
                   onChange={(e) => setOgDescription(e.target.value)}
@@ -440,7 +510,7 @@ export default function NewBlogPost() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Canonical URL (Optional)</label>
+                <label className="mb-2 block text-sm font-bold">Canonical URL (Optional)</label>
                 <input
                   type="url"
                   value={canonicalUrl}
@@ -461,7 +531,7 @@ export default function NewBlogPost() {
             onChange={(e) => setIsFeatured(e.target.checked)}
             className="h-5 w-5 accent-[var(--accent)]"
           />
-          <span className="text-sm font-bold text-[var(--text-primary)]">⭐ Feature this post on homepage</span>
+          <span className="text-sm font-bold">⭐ Feature this post on homepage</span>
         </label>
 
         {/* Submit Buttons */}
@@ -471,8 +541,15 @@ export default function NewBlogPost() {
             disabled={saving}
             className="inline-flex items-center gap-2 rounded-full bg-gradient-orange-green px-8 py-3 text-sm font-black text-white transition hover:scale-105 disabled:opacity-50"
           >
-            {saving ? 'Saving...' : (status === 'published' ? 'Publish Now' : 'Save as Draft')}
+            {saving ? 'Saving...' : 'Update Post'}
             <SvgIcon name="arrow-diagonal" size={14} color="white" />
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="inline-flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-8 py-3 text-sm font-black text-red-400 transition hover:bg-red-500/20"
+          >
+            Delete Post
           </button>
           <Link
             href="/admin/blog"
