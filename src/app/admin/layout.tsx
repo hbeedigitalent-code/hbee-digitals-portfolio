@@ -24,12 +24,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [unreadInquiries, setUnreadInquiries] = useState(0)
   const [profileOpen, setProfileOpen] = useState(false)
   
-  // Profile image and name states
   const [adminAvatar, setAdminAvatar] = useState('')
   const [adminName, setAdminName] = useState('')
 
   useEffect(() => {
-    // Load saved sidebar state
     const savedSidebarState = localStorage.getItem('admin_sidebar_collapsed')
     if (savedSidebarState !== null) {
       setSidebarOpen(savedSidebarState === 'false')
@@ -42,7 +40,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       } else {
         setUser(data.user)
         
-        // Load profile data from user metadata
         const avatar = data.user?.user_metadata?.avatar_url || ''
         const name = data.user?.user_metadata?.full_name || ''
         setAdminAvatar(avatar)
@@ -84,14 +81,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.push('/admin/login')
   }
 
-  // Save sidebar state
   const toggleSidebar = () => {
     const newState = !sidebarOpen
     setSidebarOpen(newState)
     localStorage.setItem('admin_sidebar_collapsed', String(!newState))
   }
 
-  // Complete navigation items
+  // Close mobile menu when clicking a link
+  const handleNavClick = () => {
+    setMobileMenuOpen(false)
+  }
+
   const navItems: NavItem[] = [
     { name: 'Dashboard', href: '/admin/dashboard', icon: 'analytics', group: 'Main' },
     { name: 'Analytics', href: '/admin/analytics', icon: 'chart', group: 'Main' },
@@ -127,7 +127,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Site Settings', href: '/admin/settings', icon: 'settings', group: 'System' },
   ]
 
-  // Group navigation items
   const groupedNavItems = navItems.reduce((acc, item) => {
     const group = item.group || 'Other'
     if (!acc[group]) acc[group] = []
@@ -155,13 +154,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const avatarLetter = adminName ? adminName.charAt(0).toUpperCase() : (user?.email?.charAt(0)?.toUpperCase() || 'A')
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--bg-page)] text-[var(--text-primary)]">
-      {/* Background Effect */}
-      <div className="fixed inset-0 -z-10 pointer-events-none">
-        <div className="absolute left-0 top-0 h-[520px] w-[520px] rounded-full bg-[var(--accent)]/8 blur-[140px]" />
-        <div className="absolute bottom-0 right-0 h-[480px] w-[520px] rounded-full bg-[var(--accent-lime)]/5 blur-[140px]" />
-      </div>
-
+    <div className="h-screen flex flex-col overflow-hidden bg-[var(--bg-page)]">
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div 
@@ -170,18 +163,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Fixed position, independent scrolling */}
       <aside 
-        className={`fixed left-0 top-0 z-50 flex h-full flex-col border-r border-[var(--border)] bg-[var(--bg-card)]/98 backdrop-blur-2xl transition-all duration-300 lg:relative lg:z-auto ${
+        className={`fixed left-0 top-0 z-50 h-full flex flex-col border-r border-[var(--border)] bg-[var(--bg-card)]/98 backdrop-blur-2xl transition-all duration-300 ${
           sidebarOpen ? 'w-72' : 'w-20'
         } ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
-        {/* Logo */}
-        <div className="border-b border-[var(--border)] p-4">
+        {/* Logo - Fixed at top */}
+        <div className="flex-shrink-0 border-b border-[var(--border)] p-4">
           <div className="flex items-center justify-between gap-3">
             <Link 
               href="/admin/dashboard" 
-              onClick={() => setMobileMenuOpen(false)} 
+              onClick={handleNavClick} 
               className="flex min-w-0 items-center gap-3 flex-1"
             >
               <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/10">
@@ -219,8 +212,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           )}
         </div>
 
-        {/* Navigation - SCROLLABLE */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 scrollbar-thin">
+        {/* Navigation - SCROLLABLE AREA */}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 min-h-0">
           {Object.entries(groupedNavItems).map(([group, items]) => (
             <div key={group} className="mb-6">
               {sidebarOpen && (
@@ -235,7 +228,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={handleNavClick}
                     className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 transition mb-1 ${
                       active
                         ? 'border border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--text-primary)]'
@@ -262,8 +255,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ))}
         </nav>
 
-        {/* Footer */}
-        <div className="border-t border-[var(--border)] p-4">
+        {/* Footer - Fixed at bottom */}
+        <div className="flex-shrink-0 border-t border-[var(--border)] p-4">
           {sidebarOpen && (
             <div className="mb-3 flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3">
               <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--accent)]/18 bg-[var(--accent)]/10">
@@ -291,10 +284,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* Main Content Area - SCROLLABLE */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden">
-        {/* Header */}
-        <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--bg-page)]/95 px-4 py-3 backdrop-blur-2xl sm:px-5 lg:px-6">
+      {/* Main Content Area - Independent scrolling */}
+      <main className={`flex-1 flex flex-col min-h-0 transition-all duration-300 ${sidebarOpen ? 'lg:ml-72' : 'lg:ml-20'}`}>
+        {/* Header - Sticky at top */}
+        <header className="flex-shrink-0 sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--bg-page)]/95 px-4 py-3 backdrop-blur-2xl">
           <div className="flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
               <button 
@@ -367,8 +360,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </header>
 
-        {/* Page Content - SCROLLABLE WITH PADDING */}
-        <div className="p-4 sm:p-5 lg:p-6">
+        {/* Page Content - SCROLLABLE AREA */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
           {children}
         </div>
       </main>

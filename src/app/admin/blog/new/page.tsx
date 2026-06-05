@@ -27,6 +27,7 @@ export default function NewBlogPost() {
   const [authors, setAuthors] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   // Basic fields
   const [title, setTitle] = useState('')
@@ -63,42 +64,101 @@ export default function NewBlogPost() {
   const [socialCaption, setSocialCaption] = useState('')
 
   // UI states
-  const [showSeoPanel, setShowSeoPanel] = useState(true) // Open by default
+  const [showSeoPanel, setShowSeoPanel] = useState(true)
   const [showCtaPanel, setShowCtaPanel] = useState(true)
   const [showFeaturedPanel, setShowFeaturedPanel] = useState(true)
 
   useEffect(() => {
-    fetchAuthors()
-    fetchCategories()
+    fetchData()
   }, [])
 
+  async function fetchData() {
+    setLoading(true)
+    await Promise.all([
+      fetchAuthors(),
+      fetchCategories()
+    ])
+    setLoading(false)
+  }
+
   async function fetchAuthors() {
-    const { data } = await supabase
-      .from('blog_authors')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true })
-    
-    if (data && data.length > 0) {
-      setAuthors(data)
-      // Find Habeeb or use first author
-      const habeeb = data.find(a => a.name.includes('Habeeb'))
-      setAuthorId(habeeb?.id || data[0].id)
+    try {
+      // First, check if authors table has data
+      const { data: existingAuthors, error: checkError } = await supabase
+        .from('blog_authors')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+      
+      if (checkError) {
+        console.error('Error fetching authors:', checkError)
+        setAuthors([])
+        return
+      }
+      
+      if (existingAuthors && existingAuthors.length > 0) {
+        setAuthors(existingAuthors)
+        // Set default author (prefer Habeeb or first one)
+        const habeeb = existingAuthors.find(a => a.name.includes('Habeeb'))
+        setAuthorId(habeeb?.id || existingAuthors[0].id)
+        return
+      }
+      
+      // If no authors exist, create default author
+      console.log('No authors found, creating default author...')
+      const { data: newAuthor, error: insertError } = await supabase
+        .from('blog_authors')
+        .insert([{
+          name: 'Habeeb Ismaila',
+          role: 'Founder & CEO',
+          bio: 'Helping brands build stronger digital systems, better websites, and growth-focused customer experiences.',
+          is_active: true,
+          display_order: 1
+        }])
+        .select()
+        .single()
+      
+      if (insertError) {
+        console.error('Error creating author:', insertError)
+        setAuthors([])
+        return
+      }
+      
+      if (newAuthor) {
+        setAuthors([newAuthor])
+        setAuthorId(newAuthor.id)
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err)
+      setAuthors([])
     }
   }
 
   async function fetchCategories() {
-    const { data } = await supabase
-      .from('blog_categories')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true })
-    
-    if (data && data.length > 0) {
-      setCategories(data)
-      // Find Ecommerce Growth Strategy category
-      const growthCat = data.find(c => c.name.includes('Ecommerce Growth'))
-      setCategoryId(growthCat?.id || data[0].id)
+    try {
+      const { data, error } = await supabase
+        .from('blog_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+      
+      if (error) {
+        console.error('Error fetching categories:', error)
+        setCategories([])
+        return
+      }
+      
+      if (data && data.length > 0) {
+        setCategories(data)
+        // Find Ecommerce Growth Strategy category
+        const growthCat = data.find(c => c.name.includes('Ecommerce Growth'))
+        setCategoryId(growthCat?.id || data[0].id)
+      } else {
+        setCategories([])
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err)
+      setCategories([])
     }
   }
 
@@ -117,40 +177,39 @@ export default function NewBlogPost() {
       return
     }
 
-    const { error } = await supabase.from('blog_posts').insert([
-      {
-        title,
-        slug: finalSlug,
-        excerpt,
-        content,
-        featured_image: featuredImage,
-        alt_text: altText,
-        author_id: authorId,
-        category_id: categoryId || null,
-        read_time: readTime,
-        tags: tagArray,
-        cta_text: ctaText,
-        cta_link: ctaLink,
-        post_type: postType,
-        is_featured: isFeatured,
-        featured_badge: featuredBadge,
-        card_title: cardTitle || title,
-        card_description: cardDescription || excerpt?.slice(0, 120),
-        status,
-        created_at: now,
-        updated_at: now,
-        // SEO fields
-        seo_title: seoTitle || title,
-        seo_description: seoDescription || excerpt?.slice(0, 160),
-        focus_keyword: focusKeyword,
-        og_title: ogTitle || title,
-        og_description: ogDescription || excerpt?.slice(0, 200),
-        og_image: ogImage || featuredImage,
-        canonical_url: canonicalUrl || null,
-        social_caption: socialCaption,
-        published_at: status === 'published' ? now : null,
-      },
-    ])
+    const postData = {
+      title,
+      slug: finalSlug,
+      excerpt,
+      content,
+      featured_image: featuredImage,
+      alt_text: altText,
+      author_id: authorId,
+      category_id: categoryId || null,
+      read_time: readTime,
+      tags: tagArray,
+      cta_text: ctaText,
+      cta_link: ctaLink,
+      post_type: postType,
+      is_featured: isFeatured,
+      featured_badge: featuredBadge,
+      card_title: cardTitle || title,
+      card_description: cardDescription || excerpt?.slice(0, 120),
+      status,
+      created_at: now,
+      updated_at: now,
+      seo_title: seoTitle || title,
+      seo_description: seoDescription || excerpt?.slice(0, 160),
+      focus_keyword: focusKeyword,
+      og_title: ogTitle || title,
+      og_description: ogDescription || excerpt?.slice(0, 200),
+      og_image: ogImage || featuredImage,
+      canonical_url: canonicalUrl || null,
+      social_caption: socialCaption,
+      published_at: status === 'published' ? now : null,
+    }
+
+    const { error } = await supabase.from('blog_posts').insert([postData])
 
     if (error) {
       alert(error.message)
@@ -188,6 +247,14 @@ export default function NewBlogPost() {
       ['link', 'blockquote', 'code-block'],
       ['clean'],
     ],
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+      </div>
+    )
   }
 
   return (
@@ -260,6 +327,7 @@ export default function NewBlogPost() {
             <p className="mt-1 text-xs text-[var(--text-muted)]">/blog/{slug || '...'}</p>
           </div>
 
+          {/* AUTHOR DROPDOWN - FIXED */}
           <div>
             <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Author *</label>
             <select
@@ -268,11 +336,18 @@ export default function NewBlogPost() {
               required
               className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
             >
-              <option value="">Select an author</option>
+              <option value="">-- Select Author --</option>
               {authors.map((author) => (
-                <option key={author.id} value={author.id}>{author.name} - {author.role}</option>
+                <option key={author.id} value={author.id}>
+                  {author.name} {author.role ? `(${author.role})` : ''}
+                </option>
               ))}
             </select>
+            {authors.length === 0 && (
+              <p className="mt-2 text-xs text-amber-500">
+                ⚠️ No authors found. Please run the database migration first.
+              </p>
+            )}
           </div>
 
           <div>
@@ -282,7 +357,7 @@ export default function NewBlogPost() {
               onChange={(e) => setCategoryId(e.target.value)}
               className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
             >
-              <option value="">Select a category</option>
+              <option value="">-- Select Category --</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>{category.name}</option>
               ))}
@@ -579,7 +654,7 @@ export default function NewBlogPost() {
                   value={canonicalUrl}
                   onChange={(e) => setCanonicalUrl(e.target.value)}
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                  placeholder="https://www.hbeedigitals.com/blog/q3-growth-readiness..."
+                  placeholder="https://www.hbeedigitals.com/blog/..."
                 />
               </div>
             </div>
