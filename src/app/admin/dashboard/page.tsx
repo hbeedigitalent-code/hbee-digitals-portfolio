@@ -26,7 +26,6 @@ export default function AdminDashboard() {
     fetchRecentInquiries()
     fetchRecentActivity()
 
-    // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
       fetchStats()
       fetchRecentInquiries()
@@ -114,8 +113,8 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Welcome Section with Gradient */}
+    <div className="space-y-6 pb-10">
+      {/* Welcome Section */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[var(--accent)]/10 via-[var(--accent-orange)]/5 to-transparent p-6">
         <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-[var(--accent-orange)]/20 blur-3xl" />
         <div className="absolute bottom-0 left-1/4 h-24 w-24 rounded-full bg-[var(--accent)]/20 blur-2xl" />
@@ -178,7 +177,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Quick Actions Section */}
+      {/* Quick Actions & Recent Inquiries */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="rounded-xl border border-[var(--border)] bg-gradient-to-br from-[var(--bg-card)] to-[var(--bg-page)] p-6 lg:col-span-2">
           <div className="mb-4 flex items-center gap-2">
@@ -193,7 +192,7 @@ export default function AdminDashboard() {
           
           <p className="mb-6 text-sm text-[var(--text-secondary)]">
             You have <span className="font-bold text-[var(--accent)]">{stats.unreadInquiries}</span> unread message{stats.unreadInquiries !== 1 ? 's' : ''} 
-            {' '}that need your attention. Respond promptly to convert leads into clients.
+            that need your attention. Respond promptly to convert leads into clients.
           </p>
           
           <div className="flex flex-wrap gap-3">
@@ -224,14 +223,14 @@ export default function AdminDashboard() {
           {recentInquiries.length === 0 ? (
             <p className="py-4 text-center text-sm text-[var(--text-muted)]">No inquiries yet</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-80 overflow-y-auto">
               {recentInquiries.slice(0, 3).map((inquiry) => (
                 <Link key={inquiry.id} href="/admin/inquiries" className="block rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 transition hover:border-[var(--accent)]/25">
                   <div className="flex items-center justify-between">
                     <p className="font-bold text-[var(--text-primary)]">{inquiry.full_name || 'Anonymous'}</p>
                     {!inquiry.is_read && <span className="rounded-full bg-[var(--accent)]/20 px-2 py-0.5 text-[10px] font-bold text-[var(--accent)]">New</span>}
                   </div>
-                  <p className="mt-1 text-sm text-[var(--text-secondary)] line-clamp-1">{inquiry.message}</p>
+                  <p className="mt-1 text-sm text-[var(--text-secondary)] line-clamp-2">{inquiry.message}</p>
                   <p className="mt-2 text-xs text-[var(--text-muted)]">{new Date(inquiry.created_at).toLocaleDateString()}</p>
                 </Link>
               ))}
@@ -255,7 +254,7 @@ export default function AdminDashboard() {
           {recentActivity.length === 0 ? (
             <p className="py-4 text-center text-sm text-[var(--text-muted)]">No recent activity</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-96 overflow-y-auto">
               {recentActivity.map((activity, idx) => (
                 <div key={idx} className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/10">
@@ -265,9 +264,9 @@ export default function AdminDashboard() {
                     <p className="text-sm font-bold text-[var(--text-primary)]">
                       {activity.type === 'portfolio' ? 'Portfolio added:' : 'Blog post added:'}
                     </p>
-                    <p className="text-xs text-[var(--text-secondary)]">{activity.name}</p>
+                    <p className="text-xs text-[var(--text-secondary)] line-clamp-1">{activity.name}</p>
                   </div>
-                  <p className="text-xs text-[var(--text-muted)]">{new Date(activity.time).toLocaleDateString()}</p>
+                  <p className="text-xs text-[var(--text-muted)] flex-shrink-0">{new Date(activity.time).toLocaleDateString()}</p>
                 </div>
               ))}
             </div>
