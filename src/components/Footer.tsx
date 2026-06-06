@@ -163,6 +163,7 @@ export default function Footer() {
     
     setSubscribing(true)
     setSubscribeError(false)
+    setSubscribeSuccess(false)
     
     try {
       const response = await fetch('/api/subscribe', {
@@ -171,16 +172,20 @@ export default function Footer() {
         body: JSON.stringify({ email, name, source: 'footer' }),
       })
 
+      const data = await response.json()
+
       if (response.ok) {
         setSubscribeSuccess(true)
         setEmail('')
         setName('')
         setTimeout(() => setSubscribeSuccess(false), 3000)
       } else {
+        console.error('Subscription error:', data.error)
         setSubscribeError(true)
         setTimeout(() => setSubscribeError(false), 3000)
       }
-    } catch {
+    } catch (error) {
+      console.error('Subscription error:', error)
       setSubscribeError(true)
       setTimeout(() => setSubscribeError(false), 3000)
     } finally {

@@ -5,12 +5,12 @@ export async function POST(request: NextRequest) {
   try {
     const { email, name, source = 'website_footer' } = await request.json();
 
-    if (!email) {
-      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+    if (!email || !email.includes('@')) {
+      return NextResponse.json({ error: 'Valid email is required' }, { status: 400 });
     }
 
     // Check if already subscribed
-    const { data: existing } = await supabase
+    const { data: existing, error: checkError } = await supabase
       .from('newsletter_subscribers')
       .select('id, status')
       .eq('email', email)
@@ -19,25 +19,38 @@ export async function POST(request: NextRequest) {
     if (existing) {
       if (existing.status === 'unsubscribed') {
         // Reactivate
-        await supabase
+        const { error: updateError } = await supabase
           .from('newsletter_subscribers')
-          .update({ status: 'active', updated_at: new Date().toISOString() })
+          .update({ 
+            status: 'active', 
+            updated_at: new Date().toISOString() 
+          })
           .eq('email', email);
+        
+        if (updateError) throw updateError;
         return NextResponse.json({ message: 'Re-subscribed successfully!' });
       }
       return NextResponse.json({ message: 'Already subscribed!' });
     }
 
     // Add new subscriber
-    const { error } = await supabase
+    const { error: insertError } = await supabase
       .from('newsletter_subscribers')
-      .insert([{ email, name, source, status: 'active', segment: 'lead' }]);
+      .insert([{ 
+        email, 
+        name: name || null, 
+        source, 
+        status: 'active', 
+        segment: 'lead',
+        created_at: new Date().toISOString()
+      }]);
 
-    if (error) throw error;
+    if (insertError) throw insertError;
 
     return NextResponse.json({ message: 'Subscribed successfully!' });
+    
   } catch (error) {
     console.error('Subscription error:', error);
-    return NextResponse.json({ error: 'Failed to subscribe' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to subscribe. Please try again.' }, { status: 500 });
   }
 }

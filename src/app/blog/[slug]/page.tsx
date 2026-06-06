@@ -30,6 +30,7 @@ export default function BlogPostPage() {
   const [commentEmail, setCommentEmail] = useState('');
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<any[]>([]);
+  const [commentStatus, setCommentStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
   useEffect(() => {
     if (params?.slug) {
@@ -75,19 +76,25 @@ export default function BlogPostPage() {
     e.preventDefault();
     if (!commentText.trim()) return;
 
+    setCommentStatus('submitting');
+
     const { error } = await supabase.from('blog_comments').insert([{
       post_slug: params.slug,
       author_name: commentName || 'Anonymous',
-      author_email: commentEmail,
+      author_email: commentEmail || null,
       content: commentText,
       is_approved: false,
     }]);
 
     if (!error) {
+      setCommentStatus('success');
       setCommentText('');
       setCommentName('');
       setCommentEmail('');
-      alert('Comment submitted for review!');
+      setTimeout(() => setCommentStatus('idle'), 3000);
+    } else {
+      setCommentStatus('error');
+      setTimeout(() => setCommentStatus('idle'), 3000);
     }
   }
 
@@ -133,14 +140,18 @@ export default function BlogPostPage() {
     <>
       <Navbar />
       <main className="bg-[var(--bg-page)]">
-        {/* Featured Image - Full width */}
+        {/* Featured Image - 1200x630 aspect ratio (16:9) */}
         {post.featured_image && (
-          <div className="w-full h-[400px] md:h-[500px] overflow-hidden">
-            <img
-              src={post.featured_image}
-              alt={post.title}
-              className="w-full h-full object-cover"
-            />
+          <div className="w-full bg-[var(--bg-section)]">
+            <div className="max-w-6xl mx-auto">
+              <div className="aspect-[16/9] overflow-hidden">
+                <img
+                  src={post.featured_image}
+                  alt={post.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
           </div>
         )}
 
@@ -238,10 +249,10 @@ export default function BlogPostPage() {
             {post.excerpt}
           </div>
 
-          {/* Article Content - Proper HTML Formatting */}
+          {/* Article Content - HTML rendering */}
           <div 
             className="blog-content"
-            dangerouslySetInnerHTML={{ __html: post.content }}
+            dangerouslySetInnerHTML={{ __html: post.content || '<p>Content coming soon...</p>' }}
           />
 
           {/* Tags Footer */}
@@ -254,7 +265,7 @@ export default function BlogPostPage() {
           </div>
         </div>
 
-        {/* Read Next Section - Centered */}
+        {/* Read Next Section */}
         {relatedPosts.length > 0 && (
           <section className="border-t border-[var(--border)] py-16">
             <div className="max-w-6xl mx-auto px-5 sm:px-6 md:px-10">
@@ -288,7 +299,7 @@ export default function BlogPostPage() {
           </section>
         )}
 
-        {/* Comments Section - Centered */}
+        {/* Comments Section */}
         <section className="border-t border-[var(--border)] py-16">
           <div className="max-w-3xl mx-auto px-5 sm:px-6 md:px-0">
             <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-8">Leave a comment</h2>
@@ -299,7 +310,7 @@ export default function BlogPostPage() {
                   <div key={comment.id} className="bg-[var(--bg-section)] rounded-xl p-5">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-orange-green flex items-center justify-center text-white font-bold">
-                        {comment.author_name.charAt(0)}
+                        {comment.author_name.charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <p className="font-bold text-[var(--text-primary)]">{comment.author_name}</p>
@@ -309,6 +320,18 @@ export default function BlogPostPage() {
                     <p className="text-[var(--text-secondary)]">{comment.content}</p>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {commentStatus === 'success' && (
+              <div className="mb-6 bg-green-500/10 border border-green-500/30 text-green-400 rounded-lg p-4 text-center">
+                ✓ Comment submitted for review! It will appear once approved.
+              </div>
+            )}
+
+            {commentStatus === 'error' && (
+              <div className="mb-6 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg p-4 text-center">
+                ✗ Something went wrong. Please try again.
               </div>
             )}
 
@@ -339,9 +362,10 @@ export default function BlogPostPage() {
               />
               <button
                 type="submit"
-                className="bg-gradient-orange-green text-white px-6 py-2 rounded-full font-bold hover:scale-105 transition"
+                disabled={commentStatus === 'submitting'}
+                className="bg-gradient-orange-green text-white px-6 py-2 rounded-full font-bold hover:scale-105 transition disabled:opacity-50"
               >
-                Post Comment
+                {commentStatus === 'submitting' ? 'Submitting...' : 'Post Comment'}
               </button>
             </form>
           </div>
@@ -370,6 +394,8 @@ export default function BlogPostPage() {
           margin-top: 2rem;
           margin-bottom: 1rem;
           color: var(--text-primary);
+          padding-bottom: 0.5rem;
+          border-bottom: 1px solid var(--border);
         }
         
         .blog-content h3 {
