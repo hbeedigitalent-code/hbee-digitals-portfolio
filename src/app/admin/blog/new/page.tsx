@@ -1,775 +1,262 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
-import ImageUpload from '@/components/ImageUpload'
-import SvgIcon from '@/components/ui/SvgIcon'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 
-// Dynamically import ReactQuill to avoid SSR issues
-const ReactQuill = dynamic(() => import('react-quill'), {
-  ssr: false,
-  loading: () => (
-    <div className="h-[400px] rounded-lg border border-[var(--border)] bg-[var(--bg-section)] animate-pulse" />
-  ),
-})
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hbeedigitals.com'
 
-import 'react-quill/dist/quill.snow.css'
-
-function createSlug(value: string) {
+function slugify(value: string) {
   return value
     .toLowerCase()
+    .trim()
     .replace(/&/g, 'and')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '')
 }
 
-export default function NewBlogPost() {
-  const router = useRouter()
-  const [authors, setAuthors] = useState<any[]>([])
-  const [categories, setCategories] = useState<any[]>([])
-  const [saving, setSaving] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [editorMode, setEditorMode] = useState<'write' | 'preview'>('write')
+function toAbsoluteUrl(url: string) {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  if (url.startsWith('/')) return `${siteUrl}${url}`
+  return url
+}
 
-  // Basic fields
+function estimateReadTime(html: string) {
+  const text = html.replace(/<[^>]+>/g, ' ')
+  const words = text.trim().split(/\s+/).filter(Boolean).length
+  return `${Math.max(1, Math.ceil(words / 220))} min read`
+}
+
+export default function NewBlogPostPage() {
+  const router = useRouter()
+  const [saving, setSaving] = useState(false)
+
   const [title, setTitle] = useState('')
   const [slug, setSlug] = useState('')
   const [excerpt, setExcerpt] = useState('')
   const [content, setContent] = useState('')
   const [featuredImage, setFeaturedImage] = useState('')
-  const [altText, setAltText] = useState('')
-  const [authorId, setAuthorId] = useState('')
-  const [categoryId, setCategoryId] = useState('')
-  const [readTime, setReadTime] = useState('8 min read')
-  const [tags, setTags] = useState('')
-  const [postType, setPostType] = useState('blog')
+  const [featuredImageAlt, setFeaturedImageAlt] = useState('')
+  const [author, setAuthor] = useState('Habeeb Ismaila')
+  const [tags, setTags] = useState('Ecommerce, Growth Strategy, Hbee Digitals')
+  const [status, setStatus] = useState('draft')
   const [isFeatured, setIsFeatured] = useState(false)
-  const [status, setStatus] = useState('published')
-
-  // Featured card fields
-  const [featuredBadge, setFeaturedBadge] = useState('Growth Strategy')
-  const [cardTitle, setCardTitle] = useState('')
-  const [cardDescription, setCardDescription] = useState('')
-
-  // CTA fields
-  const [ctaText, setCtaText] = useState('Request a Growth Review')
-  const [ctaLink, setCtaLink] = useState('/contact')
-
-  // SEO fields
+  const [featuredBadge, setFeaturedBadge] = useState('Featured Insight')
   const [seoTitle, setSeoTitle] = useState('')
   const [seoDescription, setSeoDescription] = useState('')
   const [focusKeyword, setFocusKeyword] = useState('')
   const [ogTitle, setOgTitle] = useState('')
   const [ogDescription, setOgDescription] = useState('')
-  const [ogImage, setOgImage] = useState('')
-  const [canonicalUrl, setCanonicalUrl] = useState('')
-  const [socialCaption, setSocialCaption] = useState('')
 
-  // UI states
-  const [showSeoPanel, setShowSeoPanel] = useState(false)
-  const [showCtaPanel, setShowCtaPanel] = useState(false)
-  const [showFeaturedPanel, setShowFeaturedPanel] = useState(false)
+  const finalSlug = useMemo(() => slug || slugify(title), [slug, title])
+  const finalFeaturedImage = useMemo(() => toAbsoluteUrl(featuredImage), [featuredImage])
+  const readTime = useMemo(() => estimateReadTime(content), [content])
 
-  useEffect(() => {
-    fetchData()
-  }, [])
-
-  async function fetchData() {
-    setLoading(true)
-    setError(null)
-    await Promise.all([
-      fetchAuthors(),
-      fetchCategories()
-    ])
-    setLoading(false)
-  }
-
-  async function fetchAuthors() {
-    try {
-      const { data, error } = await supabase
-        .from('blog_authors')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true })
-      
-      if (error) {
-        console.error('Error fetching authors:', error)
-        setError(`Author fetch error: ${error.message}`)
-        return
-      }
-      
-      if (data && data.length > 0) {
-        setAuthors(data)
-        setAuthorId(data[0].id)
-      } else {
-        // Create default author
-        const { data: newAuthor, error: insertError } = await supabase
-          .from('blog_authors')
-          .insert([{
-            name: 'Habeeb Ismaila',
-            role: 'Founder & CEO',
-            bio: 'Helping brands build stronger digital systems, better websites, and growth-focused customer experiences.',
-            is_active: true,
-          }])
-          .select()
-          .single()
-        
-        if (insertError) {
-          console.error('Error creating author:', insertError)
-          setError(`Failed to create author: ${insertError.message}`)
-        } else if (newAuthor) {
-          setAuthors([newAuthor])
-          setAuthorId(newAuthor.id)
-        }
-      }
-    } catch (err) {
-      console.error('Unexpected error in fetchAuthors:', err)
-      setError(`Unexpected error: ${err}`)
-    }
-  }
-
-  async function fetchCategories() {
-    try {
-      const { data, error } = await supabase
-        .from('blog_categories')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true })
-      
-      if (error) {
-        console.error('Error fetching categories:', error)
-        return
-      }
-      
-      if (data && data.length > 0) {
-        setCategories(data)
-        const growthCat = data.find(c => c.name.includes('Ecommerce Growth'))
-        setCategoryId(growthCat?.id || data[0].id)
-      }
-    } catch (err) {
-      console.error('Unexpected error in fetchCategories:', err)
-    }
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSaving(true)
-
-    const finalSlug = slug.trim() || createSlug(title)
-    const tagArray = tags.split(',').map(t => t.trim()).filter(Boolean)
-    const now = new Date().toISOString()
-
-    if (!authorId || authorId === '') {
-      alert('Please select an author')
-      setSaving(false)
+  async function savePost() {
+    if (!title.trim() || !finalSlug || !content.trim()) {
+      alert('Title, slug, and content are required.')
       return
     }
+
+    setSaving(true)
+
+    const tagArray = tags
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean)
 
     const postData = {
       title,
       slug: finalSlug,
       excerpt,
       content,
-      featured_image: featuredImage,
-      alt_text: altText,
-      author_id: authorId,
-      category_id: categoryId || null,
-      read_time: readTime,
+      featured_image: finalFeaturedImage || null,
+      featured_image_alt: featuredImageAlt,
+      alt_text: featuredImageAlt,
+      author,
       tags: tagArray,
-      cta_text: ctaText,
-      cta_link: ctaLink,
-      post_type: postType,
+      status,
+      post_type: 'blog',
       is_featured: isFeatured,
       featured_badge: featuredBadge,
-      card_title: cardTitle || title,
-      card_description: cardDescription || excerpt?.slice(0, 120),
-      status,
-      created_at: now,
-      updated_at: now,
+      read_time: readTime,
+      published_at: status === 'published' ? new Date().toISOString() : null,
+
       seo_title: seoTitle || title,
-      seo_description: seoDescription || excerpt?.slice(0, 160),
+      seo_description: seoDescription || excerpt.slice(0, 160),
       focus_keyword: focusKeyword,
-      og_title: ogTitle || title,
-      og_description: ogDescription || excerpt?.slice(0, 200),
-      og_image: ogImage || featuredImage,
-      canonical_url: canonicalUrl || null,
-      social_caption: socialCaption,
-      published_at: status === 'published' ? now : null,
+
+      og_title: ogTitle || seoTitle || title,
+      og_description: ogDescription || seoDescription || excerpt.slice(0, 200),
+      og_image: finalFeaturedImage || null,
+      canonical_url: `${siteUrl}/blog/${finalSlug}`,
     }
 
-    const { error } = await supabase.from('blog_posts').insert([postData])
+    const { error } = await supabase.from('blog_posts').insert(postData)
+
+    setSaving(false)
 
     if (error) {
       alert(error.message)
-      console.error(error)
-    } else {
-      router.push('/admin/blog')
+      return
     }
 
-    setSaving(false)
-  }
-
-  // Auto-generate fields from title
-  useEffect(() => {
-    if (title) {
-      if (!seoTitle) setSeoTitle(title)
-      if (!ogTitle) setOgTitle(title)
-      if (!cardTitle) setCardTitle(title.length > 60 ? title.slice(0, 57) + '...' : title)
-    }
-  }, [title])
-
-  // Auto-generate from excerpt
-  useEffect(() => {
-    if (excerpt) {
-      if (!seoDescription) setSeoDescription(excerpt.slice(0, 160))
-      if (!ogDescription) setOgDescription(excerpt.slice(0, 200))
-      if (!cardDescription) setCardDescription(excerpt.slice(0, 120))
-    }
-  }, [excerpt])
-
-  const quillModules = {
-    toolbar: [
-      [{ header: [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ list: 'ordered' }, { list: 'bullet' }],
-      ['link', 'blockquote', 'code-block'],
-      ['clean'],
-    ],
-  }
-
-  if (loading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
-      </div>
-    )
+    router.push('/admin/blog')
   }
 
   return (
-    <div className="mx-auto max-w-7xl">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <div className="mx-auto max-w-7xl space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black text-[var(--text-primary)] sm:text-3xl">
-            Create New {postType === 'case_study' ? 'Case Study' : 'Blog Post'}
-          </h2>
+          <h1 className="text-3xl font-black text-[var(--text-primary)]">New Blog Post</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Publish {postType === 'case_study' ? 'client success stories' : 'SEO content and growth insights'}
+            Featured image automatically becomes the OG/social sharing image.
           </p>
         </div>
-        <Link href="/admin/blog" className="text-[var(--accent)] hover:underline">
-          ← Back to Blog
+
+        <Link href="/admin/blog" className="font-bold text-[var(--accent)]">
+          Back to Blog
         </Link>
       </div>
 
-      {error && (
-        <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
-          Error: {error}
-        </div>
-      )}
+      <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
+        <div className="space-y-5">
+          <Card title="Main Content">
+            <Input label="Title" value={title} setValue={setTitle} />
+            <Input label="Slug" value={finalSlug} setValue={setSlug} />
+            <Textarea label="Excerpt / Summary" value={excerpt} setValue={setExcerpt} rows={4} />
+            <Textarea label="HTML Content" value={content} setValue={setContent} rows={24} mono />
+          </Card>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Post Type Selector */}
-        <div className="flex gap-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
-          <label className="flex cursor-pointer items-center gap-2">
-            <input
-              type="radio"
-              value="blog"
-              checked={postType === 'blog'}
-              onChange={(e) => setPostType(e.target.value)}
-              className="h-4 w-4 accent-[var(--accent)]"
-            />
-            <span className="text-sm font-bold text-[var(--text-primary)]">📝 Blog Post</span>
-          </label>
-          <label className="flex cursor-pointer items-center gap-2">
-            <input
-              type="radio"
-              value="case_study"
-              checked={postType === 'case_study'}
-              onChange={(e) => setPostType(e.target.value)}
-              className="h-4 w-4 accent-[var(--accent)]"
-            />
-            <span className="text-sm font-bold text-[var(--text-primary)]">📊 Case Study</span>
-          </label>
-        </div>
+          <Card title="Image & Metadata">
+            <Input label="Featured Image URL" value={featuredImage} setValue={setFeaturedImage} />
+            <Input label="Featured Image Alt Text" value={featuredImageAlt} setValue={setFeaturedImageAlt} />
+            <Input label="Author" value={author} setValue={setAuthor} />
+            <Input label="Tags comma separated" value={tags} setValue={setTags} />
+          </Card>
 
-        {/* Basic Info Grid */}
-        <div className="grid gap-5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5 md:grid-cols-2">
-          <div className="md:col-span-2">
-            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Title *</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value)
-                if (!slug) setSlug(createSlug(e.target.value))
-              }}
-              required
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-              placeholder="e.g., Q3 Growth Readiness: Why Most Ecommerce Stores Struggle to Scale"
-            />
-          </div>
+          <Card title="SEO">
+            <Input label="SEO Title" value={seoTitle} setValue={setSeoTitle} />
+            <Textarea label="Meta Description" value={seoDescription} setValue={setSeoDescription} rows={3} />
+            <Input label="Focus Keyword" value={focusKeyword} setValue={setFocusKeyword} />
+            <Input label="OG Title - optional" value={ogTitle} setValue={setOgTitle} />
+            <Textarea label="OG Description - optional" value={ogDescription} setValue={setOgDescription} rows={3} />
 
-          <div>
-            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Slug</label>
-            <input
-              type="text"
-              value={slug}
-              onChange={(e) => setSlug(createSlug(e.target.value))}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-              placeholder="auto-generated"
-            />
-            <p className="mt-1 text-xs text-[var(--text-muted)]">/blog/{slug || '...'}</p>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Author *</label>
-            <select
-              value={authorId}
-              onChange={(e) => setAuthorId(e.target.value)}
-              required
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-            >
-              <option value="">-- Select Author --</option>
-              {authors.map((author) => (
-                <option key={author.id} value={author.id}>
-                  {author.name} {author.role ? `(${author.role})` : ''}
-                </option>
-              ))}
-            </select>
-            {authors.length === 0 && (
-              <p className="mt-2 text-xs text-amber-500">
-                ⚠️ No authors found. Please refresh the page or check database.
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Category</label>
-            <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-            >
-              <option value="">-- Select Category --</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>{category.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Read Time</label>
-            <input
-              type="text"
-              value={readTime}
-              onChange={(e) => setReadTime(e.target.value)}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-              placeholder="8 min read"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Status</label>
-            <div className="flex gap-4 pt-2">
-              <label className="flex cursor-pointer items-center gap-2">
-                <input
-                  type="radio"
-                  value="draft"
-                  checked={status === 'draft'}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="h-4 w-4 accent-[var(--accent)]"
-                />
-                <span className="text-sm">📝 Draft</span>
-              </label>
-              <label className="flex cursor-pointer items-center gap-2">
-                <input
-                  type="radio"
-                  value="published"
-                  checked={status === 'published'}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="h-4 w-4 accent-[var(--accent)]"
-                />
-                <span className="text-sm">🚀 Published</span>
-              </label>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-4 text-sm text-[var(--text-muted)]">
+              OG Image is auto-generated from Featured Image:
+              <br />
+              <span className="font-bold text-[var(--accent)] break-all">
+                {finalFeaturedImage || 'Add featured image first'}
+              </span>
             </div>
-          </div>
-        </div>
+          </Card>
 
-        {/* Featured Image */}
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-          <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Featured Image</label>
-          <ImageUpload
-            onUpload={setFeaturedImage}
-            currentImage={featuredImage}
-            folder="blog"
-            label="Upload featured image"
-          />
-          <div className="mt-3">
-            <label className="mb-1 block text-sm font-bold text-[var(--text-primary)]">Alt Text (for SEO)</label>
-            <input
-              type="text"
-              value={altText}
-              onChange={(e) => setAltText(e.target.value)}
-              placeholder="Describe the image for screen readers and SEO"
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-sm"
-            />
-          </div>
-          <p className="mt-2 text-xs text-[var(--text-muted)]">Recommended size: 1200 x 630px for optimal sharing</p>
-        </div>
-
-        {/* Excerpt */}
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-          <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Excerpt / Summary *</label>
-          <textarea
-            value={excerpt}
-            onChange={(e) => setExcerpt(e.target.value)}
-            required
-            rows={4}
-            className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-            placeholder="Brief summary that appears in blog listings and search results..."
-          />
-          <p className="mt-1 text-right text-xs text-[var(--text-muted)]">{excerpt.length} / 160 recommended</p>
-        </div>
-
-        {/* Content Editor with Preview Toggle */}
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <label className="text-sm font-bold text-[var(--text-primary)]">Article Content *</label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setEditorMode('write')}
-                className={`rounded-lg px-3 py-1 text-sm font-bold transition ${
-                  editorMode === 'write'
-                    ? 'bg-[var(--accent)] text-white'
-                    : 'border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--bg-section)]'
-                }`}
-              >
-                Write
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditorMode('preview')}
-                className={`rounded-lg px-3 py-1 text-sm font-bold transition ${
-                  editorMode === 'preview'
-                    ? 'bg-[var(--accent)] text-white'
-                    : 'border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--bg-section)]'
-                }`}
-              >
-                Preview
-              </button>
-            </div>
-          </div>
-
-          {editorMode === 'write' ? (
-            <ReactQuill
-              theme="snow"
-              value={content}
-              onChange={setContent}
-              modules={quillModules}
-              className="bg-white"
-              style={{ minHeight: 400 }}
-            />
-          ) : (
-            <div className="min-h-[400px] rounded-lg border border-[var(--border)] bg-white p-6 overflow-y-auto">
-              <div 
-                className="prose prose-sm max-w-none blog-content-preview"
-                dangerouslySetInnerHTML={{ __html: content || '<p class="text-[var(--text-muted)]">No content yet. Start writing your article in the Write tab.</p>' }}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Tags */}
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-          <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Tags</label>
-          <input
-            type="text"
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-            placeholder="Ecommerce, Ecommerce Growth, Q3 Growth, Conversion Optimization, Shopify, Customer Experience"
-          />
-          <p className="mt-1 text-xs text-[var(--text-muted)]">Separate with commas</p>
-        </div>
-
-        {/* Featured Card Settings Panel */}
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
           <button
-            type="button"
-            onClick={() => setShowFeaturedPanel(!showFeaturedPanel)}
-            className="flex w-full items-center justify-between p-5 text-left"
-          >
-            <span className="font-bold text-[var(--text-primary)]">⭐ Homepage Featured Card Settings</span>
-            <SvgIcon name="chevron-down" size={18} color="var(--accent)" className={`transition ${showFeaturedPanel ? 'rotate-180' : ''}`} />
-          </button>
-          {showFeaturedPanel && (
-            <div className="space-y-4 border-t border-[var(--border)] p-5">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Featured Badge</label>
-                  <input
-                    type="text"
-                    value={featuredBadge}
-                    onChange={(e) => setFeaturedBadge(e.target.value)}
-                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                    placeholder="Growth Strategy"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Card Title (Short)</label>
-                  <input
-                    type="text"
-                    value={cardTitle}
-                    onChange={(e) => setCardTitle(e.target.value)}
-                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                    placeholder={title?.slice(0, 60)}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Card Description</label>
-                <textarea
-                  value={cardDescription}
-                  onChange={(e) => setCardDescription(e.target.value)}
-                  rows={2}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                  placeholder={excerpt?.slice(0, 120)}
-                />
-              </div>
-              <label className="flex cursor-pointer items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={isFeatured}
-                  onChange={(e) => setIsFeatured(e.target.checked)}
-                  className="h-5 w-5 accent-[var(--accent)]"
-                />
-                <span className="text-sm font-bold text-[var(--text-primary)]">Feature this post on homepage</span>
-              </label>
-            </div>
-          )}
-        </div>
-
-        {/* CTA Panel */}
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
-          <button
-            type="button"
-            onClick={() => setShowCtaPanel(!showCtaPanel)}
-            className="flex w-full items-center justify-between p-5 text-left"
-          >
-            <span className="font-bold text-[var(--text-primary)]">🎯 Call to Action</span>
-            <SvgIcon name="chevron-down" size={18} color="var(--accent)" className={`transition ${showCtaPanel ? 'rotate-180' : ''}`} />
-          </button>
-          {showCtaPanel && (
-            <div className="grid gap-4 border-t border-[var(--border)] p-5 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">CTA Button Text</label>
-                <input
-                  type="text"
-                  value={ctaText}
-                  onChange={(e) => setCtaText(e.target.value)}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                  placeholder="Request a Growth Review"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">CTA Button Link</label>
-                <input
-                  type="text"
-                  value={ctaLink}
-                  onChange={(e) => setCtaLink(e.target.value)}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                  placeholder="/contact"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* SEO Panel */}
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
-          <button
-            type="button"
-            onClick={() => setShowSeoPanel(!showSeoPanel)}
-            className="flex w-full items-center justify-between p-5 text-left"
-          >
-            <span className="font-bold text-[var(--text-primary)]">🔍 SEO Settings</span>
-            <SvgIcon name="chevron-down" size={18} color="var(--accent)" className={`transition ${showSeoPanel ? 'rotate-180' : ''}`} />
-          </button>
-          {showSeoPanel && (
-            <div className="space-y-4 border-t border-[var(--border)] p-5">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">SEO Title</label>
-                  <input
-                    type="text"
-                    value={seoTitle}
-                    onChange={(e) => setSeoTitle(e.target.value)}
-                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                  />
-                  <p className="mt-1 text-xs text-[var(--text-muted)]">{seoTitle.length} / 60 characters</p>
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Focus Keyword</label>
-                  <input
-                    type="text"
-                    value={focusKeyword}
-                    onChange={(e) => setFocusKeyword(e.target.value)}
-                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                    placeholder="e.g., Q3 Growth Readiness"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Meta Description</label>
-                <textarea
-                  value={seoDescription}
-                  onChange={(e) => setSeoDescription(e.target.value)}
-                  rows={2}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                />
-                <p className="mt-1 text-right text-xs text-[var(--text-muted)]">{seoDescription.length} / 160 characters</p>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">OG Title (Social Media)</label>
-                  <input
-                    type="text"
-                    value={ogTitle}
-                    onChange={(e) => setOgTitle(e.target.value)}
-                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">OG Image</label>
-                  <input
-                    type="url"
-                    value={ogImage}
-                    onChange={(e) => setOgImage(e.target.value)}
-                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                    placeholder={featuredImage}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">OG Description</label>
-                <textarea
-                  value={ogDescription}
-                  onChange={(e) => setOgDescription(e.target.value)}
-                  rows={2}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Social Share Caption</label>
-                <textarea
-                  value={socialCaption}
-                  onChange={(e) => setSocialCaption(e.target.value)}
-                  rows={4}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                  placeholder="More traffic doesn't automatically create more sales..."
-                />
-                <p className="mt-1 text-xs text-[var(--text-muted)]">Used for LinkedIn, Facebook, WhatsApp, and X shares</p>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Canonical URL</label>
-                <input
-                  type="url"
-                  value={canonicalUrl}
-                  onChange={(e) => setCanonicalUrl(e.target.value)}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
-                  placeholder="https://www.hbeedigitals.com/blog/..."
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Submit Buttons */}
-        <div className="flex flex-wrap gap-4 pb-10">
-          <button
-            type="submit"
+            onClick={savePost}
             disabled={saving}
-            className="inline-flex items-center gap-2 rounded-full bg-gradient-orange-green px-8 py-3 text-sm font-black text-white transition hover:scale-105 disabled:opacity-50"
+            className="rounded-full bg-[var(--accent)] px-8 py-3 text-sm font-black text-[#07111F]"
           >
-            {saving ? 'Saving...' : (status === 'published' ? 'Publish Now' : 'Save as Draft')}
-            <SvgIcon name="arrow-diagonal" size={14} color="white" />
+            {saving ? 'Saving...' : 'Save Blog Post'}
           </button>
-          <Link
-            href="/admin/blog"
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-section)] px-8 py-3 text-sm font-black text-[var(--text-muted)] transition hover:border-[var(--accent)]/25"
-          >
-            Cancel
-          </Link>
         </div>
-      </form>
 
-      <style jsx global>{`
-        .blog-content-preview {
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          line-height: 1.6;
-          color: #3A4A62;
-        }
-        .blog-content-preview h1 {
-          font-size: 2rem;
-          font-weight: 800;
-          margin-top: 1.5rem;
-          margin-bottom: 1rem;
-          color: #0A1D37;
-        }
-        .blog-content-preview h2 {
-          font-size: 1.5rem;
-          font-weight: 700;
-          margin-top: 1.5rem;
-          margin-bottom: 0.75rem;
-          color: #0A1D37;
-        }
-        .blog-content-preview h3 {
-          font-size: 1.25rem;
-          font-weight: 600;
-          margin-top: 1.25rem;
-          margin-bottom: 0.5rem;
-          color: #0A1D37;
-        }
-        .blog-content-preview p {
-          margin-bottom: 1rem;
-        }
-        .blog-content-preview ul, .blog-content-preview ol {
-          margin-bottom: 1rem;
-          padding-left: 1.5rem;
-        }
-        .blog-content-preview li {
-          margin-bottom: 0.25rem;
-        }
-        .blog-content-preview a {
-          color: #39D97A;
-          text-decoration: underline;
-        }
-        .blog-content-preview img {
-          max-width: 100%;
-          border-radius: 12px;
-          margin: 1rem 0;
-        }
-        .blog-content-preview blockquote {
-          border-left: 4px solid #39D97A;
-          padding-left: 1rem;
-          margin: 1rem 0;
-          color: #6B7A96;
-          font-style: italic;
-        }
-        .text-muted {
-          color: #6B7A96;
-        }
-      `}</style>
+        <div className="space-y-5 lg:sticky lg:top-6 lg:h-fit">
+          <Card title="Publish Settings">
+            <label className="block">
+              <span className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Status</span>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)]"
+              >
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+              </select>
+            </label>
+
+            <label className="flex items-center gap-3 text-sm font-bold text-[var(--text-primary)]">
+              <input
+                type="checkbox"
+                checked={isFeatured}
+                onChange={(e) => setIsFeatured(e.target.checked)}
+              />
+              Featured article
+            </label>
+
+            <Input label="Featured Badge" value={featuredBadge} setValue={setFeaturedBadge} />
+
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-4">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                Read Time
+              </p>
+              <p className="mt-2 text-xl font-black text-[var(--text-primary)]">{readTime}</p>
+            </div>
+          </Card>
+
+          <Card title="Preview">
+            {finalFeaturedImage && (
+              <img src={finalFeaturedImage} alt="" className="mb-4 aspect-[1200/630] w-full rounded-xl object-cover" />
+            )}
+
+            <h2 className="text-xl font-black text-[var(--text-primary)]">{title || 'Blog title preview'}</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+              {excerpt || 'Blog excerpt preview will appear here.'}
+            </p>
+          </Card>
+        </div>
+      </div>
     </div>
+  )
+}
+
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+      <h2 className="text-lg font-black text-[var(--text-primary)]">{title}</h2>
+      {children}
+    </div>
+  )
+}
+
+function Input({ label, value, setValue }: { label: string; value: string; setValue: (v: string) => void }) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-bold text-[var(--text-primary)]">{label}</span>
+      <input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
+      />
+    </label>
+  )
+}
+
+function Textarea({
+  label,
+  value,
+  setValue,
+  rows,
+  mono,
+}: {
+  label: string
+  value: string
+  setValue: (v: string) => void
+  rows: number
+  mono?: boolean
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-bold text-[var(--text-primary)]">{label}</span>
+      <textarea
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        rows={rows}
+        className={`w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)] ${
+          mono ? 'font-mono text-sm' : ''
+        }`}
+      />
+    </label>
   )
 }
