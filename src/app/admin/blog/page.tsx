@@ -19,7 +19,7 @@ interface BlogPost {
   status: string
   post_type: string
   published_at: string
-  created_at: string  // ← ADD THIS LINE
+  created_at: string
   views: number
 }
 
@@ -28,7 +28,6 @@ export default function AdminBlogPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
-  const [filterType, setFilterType] = useState('all')
   const [showMobileFilters, setShowMobileFilters] = useState(false)
 
   useEffect(() => {
@@ -39,6 +38,7 @@ export default function AdminBlogPage() {
     let query = supabase
       .from('blog_posts')
       .select('*')
+      .eq('post_type', 'blog')
       .order('published_at', { ascending: false })
 
     const { data } = await query
@@ -57,7 +57,10 @@ export default function AdminBlogPage() {
     const newStatus = currentStatus === 'published' ? 'draft' : 'published'
     await supabase
       .from('blog_posts')
-      .update({ status: newStatus, published_at: newStatus === 'published' ? new Date().toISOString() : null })
+      .update({ 
+        status: newStatus, 
+        published_at: newStatus === 'published' ? new Date().toISOString() : null 
+      })
       .eq('id', id)
     fetchPosts()
   }
@@ -65,8 +68,7 @@ export default function AdminBlogPage() {
   const filteredPosts = posts.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = filterStatus === 'all' || post.status === filterStatus
-    const matchesType = filterType === 'all' || post.post_type === filterType
-    return matchesSearch && matchesStatus && matchesType
+    return matchesSearch && matchesStatus
   })
 
   if (loading) {
@@ -83,7 +85,7 @@ export default function AdminBlogPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black text-[var(--text-primary)] sm:text-3xl">Blog Management</h1>
-          <p className="text-sm text-[var(--text-muted)]">Manage posts, SEO, categories, and authors</p>
+          <p className="text-sm text-[var(--text-muted)]">Manage your blog articles, SEO, and tags</p>
         </div>
         <Link
           href="/admin/blog/new"
@@ -122,7 +124,9 @@ export default function AdminBlogPage() {
           <button
             onClick={() => setFilterStatus('all')}
             className={`rounded-full px-4 py-2 text-xs font-bold transition ${
-              filterStatus === 'all' ? 'bg-[var(--accent)] text-white' : 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)]'
+              filterStatus === 'all' 
+                ? 'bg-[var(--accent)] text-white' 
+                : 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)]'
             }`}
           >
             All
@@ -130,7 +134,9 @@ export default function AdminBlogPage() {
           <button
             onClick={() => setFilterStatus('published')}
             className={`rounded-full px-4 py-2 text-xs font-bold transition ${
-              filterStatus === 'published' ? 'bg-green-500 text-white' : 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)]'
+              filterStatus === 'published' 
+                ? 'bg-green-500 text-white' 
+                : 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)]'
             }`}
           >
             Published
@@ -138,26 +144,12 @@ export default function AdminBlogPage() {
           <button
             onClick={() => setFilterStatus('draft')}
             className={`rounded-full px-4 py-2 text-xs font-bold transition ${
-              filterStatus === 'draft' ? 'bg-yellow-500 text-white' : 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)]'
+              filterStatus === 'draft' 
+                ? 'bg-yellow-500 text-white' 
+                : 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)]'
             }`}
           >
             Draft
-          </button>
-          <button
-            onClick={() => setFilterType('blog')}
-            className={`rounded-full px-4 py-2 text-xs font-bold transition ${
-              filterType === 'blog' ? 'bg-[var(--accent)] text-white' : 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)]'
-            }`}
-          >
-            Blog
-          </button>
-          <button
-            onClick={() => setFilterType('case_study')}
-            className={`rounded-full px-4 py-2 text-xs font-bold transition ${
-              filterType === 'case_study' ? 'bg-[var(--accent)] text-white' : 'border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)]'
-            }`}
-          >
-            Case Studies
           </button>
         </div>
       </div>
@@ -168,9 +160,6 @@ export default function AdminBlogPage() {
           <div key={post.id} className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                {post.post_type === 'case_study' && (
-                  <span className="mb-2 inline-block rounded-full bg-purple-500/20 px-2 py-0.5 text-[10px] font-bold text-purple-400">Case Study</span>
-                )}
                 <h3 className="font-bold text-[var(--text-primary)] line-clamp-2">{post.title}</h3>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">{post.slug}</p>
               </div>
@@ -213,7 +202,6 @@ export default function AdminBlogPage() {
           <thead className="border-b border-[var(--border)] bg-[var(--bg-section)]">
             <tr>
               <th className="p-4 text-left text-xs font-black uppercase tracking-wider">Title</th>
-              <th className="p-4 text-left text-xs font-black uppercase tracking-wider">Type</th>
               <th className="p-4 text-left text-xs font-black uppercase tracking-wider">Status</th>
               <th className="p-4 text-left text-xs font-black uppercase tracking-wider">Views</th>
               <th className="p-4 text-left text-xs font-black uppercase tracking-wider">Date</th>
@@ -227,20 +215,20 @@ export default function AdminBlogPage() {
                   <div>
                     <p className="font-bold text-[var(--text-primary)]">{post.title}</p>
                     <p className="text-xs text-[var(--text-muted)]">{post.slug}</p>
+                    {post.is_featured && (
+                      <span className="mt-1 inline-block rounded-full bg-[var(--accent)]/20 px-2 py-0.5 text-[10px] font-bold text-[var(--accent)]">
+                        Featured
+                      </span>
+                    )}
                   </div>
-                </td>
-                <td className="p-4">
-                  <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${
-                    post.post_type === 'case_study' ? 'bg-purple-500/20 text-purple-400' : 'bg-[var(--accent)]/20 text-[var(--accent)]'
-                  }`}>
-                    {post.post_type === 'case_study' ? 'Case Study' : 'Blog'}
-                  </span>
                 </td>
                 <td className="p-4">
                   <button
                     onClick={() => toggleStatus(post.id, post.status)}
                     className={`rounded-full px-3 py-1 text-xs font-bold transition ${
-                      post.status === 'published' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
+                      post.status === 'published' 
+                        ? 'bg-green-500/20 text-green-400' 
+                        : 'bg-yellow-500/20 text-yellow-400'
                     }`}
                   >
                     {post.status === 'published' ? 'Published' : 'Draft'}
@@ -252,10 +240,16 @@ export default function AdminBlogPage() {
                 </td>
                 <td className="p-4">
                   <div className="flex gap-2">
-                    <Link href={`/admin/blog/edit/${post.id}`} className="rounded-lg border border-[var(--border)] px-3 py-1 text-sm text-[var(--accent)] hover:bg-[var(--accent)]/10">
+                    <Link 
+                      href={`/admin/blog/edit/${post.id}`} 
+                      className="rounded-lg border border-[var(--border)] px-3 py-1 text-sm text-[var(--accent)] hover:bg-[var(--accent)]/10"
+                    >
                       Edit
                     </Link>
-                    <button onClick={() => deletePost(post.id)} className="rounded-lg border border-red-500/30 px-3 py-1 text-sm text-red-400 hover:bg-red-500/10">
+                    <button 
+                      onClick={() => deletePost(post.id)} 
+                      className="rounded-lg border border-red-500/30 px-3 py-1 text-sm text-red-400 hover:bg-red-500/10"
+                    >
                       Delete
                     </button>
                   </div>
@@ -269,7 +263,7 @@ export default function AdminBlogPage() {
       {filteredPosts.length === 0 && (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
           <SvgIcon name="blog" size={48} color="var(--text-muted)" />
-          <p className="mt-4 text-[var(--text-muted)]">No posts found</p>
+          <p className="mt-4 text-[var(--text-muted)]">No blog posts found</p>
           <Link href="/admin/blog/new" className="mt-4 inline-block text-sm font-bold text-[var(--accent)]">
             Create your first post →
           </Link>
