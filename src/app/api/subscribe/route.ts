@@ -5,49 +5,36 @@ export async function POST(request: NextRequest) {
   try {
     const { email, name, source = 'website_footer' } = await request.json();
 
+    // Validate email
     if (!email || !email.includes('@')) {
       return NextResponse.json({ error: 'Valid email is required' }, { status: 400 });
     }
 
-    // Check if already subscribed
-    const { data: existing, error: checkError } = await supabase
+    // Try to insert or update
+    const { data, error } = await supabase
       .from('newsletter_subscribers')
-      .select('id, status')
-      .eq('email', email)
-      .single();
+      .upsert(
+        { 
+          email: email.toLowerCase().trim(), 
+          name: name || null, 
+          source, 
+          status: 'active',
+          segment: 'lead',
+          updated_at: new Date().toISOString()
+        },
+        { onConflict: 'email' }
+      )
+      .select();
 
-    if (existing) {
-      if (existing.status === 'unsubscribed') {
-        // Reactivate
-        const { error: updateError } = await supabase
-          .from('newsletter_subscribers')
-          .update({ 
-            status: 'active', 
-            updated_at: new Date().toISOString() 
-          })
-          .eq('email', email);
-        
-        if (updateError) throw updateError;
-        return NextResponse.json({ message: 'Re-subscribed successfully!' });
-      }
-      return NextResponse.json({ message: 'Already subscribed!' });
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Add new subscriber
-    const { error: insertError } = await supabase
-      .from('newsletter_subscribers')
-      .insert([{ 
-        email, 
-        name: name || null, 
-        source, 
-        status: 'active', 
-        segment: 'lead',
-        created_at: new Date().toISOString()
-      }]);
-
-    if (insertError) throw insertError;
-
-    return NextResponse.json({ message: 'Subscribed successfully!' });
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Successfully subscribed!' 
+    });
     
   } catch (error) {
     console.error('Subscription error:', error);

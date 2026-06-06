@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import PageUtilities from '@/components/ui/PageUtilities';
 
 interface BlogPost {
   id: string;
@@ -20,16 +21,33 @@ interface BlogPost {
   tags: string[];
 }
 
+interface RelatedPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  featured_image: string;
+  published_at: string;
+  read_time: string;
+}
+
+interface Comment {
+  id: string;
+  author_name: string;
+  content: string;
+  created_at: string;
+}
+
 export default function BlogPostPage() {
   const params = useParams();
   const [post, setPost] = useState<BlogPost | null>(null);
-  const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
+  const [relatedPosts, setRelatedPosts] = useState<RelatedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [commentName, setCommentName] = useState('');
   const [commentEmail, setCommentEmail] = useState('');
   const [commentText, setCommentText] = useState('');
-  const [comments, setComments] = useState<any[]>([]);
   const [commentStatus, setCommentStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
   useEffect(() => {
@@ -40,73 +58,107 @@ export default function BlogPostPage() {
   }, [params?.slug]);
 
   async function fetchPost() {
-    const { data } = await supabase
-      .from('blog_posts')
-      .select('*')
-      .eq('slug', params.slug)
-      .eq('status', 'published')
-      .single();
-
-    if (data) {
-      setPost(data);
-      // Fetch related posts
-      const { data: related } = await supabase
+    try {
+      const { data, error } = await supabase
         .from('blog_posts')
         .select('*')
+        .eq('slug', params.slug)
         .eq('status', 'published')
-        .eq('post_type', 'blog')
-        .neq('id', data.id)
-        .limit(3);
-      setRelatedPosts(related || []);
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setPost(data);
+        
+        // Fetch related posts (only need these fields)
+        const { data: related } = await supabase
+          .from('blog_posts')
+          .select('id, title, slug, excerpt, featured_image, published_at, read_time')
+          .eq('status', 'published')
+          .eq('post_type', 'blog')
+          .neq('id', data.id)
+          .limit(3);
+        
+        setRelatedPosts(related || []);
+      }
+    } catch (err) {
+      console.error('Error fetching post:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function fetchComments() {
-    const { data } = await supabase
-      .from('blog_comments')
-      .select('*')
-      .eq('post_slug', params.slug)
-      .eq('is_approved', true)
-      .order('created_at', { ascending: false });
-    setComments(data || []);
+    try {
+      const { data, error } = await supabase
+        .from('blog_comments')
+        .select('*')
+        .eq('post_slug', params.slug)
+        .eq('is_approved', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setComments(data || []);
+    } catch (err) {
+      console.error('Error fetching comments:', err);
+    }
   }
 
   async function handleComment(e: React.FormEvent) {
     e.preventDefault();
-    if (!commentText.trim()) return;
+    
+    if (!commentText.trim()) {
+      setCommentStatus('error');
+      setTimeout(() => setCommentStatus('idle'), 3000);
+      return;
+    }
 
     setCommentStatus('submitting');
 
-    const { error } = await supabase.from('blog_comments').insert([{
-      post_slug: params.slug,
-      author_name: commentName || 'Anonymous',
-      author_email: commentEmail || null,
-      content: commentText,
-      is_approved: false,
-    }]);
+    try {
+      const { error } = await supabase.from('blog_comments').insert({
+        post_slug: params.slug,
+        author_name: commentName.trim() || 'Anonymous',
+        author_email: commentEmail.trim() || null,
+        content: commentText.trim(),
+        is_approved: false,
+        created_at: new Date().toISOString(),
+      });
 
-    if (!error) {
+      if (error) throw error;
+
       setCommentStatus('success');
       setCommentText('');
       setCommentName('');
       setCommentEmail('');
+      
       setTimeout(() => setCommentStatus('idle'), 3000);
-    } else {
+    } catch (err) {
+      console.error('Comment error:', err);
       setCommentStatus('error');
       setTimeout(() => setCommentStatus('idle'), 3000);
     }
   }
 
   const copyToClipboard = async () => {
-    const url = window.location.href;
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Copy failed:', err);
+    }
   };
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
   const shareTitle = post?.title || '';
+
+  // Helper to render HTML content safely
+  const renderHTML = (htmlString: string) => {
+    if (!htmlString) return '<p>Content coming soon...</p>';
+    return htmlString;
+  };
 
   if (loading) {
     return (
@@ -116,6 +168,7 @@ export default function BlogPostPage() {
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--accent)]" />
         </div>
         <Footer />
+        <PageUtilities />
       </>
     );
   }
@@ -132,6 +185,7 @@ export default function BlogPostPage() {
           </Link>
         </div>
         <Footer />
+        <PageUtilities />
       </>
     );
   }
@@ -139,12 +193,12 @@ export default function BlogPostPage() {
   return (
     <>
       <Navbar />
-      <main className="bg-[var(--bg-page)]">
-        {/* Featured Image - 1200x630 aspect ratio (16:9) */}
+      <main className="bg-[var(--bg-page)] min-h-screen">
+        {/* Featured Image - 16:9 Aspect Ratio */}
         {post.featured_image && (
           <div className="w-full bg-[var(--bg-section)]">
             <div className="max-w-6xl mx-auto">
-              <div className="aspect-[16/9] overflow-hidden">
+              <div className="aspect-video overflow-hidden">
                 <img
                   src={post.featured_image}
                   alt={post.title}
@@ -155,12 +209,12 @@ export default function BlogPostPage() {
           </div>
         )}
 
-        {/* Centered Content Container */}
+        {/* Content Container - Centered */}
         <div className="max-w-3xl mx-auto px-5 py-12 sm:px-6 md:px-0">
           {/* Tags */}
           <div className="flex flex-wrap gap-2 mb-4">
-            {post.tags?.map(tag => (
-              <span key={tag} className="text-xs bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-1 rounded-full">
+            {post.tags?.map((tag, idx) => (
+              <span key={idx} className="text-xs bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-1 rounded-full">
                 {tag}
               </span>
             ))}
@@ -199,45 +253,45 @@ export default function BlogPostPage() {
               href={`https://wa.me/?text=${encodeURIComponent(shareTitle + ' ' + shareUrl)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] hover:border-[var(--accent)] transition"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition"
             >
               <img src="/svgs/whatsapp.svg" alt="WhatsApp" className="w-4 h-4" />
-              <span className="text-sm">WhatsApp</span>
+              <span className="text-sm hidden sm:inline">WhatsApp</span>
             </a>
 
             <a
               href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] hover:border-[var(--accent)] transition"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition"
             >
               <img src="/svgs/linkedin.svg" alt="LinkedIn" className="w-4 h-4" />
-              <span className="text-sm">LinkedIn</span>
+              <span className="text-sm hidden sm:inline">LinkedIn</span>
             </a>
 
             <a
               href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareTitle)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] hover:border-[var(--accent)] transition"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition"
             >
               <img src="/svgs/twitter.svg" alt="Twitter" className="w-4 h-4" />
-              <span className="text-sm">Twitter</span>
+              <span className="text-sm hidden sm:inline">Twitter</span>
             </a>
 
             <a
               href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] hover:border-[var(--accent)] transition"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition"
             >
               <img src="/svgs/facebook.svg" alt="Facebook" className="w-4 h-4" />
-              <span className="text-sm">Facebook</span>
+              <span className="text-sm hidden sm:inline">Facebook</span>
             </a>
 
             <button
               onClick={copyToClipboard}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] hover:border-[var(--accent)] transition"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition"
             >
               <img src="/svgs/link.svg" alt="Copy link" className="w-4 h-4" />
               <span className="text-sm">{copied ? 'Copied!' : 'Copy Link'}</span>
@@ -249,16 +303,16 @@ export default function BlogPostPage() {
             {post.excerpt}
           </div>
 
-          {/* Article Content - HTML rendering */}
+          {/* Article Content - HTML Rendering with proper styling */}
           <div 
             className="blog-content"
-            dangerouslySetInnerHTML={{ __html: post.content || '<p>Content coming soon...</p>' }}
+            dangerouslySetInnerHTML={{ __html: renderHTML(post.content) }}
           />
 
           {/* Tags Footer */}
           <div className="flex flex-wrap gap-2 pt-8 mt-8 border-t border-[var(--border)]">
-            {post.tags?.map(tag => (
-              <span key={tag} className="px-3 py-1 bg-[var(--bg-section)] text-[var(--text-secondary)] rounded-full text-sm">
+            {post.tags?.map((tag, idx) => (
+              <span key={idx} className="px-3 py-1 bg-[var(--bg-section)] text-[var(--text-secondary)] rounded-full text-sm">
                 #{tag}
               </span>
             ))}
@@ -271,15 +325,15 @@ export default function BlogPostPage() {
             <div className="max-w-6xl mx-auto px-5 sm:px-6 md:px-10">
               <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-8 text-center">Read Next</h2>
               <div className="grid md:grid-cols-3 gap-6">
-                {relatedPosts.map(related => (
+                {relatedPosts.map((related) => (
                   <Link key={related.id} href={`/blog/${related.slug}`} className="group">
                     <div className="rounded-xl overflow-hidden border border-[var(--border)] hover:shadow-lg transition bg-[var(--bg-card)]">
                       {related.featured_image && (
-                        <div className="aspect-[16/9] overflow-hidden">
+                        <div className="aspect-video overflow-hidden">
                           <img
                             src={related.featured_image}
                             alt={related.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition"
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                           />
                         </div>
                       )}
@@ -306,7 +360,7 @@ export default function BlogPostPage() {
             
             {comments.length > 0 && (
               <div className="mb-8 space-y-6">
-                {comments.map(comment => (
+                {comments.map((comment) => (
                   <div key={comment.id} className="bg-[var(--bg-section)] rounded-xl p-5">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-orange-green flex items-center justify-center text-white font-bold">
@@ -342,14 +396,14 @@ export default function BlogPostPage() {
                   placeholder="Your Name"
                   value={commentName}
                   onChange={(e) => setCommentName(e.target.value)}
-                  className="px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg-section)] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+                  className="px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--bg-section)] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                 />
                 <input
                   type="email"
                   placeholder="Your Email (not published)"
                   value={commentEmail}
                   onChange={(e) => setCommentEmail(e.target.value)}
-                  className="px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg-section)] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+                  className="px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--bg-section)] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                 />
               </div>
               <textarea
@@ -358,12 +412,12 @@ export default function BlogPostPage() {
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 required
-                className="w-full px-4 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg-section)] text-[var(--text-primary)] resize-none focus:border-[var(--accent)] focus:outline-none"
+                className="w-full px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--bg-section)] text-[var(--text-primary)] resize-none focus:border-[var(--accent)] focus:outline-none"
               />
               <button
                 type="submit"
                 disabled={commentStatus === 'submitting'}
-                className="bg-gradient-orange-green text-white px-6 py-2 rounded-full font-bold hover:scale-105 transition disabled:opacity-50"
+                className="bg-gradient-orange-green text-white px-8 py-3 rounded-full font-bold hover:scale-105 transition disabled:opacity-50"
               >
                 {commentStatus === 'submitting' ? 'Submitting...' : 'Post Comment'}
               </button>
@@ -371,106 +425,8 @@ export default function BlogPostPage() {
           </div>
         </section>
       </main>
+      <PageUtilities />
       <Footer />
-
-      <style jsx global>{`
-        .blog-content {
-          font-size: 1.125rem;
-          line-height: 1.8;
-          color: var(--text-secondary);
-        }
-        
-        .blog-content h1 {
-          font-size: 2.25rem;
-          font-weight: 800;
-          margin-top: 2rem;
-          margin-bottom: 1rem;
-          color: var(--text-primary);
-        }
-        
-        .blog-content h2 {
-          font-size: 1.875rem;
-          font-weight: 700;
-          margin-top: 2rem;
-          margin-bottom: 1rem;
-          color: var(--text-primary);
-          padding-bottom: 0.5rem;
-          border-bottom: 1px solid var(--border);
-        }
-        
-        .blog-content h3 {
-          font-size: 1.5rem;
-          font-weight: 600;
-          margin-top: 1.5rem;
-          margin-bottom: 0.75rem;
-          color: var(--text-primary);
-        }
-        
-        .blog-content p {
-          margin-bottom: 1.25rem;
-          line-height: 1.8;
-        }
-        
-        .blog-content a {
-          color: var(--accent);
-          text-decoration: underline;
-          text-underline-offset: 3px;
-        }
-        
-        .blog-content a:hover {
-          text-decoration: none;
-        }
-        
-        .blog-content ul, .blog-content ol {
-          margin-bottom: 1.25rem;
-          padding-left: 1.5rem;
-        }
-        
-        .blog-content li {
-          margin-bottom: 0.5rem;
-        }
-        
-        .blog-content img {
-          max-width: 100%;
-          height: auto;
-          border-radius: 0.75rem;
-          margin: 1.5rem 0;
-        }
-        
-        .blog-content blockquote {
-          border-left: 4px solid var(--accent);
-          padding-left: 1.5rem;
-          margin: 1.5rem 0;
-          font-style: italic;
-          color: var(--text-muted);
-        }
-        
-        .blog-content code {
-          background: var(--bg-section);
-          padding: 0.2rem 0.4rem;
-          border-radius: 0.375rem;
-          font-family: monospace;
-          font-size: 0.875em;
-        }
-        
-        .blog-content pre {
-          background: var(--bg-section);
-          padding: 1rem;
-          border-radius: 0.75rem;
-          overflow-x: auto;
-          margin: 1.5rem 0;
-        }
-        
-        .blog-content pre code {
-          background: none;
-          padding: 0;
-        }
-        
-        .blog-content hr {
-          margin: 2rem 0;
-          border-color: var(--border);
-        }
-      `}</style>
     </>
   );
 }
