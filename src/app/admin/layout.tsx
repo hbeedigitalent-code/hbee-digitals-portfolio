@@ -23,6 +23,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Inquiries', href: '/admin/inquiries', icon: 'email', badge: unreadInquiries },
     { name: 'Newsletter', href: '/admin/newsletter', icon: 'newsletter' },
     { name: 'Subscribers', href: '/admin/subscribers', icon: 'users' },
+    { name: 'Blog Comments', href: '/admin/comments', icon: 'messages' },
     { name: 'Hero Section', href: '/admin/hero', icon: 'hero' },
     { name: 'About Page', href: '/admin/about', icon: 'about' },
     { name: 'Services', href: '/admin/services', icon: 'services' },

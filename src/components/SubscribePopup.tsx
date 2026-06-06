@@ -37,6 +37,8 @@ export default function SubscribePopup() {
         body: JSON.stringify({ email, name, source: 'popup' }),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
         setStatus('success');
         localStorage.setItem('hbee_subscribed', 'true');
@@ -45,10 +47,14 @@ export default function SubscribePopup() {
           setIsCollapsed(false);
         }, 2000);
       } else {
+        console.error('Subscription error:', data.error);
         setStatus('error');
+        setTimeout(() => setStatus('idle'), 3000);
       }
-    } catch {
+    } catch (err) {
+      console.error('Subscription error:', err);
       setStatus('error');
+      setTimeout(() => setStatus('idle'), 3000);
     }
   };
 

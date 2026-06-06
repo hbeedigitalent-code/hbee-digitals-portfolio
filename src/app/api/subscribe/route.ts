@@ -10,17 +10,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Valid email is required' }, { status: 400 });
     }
 
+    const now = new Date().toISOString();
+    const emailLower = email.toLowerCase().trim();
+
     // Try to insert or update
     const { data, error } = await supabase
       .from('newsletter_subscribers')
       .upsert(
         { 
-          email: email.toLowerCase().trim(), 
+          email: emailLower, 
           name: name || null, 
           source, 
           status: 'active',
           segment: 'lead',
-          updated_at: new Date().toISOString()
+          updated_at: now,
+          created_at: now
         },
         { onConflict: 'email' }
       )
