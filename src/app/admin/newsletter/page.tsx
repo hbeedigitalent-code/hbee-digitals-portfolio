@@ -10,6 +10,7 @@ import ImageUpload from '@/components/ImageUpload'
 
 const ReactQuill = dynamic(() => import('react-quill'), {
   ssr: false,
+  loading: () => <div className="h-[300px] rounded-lg border border-[var(--border)] bg-[var(--bg-section)] animate-pulse" />
 })
 
 import 'react-quill/dist/quill.snow.css'
@@ -20,15 +21,14 @@ export default function NewNewsletterPage() {
   const [sending, setSending] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [subscribersCount, setSubscribersCount] = useState(0)
-  const [showConfirmModal, setShowConfirmModal] = useState(false)
 
   // Campaign fields
   const [title, setTitle] = useState('')
   const [subject, setSubject] = useState('')
   const [previewText, setPreviewText] = useState('')
   const [senderName, setSenderName] = useState('Hbee Digitals')
-  const [senderEmail, setSenderEmail] = useState('habeeb@hbeedigitals.com')
-  const [replyToEmail, setReplyToEmail] = useState('habeeb@hbeedigitals.com')
+  const [senderEmail, setSenderEmail] = useState('forms@send.hbeedigitals.com')
+  const [replyToEmail, setReplyToEmail] = useState('hello@hbeedigitals.com')
   const [campaignType, setCampaignType] = useState('Growth Insight')
   const [audienceType, setAudienceType] = useState('all_subscribers')
   const [featuredImage, setFeaturedImage] = useState('')
@@ -59,23 +59,35 @@ export default function NewNewsletterPage() {
   }, [audienceType])
 
   async function fetchSubscribersCount() {
-    let query = supabase.from('newsletter_subscribers').select('*', { count: 'exact', head: true })
-    
-    if (audienceType === 'ecommerce_merchants') {
-      query = query.contains('tags', ['ecommerce'])
-    } else if (audienceType === 'shopify_leads') {
-      query = query.contains('tags', ['shopify'])
-    } else if (audienceType === 'existing_clients') {
-      query = query.eq('segment', 'client')
-    } else if (audienceType === 'warm_leads') {
-      query = query.contains('tags', ['warm'])
+    try {
+      let query = supabase.from('newsletter_subscribers').select('*', { count: 'exact', head: true })
+      
+      if (audienceType === 'ecommerce_merchants') {
+        query = query.contains('tags', ['ecommerce'])
+      } else if (audienceType === 'shopify_leads') {
+        query = query.contains('tags', ['shopify'])
+      } else if (audienceType === 'existing_clients') {
+        query = query.eq('segment', 'client')
+      } else if (audienceType === 'warm_leads') {
+        query = query.contains('tags', ['warm'])
+      } else if (audienceType === 'cold_leads') {
+        query = query.contains('tags', ['cold'])
+      }
+      
+      const { count } = await query
+      setSubscribersCount(count || 0)
+    } catch (err) {
+      console.error('Error fetching subscribers count:', err)
+      setSubscribersCount(0)
     }
-    
-    const { count } = await query
-    setSubscribersCount(count || 0)
   }
 
   async function saveCampaign(sendNow: boolean = false) {
+    if (sendNow && subscribersCount === 0) {
+      alert('No subscribers to send to. Please add subscribers first.')
+      return
+    }
+
     if (sendNow && !window.confirm(`Send this campaign to ${subscribersCount} contacts? This action cannot be undone.`)) {
       return
     }
@@ -101,39 +113,45 @@ export default function NewNewsletterPage() {
       total_recipients: sendNow ? subscribersCount : 0,
     }
 
-    const { data, error } = await supabase
-      .from('newsletter_campaigns')
-      .insert([campaignData])
-      .select()
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('newsletter_campaigns')
+        .insert([campaignData])
+        .select()
+        .single()
 
-    if (error) {
-      alert(error.message)
-      setSaving(false)
-      return
-    }
-
-    if (sendNow) {
-      setSending(true)
-      // Send emails via API
-      const response = await fetch('/api/send-newsletter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ campaignId: data.id }),
-      })
-      
-      if (response.ok) {
-        router.push('/admin/newsletters')
-      } else {
-        alert('Failed to send emails. Campaign saved as draft.')
-        router.push('/admin/newsletters')
+      if (error) {
+        alert(error.message)
+        setSaving(false)
+        return
       }
-      setSending(false)
-    } else {
-      router.push('/admin/newsletters')
+
+      if (sendNow) {
+        setSending(true)
+        // Send emails via API
+        const response = await fetch('/api/send-newsletter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ campaignId: data.id }),
+        })
+        
+        if (response.ok) {
+          router.push('/admin/newsletter')
+        } else {
+          const result = await response.json()
+          alert(result.error || 'Failed to send emails. Campaign saved as draft.')
+          router.push('/admin/newsletter')
+        }
+        setSending(false)
+      } else {
+        router.push('/admin/newsletter')
+      }
+    } catch (err) {
+      console.error('Error saving campaign:', err)
+      alert('An error occurred. Please try again.')
+    } finally {
+      setSaving(false)
     }
-    
-    setSaving(false)
   }
 
   const quillModules = {
@@ -189,7 +207,7 @@ export default function NewNewsletterPage() {
           <h1 className="text-2xl font-black text-[var(--text-primary)] sm:text-3xl">Create Newsletter Campaign</h1>
           <p className="text-sm text-[var(--text-muted)]">Design and send branded growth emails to your audience</p>
         </div>
-        <Link href="/admin/newsletters" className="text-[var(--accent)] hover:underline">
+        <Link href="/admin/newsletter" className="text-[var(--accent)] hover:underline">
           ← Back to Campaigns
         </Link>
       </div>
@@ -210,7 +228,7 @@ export default function NewNewsletterPage() {
                   onChange={(e) => setTitle(e.target.value)}
                   required
                   placeholder="e.g., Q3 Growth Newsletter"
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)]"
                 />
               </div>
 
@@ -222,7 +240,7 @@ export default function NewNewsletterPage() {
                   onChange={(e) => setSubject(e.target.value)}
                   required
                   placeholder="What your subscribers see in their inbox"
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)]"
                 />
                 <p className="mt-1 text-xs text-[var(--text-muted)]">{subject.length} / 60 recommended</p>
               </div>
@@ -325,7 +343,7 @@ export default function NewNewsletterPage() {
                   value={content}
                   onChange={setContent}
                   modules={quillModules}
-                  className="bg-white"
+                  className="bg-white rounded-lg"
                   style={{ minHeight: 300 }}
                 />
               </div>
@@ -367,22 +385,25 @@ export default function NewNewsletterPage() {
           {/* Actions */}
           <div className="flex flex-wrap gap-3">
             <button
+              type="button"
               onClick={() => saveCampaign(false)}
               disabled={saving}
-              className="rounded-full border border-[var(--border)] bg-[var(--bg-section)] px-6 py-2.5 text-sm font-black text-[var(--text-primary)] hover:border-[var(--accent)]/25"
+              className="rounded-full border border-[var(--border)] bg-[var(--bg-section)] px-6 py-2.5 text-sm font-black text-[var(--text-primary)] hover:border-[var(--accent)]/25 disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save as Draft'}
             </button>
             <button
+              type="button"
               onClick={() => setShowPreview(true)}
               className="rounded-full border border-[var(--border)] px-6 py-2.5 text-sm font-black text-[var(--text-primary)] hover:border-[var(--accent)]/25"
             >
               Preview
             </button>
             <button
+              type="button"
               onClick={() => saveCampaign(true)}
-              disabled={sending}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-orange-green px-6 py-2.5 text-sm font-black text-white transition hover:scale-105"
+              disabled={sending || subscribersCount === 0}
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-orange-green px-6 py-2.5 text-sm font-black text-white transition hover:scale-105 disabled:opacity-50"
             >
               <SvgIcon name="send" size={14} color="white" />
               {sending ? 'Sending...' : `Send to ${subscribersCount} contacts`}
@@ -398,14 +419,16 @@ export default function NewNewsletterPage() {
           </div>
           <div className="mt-4 flex gap-3">
             <button
+              type="button"
               onClick={() => setShowPreview(true)}
-              className="flex-1 rounded-lg border border-[var(--border)] py-2 text-sm font-bold"
+              className="flex-1 rounded-lg border border-[var(--border)] py-2 text-sm font-bold hover:bg-[var(--bg-section)]"
             >
               Desktop Preview
             </button>
             <button
+              type="button"
               onClick={() => setShowPreview(true)}
-              className="flex-1 rounded-lg border border-[var(--border)] py-2 text-sm font-bold"
+              className="flex-1 rounded-lg border border-[var(--border)] py-2 text-sm font-bold hover:bg-[var(--bg-section)]"
             >
               Mobile Preview
             </button>
@@ -420,7 +443,7 @@ export default function NewNewsletterPage() {
           <div className="fixed left-1/2 top-1/2 z-50 h-[80vh] w-[90vw] max-w-4xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-[var(--border)] bg-white">
             <div className="sticky top-0 flex items-center justify-between border-b border-[var(--border)] bg-white p-4">
               <h2 className="text-lg font-black">Email Preview</h2>
-              <button onClick={() => setShowPreview(false)} className="text-2xl">×</button>
+              <button onClick={() => setShowPreview(false)} className="text-2xl hover:text-[var(--accent)]">×</button>
             </div>
             <div className="p-6">
               <div dangerouslySetInnerHTML={{ __html: emailPreview }} />

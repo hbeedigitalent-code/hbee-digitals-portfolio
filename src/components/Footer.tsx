@@ -96,8 +96,10 @@ function CollapsibleSection({ title, links, defaultOpen = false }: { title: stri
 export default function Footer() {
   const reducedMotion = useReducedMotion()
   const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
   const [subscribing, setSubscribing] = useState(false)
   const [subscribeSuccess, setSubscribeSuccess] = useState(false)
+  const [subscribeError, setSubscribeError] = useState(false)
 
   const [footerData, setFooterData] = useState<any>(null)
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({})
@@ -114,7 +116,7 @@ export default function Footer() {
 
   const brandName = footerData?.logo_text || siteSettings.site_name || 'Hbee Digitals'
   const logoUrl = siteSettings.logo_url || '/svgs/logo.svg'
-  const contactEmail = siteSettings.contact_email || 'contact@hbeedigitals.com'
+  const contactEmail = siteSettings.contact_email || 'hello@hbeedigitals.com'
   const contactPhone = siteSettings.contact_phone || '+234 815 315 3827'
   const contactAddress = siteSettings.contact_address || 'Abuja, Nigeria - Serving Brands Internationally'
   const footerDescription = siteSettings.footer_description || 'Premium websites, ecommerce systems, Shopify optimization, and conversion-focused digital experiences.'
@@ -158,14 +160,29 @@ export default function Footer() {
   async function handleSubscribe(e: React.FormEvent) {
     e.preventDefault()
     if (!email) return
+    
     setSubscribing(true)
+    setSubscribeError(false)
+    
     try {
-      const { error } = await supabase.from('subscribers').insert([{ email, source: 'footer' }])
-      if (!error) {
+      const response = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name, source: 'footer' }),
+      })
+
+      if (response.ok) {
         setSubscribeSuccess(true)
         setEmail('')
+        setName('')
         setTimeout(() => setSubscribeSuccess(false), 3000)
+      } else {
+        setSubscribeError(true)
+        setTimeout(() => setSubscribeError(false), 3000)
       }
+    } catch {
+      setSubscribeError(true)
+      setTimeout(() => setSubscribeError(false), 3000)
     } finally {
       setSubscribing(false)
     }
@@ -266,7 +283,7 @@ export default function Footer() {
                 disabled={subscribing}
                 className="inline-flex min-h-[40px] items-center justify-center rounded-full bg-gradient-orange-green px-5 py-2 text-sm font-black text-white transition hover:scale-[1.02] disabled:opacity-60"
               >
-                {subscribing ? 'Subscribing...' : subscribeSuccess ? 'Subscribed!' : 'Subscribe'}
+                {subscribing ? 'Subscribing...' : subscribeSuccess ? '✓ Subscribed!' : subscribeError ? '✗ Failed' : 'Subscribe'}
               </button>
             </form>
           </div>
