@@ -89,7 +89,7 @@ export default function AdminDashboard() {
   const statCards = [
     { label: 'Total Inquiries', value: stats.inquiries, href: '/admin/inquiries', icon: 'email', color: 'orange', change: '+12%' },
     { label: 'Unread', value: stats.unreadInquiries, href: '/admin/inquiries', icon: 'messages', color: 'red', highlight: true },
-    { label: 'Subscribers', value: stats.subscribers, href: '/admin/subscribers', icon: 'users', color: 'green', change: '+5%' },
+    { label: 'Active Subscribers', value: stats.subscribers, href: '/admin/subscribers', icon: 'users', color: 'green', change: '+5%' },
     { label: 'Portfolio', value: stats.portfolio, href: '/admin/portfolio', icon: 'portfolio', color: 'blue' },
     { label: 'Services', value: stats.services, href: '/admin/services', icon: 'services', color: 'purple' },
     { label: 'Blog Posts', value: stats.blog, href: '/admin/blog', icon: 'blog', color: 'teal' },

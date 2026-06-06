@@ -1,269 +1,433 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+import SvgIcon from '@/components/ui/SvgIcon'
+import ImageUpload from '@/components/ImageUpload'
 
-interface Campaign {
-  id: string
-  subject: string
-  content: string
-  status: string
-  sent_at: string
-  total_recipients: number
-}
+const ReactQuill = dynamic(() => import('react-quill'), {
+  ssr: false,
+})
 
-export default function NewsletterPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [subject, setSubject] = useState('')
-  const [content, setContent] = useState('')
-  const [sending, setSending] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+import 'react-quill/dist/quill.snow.css'
+
+export default function NewNewsletterPage() {
   const router = useRouter()
+  const [saving, setSaving] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
+  const [subscribersCount, setSubscribersCount] = useState(0)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+
+  // Campaign fields
+  const [title, setTitle] = useState('')
+  const [subject, setSubject] = useState('')
+  const [previewText, setPreviewText] = useState('')
+  const [senderName, setSenderName] = useState('Hbee Digitals')
+  const [senderEmail, setSenderEmail] = useState('habeeb@hbeedigitals.com')
+  const [replyToEmail, setReplyToEmail] = useState('habeeb@hbeedigitals.com')
+  const [campaignType, setCampaignType] = useState('Growth Insight')
+  const [audienceType, setAudienceType] = useState('all_subscribers')
+  const [featuredImage, setFeaturedImage] = useState('')
+  const [content, setContent] = useState('')
+  const [ctaText, setCtaText] = useState('Read More')
+  const [ctaUrl, setCtaUrl] = useState('https://www.hbeedigitals.com/blog')
+  const [footerNote, setFooterNote] = useState('')
+  const [status, setStatus] = useState('draft')
+
+  const campaignTypes = [
+    'Ecommerce Growth Insight', 'Shopify Store Review', 'Brand Strategy',
+    'Conversion Optimization', 'Case Study', 'Service Promotion',
+    'Monthly Update', 'Lead Nurture', 'Announcement'
+  ]
+
+  const audienceOptions = [
+    { value: 'all_subscribers', label: 'All Subscribers' },
+    { value: 'all_leads', label: 'All Leads' },
+    { value: 'ecommerce_merchants', label: 'Ecommerce Merchants' },
+    { value: 'shopify_leads', label: 'Shopify Leads' },
+    { value: 'warm_leads', label: 'Warm Leads' },
+    { value: 'cold_leads', label: 'Cold Leads' },
+    { value: 'existing_clients', label: 'Existing Clients' },
+  ]
 
   useEffect(() => {
-    checkAuth()
-    fetchCampaigns()
-  }, [])
+    fetchSubscribersCount()
+  }, [audienceType])
 
-  const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/admin/login')
-    }
-  }
-
-  const fetchCampaigns = async () => {
-    const { data } = await supabase
-      .from('newsletter_campaigns')
-      .select('*')
-      .order('created_at', { ascending: false })
+  async function fetchSubscribersCount() {
+    let query = supabase.from('newsletter_subscribers').select('*', { count: 'exact', head: true })
     
-    setCampaigns(data || [])
-    setLoading(false)
+    if (audienceType === 'ecommerce_merchants') {
+      query = query.contains('tags', ['ecommerce'])
+    } else if (audienceType === 'shopify_leads') {
+      query = query.contains('tags', ['shopify'])
+    } else if (audienceType === 'existing_clients') {
+      query = query.eq('segment', 'client')
+    } else if (audienceType === 'warm_leads') {
+      query = query.contains('tags', ['warm'])
+    }
+    
+    const { count } = await query
+    setSubscribersCount(count || 0)
   }
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSending(true)
-    setMessage(null)
-
-    // Get all active subscribers
-    const { data: subscribers } = await supabase
-      .from('subscribers')
-      .select('email, name')
-      .eq('status', 'active')
-
-    if (!subscribers || subscribers.length === 0) {
-      setMessage({ type: 'error', text: 'No active subscribers to send to.' })
-      setSending(false)
+  async function saveCampaign(sendNow: boolean = false) {
+    if (sendNow && !window.confirm(`Send this campaign to ${subscribersCount} contacts? This action cannot be undone.`)) {
       return
     }
 
-    // Save campaign
-    const { data: campaign, error: campaignError } = await supabase
+    setSaving(true)
+    
+    const campaignData = {
+      title,
+      subject,
+      preview_text: previewText,
+      sender_name: senderName,
+      sender_email: senderEmail,
+      reply_to_email: replyToEmail,
+      campaign_type: campaignType,
+      audience_type: audienceType,
+      featured_image: featuredImage,
+      content_html: content,
+      cta_text: ctaText,
+      cta_url: ctaUrl,
+      footer_note: footerNote,
+      status: sendNow ? 'sent' : status,
+      sent_at: sendNow ? new Date().toISOString() : null,
+      total_recipients: sendNow ? subscribersCount : 0,
+    }
+
+    const { data, error } = await supabase
       .from('newsletter_campaigns')
-      .insert([{
-        subject,
-        content,
-        status: 'sent',
-        sent_at: new Date().toISOString(),
-        total_recipients: subscribers.length
-      }])
+      .insert([campaignData])
       .select()
       .single()
 
-    if (campaignError) {
-      setMessage({ type: 'error', text: campaignError.message })
-      setSending(false)
+    if (error) {
+      alert(error.message)
+      setSaving(false)
       return
     }
 
-    // Send emails (batch process)
-    let successCount = 0
-    let failCount = 0
-
-    for (const subscriber of subscribers) {
-      try {
-        await fetch('/api/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: subscriber.email,
-            subject: subject,
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <div style="background: #0A1D37; padding: 20px; text-align: center;">
-                  <h1 style="color: white; margin: 0;">Hbee Digitals</h1>
-                </div>
-                <div style="padding: 30px; background: white;">
-                  <h2>${subject}</h2>
-                  <div style="line-height: 1.6;">${content.replace(/\n/g, '<br>')}</div>
-                  <hr style="margin: 20px 0;">
-                  <p style="color: #666; font-size: 12px;">
-                    You're receiving this because you subscribed to our newsletter.
-                    <br>
-                    <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/unsubscribe?email=${subscriber.email}" style="color: #0A1D37;">
-                      Unsubscribe here
-                    </a>
-                  </p>
-                </div>
-              </div>
-            `
-          })
-        })
-        successCount++
-      } catch {
-        failCount++
+    if (sendNow) {
+      setSending(true)
+      // Send emails via API
+      const response = await fetch('/api/send-newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaignId: data.id }),
+      })
+      
+      if (response.ok) {
+        router.push('/admin/newsletters')
+      } else {
+        alert('Failed to send emails. Campaign saved as draft.')
+        router.push('/admin/newsletters')
       }
+      setSending(false)
+    } else {
+      router.push('/admin/newsletters')
     }
-
-    setMessage({ 
-      type: 'success', 
-      text: `Campaign sent! Delivered to ${successCount} subscribers. Failed: ${failCount}` 
-    })
-    setShowForm(false)
-    setSubject('')
-    setContent('')
-    fetchCampaigns()
-    setSending(false)
+    
+    setSaving(false)
   }
 
-  if (loading) {
-    return (
-      <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        <p className="mt-2 text-gray-600">Loading campaigns...</p>
+  const quillModules = {
+    toolbar: [
+      [{ header: [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      ['link', 'blockquote', 'code-block'],
+      ['clean'],
+    ],
+  }
+
+  // Email preview HTML
+  const emailPreview = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <!-- Header -->
+      <div style="background: #0A1D37; padding: 30px 20px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">Hbee Digitals</h1>
+        <p style="color: #39D97A; margin: 5px 0 0; font-size: 12px;">Digital Growth Studio</p>
       </div>
-    )
-  }
+      
+      <!-- Content -->
+      <div style="padding: 30px 20px; background: white;">
+        ${featuredImage ? `<img src="${featuredImage}" style="width: 100%; border-radius: 12px; margin-bottom: 24px;" />` : ''}
+        <span style="display: inline-block; background: #39D97A; color: #0A1D37; font-size: 10px; font-weight: bold; padding: 4px 12px; border-radius: 20px; margin-bottom: 16px;">${campaignType}</span>
+        <h2 style="color: #0A1D37; margin: 0 0 16px; font-size: 28px;">${subject}</h2>
+        <div style="color: #3A4A62; line-height: 1.6;">${content}</div>
+        
+        <!-- CTA Button -->
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="${ctaUrl}" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #39D97A 100%); color: white; text-decoration: none; padding: 12px 32px; border-radius: 50px; font-weight: bold;">
+            ${ctaText}
+          </a>
+        </div>
+      </div>
+      
+      <!-- Footer -->
+      <div style="background: #F5F7FA; padding: 20px; text-align: center; font-size: 12px; color: #6B7A96;">
+        <p>© 2026 Hbee Digitals. All rights reserved.</p>
+        <p>${footerNote || 'Practical insights for better websites, stores, and growth.'}</p>
+        <p style="margin-top: 16px;">
+          <a href="{{unsubscribe_url}}" style="color: #39D97A; text-decoration: none;">Unsubscribe</a> | 
+          <a href="https://www.hbeedigitals.com/privacy" style="color: #39D97A; text-decoration: none;">Privacy Policy</a>
+        </p>
+      </div>
+    </div>
+  `
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
+    <div className="mx-auto max-w-7xl">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Newsletter Campaigns</h2>
-          <p className="text-sm text-gray-500 mt-1">Create and send email campaigns to subscribers</p>
+          <h1 className="text-2xl font-black text-[var(--text-primary)] sm:text-3xl">Create Newsletter Campaign</h1>
+          <p className="text-sm text-[var(--text-muted)]">Design and send branded growth emails to your audience</p>
         </div>
-        {!showForm && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="px-4 py-2 text-white rounded-lg hover:opacity-90"
-            style={{ backgroundColor: 'var(--primary-color)' }}
-          >
-            + New Campaign
-          </button>
-        )}
+        <Link href="/admin/newsletters" className="text-[var(--accent)] hover:underline">
+          ← Back to Campaigns
+        </Link>
       </div>
 
-      {message && (
-        <div className={`mb-4 p-4 rounded-lg ${
-          message.type === 'success' 
-            ? 'bg-green-100 text-green-700 border border-green-200' 
-            : 'bg-red-100 text-red-700 border border-red-200'
-        }`}>
-          {message.text}
-        </div>
-      )}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Left Column - Form */}
+        <div className="space-y-6">
+          {/* Basic Info */}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+            <h2 className="mb-4 text-lg font-black text-[var(--text-primary)]">Campaign Settings</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Campaign Title *</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                  placeholder="e.g., Q3 Growth Newsletter"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                />
+              </div>
 
-      {showForm && (
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <h3 className="text-lg font-semibold mb-4">Create New Campaign</h3>
-          <form onSubmit={handleSend} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Subject *</label>
-              <input
-                type="text"
-                required
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="Email subject line"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Content *</label>
-              <textarea
-                required
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={10}
-                className="w-full p-2 border rounded-lg font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="Write your email content here..."
-              />
-            </div>
-            <div className="flex gap-3">
-              <button
-                type="submit"
-                disabled={sending}
-                className="px-4 py-2 text-white rounded-lg hover:opacity-90 disabled:opacity-50"
-                style={{ backgroundColor: 'var(--primary-color)' }}
-              >
-                {sending ? 'Sending...' : 'Send Campaign'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+              <div>
+                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Email Subject Line *</label>
+                <input
+                  type="text"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  required
+                  placeholder="What your subscribers see in their inbox"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                />
+                <p className="mt-1 text-xs text-[var(--text-muted)]">{subject.length} / 60 recommended</p>
+              </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        {campaigns.length === 0 ? (
-          <div className="p-12 text-center">
-            <div className="text-6xl mb-4">📨</div>
-            <p className="text-gray-500">No campaigns yet. Create your first newsletter!</p>
+              <div>
+                <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Preview Text</label>
+                <input
+                  type="text"
+                  value={previewText}
+                  onChange={(e) => setPreviewText(e.target.value)}
+                  placeholder="Shown next to subject line in some email clients"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-bold">Campaign Type</label>
+                  <select
+                    value={campaignType}
+                    onChange={(e) => setCampaignType(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  >
+                    {campaignTypes.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-bold">Audience</label>
+                  <select
+                    value={audienceType}
+                    onChange={(e) => setAudienceType(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  >
+                    {audienceOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">{subscribersCount} contacts will receive this</p>
+                </div>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="p-4 text-left text-sm font-semibold text-gray-600">Subject</th>
-                  <th className="p-4 text-left text-sm font-semibold text-gray-600">Status</th>
-                  <th className="p-4 text-left text-sm font-semibold text-gray-600">Recipients</th>
-                  <th className="p-4 text-left text-sm font-semibold text-gray-600">Sent Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {campaigns.map((campaign) => (
-                  <tr key={campaign.id} className="hover:bg-gray-50">
-                    <td className="p-4 font-medium text-gray-800">{campaign.subject}</td>
-                    <td className="p-4">
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                        {campaign.status}
-                      </span>
-                    </td>
-                    <td className="p-4 text-gray-500">{campaign.total_recipients}</td>
-                    <td className="p-4 text-sm text-gray-500">
-                      {campaign.sent_at ? new Date(campaign.sent_at).toLocaleString() : '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+          {/* Sender Info */}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+            <h2 className="mb-4 text-lg font-black text-[var(--text-primary)]">Sender Information</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-bold">Sender Name</label>
+                <input
+                  type="text"
+                  value={senderName}
+                  onChange={(e) => setSenderName(e.target.value)}
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-bold">Sender Email</label>
+                <input
+                  type="email"
+                  value={senderEmail}
+                  onChange={(e) => setSenderEmail(e.target.value)}
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-bold">Reply-to Email</label>
+                <input
+                  type="email"
+                  value={replyToEmail}
+                  onChange={(e) => setReplyToEmail(e.target.value)}
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                />
+              </div>
+            </div>
           </div>
-        )}
+
+          {/* Content */}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+            <h2 className="mb-4 text-lg font-black text-[var(--text-primary)]">Email Content</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-bold">Featured Image</label>
+                <ImageUpload
+                  onUpload={setFeaturedImage}
+                  currentImage={featuredImage}
+                  folder="newsletters"
+                  label="Upload image"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-bold">Email Body *</label>
+                <ReactQuill
+                  theme="snow"
+                  value={content}
+                  onChange={setContent}
+                  modules={quillModules}
+                  className="bg-white"
+                  style={{ minHeight: 300 }}
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-bold">CTA Button Text</label>
+                  <input
+                    type="text"
+                    value={ctaText}
+                    onChange={(e) => setCtaText(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-bold">CTA Button URL</label>
+                  <input
+                    type="url"
+                    value={ctaUrl}
+                    onChange={(e) => setCtaUrl(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-bold">Footer Note</label>
+                <textarea
+                  value={footerNote}
+                  onChange={(e) => setFooterNote(e.target.value)}
+                  rows={2}
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  placeholder="Additional footer text..."
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => saveCampaign(false)}
+              disabled={saving}
+              className="rounded-full border border-[var(--border)] bg-[var(--bg-section)] px-6 py-2.5 text-sm font-black text-[var(--text-primary)] hover:border-[var(--accent)]/25"
+            >
+              {saving ? 'Saving...' : 'Save as Draft'}
+            </button>
+            <button
+              onClick={() => setShowPreview(true)}
+              className="rounded-full border border-[var(--border)] px-6 py-2.5 text-sm font-black text-[var(--text-primary)] hover:border-[var(--accent)]/25"
+            >
+              Preview
+            </button>
+            <button
+              onClick={() => saveCampaign(true)}
+              disabled={sending}
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-orange-green px-6 py-2.5 text-sm font-black text-white transition hover:scale-105"
+            >
+              <SvgIcon name="send" size={14} color="white" />
+              {sending ? 'Sending...' : `Send to ${subscribersCount} contacts`}
+            </button>
+          </div>
+        </div>
+
+        {/* Right Column - Live Preview */}
+        <div className="sticky top-6 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+          <h2 className="mb-4 text-lg font-black text-[var(--text-primary)]">Email Preview</h2>
+          <div className="rounded-lg border border-[var(--border)] bg-white p-4 max-h-[600px] overflow-y-auto">
+            <div dangerouslySetInnerHTML={{ __html: emailPreview }} />
+          </div>
+          <div className="mt-4 flex gap-3">
+            <button
+              onClick={() => setShowPreview(true)}
+              className="flex-1 rounded-lg border border-[var(--border)] py-2 text-sm font-bold"
+            >
+              Desktop Preview
+            </button>
+            <button
+              onClick={() => setShowPreview(true)}
+              className="flex-1 rounded-lg border border-[var(--border)] py-2 text-sm font-bold"
+            >
+              Mobile Preview
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Info Box */}
-      <div className="mt-6 bg-blue-50 rounded-lg p-4 border border-blue-200">
-        <h4 className="font-semibold text-blue-800 mb-2">📧 About Newsletter</h4>
-        <ul className="text-sm text-blue-700 space-y-1">
-          <li>• Subscribers can sign up from the website footer</li>
-          <li>• Manage subscribers in the Subscribers section</li>
-          <li>• Campaigns are sent to all active subscribers</li>
-          <li>• Each email includes an unsubscribe link</li>
-        </ul>
-      </div>
+      {/* Preview Modal */}
+      {showPreview && (
+        <>
+          <div className="fixed inset-0 z-50 bg-black/75" onClick={() => setShowPreview(false)} />
+          <div className="fixed left-1/2 top-1/2 z-50 h-[80vh] w-[90vw] max-w-4xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-[var(--border)] bg-white">
+            <div className="sticky top-0 flex items-center justify-between border-b border-[var(--border)] bg-white p-4">
+              <h2 className="text-lg font-black">Email Preview</h2>
+              <button onClick={() => setShowPreview(false)} className="text-2xl">×</button>
+            </div>
+            <div className="p-6">
+              <div dangerouslySetInnerHTML={{ __html: emailPreview }} />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
