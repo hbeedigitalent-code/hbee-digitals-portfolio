@@ -45,7 +45,7 @@ export default function AdminDashboard() {
       supabase.from('blog_posts').select('*', { count: 'exact', head: true }),
       supabase.from('contact_submissions').select('*', { count: 'exact', head: true }),
       supabase.from('contact_submissions').select('*', { count: 'exact', head: true }).eq('is_read', false),
-      supabase.from('subscribers').select('*', { count: 'exact', head: true }),
+      supabase.from('newsletter_subscribers').select('*', { count: 'exact', head: true }),
       supabase.from('team_members').select('*', { count: 'exact', head: true }),
       supabase.from('testimonials').select('*', { count: 'exact', head: true }),
     ])
@@ -89,7 +89,7 @@ export default function AdminDashboard() {
   const statCards = [
     { label: 'Total Inquiries', value: stats.inquiries, href: '/admin/inquiries', icon: 'email', color: 'orange', change: '+12%' },
     { label: 'Unread', value: stats.unreadInquiries, href: '/admin/inquiries', icon: 'messages', color: 'red', highlight: true },
-    { label: 'Subscribers', value: stats.subscribers, href: '/admin/newsletter', icon: 'users', color: 'green', change: '+5%' },
+    { label: 'Subscribers', value: stats.subscribers, href: '/admin/subscribers', icon: 'users', color: 'green', change: '+5%' },
     { label: 'Portfolio', value: stats.portfolio, href: '/admin/portfolio', icon: 'portfolio', color: 'blue' },
     { label: 'Services', value: stats.services, href: '/admin/services', icon: 'services', color: 'purple' },
     { label: 'Blog Posts', value: stats.blog, href: '/admin/blog', icon: 'blog', color: 'teal' },
@@ -185,7 +185,7 @@ export default function AdminDashboard() {
               <SvgIcon name="email" size={18} color="white" />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-[var(--accent)]">Priority Action</p>
+              <p className="text-xs font-black uppercase tracking-wider text-[var(--accent)]">Priority Action</p>
               <h3 className="text-lg font-black text-[var(--text-primary)]">Review unread inquiries</h3>
             </div>
           </div>
@@ -298,11 +298,11 @@ export default function AdminDashboard() {
               </div>
               <span className="text-sm font-bold text-[var(--text-primary)]">Add New Service</span>
             </Link>
-            <Link href="/admin/team/new" className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 transition hover:border-[var(--accent)]/25">
+            <Link href="/admin/subscribers" className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 transition hover:border-[var(--accent)]/25">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-orange-green">
-                <SvgIcon name="plus" size={14} color="white" />
+                <SvgIcon name="users" size={14} color="white" />
               </div>
-              <span className="text-sm font-bold text-[var(--text-primary)]">Add Team Member</span>
+              <span className="text-sm font-bold text-[var(--text-primary)]">Manage Subscribers</span>
             </Link>
           </div>
         </div>
