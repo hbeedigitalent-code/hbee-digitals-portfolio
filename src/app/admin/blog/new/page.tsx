@@ -8,8 +8,12 @@ import dynamic from 'next/dynamic'
 import ImageUpload from '@/components/ImageUpload'
 import SvgIcon from '@/components/ui/SvgIcon'
 
+// Dynamically import ReactQuill to avoid SSR issues
 const ReactQuill = dynamic(() => import('react-quill'), {
   ssr: false,
+  loading: () => (
+    <div className="h-[400px] rounded-lg border border-[var(--border)] bg-[var(--bg-section)] animate-pulse" />
+  ),
 })
 
 import 'react-quill/dist/quill.snow.css'
@@ -29,6 +33,7 @@ export default function NewBlogPost() {
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [editorMode, setEditorMode] = useState<'write' | 'preview'>('write')
 
   // Basic fields
   const [title, setTitle] = useState('')
@@ -65,9 +70,9 @@ export default function NewBlogPost() {
   const [socialCaption, setSocialCaption] = useState('')
 
   // UI states
-  const [showSeoPanel, setShowSeoPanel] = useState(true)
-  const [showCtaPanel, setShowCtaPanel] = useState(true)
-  const [showFeaturedPanel, setShowFeaturedPanel] = useState(true)
+  const [showSeoPanel, setShowSeoPanel] = useState(false)
+  const [showCtaPanel, setShowCtaPanel] = useState(false)
+  const [showFeaturedPanel, setShowFeaturedPanel] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -85,14 +90,11 @@ export default function NewBlogPost() {
 
   async function fetchAuthors() {
     try {
-      console.log('Fetching authors...')
       const { data, error } = await supabase
         .from('blog_authors')
         .select('*')
         .eq('is_active', true)
         .order('display_order', { ascending: true })
-      
-      console.log('Authors response:', { data, error })
       
       if (error) {
         console.error('Error fetching authors:', error)
@@ -101,11 +103,9 @@ export default function NewBlogPost() {
       }
       
       if (data && data.length > 0) {
-        console.log('Setting authors:', data)
         setAuthors(data)
         setAuthorId(data[0].id)
       } else {
-        console.log('No authors found, creating default...')
         // Create default author
         const { data: newAuthor, error: insertError } = await supabase
           .from('blog_authors')
@@ -114,7 +114,6 @@ export default function NewBlogPost() {
             role: 'Founder & CEO',
             bio: 'Helping brands build stronger digital systems, better websites, and growth-focused customer experiences.',
             is_active: true,
-            display_order: 1
           }])
           .select()
           .single()
@@ -123,7 +122,6 @@ export default function NewBlogPost() {
           console.error('Error creating author:', insertError)
           setError(`Failed to create author: ${insertError.message}`)
         } else if (newAuthor) {
-          console.log('Created new author:', newAuthor)
           setAuthors([newAuthor])
           setAuthorId(newAuthor.id)
         }
@@ -215,6 +213,7 @@ export default function NewBlogPost() {
     setSaving(false)
   }
 
+  // Auto-generate fields from title
   useEffect(() => {
     if (title) {
       if (!seoTitle) setSeoTitle(title)
@@ -223,6 +222,7 @@ export default function NewBlogPost() {
     }
   }, [title])
 
+  // Auto-generate from excerpt
   useEffect(() => {
     if (excerpt) {
       if (!seoDescription) setSeoDescription(excerpt.slice(0, 160))
@@ -250,7 +250,7 @@ export default function NewBlogPost() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-7xl">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-black text-[var(--text-primary)] sm:text-3xl">
@@ -325,7 +325,6 @@ export default function NewBlogPost() {
             <p className="mt-1 text-xs text-[var(--text-muted)]">/blog/{slug || '...'}</p>
           </div>
 
-          {/* AUTHOR DROPDOWN - FIXED */}
           <div>
             <label className="mb-2 block text-sm font-bold text-[var(--text-primary)]">Author *</label>
             <select
@@ -344,11 +343,6 @@ export default function NewBlogPost() {
             {authors.length === 0 && (
               <p className="mt-2 text-xs text-amber-500">
                 ⚠️ No authors found. Please refresh the page or check database.
-              </p>
-            )}
-            {authors.length > 0 && (
-              <p className="mt-1 text-xs text-green-500">
-                ✓ {authors.length} author(s) loaded
               </p>
             )}
           </div>
@@ -373,7 +367,7 @@ export default function NewBlogPost() {
               type="text"
               value={readTime}
               onChange={(e) => setReadTime(e.target.value)}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
               placeholder="8 min read"
             />
           </div>
@@ -441,17 +435,53 @@ export default function NewBlogPost() {
           <p className="mt-1 text-right text-xs text-[var(--text-muted)]">{excerpt.length} / 160 recommended</p>
         </div>
 
-        {/* Content Editor */}
+        {/* Content Editor with Preview Toggle */}
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-          <label className="mb-3 block text-sm font-bold text-[var(--text-primary)]">Article Content *</label>
-          <ReactQuill
-            theme="snow"
-            value={content}
-            onChange={setContent}
-            modules={quillModules}
-            className="bg-white"
-            style={{ minHeight: 400 }}
-          />
+          <div className="mb-4 flex items-center justify-between">
+            <label className="text-sm font-bold text-[var(--text-primary)]">Article Content *</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setEditorMode('write')}
+                className={`rounded-lg px-3 py-1 text-sm font-bold transition ${
+                  editorMode === 'write'
+                    ? 'bg-[var(--accent)] text-white'
+                    : 'border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--bg-section)]'
+                }`}
+              >
+                Write
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditorMode('preview')}
+                className={`rounded-lg px-3 py-1 text-sm font-bold transition ${
+                  editorMode === 'preview'
+                    ? 'bg-[var(--accent)] text-white'
+                    : 'border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--bg-section)]'
+                }`}
+              >
+                Preview
+              </button>
+            </div>
+          </div>
+
+          {editorMode === 'write' ? (
+            <ReactQuill
+              theme="snow"
+              value={content}
+              onChange={setContent}
+              modules={quillModules}
+              className="bg-white"
+              style={{ minHeight: 400 }}
+            />
+          ) : (
+            <div className="min-h-[400px] rounded-lg border border-[var(--border)] bg-white p-6 overflow-y-auto">
+              <div 
+                className="prose prose-sm max-w-none blog-content-preview"
+                dangerouslySetInnerHTML={{ __html: content || '<p class="text-[var(--text-muted)]">No content yet. Start writing your article in the Write tab.</p>' }}
+              />
+            </div>
+          )}
         </div>
 
         {/* Tags */}
@@ -461,7 +491,7 @@ export default function NewBlogPost() {
             type="text"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
-            className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+            className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
             placeholder="Ecommerce, Ecommerce Growth, Q3 Growth, Conversion Optimization, Shopify, Customer Experience"
           />
           <p className="mt-1 text-xs text-[var(--text-muted)]">Separate with commas</p>
@@ -682,6 +712,64 @@ export default function NewBlogPost() {
           </Link>
         </div>
       </form>
+
+      <style jsx global>{`
+        .blog-content-preview {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          line-height: 1.6;
+          color: #3A4A62;
+        }
+        .blog-content-preview h1 {
+          font-size: 2rem;
+          font-weight: 800;
+          margin-top: 1.5rem;
+          margin-bottom: 1rem;
+          color: #0A1D37;
+        }
+        .blog-content-preview h2 {
+          font-size: 1.5rem;
+          font-weight: 700;
+          margin-top: 1.5rem;
+          margin-bottom: 0.75rem;
+          color: #0A1D37;
+        }
+        .blog-content-preview h3 {
+          font-size: 1.25rem;
+          font-weight: 600;
+          margin-top: 1.25rem;
+          margin-bottom: 0.5rem;
+          color: #0A1D37;
+        }
+        .blog-content-preview p {
+          margin-bottom: 1rem;
+        }
+        .blog-content-preview ul, .blog-content-preview ol {
+          margin-bottom: 1rem;
+          padding-left: 1.5rem;
+        }
+        .blog-content-preview li {
+          margin-bottom: 0.25rem;
+        }
+        .blog-content-preview a {
+          color: #39D97A;
+          text-decoration: underline;
+        }
+        .blog-content-preview img {
+          max-width: 100%;
+          border-radius: 12px;
+          margin: 1rem 0;
+        }
+        .blog-content-preview blockquote {
+          border-left: 4px solid #39D97A;
+          padding-left: 1rem;
+          margin: 1rem 0;
+          color: #6B7A96;
+          font-style: italic;
+        }
+        .text-muted {
+          color: #6B7A96;
+        }
+      `}</style>
     </div>
   )
 }
