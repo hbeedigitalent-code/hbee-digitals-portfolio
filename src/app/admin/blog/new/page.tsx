@@ -28,6 +28,7 @@ export default function NewBlogPost() {
   const [categories, setCategories] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Basic fields
   const [title, setTitle] = useState('')
@@ -74,6 +75,7 @@ export default function NewBlogPost() {
 
   async function fetchData() {
     setLoading(true)
+    setError(null)
     await Promise.all([
       fetchAuthors(),
       fetchCategories()
@@ -83,54 +85,52 @@ export default function NewBlogPost() {
 
   async function fetchAuthors() {
     try {
-      // First, check if authors table has data
-      const { data: existingAuthors, error: checkError } = await supabase
+      console.log('Fetching authors...')
+      const { data, error } = await supabase
         .from('blog_authors')
         .select('*')
         .eq('is_active', true)
         .order('display_order', { ascending: true })
       
-      if (checkError) {
-        console.error('Error fetching authors:', checkError)
-        setAuthors([])
+      console.log('Authors response:', { data, error })
+      
+      if (error) {
+        console.error('Error fetching authors:', error)
+        setError(`Author fetch error: ${error.message}`)
         return
       }
       
-      if (existingAuthors && existingAuthors.length > 0) {
-        setAuthors(existingAuthors)
-        // Set default author (prefer Habeeb or first one)
-        const habeeb = existingAuthors.find(a => a.name.includes('Habeeb'))
-        setAuthorId(habeeb?.id || existingAuthors[0].id)
-        return
-      }
-      
-      // If no authors exist, create default author
-      console.log('No authors found, creating default author...')
-      const { data: newAuthor, error: insertError } = await supabase
-        .from('blog_authors')
-        .insert([{
-          name: 'Habeeb Ismaila',
-          role: 'Founder & CEO',
-          bio: 'Helping brands build stronger digital systems, better websites, and growth-focused customer experiences.',
-          is_active: true,
-          display_order: 1
-        }])
-        .select()
-        .single()
-      
-      if (insertError) {
-        console.error('Error creating author:', insertError)
-        setAuthors([])
-        return
-      }
-      
-      if (newAuthor) {
-        setAuthors([newAuthor])
-        setAuthorId(newAuthor.id)
+      if (data && data.length > 0) {
+        console.log('Setting authors:', data)
+        setAuthors(data)
+        setAuthorId(data[0].id)
+      } else {
+        console.log('No authors found, creating default...')
+        // Create default author
+        const { data: newAuthor, error: insertError } = await supabase
+          .from('blog_authors')
+          .insert([{
+            name: 'Habeeb Ismaila',
+            role: 'Founder & CEO',
+            bio: 'Helping brands build stronger digital systems, better websites, and growth-focused customer experiences.',
+            is_active: true,
+            display_order: 1
+          }])
+          .select()
+          .single()
+        
+        if (insertError) {
+          console.error('Error creating author:', insertError)
+          setError(`Failed to create author: ${insertError.message}`)
+        } else if (newAuthor) {
+          console.log('Created new author:', newAuthor)
+          setAuthors([newAuthor])
+          setAuthorId(newAuthor.id)
+        }
       }
     } catch (err) {
-      console.error('Unexpected error:', err)
-      setAuthors([])
+      console.error('Unexpected error in fetchAuthors:', err)
+      setError(`Unexpected error: ${err}`)
     }
   }
 
@@ -144,21 +144,16 @@ export default function NewBlogPost() {
       
       if (error) {
         console.error('Error fetching categories:', error)
-        setCategories([])
         return
       }
       
       if (data && data.length > 0) {
         setCategories(data)
-        // Find Ecommerce Growth Strategy category
         const growthCat = data.find(c => c.name.includes('Ecommerce Growth'))
         setCategoryId(growthCat?.id || data[0].id)
-      } else {
-        setCategories([])
       }
     } catch (err) {
-      console.error('Unexpected error:', err)
-      setCategories([])
+      console.error('Unexpected error in fetchCategories:', err)
     }
   }
 
@@ -170,7 +165,6 @@ export default function NewBlogPost() {
     const tagArray = tags.split(',').map(t => t.trim()).filter(Boolean)
     const now = new Date().toISOString()
 
-    // Validate required fields
     if (!authorId || authorId === '') {
       alert('Please select an author')
       setSaving(false)
@@ -221,7 +215,6 @@ export default function NewBlogPost() {
     setSaving(false)
   }
 
-  // Auto-generate fields from title
   useEffect(() => {
     if (title) {
       if (!seoTitle) setSeoTitle(title)
@@ -230,7 +223,6 @@ export default function NewBlogPost() {
     }
   }, [title])
 
-  // Auto-generate from excerpt
   useEffect(() => {
     if (excerpt) {
       if (!seoDescription) setSeoDescription(excerpt.slice(0, 160))
@@ -272,6 +264,12 @@ export default function NewBlogPost() {
           ← Back to Blog
         </Link>
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
+          Error: {error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Post Type Selector */}
@@ -345,7 +343,12 @@ export default function NewBlogPost() {
             </select>
             {authors.length === 0 && (
               <p className="mt-2 text-xs text-amber-500">
-                ⚠️ No authors found. Please run the database migration first.
+                ⚠️ No authors found. Please refresh the page or check database.
+              </p>
+            )}
+            {authors.length > 0 && (
+              <p className="mt-1 text-xs text-green-500">
+                ✓ {authors.length} author(s) loaded
               </p>
             )}
           </div>
