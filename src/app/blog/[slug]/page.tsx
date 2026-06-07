@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import PageUtilities from '@/components/ui/PageUtilities'
+import BlogNewsletterSignup from '@/components/blog/BlogNewsletterSignup'
 import { supabase } from '@/lib/supabase'
 
 interface BlogPost {
@@ -37,6 +38,7 @@ interface Comment {
 
 function formatDate(date?: string) {
   if (!date) return ''
+
   return new Date(date).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -97,18 +99,21 @@ function generateTableOfContents(html: string) {
 }
 
 function addHeadingIds(html: string) {
-  return html.replace(/<h([2-3])([^>]*)>(.*?)<\/h[2-3]>/gi, (match, level, attrs, content) => {
-    if (attrs.includes('id=')) return match
+  return html.replace(
+    /<h([2-3])([^>]*)>(.*?)<\/h[2-3]>/gi,
+    (match, level, attrs, content) => {
+      if (attrs.includes('id=')) return match
 
-    const text = stripHtml(content)
-    const id =
-      text
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '') || 'section'
+      const text = stripHtml(content)
+      const id =
+        text
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '') || 'section'
 
-    return `<h${level}${attrs} id="${id}">${content}</h${level}>`
-  })
+      return `<h${level}${attrs} id="${id}">${content}</h${level}>`
+    }
+  )
 }
 
 export default function BlogPostPage() {
@@ -124,12 +129,15 @@ export default function BlogPostPage() {
   const [commentName, setCommentName] = useState('')
   const [commentEmail, setCommentEmail] = useState('')
   const [commentText, setCommentText] = useState('')
-  const [commentStatus, setCommentStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
+  const [commentStatus, setCommentStatus] = useState<
+    'idle' | 'submitting' | 'success' | 'error'
+  >('idle')
 
   useEffect(() => {
     if (!slug) return
     fetchPost()
     fetchComments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug])
 
   async function fetchPost() {
@@ -237,8 +245,14 @@ export default function BlogPostPage() {
       <>
         <Navbar />
         <main className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg-page)] px-5 text-center">
-          <h1 className="text-4xl font-black text-[var(--text-primary)]">Article not found</h1>
-          <Link href="/blog" className="mt-8 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-black text-[#07111F]">
+          <h1 className="text-4xl font-black text-[var(--text-primary)]">
+            Article not found
+          </h1>
+
+          <Link
+            href="/blog"
+            className="mt-8 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-black text-[#07111F]"
+          >
             Back to Blog
           </Link>
         </main>
@@ -257,7 +271,10 @@ export default function BlogPostPage() {
           <div className="mx-auto max-w-[980px]">
             <div className="mb-5 flex flex-wrap gap-3">
               {post.tags?.slice(0, 4).map((tag) => (
-                <span key={tag} className="text-xs font-black uppercase tracking-[0.12em] text-[var(--accent)]">
+                <span
+                  key={tag}
+                  className="text-xs font-black uppercase tracking-[0.12em] text-[var(--accent)]"
+                >
                   {tag}
                 </span>
               ))}
@@ -278,6 +295,7 @@ export default function BlogPostPage() {
                 <p className="text-sm font-black text-[var(--text-primary)]">
                   {post.author || 'Hbee Digitals'}
                 </p>
+
                 <p className="mt-1 text-xs font-medium text-[var(--text-muted)]">
                   Updated on {formatDate(post.published_at || post.created_at)}
                   {post.read_time ? ` · ${post.read_time}` : ''}
@@ -290,7 +308,9 @@ export default function BlogPostPage() {
                 </button>
 
                 <a
-                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareTitle)}&url=${encodeURIComponent(shareUrl)}`}
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                    shareTitle
+                  )}&url=${encodeURIComponent(shareUrl)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="share-icon"
@@ -300,7 +320,9 @@ export default function BlogPostPage() {
                 </a>
 
                 <a
-                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+                    shareUrl
+                  )}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="share-icon"
@@ -320,7 +342,9 @@ export default function BlogPostPage() {
                 </a>
 
                 <a
-                  href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`}
+                  href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+                    shareUrl
+                  )}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="share-icon"
@@ -331,7 +355,11 @@ export default function BlogPostPage() {
               </div>
             </div>
 
-            {copied && <p className="mt-3 text-xs font-bold text-[var(--accent)]">Link copied</p>}
+            {copied && (
+              <p className="mt-3 text-xs font-bold text-[var(--accent)]">
+                Link copied
+              </p>
+            )}
           </div>
         </section>
 
@@ -362,7 +390,9 @@ export default function BlogPostPage() {
                   </button>
 
                   <a
-                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareTitle)}&url=${encodeURIComponent(shareUrl)}`}
+                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                      shareTitle
+                    )}&url=${encodeURIComponent(shareUrl)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="share-icon"
@@ -372,7 +402,9 @@ export default function BlogPostPage() {
                   </a>
 
                   <a
-                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
+                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+                      shareUrl
+                    )}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="share-icon"
@@ -392,7 +424,9 @@ export default function BlogPostPage() {
                   </a>
 
                   <a
-                    href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`}
+                    href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+                      shareUrl
+                    )}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="share-icon"
@@ -402,6 +436,8 @@ export default function BlogPostPage() {
                   </a>
                 </div>
               </div>
+
+              <BlogNewsletterSignup />
             </article>
 
             {toc.length > 0 && (
@@ -432,7 +468,9 @@ export default function BlogPostPage() {
 
         <section className="bg-[var(--bg-section)] px-5 py-16 sm:px-6 md:px-10 lg:px-12">
           <div className="mx-auto max-w-[760px] text-center">
-            <h2 className="text-3xl font-black text-[var(--text-primary)]">Leave a comment</h2>
+            <h2 className="text-3xl font-black text-[var(--text-primary)]">
+              Leave a comment
+            </h2>
 
             <form onSubmit={submitComment} className="mt-8 grid gap-5">
               <div className="grid gap-5 sm:grid-cols-2">
@@ -442,6 +480,7 @@ export default function BlogPostPage() {
                   className="blog-input"
                   placeholder="Name"
                 />
+
                 <input
                   value={commentEmail}
                   onChange={(e) => setCommentEmail(e.target.value)}
@@ -486,10 +525,21 @@ export default function BlogPostPage() {
             {comments.length > 0 && (
               <div className="mt-10 space-y-4 text-left">
                 {comments.map((comment) => (
-                  <div key={comment.id} className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-                    <p className="font-black text-[var(--text-primary)]">{comment.author_name}</p>
-                    <p className="mt-1 text-xs text-[var(--text-muted)]">{formatDate(comment.created_at)}</p>
-                    <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)]">{comment.content}</p>
+                  <div
+                    key={comment.id}
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5"
+                  >
+                    <p className="font-black text-[var(--text-primary)]">
+                      {comment.author_name}
+                    </p>
+
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">
+                      {formatDate(comment.created_at)}
+                    </p>
+
+                    <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)]">
+                      {comment.content}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -501,9 +551,10 @@ export default function BlogPostPage() {
           <div className="mx-auto grid max-w-[980px] gap-8 md:grid-cols-2 md:items-center">
             <div>
               <h2 className="text-3xl font-black">Need help improving your store?</h2>
+
               <p className="mt-4 text-sm leading-7 text-white/75">
-                Hbee Digitals helps businesses improve trust, user experience, conversion flow,
-                and growth systems that turn visitors into customers.
+                Hbee Digitals helps businesses improve trust, user experience,
+                conversion flow, and growth systems that turn visitors into customers.
               </p>
 
               <Link
@@ -527,7 +578,9 @@ export default function BlogPostPage() {
         {relatedPosts.length > 0 && (
           <section className="px-5 py-16 sm:px-6 md:px-10 lg:px-12">
             <div className="mx-auto max-w-[980px]">
-              <h2 className="mb-8 text-3xl font-black text-[var(--text-primary)]">Read Next</h2>
+              <h2 className="mb-8 text-3xl font-black text-[var(--text-primary)]">
+                Read Next
+              </h2>
 
               <div className="grid gap-6 md:grid-cols-3">
                 {relatedPosts.map((item) => (
