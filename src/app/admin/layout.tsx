@@ -1,43 +1,24 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { usePathname, useRouter } from 'next/navigation'
+import Link from 'next/link'
 
-const navItemsBase = [
-  { name: 'Dashboard', href: '/admin/dashboard', icon: 'dashboard' },
-  { name: 'Inquiries', href: '/admin/inquiries', icon: 'email', hasBadge: true },
-  { name: 'Newsletter', href: '/admin/newsletter', icon: 'newsletter' },
-  { name: 'Campaign Templates', href: '/admin/newsletter/templates', icon: 'newsletter' },
-  { name: 'Subscribers', href: '/admin/subscribers', icon: 'user' },
-  { name: 'Blog Posts', href: '/admin/blog', icon: 'blog' },
-  { name: 'Blog Categories', href: '/admin/blog/categories', icon: 'category' },
-  { name: 'Blog Comments', href: '/admin/comments', icon: 'comment' },
-  { name: 'Hero Section', href: '/admin/hero', icon: 'hero' },
-  { name: 'About Page', href: '/admin/about', icon: 'about' },
-  { name: 'Services', href: '/admin/services', icon: 'digital-services' },
-  { name: 'Pricing', href: '/admin/pricing', icon: 'pricing' },
-  { name: 'Portfolio', href: '/admin/portfolio', icon: 'portfolio' },
-  { name: 'Testimonials', href: '/admin/testimonials', icon: 'star' },
-  { name: 'Team Members', href: '/admin/team', icon: 'team' },
-  { name: 'FAQs', href: '/admin/faqs', icon: 'faq' },
-  { name: 'Navigation Menu', href: '/admin/menu', icon: 'menu' },
-  { name: 'Profile', href: '/admin/profile', icon: 'user' },
-  { name: 'Settings', href: '/admin/settings', icon: 'settings' },
-]
+type NavItem = {
+  name: string
+  href: string
+  icon: string
+  badge?: number
+}
 
-function PublicSvgIcon({ name, active = false }: { name: string; active?: boolean }) {
+function AdminSvgIcon({ name, active }: { name: string; active?: boolean }) {
   return (
-    <span
-      className={`flex h-5 w-5 shrink-0 items-center justify-center ${
-        active ? 'brightness-0' : ''
-      }`}
-    >
+    <span className="flex h-5 w-5 shrink-0 items-center justify-center">
       <img
         src={`/svgs/${name}.svg`}
         alt=""
-        className="h-4 w-4 object-contain"
+        className={`h-4 w-4 object-contain ${active ? 'brightness-0' : ''}`}
         onError={(e) => {
           e.currentTarget.style.display = 'none'
         }}
@@ -54,6 +35,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [unreadInquiries, setUnreadInquiries] = useState(0)
+  const [adminName, setAdminName] = useState('Admin')
+  const [adminAvatar, setAdminAvatar] = useState('')
+
+  const navItems: NavItem[] = [
+    { name: 'Dashboard', href: '/admin/dashboard', icon: 'dashboard' },
+    { name: 'Inquiries', href: '/admin/inquiries', icon: 'email', badge: unreadInquiries },
+    { name: 'Newsletter', href: '/admin/newsletter', icon: 'newsletter' },
+    { name: 'Campaign Templates', href: '/admin/newsletter/templates', icon: 'newsletter' },
+    { name: 'Subscribers', href: '/admin/subscribers', icon: 'user' },
+    { name: 'Blog Posts', href: '/admin/blog', icon: 'blog' },
+    { name: 'Blog Categories', href: '/admin/blog/categories', icon: 'category' },
+    { name: 'Blog Comments', href: '/admin/comments', icon: 'comment' },
+    { name: 'Hero Section', href: '/admin/hero', icon: 'hero' },
+    { name: 'About Page', href: '/admin/about', icon: 'about' },
+    { name: 'Services', href: '/admin/services', icon: 'digital-services' },
+    { name: 'Pricing', href: '/admin/pricing', icon: 'pricing' },
+    { name: 'Portfolio', href: '/admin/portfolio', icon: 'portfolio' },
+    { name: 'Testimonials', href: '/admin/testimonials', icon: 'star' },
+    { name: 'Team Members', href: '/admin/team', icon: 'team' },
+    { name: 'FAQs', href: '/admin/faqs', icon: 'faq' },
+    { name: 'Navigation Menu', href: '/admin/menu', icon: 'menu' },
+    { name: 'Profile', href: '/admin/profile', icon: 'user' },
+    { name: 'Settings', href: '/admin/settings', icon: 'settings' },
+  ]
 
   useEffect(() => {
     async function init() {
@@ -64,7 +69,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return
       }
 
-      setUser(data.user || null)
+      if (data.user) {
+        setUser(data.user)
+        setAdminName(data.user.user_metadata?.full_name || 'Admin')
+        setAdminAvatar(data.user.user_metadata?.avatar_url || '')
+      }
 
       const { count } = await supabase
         .from('contact_submissions')
@@ -78,7 +87,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     init()
   }, [pathname, router])
 
-  async function logout() {
+  async function handleLogout() {
     await supabase.auth.signOut()
     router.push('/admin/login')
   }
@@ -96,16 +105,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!user) return null
 
   const currentPage =
-    navItemsBase.find((item) => pathname === item.href)?.name ||
-    navItemsBase.find((item) => item.href !== '/admin/dashboard' && pathname.startsWith(item.href))?.name ||
+    navItems.find((item) => item.href === pathname)?.name ||
+    navItems.find((item) => item.href !== '/admin/dashboard' && pathname.startsWith(item.href))?.name ||
     'Dashboard'
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
-    <aside
-      className={`flex h-full w-72 shrink-0 flex-col border-r border-white/10 bg-[#07111F] text-white ${
-        mobile ? '' : 'hidden lg:flex'
-      }`}
-    >
+    <aside className="flex h-full w-72 shrink-0 flex-col bg-[#07111F] text-white">
       <div className="flex h-20 items-center justify-between border-b border-white/10 px-5">
         <Link href="/admin/dashboard" className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#39D97A]">
@@ -123,7 +128,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {mobile && (
           <button
             onClick={() => setMobileOpen(false)}
-            className="rounded-lg border border-white/10 px-3 py-2 text-sm font-bold"
+            className="rounded-lg border border-white/10 px-3 py-2 text-xs font-bold"
           >
             Close
           </button>
@@ -131,7 +136,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
 
       <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
-        {navItemsBase.map((item) => {
+        {navItems.map((item) => {
           const active =
             pathname === item.href ||
             (item.href !== '/admin/dashboard' && pathname.startsWith(item.href))
@@ -144,18 +149,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               className={`mb-1 flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold transition ${
                 active
                   ? 'bg-[#39D97A] text-[#07111F]'
-                  : 'text-[#B8C7DE] hover:bg-white/8 hover:text-white'
+                  : 'text-[#B8C7DE] hover:bg-white/10 hover:text-white'
               }`}
             >
-              <PublicSvgIcon name={item.icon} active={active} />
-
+              <AdminSvgIcon name={item.icon} active={active} />
               <span className="min-w-0 flex-1 truncate">{item.name}</span>
 
-              {item.hasBadge && unreadInquiries > 0 && (
+              {item.badge && item.badge > 0 ? (
                 <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-black text-white">
-                  {unreadInquiries > 99 ? '99+' : unreadInquiries}
+                  {item.badge > 99 ? '99+' : item.badge}
                 </span>
-              )}
+              ) : null}
             </Link>
           )
         })}
@@ -163,7 +167,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       <div className="border-t border-white/10 p-4">
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className="w-full rounded-xl border border-red-400/30 bg-red-400/10 py-3 text-sm font-black text-red-300 transition hover:bg-red-400/20"
         >
           Logout
@@ -174,10 +178,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#F5F7FA]">
-      <Sidebar />
+      <div className="hidden lg:block">
+        <Sidebar />
+      </div>
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden">
+        <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
           <div className="relative z-10 h-full">
             <Sidebar mobile />
@@ -212,9 +218,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               View Site
             </Link>
 
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#07111F] text-sm font-black text-white">
-              H
-            </div>
+            {adminAvatar ? (
+              <img src={adminAvatar} alt="" className="h-9 w-9 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#07111F] text-sm font-black text-white">
+                {adminName.charAt(0).toUpperCase()}
+              </div>
+            )}
           </div>
         </header>
 
