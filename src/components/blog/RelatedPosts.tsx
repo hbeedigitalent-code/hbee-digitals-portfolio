@@ -1,82 +1,132 @@
+'use client'
+
 import Link from 'next/link'
-import SvgIcon from '@/components/ui/SvgIcon'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
 
 interface BlogPost {
   id: string
   title: string
   slug: string
-  excerpt?: string
-  featured_image?: string
-  read_time?: string
+  excerpt: string
+  featured_image: string | null
+  tags: string[] | null
+  author: string | null
+  published_at: string | null
+  read_time: string | null
 }
 
-export default function RelatedPosts({
-  posts,
-}: {
-  posts: BlogPost[]
-}) {
-  if (!posts?.length) return null
+interface RelatedPostsProps {
+  currentSlug: string
+  tags?: string[] | null
+}
 
-  return (
-    <section className="px-5 pb-24 sm:px-6 md:px-10 lg:px-12">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-10 max-w-3xl">
-          <p className="mb-4 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
-            Continue Reading
-          </p>
+export default function RelatedPosts({ currentSlug, tags }: RelatedPostsProps) {
+  const [posts, setPosts] = useState<BlogPost[]>([])
+  const [loading, setLoading] = useState(true)
 
-          <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] text-[var(--text-primary)] sm:text-5xl">
-            More insights for stronger digital growth.
-          </h2>
-        </div>
+  useEffect(() => {
+    async function fetchRelated() {
+      setLoading(true)
 
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {posts.map((post) => (
-            <Link
-              key={post.id}
-              href={`/blog/${post.slug}`}
-              className="group overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] p-3 transition hover:-translate-y-1 hover:border-[var(--accent)]/25 hover:shadow-[var(--shadow-md)]"
-            >
-              <div className="relative overflow-hidden rounded-[1.5rem] bg-[var(--bg-section)]">
-                {post.featured_image ? (
-                  <img
-                    src={post.featured_image}
-                    alt={post.title}
-                    className="aspect-[16/10] w-full object-cover transition duration-700 group-hover:scale-[1.05]"
-                  />
-                ) : (
-                  <div className="flex aspect-[16/10] items-center justify-center">
-                    <SvgIcon name="blog" size={54} color="var(--accent)" />
-                  </div>
-                )}
+      // First try: get posts with matching tags
+      let query = supabase
+        .from('blog_posts')
+        .select('id, title, slug, excerpt, featured_image, tags, author, published_at, read_time')
+        .eq('status', 'published')
+        .neq('slug', currentSlug)
+        .order('published_at', { ascending: false })
+        .limit(3)
 
-                <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-page)]/80 via-transparent to-transparent" />
-              </div>
+      // If we have tags, filter by them
+      if (tags && tags.length > 0) {
+        query = query.overlaps('tags', tags)
+      }
 
-              <div className="p-3 pt-5">
-                {post.read_time && (
-                  <p className="mb-3 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--accent)]">
-                    {post.read_time}
-                  </p>
-                )}
+      const { data, error } = await query
 
-                <h3 className="text-xl font-black leading-tight text-[var(--text-primary)]">
-                  {post.title}
-                </h3>
+      if (error || !data || data.length === 0) {
+        // Fallback: just get latest published posts
+        const { data: fallbackData } = await supabase
+          .from('blog_posts')
+          .select('id, title, slug, excerpt, featured_image, tags, author, published_at, read_time')
+          .eq('status', 'published')
+          .neq('slug', currentSlug)
+          .order('published_at', { ascending: false })
+          .limit(3)
 
-                <p className="mt-3 line-clamp-3 text-sm leading-7 text-[var(--text-secondary)]">
-                  {post.excerpt ||
-                    'Practical digital growth insight from Hbee Digitals.'}
-                </p>
+        setPosts(fallbackData || [])
+      } else {
+        setPosts(data)
+      }
 
-                <div className="mt-5 inline-flex items-center gap-2 text-sm font-black text-[var(--accent)] transition group-hover:gap-3">
-                  Read Article
-                  <SvgIcon name="arrow-diagonal" size={14} color="var(--accent)" />
-                </div>
-              </div>
-            </Link>
+      setLoading(false)
+    }
+
+    fetchRelated()
+  }, [currentSlug, tags])
+
+  if (loading) {
+    return (
+      <section className="mt-16">
+        <h3 className="mb-6 text-xl font-black text-[var(--text-primary)]">Related Articles</h3>
+        <div className="grid gap-6 md:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-48 animate-pulse rounded-2xl bg-[var(--bg-card)]" />
           ))}
         </div>
+      </section>
+    )
+  }
+
+  if (posts.length === 0) return null
+
+  return (
+    <section className="mt-16">
+      <h3 className="mb-6 flex items-center gap-2 text-xl font-black tracking-[-0.02em] text-[var(--text-primary)]">
+        <img src="/svgs/blog.svg" alt="" className="h-5 w-5 opacity-60" />
+        Related Articles
+      </h3>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        {posts.map((post) => (
+          <Link
+            key={post.id}
+            href={`/blog/${post.slug}`}
+            className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] transition hover:-translate-y-1 hover:border-[#39D97A]/30 hover:shadow-lg"
+          >
+            {post.featured_image && (
+              <div className="relative aspect-[16/10] overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={post.featured_image}
+                  alt={post.title}
+                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                  loading="lazy"
+                />
+              </div>
+            )}
+
+            <div className="flex flex-1 flex-col p-5">
+              {post.tags && post.tags.length > 0 && (
+                <span className="mb-2 text-xs font-bold uppercase tracking-wider text-[#39D97A]">
+                  {post.tags[0]}
+                </span>
+              )}
+
+              <h4 className="text-sm font-bold leading-snug text-[var(--text-primary)] group-hover:text-[#39D97A] transition">
+                {post.title}
+              </h4>
+
+              {post.read_time && (
+                <span className="mt-auto flex items-center gap-1 pt-3 text-xs text-[var(--text-muted)]">
+                  <img src="/svgs/clock.svg" alt="" className="h-3 w-3 opacity-50" />
+                  {post.read_time}
+                </span>
+              )}
+            </div>
+          </Link>
+        ))}
       </div>
     </section>
   )

@@ -1,343 +1,371 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 
-interface Category {
+interface BlogCategory {
   id: string
   name: string
   slug: string
-  description: string
-  display_order: number
-  is_active: boolean
-  created_at: string
+  description: string | null
+  created_at: string | null
+  post_count?: number
 }
 
-export default function BlogCategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>([])
+export default function AdminBlogCategoriesPage() {
+  const router = useRouter()
+  const [categories, setCategories] = useState<BlogCategory[]>([])
   const [loading, setLoading] = useState(true)
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
-  const [showForm, setShowForm] = useState(false)
-  const [formData, setFormData] = useState({
-    name: '',
-    slug: '',
-    description: '',
-    display_order: 0,
-    is_active: true
-  })
-  const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [user, setUser] = useState<unknown>(null)
+  const [actionMessage, setActionMessage] = useState('')
 
+  // Form state
+  const [name, setName] = useState('')
+  const [slug, setSlug] = useState('')
+  const [description, setDescription] = useState('')
+  const [isEditing, setIsEditing] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+
+  // Auth check
   useEffect(() => {
-    fetchCategories()
-  }, [])
+    async function checkAuth() {
+      const { data } = await supabase.auth.getUser()
+      if (!data.user) {
+        router.push('/admin/login')
+        return
+      }
+      setUser(data.user)
+    }
+    checkAuth()
+  }, [router])
 
-  const fetchCategories = async () => {
+  // Fetch categories
+  useEffect(() => {
+    async function fetchCategories() {
+      setLoading(true)
+
+      // Get categories
+      const { data: catData, error: catError } = await supabase
+        .from('blog_categories')
+        .select('*')
+        .order('name', { ascending: true })
+
+      if (catError) {
+        // Table might not exist yet, use posts tags as fallback
+        console.log('Categories table may not exist, using tags from posts')
+        await fetchTagsFromPosts()
+      } else {
+        setCategories(catData || [])
+      }
+
+      setLoading(false)
+    }
+
+    if (user) fetchCategories()
+  }, [user])
+
+  // Fetch tags from posts as fallback
+  async function fetchTagsFromPosts() {
     const { data } = await supabase
-      .from('blog_categories')
-      .select('*')
-      .order('display_order', { ascending: true })
-    
-    setCategories(data || [])
-    setLoading(false)
-  }
+      .from('blog_posts')
+      .select('tags')
+      .eq('status', 'published')
 
-  const generateSlug = (text: string) => {
-    return text
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')
-  }
-
-  const handleNameChange = (value: string) => {
-    setFormData({
-      ...formData,
-      name: value,
-      slug: generateSlug(value)
+    const tagMap = new Map<string, { count: number }>()
+    data?.forEach((post) => {
+      post.tags?.forEach((tag: string) => {
+        if (tag?.trim()) {
+          const existing = tagMap.get(tag.trim())
+          tagMap.set(tag.trim(), { count: (existing?.count || 0) + 1 })
+        }
+      })
     })
+
+    const tagCategories: BlogCategory[] = Array.from(tagMap.entries()).map(
+      ([name, data], index) => ({
+        id: `tag-${index}`,
+        name,
+        slug: name.toLowerCase().replace(/\s+/g, '-'),
+        description: null,
+        created_at: null,
+        post_count: data.count,
+      })
+    )
+
+    setCategories(tagCategories)
   }
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      slug: '',
-      description: '',
-      display_order: 0,
-      is_active: true
-    })
-    setEditingCategory(null)
-    setShowForm(false)
-  }
+  // Auto-generate slug
+  useEffect(() => {
+    if (name && !isEditing) {
+      setSlug(
+        name
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+      )
+    }
+  }, [name, isEditing])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Save category
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault()
-    setSaving(true)
-    setMessage(null)
 
-    if (editingCategory) {
-      const { error } = await supabase
-        .from('blog_categories')
-        .update({
-          name: formData.name,
-          slug: formData.slug,
-          description: formData.description,
-          display_order: formData.display_order,
-          is_active: formData.is_active,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', editingCategory.id)
+    if (!name.trim() || !slug.trim()) return
 
-      if (error) {
-        setMessage({ type: 'error', text: error.message })
-      } else {
-        setMessage({ type: 'success', text: 'Category updated successfully!' })
-        fetchCategories()
-        resetForm()
-      }
-    } else {
-      const { error } = await supabase
-        .from('blog_categories')
-        .insert([{
-          name: formData.name,
-          slug: formData.slug,
-          description: formData.description,
-          display_order: formData.display_order,
-          is_active: formData.is_active
-        }])
-
-      if (error) {
-        setMessage({ type: 'error', text: error.message })
-      } else {
-        setMessage({ type: 'success', text: 'Category created successfully!' })
-        fetchCategories()
-        resetForm()
-      }
+    const payload = {
+      name: name.trim(),
+      slug: slug.trim().toLowerCase(),
+      description: description.trim() || null,
+      updated_at: new Date().toISOString(),
     }
-    setSaving(false)
-  }
 
-  const handleEdit = (category: Category) => {
-    setEditingCategory(category)
-    setFormData({
-      name: category.name,
-      slug: category.slug,
-      description: category.description || '',
-      display_order: category.display_order,
-      is_active: category.is_active
-    })
-    setShowForm(true)
-  }
+    try {
+      if (isEditing && editId) {
+        const { error } = await supabase
+          .from('blog_categories')
+          .update(payload)
+          .eq('id', editId)
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Delete this category? Posts in this category will become Uncategorized.')) {
-      const { error } = await supabase
-        .from('blog_categories')
-        .delete()
-        .eq('id', id)
-
-      if (error) {
-        setMessage({ type: 'error', text: error.message })
+        if (error) throw error
+        setActionMessage('Category updated!')
       } else {
-        setMessage({ type: 'success', text: 'Category deleted successfully!' })
-        fetchCategories()
+        const { error } = await supabase
+          .from('blog_categories')
+          .insert({ ...payload, created_at: new Date().toISOString() })
+
+        if (error) throw error
+        setActionMessage('Category created!')
       }
+
+      // Reset form
+      setName('')
+      setSlug('')
+      setDescription('')
+      setIsEditing(false)
+      setEditId(null)
+
+      // Refresh
+      const { data } = await supabase
+        .from('blog_categories')
+        .select('*')
+        .order('name', { ascending: true })
+
+      setCategories(data || [])
+      setTimeout(() => setActionMessage(''), 3000)
+    } catch (err) {
+      setActionMessage(`Error: ${(err as Error).message}`)
     }
   }
 
-  const toggleStatus = async (id: string, currentStatus: boolean) => {
+  // Edit category
+  function startEdit(cat: BlogCategory) {
+    setName(cat.name)
+    setSlug(cat.slug)
+    setDescription(cat.description || '')
+    setIsEditing(true)
+    setEditId(cat.id)
+  }
+
+  // Delete category
+  async function deleteCategory(id: string) {
+    if (!confirm('Delete this category?')) return
+
     const { error } = await supabase
       .from('blog_categories')
-      .update({ is_active: !currentStatus })
+      .delete()
       .eq('id', id)
 
     if (error) {
-      setMessage({ type: 'error', text: error.message })
+      setActionMessage(`Error: ${error.message}`)
     } else {
-      fetchCategories()
-      setMessage({ type: 'success', text: `Category ${!currentStatus ? 'activated' : 'deactivated'}!` })
-      setTimeout(() => setMessage(null), 2000)
+      setCategories((prev) => prev.filter((c) => c.id !== id))
+      setActionMessage('Category deleted')
+      setTimeout(() => setActionMessage(''), 3000)
     }
+  }
+
+  // Reset form
+  function resetForm() {
+    setName('')
+    setSlug('')
+    setDescription('')
+    setIsEditing(false)
+    setEditId(null)
   }
 
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        <p className="mt-2 text-gray-600">Loading categories...</p>
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-page)]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#39D97A] border-t-transparent" />
       </div>
     )
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Blog Categories</h2>
-          <p className="text-sm text-gray-500 mt-1">Manage categories for your blog posts</p>
-        </div>
-        {!showForm && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="px-4 py-2 text-white rounded-lg hover:opacity-90"
-            style={{ backgroundColor: 'var(--primary-color)' }}
+    <div className="min-h-screen bg-[var(--bg-page)] p-4 sm:p-8">
+      <div className="mx-auto max-w-4xl">
+        {/* Header */}
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-black tracking-[-0.02em] text-[var(--text-primary)]">
+              Blog Categories
+            </h1>
+            <p className="text-sm text-[var(--text-muted)]">
+              Manage categories for organizing your blog posts
+            </p>
+          </div>
+
+          <Link
+            href="/admin/blog"
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-5 py-2.5 text-sm font-semibold text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
           >
-            + New Category
-          </button>
-        )}
-      </div>
-
-      {message && (
-        <div className={`mb-4 p-4 rounded-lg ${
-          message.type === 'success' 
-            ? 'bg-green-100 text-green-700 border border-green-200' 
-            : 'bg-red-100 text-red-700 border border-red-200'
-        }`}>
-          {message.text}
+            Back to Blog
+          </Link>
         </div>
-      )}
 
-      {showForm && (
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <h3 className="text-lg font-semibold mb-4">
-            {editingCategory ? 'Edit Category' : 'Create New Category'}
-          </h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Category Name *</label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => handleNameChange(e.target.value)}
-                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="e.g., Technology, Design, Marketing"
-              />
-            </div>
+        {/* Action message */}
+        {actionMessage && (
+          <div
+            className={`mb-4 rounded-xl px-4 py-3 text-sm font-semibold ${
+              actionMessage.includes('Error')
+                ? 'bg-red-500/10 text-red-400'
+                : 'bg-[#39D97A]/10 text-[#39D97A]'
+            }`}
+          >
+            {actionMessage}
+          </div>
+        )}
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Slug</label>
-              <input
-                type="text"
-                value={formData.slug}
-                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                className="w-full p-2 border rounded-lg bg-gray-50"
-                placeholder="auto-generated-from-name"
-              />
-              <p className="text-xs text-gray-400 mt-1">URL: /blog/category/{formData.slug || '...'}</p>
-            </div>
+        {/* Category Form */}
+        <div className="mb-8 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+          <h2 className="mb-4 text-lg font-black text-[var(--text-primary)]">
+            {isEditing ? 'Edit Category' : 'Add Category'}
+          </h2>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={3}
-                className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="Brief description of this category..."
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium mb-1">Display Order</label>
+                <label className="mb-1 block text-xs font-semibold text-[var(--text-muted)]">
+                  Name *
+                </label>
                 <input
-                  type="number"
-                  value={formData.display_order}
-                  onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) })}
-                  className="w-full p-2 border rounded-lg"
-                  placeholder="0, 1, 2..."
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Ecommerce Growth"
+                  required
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[#39D97A]"
                 />
-                <p className="text-xs text-gray-400 mt-1">Lower numbers appear first</p>
               </div>
-
               <div>
-                <label className="block text-sm font-medium mb-1">Status</label>
-                <select
-                  value={formData.is_active ? 'active' : 'inactive'}
-                  onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'active' })}
-                  className="w-full p-2 border rounded-lg"
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
+                <label className="mb-1 block text-xs font-semibold text-[var(--text-muted)]">
+                  Slug *
+                </label>
+                <input
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value)}
+                  placeholder="ecommerce-growth"
+                  required
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[#39D97A]"
+                />
               </div>
             </div>
 
-            <div className="flex gap-3 pt-4">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-[var(--text-muted)]">
+                Description
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Optional description for this category"
+                rows={2}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[#39D97A]"
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
               <button
                 type="submit"
-                disabled={saving}
-                className="px-4 py-2 text-white rounded-lg hover:opacity-90 disabled:opacity-50"
-                style={{ backgroundColor: 'var(--primary-color)' }}
+                className="rounded-full bg-[#39D97A] px-6 py-2.5 text-sm font-black text-[#07111F] transition hover:scale-[1.02]"
               >
-                {saving ? 'Saving...' : (editingCategory ? 'Update Category' : 'Create Category')}
+                {isEditing ? 'Update' : 'Add'} Category
               </button>
-              <button
-                type="button"
-                onClick={resetForm}
-                className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
-              >
-                Cancel
-              </button>
+
+              {isEditing && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="rounded-full border border-[var(--border)] px-5 py-2.5 text-sm font-semibold text-[var(--text-muted)] transition hover:bg-[var(--bg-page)]"
+                >
+                  Cancel
+                </button>
+              )}
             </div>
           </form>
         </div>
-      )}
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        {categories.length === 0 ? (
-          <div className="p-12 text-center">
-            <div className="text-6xl mb-4">📂</div>
-            <p className="text-gray-500">No categories yet. Create your first category!</p>
-          </div>
-        ) : (
+        {/* Categories List */}
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="p-4 text-left text-sm font-semibold text-gray-600">Name</th>
-                  <th className="p-4 text-left text-sm font-semibold text-gray-600">Slug</th>
-                  <th className="p-4 text-left text-sm font-semibold text-gray-600">Description</th>
-                  <th className="p-4 text-left text-sm font-semibold text-gray-600">Order</th>
-                  <th className="p-4 text-left text-sm font-semibold text-gray-600">Status</th>
-                  <th className="p-4 text-left text-sm font-semibold text-gray-600">Actions</th>
+              <thead>
+                <tr className="border-b border-[var(--border)] text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                  <th className="px-4 py-3">Category</th>
+                  <th className="px-4 py-3">Slug</th>
+                  <th className="px-4 py-3">Posts</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
-                {categories.map((category) => (
-                  <tr key={category.id} className="hover:bg-gray-50 transition">
-                    <td className="p-4 font-medium text-gray-800">{category.name}</td>
-                    <td className="p-4 text-sm text-gray-500">{category.slug}</td>
-                    <td className="p-4 text-sm text-gray-500 max-w-xs truncate">
-                      {category.description || '-'}
+              <tbody className="divide-y divide-[var(--border)]">
+                {categories.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-12 text-center text-[var(--text-muted)]">
+                      No categories yet. Create your first category above.
                     </td>
-                    <td className="p-4 text-sm text-gray-500">{category.display_order}</td>
-                    <td className="p-4">
-                      <button
-                        onClick={() => toggleStatus(category.id, category.is_active)}
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          category.is_active 
-                            ? 'bg-green-100 text-green-700' 
-                            : 'bg-gray-100 text-gray-500'
-                        }`}
-                      >
-                        {category.is_active ? 'Active' : 'Inactive'}
-                      </button>
+                  </tr>
+                )}
+
+                {categories.map((cat) => (
+                  <tr key={cat.id} className="transition hover:bg-[var(--bg-page)]">
+                    <td className="px-4 py-4">
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">
+                        {cat.name}
+                      </p>
+                      {cat.description && (
+                        <p className="text-xs text-[var(--text-muted)]">
+                          {cat.description}
+                        </p>
+                      )}
                     </td>
-                    <td className="p-4">
-                      <div className="flex gap-3">
+                    <td className="px-4 py-4">
+                      <span className="text-xs text-[var(--text-muted)]">
+                        /blog?tag={cat.slug}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="rounded-full bg-[var(--bg-page)] px-2.5 py-1 text-xs font-bold text-[var(--text-muted)]">
+                        {cat.post_count || '-'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center justify-end gap-1">
                         <button
-                          onClick={() => handleEdit(category)}
-                          className="text-blue-600 hover:text-blue-800 text-sm"
+                          onClick={() => startEdit(cat)}
+                          className="rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-[var(--bg-page)] hover:text-[#39D97A]"
+                          title="Edit"
                         >
-                          Edit
+                          <img src="/svgs/blog.svg" alt="Edit" className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(category.id)}
-                          className="text-red-600 hover:text-red-800 text-sm"
+                          onClick={() => deleteCategory(cat.id)}
+                          className="rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
+                          title="Delete"
                         >
-                          Delete
+                          <span className="text-xs font-bold">X</span>
                         </button>
                       </div>
                     </td>
@@ -346,17 +374,7 @@ export default function BlogCategoriesPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
-
-      <div className="mt-6 bg-blue-50 rounded-lg p-4 border border-blue-200">
-        <h4 className="font-semibold text-blue-800 mb-2">💡 About Categories</h4>
-        <ul className="text-sm text-blue-700 space-y-1">
-          <li>• Categories help organize your blog posts into topics</li>
-          <li>• Each post can belong to one category</li>
-          <li>• Inactive categories won't appear on the website</li>
-          <li>• Deleting a category will move posts to "Uncategorized"</li>
-        </ul>
+        </div>
       </div>
     </div>
   )

@@ -1,385 +1,407 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-type BlogPost = {
+interface BlogPost {
   id: string
   title: string
   slug: string
-  excerpt?: string | null
-  status: string
-  post_type: string
-  is_featured: boolean
-  published_at: string | null
-  created_at: string
-  updated_at?: string | null
+  excerpt: string
   featured_image: string | null
+  tags: string[] | null
+  status: string
+  is_featured: boolean
+  featured_badge: string | null
   read_time: string | null
-  author?: string | null
-  tags?: string[] | null
-  seo_title?: string | null
-  seo_description?: string | null
-  og_image?: string | null
+  published_at: string | null
+  updated_at: string | null
+  og_image: string | null
 }
 
-function formatDate(date?: string | null) {
-  if (!date) return 'Not published'
-
-  return new Date(date).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const isPublished = status === 'published'
-
-  return (
-    <span
-      className={`inline-flex rounded-full px-3 py-1 text-xs font-black capitalize ${
-        isPublished
-          ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
-          : 'bg-orange-500/10 text-orange-500'
-      }`}
-    >
-      {status}
-    </span>
-  )
-}
+type FilterStatus = 'all' | 'published' | 'draft' | 'featured'
 
 export default function AdminBlogPage() {
+  const router = useRouter()
   const [posts, setPosts] = useState<BlogPost[]>([])
+  const [filteredPosts, setFilteredPosts] = useState<BlogPost[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState<'all' | 'published' | 'draft' | 'featured'>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>('all')
+  const [actionMessage, setActionMessage] = useState('')
+  const [user, setUser] = useState<unknown>(null)
 
+  // Auth check
   useEffect(() => {
-    fetchPosts()
-  }, [])
+    async function checkAuth() {
+      const { data } = await supabase.auth.getUser()
+      if (!data.user) {
+        router.push('/admin/login')
+        return
+      }
+      setUser(data.user)
+    }
+    checkAuth()
+  }, [router])
 
-  async function fetchPosts() {
-    setLoading(true)
+  // Fetch posts
+  useEffect(() => {
+    async function fetchPosts() {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select(
+          'id, title, slug, excerpt, featured_image, tags, status, is_featured, featured_badge, read_time, published_at, updated_at, og_image'
+        )
+        .order('updated_at', { ascending: false })
 
-    const { data, error } = await supabase
-      .from('blog_posts')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      alert(error.message)
-      setPosts([])
-    } else {
-      setPosts(data || [])
+      if (error) {
+        console.error('Error fetching posts:', error)
+      } else {
+        setPosts(data || [])
+        setFilteredPosts(data || [])
+      }
+      setLoading(false)
     }
 
-    setLoading(false)
-  }
+    if (user) fetchPosts()
+  }, [user])
 
-  async function deletePost(id: string) {
-    if (!confirm('Delete this blog post?')) return
+  // Filter posts
+  useEffect(() => {
+    let filtered = posts
 
-    const { error } = await supabase.from('blog_posts').delete().eq('id', id)
-
-    if (error) {
-      alert(error.message)
-      return
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'featured') {
+        filtered = filtered.filter((p) => p.is_featured)
+      } else {
+        filtered = filtered.filter((p) => p.status === statusFilter)
+      }
     }
 
-    setPosts((prev) => prev.filter((post) => post.id !== id))
-  }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      filtered = filtered.filter(
+        (p) =>
+          p.title?.toLowerCase().includes(q) ||
+          p.slug?.toLowerCase().includes(q) ||
+          p.excerpt?.toLowerCase().includes(q)
+      )
+    }
 
-  async function toggleStatus(post: BlogPost) {
-    const newStatus = post.status === 'published' ? 'draft' : 'published'
+    setFilteredPosts(filtered)
+  }, [searchQuery, statusFilter, posts])
 
+  // Toggle publish status
+  async function togglePublish(id: string, currentStatus: string) {
+    const newStatus = currentStatus === 'published' ? 'draft' : 'published'
     const { error } = await supabase
       .from('blog_posts')
       .update({
         status: newStatus,
         published_at:
-          newStatus === 'published'
-            ? post.published_at || new Date().toISOString()
-            : post.published_at,
+          newStatus === 'published' ? new Date().toISOString() : null,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', post.id)
+      .eq('id', id)
 
     if (error) {
-      alert(error.message)
-      return
+      setActionMessage(`Error: ${error.message}`)
+    } else {
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === id
+            ? {
+                ...p,
+                status: newStatus,
+                published_at:
+                  newStatus === 'published' ? new Date().toISOString() : null,
+              }
+            : p
+        )
+      )
+      setActionMessage(
+        newStatus === 'published' ? 'Post published!' : 'Post moved to drafts'
+      )
+      setTimeout(() => setActionMessage(''), 3000)
     }
-
-    fetchPosts()
   }
 
-  async function toggleFeatured(post: BlogPost) {
+  // Toggle featured
+  async function toggleFeatured(id: string, current: boolean) {
     const { error } = await supabase
       .from('blog_posts')
-      .update({
-        is_featured: !post.is_featured,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', post.id)
+      .update({ is_featured: !current, updated_at: new Date().toISOString() })
+      .eq('id', id)
 
     if (error) {
-      alert(error.message)
-      return
+      setActionMessage(`Error: ${error.message}`)
+    } else {
+      setPosts((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, is_featured: !current } : p))
+      )
+      setActionMessage(!current ? 'Post featured!' : 'Removed from featured')
+      setTimeout(() => setActionMessage(''), 3000)
     }
-
-    fetchPosts()
   }
 
-  const filteredPosts = useMemo(() => {
-    return posts.filter((post) => {
-      const matchesSearch =
-        post.title.toLowerCase().includes(search.toLowerCase()) ||
-        post.slug.toLowerCase().includes(search.toLowerCase()) ||
-        post.tags?.some((tag) => tag.toLowerCase().includes(search.toLowerCase()))
+  // Delete post
+  async function deletePost(id: string) {
+    if (!confirm('Are you sure you want to delete this post? This cannot be undone.')) return
 
-      const matchesFilter =
-        filter === 'all' ||
-        post.status === filter ||
-        (filter === 'featured' && post.is_featured)
+    const { error } = await supabase.from('blog_posts').delete().eq('id', id)
 
-      return matchesSearch && matchesFilter
-    })
-  }, [posts, search, filter])
-
-  const stats = useMemo(() => {
-    return {
-      total: posts.length,
-      published: posts.filter((post) => post.status === 'published').length,
-      draft: posts.filter((post) => post.status === 'draft').length,
-      featured: posts.filter((post) => post.is_featured).length,
+    if (error) {
+      setActionMessage(`Error: ${error.message}`)
+    } else {
+      setPosts((prev) => prev.filter((p) => p.id !== id))
+      setActionMessage('Post deleted')
+      setTimeout(() => setActionMessage(''), 3000)
     }
-  }, [posts])
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-page)]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#39D97A] border-t-transparent" />
+      </div>
+    )
+  }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black tracking-[-0.04em] text-[var(--text-primary)]">
-            Blog Posts
-          </h1>
+    <div className="min-h-screen bg-[var(--bg-page)] p-4 sm:p-8">
+      <div className="mx-auto max-w-6xl">
+        {/* Header */}
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-black tracking-[-0.02em] text-[var(--text-primary)]">
+              Blog Posts
+            </h1>
+            <p className="text-sm text-[var(--text-muted)]">
+              {posts.length} total post{posts.length !== 1 ? 's' : ''} &middot;{' '}
+              {posts.filter((p) => p.status === 'published').length} published
+            </p>
+          </div>
 
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Create, edit, publish, and manage Hbee Digitals growth articles.
-          </p>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/admin/blog/new"
+              className="inline-flex items-center gap-2 rounded-full bg-[#39D97A] px-5 py-2.5 text-sm font-black text-[#07111F] transition hover:scale-[1.02]"
+            >
+              <span className="text-lg leading-none">+</span>
+              New Post
+            </Link>
+          </div>
         </div>
 
-        <Link
-          href="/admin/blog/new"
-          className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-black text-[#07111F] transition hover:scale-[1.02]"
-        >
-          <img src="/svgs/blog.svg" alt="" className="h-4 w-4" />
-          New Blog Post
-        </Link>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          ['Total Posts', stats.total],
-          ['Published', stats.published],
-          ['Drafts', stats.draft],
-          ['Featured', stats.featured],
-        ].map(([label, value]) => (
-          <div
-            key={label}
-            className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5"
-          >
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--text-muted)]">
-              {label}
-            </p>
-
-            <p className="mt-3 text-3xl font-black text-[var(--text-primary)]">
-              {value}
-            </p>
+        {/* Action message */}
+        {actionMessage && (
+          <div className="mb-4 rounded-xl bg-[#39D97A]/10 px-4 py-3 text-sm font-semibold text-[#39D97A]">
+            {actionMessage}
           </div>
-        ))}
-      </div>
+        )}
 
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="relative w-full lg:max-w-md">
-            <img
-              src="/svgs/search.svg"
-              alt=""
-              className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-              }}
-            />
-
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search blog posts..."
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] py-3 pl-11 pr-4 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {[
-              ['all', 'All'],
-              ['published', 'Published'],
-              ['draft', 'Drafts'],
-              ['featured', 'Featured'],
-            ].map(([value, label]) => (
+        {/* Filters */}
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-1 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-1">
+            {(['all', 'published', 'draft', 'featured'] as const).map((filter) => (
               <button
-                key={value}
-                onClick={() => setFilter(value as typeof filter)}
-                className={`rounded-full px-4 py-2 text-xs font-black transition ${
-                  filter === value
-                    ? 'bg-[var(--accent)] text-[#07111F]'
-                    : 'border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)]'
+                key={filter}
+                onClick={() => setStatusFilter(filter)}
+                className={`rounded-lg px-4 py-2 text-xs font-bold capitalize transition ${
+                  statusFilter === filter
+                    ? 'bg-[#39D97A] text-[#07111F]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                 }`}
               >
-                {label}
+                {filter}
+                {filter === 'all' && ` (${posts.length})`}
+                {filter === 'published' &&
+                  ` (${posts.filter((p) => p.status === 'published').length})`}
+                {filter === 'draft' &&
+                  ` (${posts.filter((p) => p.status === 'draft').length})`}
+                {filter === 'featured' &&
+                  ` (${posts.filter((p) => p.is_featured).length})`}
               </button>
             ))}
           </div>
+
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search posts..."
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[#39D97A] sm:w-64"
+          />
         </div>
-      </div>
 
-      <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]">
-        {loading ? (
-          <div className="p-10 text-center text-[var(--text-muted)]">
-            Loading posts...
-          </div>
-        ) : filteredPosts.length === 0 ? (
-          <div className="p-10 text-center">
-            <img src="/svgs/blog.svg" alt="" className="mx-auto mb-4 h-12 w-12 opacity-50" />
+        {/* Posts Table */}
+        <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[var(--border)] text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                  <th className="px-4 py-3">Post</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">OG</th>
+                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border)]">
+                {filteredPosts.map((post) => (
+                  <tr key={post.id} className="transition hover:bg-[var(--bg-page)]">
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-3">
+                        {post.featured_image ? (
+                          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={post.featured_image}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-page)]">
+                            <img
+                              src="/svgs/blog.svg"
+                              alt=""
+                              className="h-5 w-5 opacity-30"
+                            />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-[var(--text-primary)]">
+                            {post.title}
+                          </p>
+                          <p className="text-xs text-[var(--text-muted)]">
+                            /blog/{post.slug}
+                          </p>
+                          {post.is_featured && post.featured_badge && (
+                            <span className="mt-1 inline-block rounded bg-[#39D97A]/10 px-2 py-0.5 text-[10px] font-bold text-[#39D97A]">
+                              {post.featured_badge}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
 
-            <p className="font-bold text-[var(--text-primary)]">
-              No blog posts found.
-            </p>
-
-            <p className="mt-1 text-sm text-[var(--text-muted)]">
-              Create a new article or adjust your search filter.
-            </p>
-
-            <Link
-              href="/admin/blog/new"
-              className="mt-5 inline-flex rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-black text-[#07111F]"
-            >
-              Create Blog Post
-            </Link>
-          </div>
-        ) : (
-          <div className="divide-y divide-[var(--border)]">
-            {filteredPosts.map((post) => (
-              <div
-                key={post.id}
-                className="grid gap-5 p-5 transition hover:bg-[var(--bg-section)]/60 lg:grid-cols-[180px_1fr_auto]"
-              >
-                <div className="aspect-[1200/630] overflow-hidden rounded-xl bg-[var(--bg-section)]">
-                  {post.featured_image ? (
-                    <img
-                      src={post.featured_image}
-                      alt={post.title}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <img src="/svgs/blog.svg" alt="" className="h-8 w-8 opacity-40" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="min-w-0">
-                  <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <StatusBadge status={post.status} />
-
-                    {post.is_featured && (
-                      <span className="rounded-full bg-[#07111F] px-3 py-1 text-xs font-black text-white">
-                        Featured
-                      </span>
-                    )}
-
-                    {post.og_image && (
-                      <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-bold text-[var(--text-muted)]">
-                        OG Ready
-                      </span>
-                    )}
-                  </div>
-
-                  <h2 className="line-clamp-2 text-xl font-black leading-tight text-[var(--text-primary)]">
-                    {post.title}
-                  </h2>
-
-                  <p className="mt-1 break-all text-xs text-[var(--accent)]">
-                    /blog/{post.slug}
-                  </p>
-
-                  {post.excerpt && (
-                    <p className="mt-3 line-clamp-2 max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">
-                      {post.excerpt}
-                    </p>
-                  )}
-
-                  <div className="mt-4 flex flex-wrap gap-3 text-xs text-[var(--text-muted)]">
-                    <span>{post.author || 'Hbee Digitals'}</span>
-                    <span>{post.read_time || 'No read time'}</span>
-                    <span>{formatDate(post.published_at || post.created_at)}</span>
-                  </div>
-
-                  {post.tags && post.tags.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {post.tags.slice(0, 4).map((tag) => (
+                    <td className="px-4 py-4">
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
+                          post.status === 'published'
+                            ? 'bg-[#39D97A]/10 text-[#39D97A]'
+                            : 'bg-amber-500/10 text-amber-400'
+                        }`}
+                      >
                         <span
-                          key={tag}
-                          className="rounded-full bg-[var(--accent)]/10 px-2.5 py-1 text-xs font-bold text-[var(--accent)]"
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            post.status === 'published' ? 'bg-[#39D97A]' : 'bg-amber-400'
+                          }`}
+                        />
+                        {post.status}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-4">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                          post.og_image || post.featured_image
+                            ? 'bg-blue-500/10 text-blue-400'
+                            : 'bg-red-500/10 text-red-400'
+                        }`}
+                      >
+                        {post.og_image || post.featured_image ? 'Ready' : 'Missing'}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-4">
+                      <div className="text-xs text-[var(--text-muted)]">
+                        {post.published_at && (
+                          <span>
+                            {new Date(post.published_at).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </span>
+                        )}
+                        {post.read_time && (
+                          <span className="ml-2">| {post.read_time}</span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <Link
+                          href={`/blog/${post.slug}`}
+                          target="_blank"
+                          className="rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-[var(--bg-page)] hover:text-[#39D97A]"
+                          title="View"
                         >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                          <img src="/svgs/link.svg" alt="View" className="h-4 w-4" />
+                        </Link>
 
-                <div className="flex flex-wrap items-start gap-2 lg:flex-col lg:items-stretch">
-                  <Link
-                    href={`/blog/${post.slug}`}
-                    target="_blank"
-                    className="rounded-full border border-[var(--border)] px-4 py-2 text-center text-xs font-black text-[var(--text-primary)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                  >
-                    View
-                  </Link>
+                        <Link
+                          href={`/admin/blog/edit/${post.id}`}
+                          className="rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-[var(--bg-page)] hover:text-[#39D97A]"
+                          title="Edit"
+                        >
+                          <img src="/svgs/blog.svg" alt="Edit" className="h-4 w-4" />
+                        </Link>
 
-                  <Link
-                    href={`/admin/blog/edit/${post.id}`}
-                    className="rounded-full border border-[var(--border)] px-4 py-2 text-center text-xs font-black text-[var(--text-primary)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                  >
-                    Edit
-                  </Link>
+                        <button
+                          onClick={() => togglePublish(post.id, post.status)}
+                          className="rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-[var(--bg-page)] hover:text-[#39D97A]"
+                          title={
+                            post.status === 'published' ? 'Unpublish' : 'Publish'
+                          }
+                        >
+                          <span className="text-xs font-bold">
+                            {post.status === 'published' ? 'D' : 'P'}
+                          </span>
+                        </button>
 
-                  <button
-                    onClick={() => toggleStatus(post)}
-                    className="rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-black text-[#07111F]"
-                  >
-                    {post.status === 'published' ? 'Unpublish' : 'Publish'}
-                  </button>
+                        <button
+                          onClick={() => toggleFeatured(post.id, post.is_featured)}
+                          className={`rounded-lg p-2 transition hover:bg-[var(--bg-page)] ${
+                            post.is_featured
+                              ? 'text-[#39D97A]'
+                              : 'text-[var(--text-muted)] hover:text-[#39D97A]'
+                          }`}
+                          title={post.is_featured ? 'Unfeature' : 'Feature'}
+                        >
+                          <span className="text-xs font-bold">F</span>
+                        </button>
 
-                  <button
-                    onClick={() => toggleFeatured(post)}
-                    className="rounded-full border border-[var(--border)] px-4 py-2 text-xs font-black text-[var(--text-primary)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                  >
-                    {post.is_featured ? 'Unfeature' : 'Feature'}
-                  </button>
-
-                  <button
-                    onClick={() => deletePost(post.id)}
-                    className="rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-black text-red-500"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+                        <button
+                          onClick={() => deletePost(post.id)}
+                          className="rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
+                          title="Delete"
+                        >
+                          <span className="text-xs font-bold">X</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
+
+          {filteredPosts.length === 0 && (
+            <div className="p-12 text-center">
+              <img
+                src="/svgs/blog.svg"
+                alt=""
+                className="mx-auto mb-4 h-12 w-12 opacity-20"
+              />
+              <p className="text-[var(--text-muted)]">No posts found</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

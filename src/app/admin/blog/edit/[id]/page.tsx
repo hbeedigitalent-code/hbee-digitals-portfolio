@@ -1,82 +1,100 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BlogPostEditor from '@/components/admin/BlogPostEditor'
 
-export default function EditBlogPostPage() {
-  const params = useParams()
-  const router = useRouter()
-  const postId = String(params?.id || '')
+type EditorPost = {
+  id: string
+  title?: string
+  slug?: string
+  excerpt?: string
+  content?: string
+  featured_image?: string
+  featured_image_alt?: string
+  alt_text?: string
+  author?: string
+  tags?: string[]
+  status?: string
+  is_featured?: boolean
+  featured_badge?: string
+  seo_title?: string
+  seo_description?: string
+  focus_keyword?: string
+  og_title?: string
+  og_description?: string
+  published_at?: string | null
+}
 
-  const [post, setPost] = useState<any>(null)
+function normalizePost(data: any): EditorPost {
+  return {
+    id: data.id,
+    title: data.title || '',
+    slug: data.slug || '',
+    excerpt: data.excerpt || '',
+    content: data.content || '',
+    featured_image: data.featured_image || '',
+    featured_image_alt: data.featured_image_alt || '',
+    alt_text: data.alt_text || '',
+    author: data.author || 'Habeeb Ismaila',
+    tags: Array.isArray(data.tags) ? data.tags : [],
+    status: data.status || 'draft',
+    is_featured: Boolean(data.is_featured),
+    featured_badge: data.featured_badge || 'Featured Insight',
+    seo_title: data.seo_title || '',
+    seo_description: data.seo_description || '',
+    focus_keyword: data.focus_keyword || '',
+    og_title: data.og_title || '',
+    og_description: data.og_description || '',
+    published_at: data.published_at || null,
+  }
+}
+
+export default function EditBlogPage({ params }: { params: { id: string } }) {
+  const router = useRouter()
+
+  const [post, setPost] = useState<EditorPost | undefined>(undefined)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (postId) fetchPost()
-  }, [postId])
+    async function loadPost() {
+      const { data: authData } = await supabase.auth.getUser()
 
-  async function fetchPost() {
-    setLoading(true)
+      if (!authData.user) {
+        router.push('/admin/login')
+        return
+      }
 
-    const { data, error } = await supabase
-      .from('blog_posts')
-      .select('*')
-      .eq('id', postId)
-      .single()
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('*')
+        .eq('id', params.id)
+        .single()
 
-    if (error || !data) {
-      alert(error?.message || 'Blog post not found.')
-      router.push('/admin/blog')
-      return
+      if (error || !data) {
+        console.error('Error fetching post:', error)
+        router.push('/admin/blog')
+        return
+      }
+
+      setPost(normalizePost(data))
+      setLoading(false)
     }
 
-    setPost(data)
-    setLoading(false)
-  }
+    loadPost()
+  }, [params.id, router])
 
-  if (loading) {
+  if (loading || !post) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center text-[var(--text-muted)]">
-        Loading blog post...
+      <div className="flex min-h-[60vh] items-center justify-center bg-[var(--bg-page)]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#39D97A] border-t-transparent" />
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-[var(--text-primary)]">
-            Edit Blog Post
-          </h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Update content, SEO, image, and publishing settings.
-          </p>
-        </div>
-
-        <div className="flex gap-3">
-          {post?.slug && (
-            <Link
-              href={`/blog/${post.slug}`}
-              target="_blank"
-              className="rounded-full border border-[var(--border)] px-5 py-2 text-sm font-bold text-[var(--text-primary)]"
-            >
-              View Post
-            </Link>
-          )}
-
-          <Link
-            href="/admin/blog"
-            className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-black text-[#07111F]"
-          >
-            Back
-          </Link>
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-[var(--bg-page)] p-4 sm:p-8">
       <BlogPostEditor mode="edit" initialPost={post} />
     </div>
   )
