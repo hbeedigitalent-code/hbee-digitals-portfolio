@@ -22,8 +22,6 @@ interface BlogPost {
   read_time?: string
   author?: string
   tags?: string[]
-  status?: string
-  post_type?: string
 }
 
 interface Comment {
@@ -38,7 +36,6 @@ interface Comment {
 
 function formatDate(date?: string) {
   if (!date) return ''
-
   return new Date(date).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -63,22 +60,31 @@ function cleanBlogHtml(raw: string) {
 
   let html = raw.trim()
 
-  html = html.replace(/^```html/i, '')
-  html = html.replace(/^```/i, '')
-  html = html.replace(/```$/i, '')
-  html = html.trim()
+  html = html
+    .replace(/^```html/i, '')
+    .replace(/^```/i, '')
+    .replace(/```$/i, '')
+    .trim()
 
   if (html.includes('&lt;') || html.includes('&gt;')) {
     html = decodeHtml(html)
   }
 
-  html = html.replace(/<pre[^>]*><code[^>]*>/gi, '')
-  html = html.replace(/<\/code><\/pre>/gi, '')
-  html = html.replace(/<article[^>]*>/gi, '')
-  html = html.replace(/<\/article>/gi, '')
-  html = html.replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
-  html = html.replace(/<p>\s*\.\.\.\s*<\/p>/gi, '')
-  html = html.replace(/\n\s*\.\.\.\s*\n/g, '\n')
+  html = html
+    .replace(/<pre[^>]*>/gi, '')
+    .replace(/<\/pre>/gi, '')
+    .replace(/<code[^>]*>/gi, '')
+    .replace(/<\/code>/gi, '')
+    .replace(/<article[^>]*>/gi, '')
+    .replace(/<\/article>/gi, '')
+    .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
+    .replace(/<section[^>]*>/gi, '')
+    .replace(/<\/section>/gi, '')
+    .replace(/<p[^>]*>\s*\.\.\.\s*<\/p>/gi, '')
+    .replace(/^\s*\.\.\.\s*$/gm, '')
+    .replace(/\s*\.\.\.\s*/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
 
   return html
 }
@@ -137,7 +143,6 @@ export default function BlogPostPage() {
     if (!slug) return
     fetchPost()
     fetchComments()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug])
 
   async function fetchPost() {
@@ -210,7 +215,6 @@ export default function BlogPostPage() {
     setCommentEmail('')
     setCommentText('')
     setCommentStatus('success')
-
     setTimeout(() => setCommentStatus('idle'), 3500)
   }
 
@@ -248,7 +252,6 @@ export default function BlogPostPage() {
           <h1 className="text-4xl font-black text-[var(--text-primary)]">
             Article not found
           </h1>
-
           <Link
             href="/blog"
             className="mt-8 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-black text-[#07111F]"
@@ -295,7 +298,6 @@ export default function BlogPostPage() {
                 <p className="text-sm font-black text-[var(--text-primary)]">
                   {post.author || 'Hbee Digitals'}
                 </p>
-
                 <p className="mt-1 text-xs font-medium text-[var(--text-muted)]">
                   Updated on {formatDate(post.published_at || post.created_at)}
                   {post.read_time ? ` · ${post.read_time}` : ''}
@@ -396,7 +398,6 @@ export default function BlogPostPage() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="share-icon"
-                    aria-label="Share on X"
                   >
                     <img src="/svgs/twitter.svg" alt="" />
                   </a>
@@ -408,7 +409,6 @@ export default function BlogPostPage() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="share-icon"
-                    aria-label="Share on Facebook"
                   >
                     <img src="/svgs/facebook.svg" alt="" />
                   </a>
@@ -418,7 +418,6 @@ export default function BlogPostPage() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="share-icon"
-                    aria-label="Visit Instagram"
                   >
                     <img src="/svgs/instagram.svg" alt="" />
                   </a>
@@ -430,7 +429,6 @@ export default function BlogPostPage() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="share-icon"
-                    aria-label="Share on LinkedIn"
                   >
                     <img src="/svgs/linkedin.svg" alt="" />
                   </a>
@@ -639,8 +637,15 @@ export default function BlogPostPage() {
         .blog-content {
           max-width: 720px;
           color: var(--text-primary);
+          font-family: inherit !important;
           font-size: 16px;
           line-height: 1.85;
+          white-space: normal !important;
+        }
+
+        .blog-content * {
+          font-family: inherit !important;
+          white-space: normal !important;
         }
 
         .blog-content h1,
@@ -708,8 +713,10 @@ export default function BlogPostPage() {
 
         .blog-content pre,
         .blog-content code {
-          white-space: pre-wrap;
-          word-break: break-word;
+          all: unset !important;
+          font-family: inherit !important;
+          white-space: normal !important;
+          word-break: normal !important;
         }
 
         .blog-input {
