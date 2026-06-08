@@ -1,108 +1,88 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
-interface BlogReadingToolsProps {
-  title?: string
-  url?: string
+function IconMask({ name }: { name: string }) {
+  return (
+    <span
+      className="inline-block h-[18px] w-[18px] bg-current"
+      style={{
+        WebkitMask: `url(/svgs/${name}.svg) center / contain no-repeat`,
+        mask: `url(/svgs/${name}.svg) center / contain no-repeat`,
+      }}
+    />
+  )
 }
 
-export default function BlogReadingTools({ title = '', url = '' }: BlogReadingToolsProps) {
+export default function BlogReadingTools({ title }: { title: string }) {
+  const [url, setUrl] = useState('')
   const [copied, setCopied] = useState(false)
 
-  const fullUrl = url || (typeof window !== 'undefined' ? window.location.href : '')
-  const shareTitle = encodeURIComponent(title || document?.title || '')
-  const shareUrl = encodeURIComponent(fullUrl)
+  useEffect(() => {
+    setUrl(window.location.href)
+  }, [])
 
-  const shareLinks = [
+  async function copyLink() {
+    await navigator.clipboard.writeText(url)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const encodedUrl = encodeURIComponent(url)
+  const encodedTitle = encodeURIComponent(title)
+
+  const links = [
     {
-      name: 'Copy Link',
-      icon: '/svgs/link.svg',
-      action: async () => {
-        try {
-          await navigator.clipboard.writeText(fullUrl)
-          setCopied(true)
-          setTimeout(() => setCopied(false), 2000)
-        } catch {
-          // Fallback
-          const input = document.createElement('input')
-          input.value = fullUrl
-          document.body.appendChild(input)
-          input.select()
-          document.execCommand('copy')
-          document.body.removeChild(input)
-          setCopied(true)
-          setTimeout(() => setCopied(false), 2000)
-        }
-      },
-      href: null,
-      label: copied ? 'Copied!' : 'Copy link',
+      name: 'twitter',
+      label: 'X',
+      href: `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`,
     },
     {
-      name: 'X',
-      icon: '/svgs/twitter.svg',
-      action: null,
-      href: `https://twitter.com/intent/tweet?text=${shareTitle}&url=${shareUrl}`,
-      label: 'Share on X',
+      name: 'facebook',
+      label: 'Facebook',
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
     },
     {
-      name: 'Facebook',
-      icon: '/svgs/facebook.svg',
-      action: null,
-      href: `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`,
-      label: 'Share on Facebook',
+      name: 'whatsapp',
+      label: 'WhatsApp',
+      href: `https://wa.me/?text=${encodeURIComponent(`${title} ${url}`)}`,
     },
     {
-      name: 'Instagram',
-      icon: '/svgs/instagram.svg',
-      action: null,
+      name: 'instagram',
+      label: 'Instagram',
       href: 'https://www.instagram.com/thehbeedigitals',
-      label: 'Follow on Instagram',
     },
     {
-      name: 'LinkedIn',
-      icon: '/svgs/linkedin.svg',
-      action: null,
-      href: `https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}`,
-      label: 'Share on LinkedIn',
+      name: 'linkedin',
+      label: 'LinkedIn',
+      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
     },
   ]
 
   return (
-    <div className="flex items-center gap-2">
-      {shareLinks.map((link) => {
-        if (link.action) {
-          return (
-            <button
-              key={link.name}
-              onClick={link.action}
-              aria-label={link.label}
-              className={`flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-card)] transition hover:scale-105 hover:border-[#39D97A] ${
-                copied ? 'border-[#39D97A] text-[#39D97A]' : 'text-[var(--text-muted)]'
-              }`}
-            >
-              <img
-                src={link.icon}
-                alt=""
-                className={`h-4 w-4 ${copied ? 'opacity-100' : 'opacity-60'}`}
-              />
-            </button>
-          )
-        }
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={copyLink}
+        className="group inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs font-black text-[var(--text-primary)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+      >
+        <IconMask name="link" />
+        <span>{copied ? 'Copied' : 'Copy'}</span>
+      </button>
 
-        return (
-          <a
-            key={link.name}
-            href={link.href || ''}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={link.label}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)] transition hover:scale-105 hover:border-[#39D97A]"
-          >
-            <img src={link.icon} alt="" className="h-4 w-4 opacity-60" />
-          </a>
-        )
-      })}
+      {links.map((item) => (
+        <a
+          key={item.name}
+          href={item.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs font-black text-[var(--text-primary)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          aria-label={`Share on ${item.label}`}
+        >
+          <IconMask name={item.name} />
+          <span className="hidden sm:inline">{item.label}</span>
+        </a>
+      ))}
     </div>
   )
 }
