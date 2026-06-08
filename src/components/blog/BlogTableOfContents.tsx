@@ -27,8 +27,11 @@ export default function BlogTableOfContents({ content }: BlogTableOfContentsProp
       const text = heading.textContent?.trim() || ''
       if (!text) return
 
-      const id = heading.id || `heading-${index}`
-      heading.id = id // Ensure the heading has an ID
+      // Create a clean ID from the heading text
+      const id = text
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
 
       extracted.push({
         id,
@@ -38,16 +41,26 @@ export default function BlogTableOfContents({ content }: BlogTableOfContentsProp
     })
 
     setItems(extracted)
+
+    // Add IDs to actual DOM headings after content is rendered
+    setTimeout(() => {
+      const actualHeadings = document.querySelectorAll('.blog-content h2, .blog-content h3')
+      actualHeadings.forEach((heading, idx) => {
+        if (extracted[idx] && !heading.id) {
+          heading.id = extracted[idx].id
+        }
+      })
+    }, 100)
   }, [content])
 
   useEffect(() => {
     const handleScroll = () => {
-      const headings = document.querySelectorAll('h2[id], h3[id]')
+      const headings = document.querySelectorAll('.blog-content h2[id], .blog-content h3[id]')
       let current = ''
 
       headings.forEach((heading) => {
         const rect = heading.getBoundingClientRect()
-        if (rect.top <= 120) {
+        if (rect.top <= 150) {
           current = heading.id
         }
       })
@@ -65,43 +78,54 @@ export default function BlogTableOfContents({ content }: BlogTableOfContentsProp
     const element = document.getElementById(id)
     if (element) {
       const offset = 100
-      const top = element.getBoundingClientRect().top + window.scrollY - offset
-      window.scrollTo({ top, behavior: 'smooth' })
+      const elementPosition = element.getBoundingClientRect().top
+      const offsetPosition = elementPosition + window.scrollY - offset
+      
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      })
     }
   }
 
   if (items.length === 0) return null
 
   return (
-    <nav className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 mb-8">
       <h3 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-[0.12em] text-[var(--text-primary)]">
         <img src="/svgs/blog.svg" alt="" className="h-4 w-4 opacity-60" />
-        Contents
+        CONTENTS
       </h3>
 
-      <ul className="space-y-1">
-        {items.map((item) => (
-          <li key={item.id}>
-            <button
-              onClick={() => scrollToHeading(item.id)}
-              className={`w-full text-left transition-colors ${
-                item.level === 3 ? 'pl-4 text-xs' : 'text-sm'
-              } ${
-                activeId === item.id
-                  ? 'font-bold text-[#39D97A]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              {item.level === 2 && (
-                <span className="mr-1.5 inline-block text-[10px] text-[var(--text-muted)]">
-                  {items.filter((i) => i.level === 2).indexOf(item) + 1}.
-                </span>
-              )}
-              {item.text}
-            </button>
-          </li>
-        ))}
+      <ul className="space-y-2">
+        {items.map((item, idx) => {
+          const sectionNumber = item.level === 2 
+            ? items.filter(i => i.level === 2).indexOf(item) + 1 
+            : null
+          
+          return (
+            <li key={item.id}>
+              <button
+                onClick={() => scrollToHeading(item.id)}
+                className={`w-full text-left transition-colors py-1 ${
+                  item.level === 3 ? 'pl-4 text-sm' : 'text-base font-medium'
+                } ${
+                  activeId === item.id
+                    ? 'text-[#39D97A] font-bold'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {sectionNumber && (
+                  <span className="mr-2 inline-block text-sm font-bold text-[var(--accent)]">
+                    {sectionNumber}.
+                  </span>
+                )}
+                {item.text}
+              </button>
+            </li>
+          )
+        })}
       </ul>
-    </nav>
+    </div>
   )
 }

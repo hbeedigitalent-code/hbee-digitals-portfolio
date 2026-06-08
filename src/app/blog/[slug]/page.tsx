@@ -10,7 +10,7 @@ import BlogNewsletterSignup from '@/components/blog/BlogNewsletterSignup'
 import RelatedPosts from '@/components/blog/RelatedPosts'
 import BlogComments from '@/components/blog/BlogComments'
 import PageUtilities from '@/components/ui/PageUtilities'
-import '@/styles/blog-content.css'  // ← ADD THIS LINE - Separate blog styles
+import '@/styles/blog-content.css'
 
 interface BlogPost {
   id: string
@@ -182,12 +182,14 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
             </div>
           )}
 
-          {/* Table of Contents integrated at top, no overlay */}
+          {/* ========================================================= */}
+          {/* FIXED: Blog Content Container - TOC is inside this container */}
+          {/* ========================================================= */}
           <div className="mt-10">
             {/* Table of Contents - Integrated at the top of content */}
             <BlogTableOfContents content={cleanedContent} />
 
-            {/* Article Content with separate blog styles */}
+            {/* Article Content */}
             <div
               className="blog-content"
               dangerouslySetInnerHTML={{ __html: cleanedContent }}
