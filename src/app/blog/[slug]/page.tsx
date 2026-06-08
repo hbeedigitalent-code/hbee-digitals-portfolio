@@ -9,6 +9,8 @@ import BlogReadingTools from '@/components/blog/BlogReadingTools'
 import BlogNewsletterSignup from '@/components/blog/BlogNewsletterSignup'
 import RelatedPosts from '@/components/blog/RelatedPosts'
 import BlogComments from '@/components/blog/BlogComments'
+import PageUtilities from '@/components/ui/PageUtilities'
+import '@/styles/blog-content.css'  // ← ADD THIS LINE - Separate blog styles
 
 interface BlogPost {
   id: string
@@ -180,29 +182,20 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
             </div>
           )}
 
-          <div className="mt-10 grid gap-10 lg:mt-14 lg:grid-cols-[minmax(0,760px)_180px] lg:justify-between">
-            <div className="min-w-0">
-              <div className="mb-8 lg:hidden">
-                <BlogTableOfContents content={cleanedContent} />
-              </div>
+          {/* Table of Contents integrated at top, no overlay */}
+          <div className="mt-10">
+            {/* Table of Contents - Integrated at the top of content */}
+            <BlogTableOfContents content={cleanedContent} />
 
-              <div
-                className="blog-content"
-                dangerouslySetInnerHTML={{ __html: cleanedContent }}
-              />
+            {/* Article Content with separate blog styles */}
+            <div
+              className="blog-content"
+              dangerouslySetInnerHTML={{ __html: cleanedContent }}
+            />
 
-              <BlogNewsletterSignup />
-
-              <BlogComments postSlug={post.slug} />
-
-              <RelatedPosts currentSlug={post.slug} tags={post.tags} />
-            </div>
-
-            <aside className="hidden lg:block">
-              <div className="sticky top-28">
-                <BlogTableOfContents content={cleanedContent} />
-              </div>
-            </aside>
+            <BlogNewsletterSignup />
+            <BlogComments postSlug={post.slug} />
+            <RelatedPosts currentSlug={post.slug} tags={post.tags} />
           </div>
         </article>
 
@@ -231,6 +224,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
         </section>
       </main>
 
+      <PageUtilities />
       <Footer />
     </>
   )
