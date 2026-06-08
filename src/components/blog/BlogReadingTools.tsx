@@ -23,8 +23,11 @@ export default function BlogReadingTools({ title }: { title: string }) {
   }, [])
 
   async function copyLink() {
+    if (!url) return
+
     await navigator.clipboard.writeText(url)
     setCopied(true)
+
     setTimeout(() => setCopied(false), 2000)
   }
 
@@ -64,7 +67,7 @@ export default function BlogReadingTools({ title }: { title: string }) {
       <button
         type="button"
         onClick={copyLink}
-        className="group inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs font-black text-[var(--text-primary)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+        className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs font-black text-[var(--text-primary)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
       >
         <IconMask name="link" />
         <span>{copied ? 'Copied' : 'Copy'}</span>
@@ -76,7 +79,7 @@ export default function BlogReadingTools({ title }: { title: string }) {
           href={item.href}
           target="_blank"
           rel="noopener noreferrer"
-          className="group inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs font-black text-[var(--text-primary)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs font-black text-[var(--text-primary)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
           aria-label={`Share on ${item.label}`}
         >
           <IconMask name={item.name} />
