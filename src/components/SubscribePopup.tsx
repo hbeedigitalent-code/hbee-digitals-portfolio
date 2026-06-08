@@ -26,12 +26,12 @@ export default function SubscribePopup() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleSubscribe = async (e: React.FormEvent) => {
+    const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
 
     setStatus('loading');
-    
+  
     try {
       const response = await fetch('/api/subscribe', {
         method: 'POST',
@@ -41,21 +41,20 @@ export default function SubscribePopup() {
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (data.success === true) {
         setStatus('success');
         localStorage.setItem('hbee_subscribed', 'true');
-        
-        // Close the popup immediately on success
+      
         setTimeout(() => {
           setIsVisible(false);
           setIsCollapsed(false);
         }, 1000);
-      } else {
+      }   else {
         console.error('Subscription error:', data.error);
         setStatus('error');
         setTimeout(() => setStatus('idle'), 3000);
       }
-    } catch (err) {
+    }   catch (err) {
       console.error('Subscription error:', err);
       setStatus('error');
       setTimeout(() => setStatus('idle'), 3000);

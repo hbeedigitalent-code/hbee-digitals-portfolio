@@ -166,8 +166,6 @@ export default function Footer() {
   setSubscribeSuccess(false);
   
   try {
-    console.log('Subscribing:', { email, name });
-    
     const response = await fetch('/api/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -175,13 +173,12 @@ export default function Footer() {
     });
 
     const data = await response.json();
-    console.log('Response:', data);
 
-    if (response.ok) {
+    // Check if success (API returns {success: true} or {success: true, message})
+    if (data.success === true) {
       setSubscribeSuccess(true);
       setEmail('');
       setName('');
-      // Auto-hide success message after 3 seconds
       setTimeout(() => setSubscribeSuccess(false), 3000);
     } else {
       console.error('Subscription failed:', data.error);
