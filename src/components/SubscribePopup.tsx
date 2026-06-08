@@ -10,6 +10,7 @@ export default function SubscribePopup() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
   useEffect(() => {
+    // Check if user already subscribed or dismissed
     const hasSubscribed = localStorage.getItem('hbee_subscribed');
     const hasDismissedPopup = localStorage.getItem('hbee_popup_dismissed');
     
@@ -17,9 +18,10 @@ export default function SubscribePopup() {
       return;
     }
 
+    // Show popup after 45 seconds
     const timer = setTimeout(() => {
       setIsVisible(true);
-    }, 120000);
+    }, 45000); // 45 seconds
 
     return () => clearTimeout(timer);
   }, []);
@@ -31,21 +33,23 @@ export default function SubscribePopup() {
     setStatus('loading');
     
     try {
-      const res = await fetch('/api/subscribe', {
+      const response = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, name, source: 'popup' }),
       });
 
-      const data = await res.json();
+      const data = await response.json();
 
-      if (res.ok) {
+      if (response.ok) {
         setStatus('success');
         localStorage.setItem('hbee_subscribed', 'true');
+        
+        // Close the popup immediately on success
         setTimeout(() => {
           setIsVisible(false);
           setIsCollapsed(false);
-        }, 2000);
+        }, 1000);
       } else {
         console.error('Subscription error:', data.error);
         setStatus('error');
@@ -58,30 +62,26 @@ export default function SubscribePopup() {
     }
   };
 
-  const handleDismiss = (collapse: boolean = true) => {
+  // Dismiss to collapsed sidebar state (X button or No thanks)
+  const handleDismissToCollapsed = () => {
     localStorage.setItem('hbee_popup_dismissed', 'true');
-    
-    if (collapse) {
-      setIsCollapsed(true);
-      setIsVisible(false);
-    } else {
-      setIsVisible(false);
-      setIsCollapsed(false);
-    }
+    setIsVisible(false);
+    setIsCollapsed(true);
   };
 
+  // Expand from collapsed sidebar
   const handleExpand = () => {
     setIsCollapsed(false);
     setIsVisible(true);
   };
 
-  // Only show collapsed sidebar if not visible and collapsed state is true
-  if (!isVisible && isCollapsed) {
+  // Slanted Sidebar Widget (when collapsed)
+  if (isCollapsed && !isVisible) {
     return (
       <div className="fixed right-0 top-1/2 -translate-y-1/2 z-50">
         <button
           onClick={handleExpand}
-          className="group flex items-center gap-2 bg-gradient-orange-green text-white px-4 py-3 shadow-lg hover:scale-105 transition transform origin-right"
+          className="group flex items-center gap-2 bg-gradient-orange-green text-white px-4 py-3 shadow-lg hover:scale-105 transition-all duration-300 origin-right"
           style={{
             borderRadius: '12px 0 0 12px',
             transform: 'skewX(-5deg)',
@@ -100,15 +100,19 @@ export default function SubscribePopup() {
     );
   }
 
+  // Don't show anything if not visible
   if (!isVisible) return null;
 
+  // Full Popup Modal
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="relative w-full max-w-md mx-4 bg-[var(--bg-card)] rounded-2xl shadow-2xl border border-[var(--border)] overflow-hidden">
-        {/* Close button - collapses to sidebar */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="relative w-full max-w-md mx-4 bg-[var(--bg-card)] rounded-2xl shadow-2xl border border-[var(--border)] overflow-hidden animate-in slide-in-from-bottom-10 duration-300">
+        
+        {/* X Close button - collapses to sidebar */}
         <button
-          onClick={() => handleDismiss(true)}
+          onClick={handleDismissToCollapsed}
           className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition z-10"
+          aria-label="Close and minimize"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
@@ -157,7 +161,7 @@ export default function SubscribePopup() {
 
           {status === 'success' && (
             <div className="bg-green-500/10 border border-green-500/30 text-green-400 rounded-lg p-3 text-sm text-center">
-              ✓ Subscribed successfully! Check your email.
+              ✓ Subscribed successfully!
             </div>
           )}
           {status === 'error' && (
@@ -176,7 +180,7 @@ export default function SubscribePopup() {
             </button>
             <button
               type="button"
-              onClick={() => handleDismiss(true)}
+              onClick={handleDismissToCollapsed}
               className="px-4 py-2 rounded-full border border-[var(--border)] text-[var(--text-muted)] font-bold hover:bg-[var(--bg-section)] transition"
             >
               No, thanks
@@ -184,6 +188,7 @@ export default function SubscribePopup() {
           </div>
         </form>
 
+        {/* Footer note */}
         <div className="bg-[var(--bg-section)] px-6 py-3 text-center text-xs text-[var(--text-muted)] border-t border-[var(--border)]">
           <p>Unsubscribe anytime. We respect your privacy.</p>
         </div>

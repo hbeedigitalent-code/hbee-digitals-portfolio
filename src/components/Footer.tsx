@@ -158,40 +158,44 @@ export default function Footer() {
     : []
 
   async function handleSubscribe(e: React.FormEvent) {
-    e.preventDefault()
-    if (!email) return
+  e.preventDefault();
+  if (!email) return;
+  
+  setSubscribing(true);
+  setSubscribeError(false);
+  setSubscribeSuccess(false);
+  
+  try {
+    console.log('Subscribing:', { email, name });
     
-    setSubscribing(true)
-    setSubscribeError(false)
-    setSubscribeSuccess(false)
-    
-    try {
-      const response = await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name, source: 'footer' }),
-      })
+    const response = await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, name, source: 'footer' }),
+    });
 
-      const data = await response.json()
+    const data = await response.json();
+    console.log('Response:', data);
 
-      if (response.ok) {
-        setSubscribeSuccess(true)
-        setEmail('')
-        setName('')
-        setTimeout(() => setSubscribeSuccess(false), 3000)
-      } else {
-        console.error('Subscription error:', data.error)
-        setSubscribeError(true)
-        setTimeout(() => setSubscribeError(false), 3000)
-      }
-    } catch (error) {
-      console.error('Subscription error:', error)
-      setSubscribeError(true)
-      setTimeout(() => setSubscribeError(false), 3000)
-    } finally {
-      setSubscribing(false)
+    if (response.ok) {
+      setSubscribeSuccess(true);
+      setEmail('');
+      setName('');
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => setSubscribeSuccess(false), 3000);
+    } else {
+      console.error('Subscription failed:', data.error);
+      setSubscribeError(true);
+      setTimeout(() => setSubscribeError(false), 3000);
     }
+  } catch (error) {
+    console.error('Network error:', error);
+    setSubscribeError(true);
+    setTimeout(() => setSubscribeError(false), 3000);
+  } finally {
+    setSubscribing(false);
   }
+}
 
   return (
     <footer className="relative overflow-hidden bg-[var(--bg-navy)] text-[var(--text-inverse)]">
