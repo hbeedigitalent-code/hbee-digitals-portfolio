@@ -54,6 +54,9 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const [resetTurnstile, setResetTurnstile] = useState(false)
 
+  // Check if Turnstile is configured
+  const isTurnstileConfigured = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+
   // Handle ESC key press
   const handleEscKey = useCallback(
     (e: KeyboardEvent) => {
@@ -126,7 +129,8 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!turnstileToken) {
+    // Only check Turnstile if configured
+    if (isTurnstileConfigured && !turnstileToken) {
       setError('Please complete the security verification.')
       return
     }
@@ -135,23 +139,29 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
     setError('')
 
     try {
+      const requestBody: any = {
+        form_type: 'free_consultation',
+        source: 'consultation_popup',
+        full_name: formData.full_name,
+        email: formData.email,
+        phone: formData.phone,
+        business_name: formData.business_name,
+        website_url: formData.website_url,
+        service_interest: formData.service_interest,
+        current_challenge: formData.current_challenge,
+        message: formData.current_challenge,
+        preferred_contact: formData.contact_method,
+      }
+
+      // Only include turnstile token if configured
+      if (isTurnstileConfigured && turnstileToken) {
+        requestBody.turnstile_token = turnstileToken
+      }
+
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          form_type: 'free_consultation',
-          source: 'consultation_popup',
-          full_name: formData.full_name,
-          email: formData.email,
-          phone: formData.phone,
-          business_name: formData.business_name,
-          website_url: formData.website_url,
-          service_interest: formData.service_interest,
-          current_challenge: formData.current_challenge,
-          message: formData.current_challenge,
-          preferred_contact: formData.contact_method,
-          turnstile_token: turnstileToken,
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       const data = await response.json()
@@ -198,7 +208,7 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-[var(--bg-card)] shadow-2xl border border-[var(--border)]"
           >
-            {/* Close Button - Using x-close.svg from public/svgs folder */}
+            {/* Close Button */}
             <button
               onClick={onClose}
               className="absolute top-4 right-4 z-10 p-2 rounded-full hover:bg-[var(--bg-section)] transition-colors"
@@ -356,16 +366,19 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
                       </select>
                     </div>
 
-                    <div className="py-2">
-                      <TurnstileWidget
-                        onVerify={handleTurnstileVerify}
-                        onError={handleTurnstileError}
-                        onExpire={handleTurnstileExpire}
-                        reset={resetTurnstile}
-                        theme="light"
-                        size="normal"
-                      />
-                    </div>
+                    {/* Turnstile Widget - Only show if configured */}
+                    {isTurnstileConfigured && (
+                      <div className="py-2">
+                        <TurnstileWidget
+                          onVerify={handleTurnstileVerify}
+                          onError={handleTurnstileError}
+                          onExpire={handleTurnstileExpire}
+                          reset={resetTurnstile}
+                          theme="light"
+                          size="normal"
+                        />
+                      </div>
+                    )}
 
                     {error && (
                       <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
@@ -375,7 +388,7 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
 
                     <button
                       type="submit"
-                      disabled={loading || !turnstileToken}
+                      disabled={loading || (isTurnstileConfigured && !turnstileToken)}
                       className="btn-primary w-full justify-center py-3 text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loading ? (
@@ -394,7 +407,7 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
                 </>
               ) : (
                 <div className="text-center py-8">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="32"

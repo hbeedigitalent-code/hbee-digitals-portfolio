@@ -139,6 +139,37 @@ const getIconPath = (name: string): string => {
     'quote': '/svgs/quote.svg',
     'newsletter': '/svgs/newsletter.svg',
     'comment': '/svgs/comment.svg',
+
+    // ==========================================
+    // GROWTH READINESS PLATFORM ICONS
+    // ==========================================
+    
+    // Main Platform Icons
+    'growth-readiness': '/svgs/growth-readiness.svg',
+    'hgri-score': '/svgs/hgri-score.svg',
+    'growth-classification': '/svgs/growth-classification.svg',
+    'growth-profile': '/svgs/growth-profile.svg',
+    'visibility-review': '/svgs/visibility-review.svg',
+    'conversion-insights': '/svgs/conversion-insights.svg',
+    'growth-recommendations': '/svgs/growth-recommendations.svg',
+    'opportunity-review': '/svgs/opportunity-review.svg',
+    
+    // Pillar Icons
+    'pillar-visibility': '/svgs/pillar-visibility.svg',
+    'pillar-conversion': '/svgs/pillar-conversion.svg',
+    'pillar-retention': '/svgs/pillar-retention.svg',
+    'pillar-authority': '/svgs/pillar-authority.svg',
+    'pillar-scalability': '/svgs/pillar-scalability.svg',
+    
+    // Badge Icons
+    'badge-foundation': '/svgs/badge-foundation.svg',
+    'badge-growth-potential': '/svgs/badge-growth-potential.svg',
+    'badge-growth-ready': '/svgs/badge-growth-ready.svg',
+    'badge-scale-ready': '/svgs/badge-scale-ready.svg',
+    
+    // Gradient Icons
+    'check-gradient': '/svgs/check-gradient.svg',
+    'arrow-gradient-right': '/svgs/arrow-gradient-right.svg'
   }
   
   return iconMap[normalizedName] || `/svgs/${normalizedName}.svg`

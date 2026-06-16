@@ -1,4 +1,4 @@
-// src/app/api/contact/route.ts (MODIFIED with Turnstile)
+// src/app/api/contact/route.ts
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createClient } from '@supabase/supabase-js'
@@ -26,12 +26,12 @@ function wrapEmail(content: string) {
   `
 }
 
-async function verifyTurnstileToken(token: string): Promise<boolean> {
+async function verifyTurnstileToken(token: string): Promise<{ success: boolean; error?: string }> {
   const secretKey = process.env.TURNSTILE_SECRET_KEY
   
   if (!secretKey) {
-    console.error('Turnstile secret key missing')
-    return false
+    console.error('❌ Turnstile: Secret key missing')
+    return { success: false, error: 'Security configuration error' }
   }
 
   try {
@@ -45,10 +45,18 @@ async function verifyTurnstileToken(token: string): Promise<boolean> {
     })
 
     const data = await response.json()
-    return data.success === true
+    console.log('🔍 Turnstile verification response:', data)
+
+    if (data.success === true) {
+      return { success: true }
+    } else {
+      const errorCodes = data['error-codes'] || []
+      console.error('❌ Turnstile verification failed:', errorCodes)
+      return { success: false, error: 'Verification failed. Please try again.' }
+    }
   } catch (error) {
-    console.error('Turnstile verification error:', error)
-    return false
+    console.error('❌ Turnstile verification error:', error)
+    return { success: false, error: 'Verification service unavailable. Please try again.' }
   }
 }
 
@@ -73,23 +81,28 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    
+    console.log('📥 Received form submission:', { formType: body.form_type, source: body.source })
+
     // Verify Turnstile token
     const turnstileToken = body.turnstile_token
     if (!turnstileToken) {
+      console.error('❌ No Turnstile token provided')
       return NextResponse.json(
         { error: 'Please complete the security verification.' },
         { status: 400 }
       )
     }
 
-    const isValid = await verifyTurnstileToken(turnstileToken)
-    if (!isValid) {
+    const verification = await verifyTurnstileToken(turnstileToken)
+    if (!verification.success) {
+      console.error('❌ Turnstile verification failed:', verification.error)
       return NextResponse.json(
-        { error: 'Security verification failed. Please try again.' },
+        { error: verification.error || 'Security verification failed. Please try again.' },
         { status: 400 }
       )
     }
+
+    console.log('✅ Turnstile verification passed')
 
     const supabase = createClient(supabaseUrl, serviceRoleKey)
     
@@ -185,6 +198,8 @@ export async function POST(req: Request) {
         { status: 500 }
       )
     }
+
+    console.log('✅ Form saved to database')
 
     // Try to send emails, but don't fail if they don't work
     let emailErrors = []

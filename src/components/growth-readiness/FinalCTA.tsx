@@ -1,0 +1,65 @@
+'use client'
+
+import SvgIcon from '@/components/ui/SvgIcon'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
+
+export function FinalCTA() {
+  return (
+    <section className="section relative overflow-hidden" style={{ background: 'var(--bg-card-dark)' }}>
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--accent-orange)] via-transparent to-[var(--accent-lime)]" />
+      </div>
+      
+      <div className="container-custom relative">
+        <div className="mx-auto max-w-3xl text-center">
+          <motion.span
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="section-label"
+          >
+            <SvgIcon name="growth-readiness" size={16} />
+            Ready To Discover Your Growth Readiness?
+          </motion.span>
+          
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="section-heading section-heading-dark"
+          >
+            Take The Assessment Today
+          </motion.h2>
+          
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="section-description section-description-dark mx-auto"
+          >
+            Join hundreds of ecommerce brands that have discovered their growth potential
+          </motion.p>
+          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <Link
+              href="/assessment"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent-orange)] px-8 py-3 text-sm font-medium text-white transition-all hover:bg-[var(--orange-600)] hover:transform hover:-translate-y-0.5"
+            >
+              Start Your Assessment
+              <SvgIcon name="arrow-right" size={20} />
+            </Link>
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  )
+}

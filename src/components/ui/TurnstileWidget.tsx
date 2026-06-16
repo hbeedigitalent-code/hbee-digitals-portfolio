@@ -28,67 +28,77 @@ export default function TurnstileWidget({
   const containerRef = useRef<HTMLDivElement>(null)
   const widgetIdRef = useRef<string | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Debug: Log environment variable status
-  useEffect(() => {
-    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
-    console.log('🔑 Turnstile Debug:')
-    console.log('  - Site Key exists?', !!siteKey)
-    console.log('  - Site Key starts with?', siteKey ? siteKey.substring(0, 10) : 'none')
-    console.log('  - Component mounted')
-  }, [])
+  // Get site key from environment
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
   // Load Turnstile script
   useEffect(() => {
-    // Check if script already exists
-    if (document.querySelector('script[src*="turnstile"]')) {
-      console.log('✅ Turnstile script already loaded')
-      setIsLoaded(true)
-      return
-    }
-
-    console.log('📥 Loading Turnstile script...')
-    const script = document.createElement('script')
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
-    script.async = true
-    script.defer = true
-    script.onload = () => {
-      console.log('✅ Turnstile script loaded successfully')
-      setIsLoaded(true)
-    }
-    script.onerror = (err) => {
-      console.error('❌ Failed to load Turnstile script:', err)
-      setError('Failed to load security verification')
-    }
-    document.head.appendChild(script)
-
-    return () => {
-      if (widgetIdRef.current && window.turnstile) {
-        window.turnstile.remove(widgetIdRef.current)
-      }
-    }
-  }, [])
-
-  // Initialize widget
-  useEffect(() => {
-    if (!isLoaded || !window.turnstile || !containerRef.current) {
-      console.log('⏳ Waiting for Turnstile to be ready...', {
-        isLoaded,
-        hasTurnstile: !!window.turnstile,
-        hasContainer: !!containerRef.current
-      })
-      return
-    }
-
-    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+    // Check if site key exists
     if (!siteKey) {
-      console.error('❌ Turnstile site key is missing! Add NEXT_PUBLIC_TURNSTILE_SITE_KEY to .env.local')
+      console.error('❌ Turnstile: Site key is missing. Add NEXT_PUBLIC_TURNSTILE_SITE_KEY to .env.local')
       setError('Security configuration missing')
       return
     }
 
-    console.log('🎨 Rendering Turnstile widget with site key:', siteKey.substring(0, 10) + '...')
+    // Check if script already exists
+    if (document.querySelector('script[src*="turnstile"]')) {
+      console.log('✅ Turnstile: Script already loaded')
+      setIsLoaded(true)
+      return
+    }
+
+    console.log('📥 Turnstile: Loading script...')
+    const script = document.createElement('script')
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+    script.async = true
+    script.defer = true
+    
+    script.onload = () => {
+      console.log('✅ Turnstile: Script loaded successfully')
+      setIsLoaded(true)
+    }
+    
+    script.onerror = (err) => {
+      console.error('❌ Turnstile: Failed to load script:', err)
+      setError('Failed to load security verification')
+      onError?.()
+    }
+    
+    document.head.appendChild(script)
+
+    return () => {
+      if (widgetIdRef.current && window.turnstile) {
+        try {
+          window.turnstile.remove(widgetIdRef.current)
+        } catch (e) {
+          // Ignore removal errors
+        }
+      }
+    }
+  }, [siteKey, onError])
+
+  // Initialize or reset widget
+  useEffect(() => {
+    if (!isLoaded || !window.turnstile || !containerRef.current) {
+      return
+    }
+
+    if (!siteKey) {
+      return
+    }
+
+    // Remove existing widget if any
+    if (widgetIdRef.current) {
+      try {
+        window.turnstile.remove(widgetIdRef.current)
+        widgetIdRef.current = null
+      } catch (e) {
+        // Ignore
+      }
+    }
 
     // Clear container
     if (containerRef.current) {
@@ -102,53 +112,95 @@ export default function TurnstileWidget({
         theme: theme,
         size: size,
         callback: (token: string) => {
-          console.log('✅ Turnstile verification successful, token received')
+          console.log('✅ Turnstile: Verification successful')
+          setIsVerifying(false)
           onVerify(token)
         },
         'error-callback': () => {
-          console.error('❌ Turnstile error callback triggered')
+          console.error('❌ Turnstile: Error callback triggered')
+          setIsVerifying(false)
+          setError('Verification failed. Please try again.')
           onError?.()
         },
         'expired-callback': () => {
-          console.log('⏰ Turnstile token expired')
+          console.log('⏰ Turnstile: Token expired')
+          setIsVerifying(false)
+          setError('Verification expired. Please verify again.')
           onExpire?.()
         },
+        'timeout-callback': () => {
+          console.log('⏰ Turnstile: Timeout')
+          setIsVerifying(false)
+          setError('Verification timed out. Please try again.')
+          onError?.()
+        },
       })
-      console.log('🎯 Turnstile widget rendered, widget ID:', widgetIdRef.current)
+      
+      console.log('🎯 Turnstile: Widget rendered, ID:', widgetIdRef.current)
+      setIsVerifying(true)
     } catch (err) {
-      console.error('❌ Error rendering Turnstile:', err)
+      console.error('❌ Turnstile: Render error:', err)
       setError('Failed to initialize security verification')
+      onError?.()
     }
-  }, [isLoaded, theme, size, onVerify, onError, onExpire])
+  }, [isLoaded, siteKey, theme, size, onVerify, onError, onExpire])
 
   // Handle reset
   useEffect(() => {
     if (reset && widgetIdRef.current && window.turnstile) {
-      console.log('🔄 Resetting Turnstile widget')
-      window.turnstile.reset(widgetIdRef.current)
+      try {
+        window.turnstile.reset(widgetIdRef.current)
+        console.log('🔄 Turnstile: Widget reset')
+        setIsVerifying(true)
+        setError(null)
+      } catch (e) {
+        // Ignore
+      }
     }
   }, [reset])
 
   if (error) {
     return (
-      <div className="text-center py-2 text-red-400 text-sm">
-        {error}
+      <div className="text-center py-2">
+        <p className="text-sm text-red-400">{error}</p>
+        <button
+          type="button"
+          onClick={() => {
+            setError(null)
+            setIsVerifying(true)
+            // Re-render by triggering effect
+            if (containerRef.current) {
+              containerRef.current.innerHTML = ''
+            }
+            // Force re-render
+            setIsLoaded(false)
+            setTimeout(() => setIsLoaded(true), 100)
+          }}
+          className="mt-2 text-xs text-[var(--accent)] hover:underline"
+        >
+          Try again
+        </button>
       </div>
     )
   }
 
-  if (!isLoaded) {
+  if (!siteKey) {
     return (
-      <div className="flex justify-center py-2">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
-        <span className="ml-2 text-xs text-[var(--text-muted)]">Loading security...</span>
+      <div className="text-center py-2 text-red-400 text-sm">
+        Security configuration in progress. Please refresh and try again.
       </div>
     )
   }
 
   return (
-    <div className="flex justify-center">
+    <div className="flex justify-center py-2">
       <div ref={containerRef} />
+      {isVerifying && (
+        <div className="mt-1 text-xs text-[var(--text-muted)] flex items-center gap-2">
+          <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+          Verifying...
+        </div>
+      )}
     </div>
   )
 }
