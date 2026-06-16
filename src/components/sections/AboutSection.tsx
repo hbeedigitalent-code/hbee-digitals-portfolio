@@ -86,6 +86,23 @@ function cleanIconName(icon?: string) {
   return aliases[cleaned] || cleaned || 'services'
 }
 
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.1,
+    },
+  },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
+}
+
 export default function AboutSection({ data, compact = false }: AboutSectionProps) {
   const reducedMotion = useReducedMotion()
   const [imageError, setImageError] = useState(false)
@@ -188,7 +205,6 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
                     onError={() => setImageError(true)}
                     unoptimized
                   />
-                  {/* Softer gradient overlay for better text visibility */}
                   <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-page)]/70 via-[var(--bg-page)]/10 to-transparent" />
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,var(--accent)/0.12,transparent_35%)]" />
                 </>
@@ -208,7 +224,6 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
                 </div>
               )}
 
-              {/* Image Caption */}
               <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-[var(--border)] bg-[var(--bg-page)]/80 p-4 backdrop-blur-xl">
                 <p className="text-sm font-black tracking-[-0.02em] text-[var(--text-primary)]">
                   {imageTitle}
@@ -238,29 +253,37 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
                 { label: 'Conversion-focused UX', icon: 'analytics' },
                 { label: 'Premium execution', icon: 'precision' },
                 { label: 'Long-term support', icon: 'support' },
-              ].map((item) => (
-                <div
+              ].map((item, idx) => (
+                <motion.div
                   key={item.label}
+                  initial={reducedMotion ? false : { opacity: 0, y: 15 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: idx * 0.05 }}
+                  viewport={{ once: true }}
                   className="rounded-2xl border border-[var(--border)] bg-[var(--bg-page)] p-4 transition hover:border-[var(--accent)]/25 hover:bg-[var(--bg-card-hover)]"
                 >
                   <SvgIcon name={item.icon} size={20} color="var(--accent)" className="mb-3" />
                   <p className="text-sm font-bold text-[var(--text-secondary)]">{item.label}</p>
-                </div>
+                </motion.div>
               ))}
             </div>
           </motion.div>
         </div>
 
-        {/* Stats Section */}
+        {/* Stats Section - Staggered */}
         {stats && stats.length > 0 && (
-          <dl className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">
+          <motion.dl
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4"
+          >
             {stats.slice(0, 4).map((stat: any, index: number) => (
               <motion.div
                 key={index}
-                initial={reducedMotion ? false : { opacity: 0, y: 18 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.38, delay: index * 0.05 }}
-                viewport={{ once: true }}
+                variants={itemVariants}
+                custom={index}
                 className="rounded-[1.4rem] border border-[var(--border)] bg-[var(--bg-card)] p-5 text-center transition hover:border-[var(--accent)]/25 hover:bg-[var(--bg-card-hover)] hover:shadow-[var(--shadow-sm)]"
               >
                 <dt className="sr-only">{stat.label}</dt>
@@ -272,19 +295,23 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
                 </dd>
               </motion.div>
             ))}
-          </dl>
+          </motion.dl>
         )}
 
-        {/* Values Section */}
+        {/* Values Section - Staggered Grid */}
         {values && values.length > 0 && (
-          <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4"
+          >
             {values.map((value: any, index: number) => (
               <motion.article
                 key={index}
-                initial={reducedMotion ? false : { opacity: 0, y: 22 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.42, delay: index * 0.05 }}
-                viewport={{ once: true }}
+                variants={itemVariants}
+                custom={index}
                 className="group rounded-[1.6rem] border border-[var(--border)] bg-[var(--bg-card)] p-6 transition duration-300 hover:-translate-y-2 hover:border-[var(--accent)]/28 hover:bg-[var(--bg-card-hover)] hover:shadow-[var(--shadow-md)]"
               >
                 <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--accent)]/18 bg-[var(--accent)]/10 transition group-hover:scale-105">
@@ -300,7 +327,7 @@ export default function AboutSection({ data, compact = false }: AboutSectionProp
                 </p>
               </motion.article>
             ))}
-          </div>
+          </motion.div>
         )}
       </div>
     </section>

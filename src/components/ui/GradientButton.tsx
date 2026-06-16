@@ -1,33 +1,81 @@
 'use client'
 
-import Link from 'next/link'
 import { ReactNode } from 'react'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
 
 interface GradientButtonProps {
-  href: string
+  href?: string
+  onClick?: () => void
   children: ReactNode
-  variant?: 'primary' | 'secondary' | 'outline'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'gradient'
   className?: string
+  type?: 'button' | 'submit' | 'reset'
+  disabled?: boolean
 }
 
 export default function GradientButton({
   href,
+  onClick,
   children,
   variant = 'primary',
   className = '',
+  type = 'button',
+  disabled = false,
 }: GradientButtonProps) {
+  const baseStyles = `inline-flex items-center justify-center gap-2 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 ${className}`
+
   const variants = {
-    primary: 'bg-gradient-orange-green text-white shadow-[0_4px_20px_rgba(255,107,53,0.3)] hover:shadow-[0_8px_30px_rgba(255,107,53,0.4)]',
-    secondary: 'bg-gradient-dark-blue text-white',
-    outline: 'border-2 border-[var(--accent)] bg-transparent text-[var(--accent)] hover:bg-[var(--accent)]/10',
+    primary: 'btn-primary',
+    secondary: 'btn-secondary',
+    ghost: 'btn-outline-dark',
+    gradient: 'btn-cta',
+  }
+
+  const buttonStyles = `${baseStyles} ${variants[variant]}`
+
+  const content = (
+    <>
+      {children}
+      {(variant === 'primary' || variant === 'gradient') && (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="transition-transform duration-200 group-hover:translate-x-0.5"
+        >
+          <line x1="5" y1="12" x2="19" y2="12" />
+          <polyline points="12 5 19 12 12 19" />
+        </svg>
+      )}
+    </>
+  )
+
+  if (href) {
+    return (
+      <Link href={href} className={buttonStyles}>
+        {content}
+      </Link>
+    )
   }
 
   return (
-    <Link
-      href={href}
-      className={`inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-black transition-all duration-300 hover:scale-[1.02] ${variants[variant]} ${className}`}
+    <motion.button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={buttonStyles}
+      whileTap={{ scale: 0.98 }}
+      whileHover={{ y: -2 }}
+      transition={{ duration: 0.2 }}
     >
-      {children}
-    </Link>
+      {content}
+    </motion.button>
   )
 }

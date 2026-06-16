@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import SvgIcon from '@/components/ui/SvgIcon'
-import GradientHeading from '@/components/ui/GradientHeading'
 
 interface Testimonial {
   id: string
@@ -39,32 +38,86 @@ function isRealTestimonial(item: Testimonial) {
   return true
 }
 
+// Star Rating Component - Orange stars
 function StarRating({
   rating = 5,
   size = 14,
+  showEmpty = false,
 }: {
   rating?: number
   size?: number
+  showEmpty?: boolean
 }) {
-  const safeRating = Math.max(1, Math.min(5, Number(rating) || 5))
+  const safeRating = Math.max(0, Math.min(5, Number(rating) || 0))
+  const fullStars = Math.floor(safeRating)
+  const hasHalfStar = safeRating % 1 >= 0.5
 
   return (
-    <div className="flex items-center gap-1">
-      {[...Array(safeRating)].map((_, index) => (
-        <img
-          key={index}
-          src="/svgs/star.svg"
-          alt=""
-          aria-hidden="true"
-          style={{
-            width: size,
-            height: size,
-            filter:
-              'brightness(0) saturate(100%) invert(84%) sepia(54%) saturate(564%) hue-rotate(24deg) brightness(104%) contrast(93%)',
-          }}
-          className="object-contain"
-        />
-      ))}
+    <div className="flex items-center gap-0.5">
+      {[...Array(5)].map((_, index) => {
+        if (index < fullStars) {
+          // Full star
+          return (
+            <svg
+              key={index}
+              xmlns="http://www.w3.org/2000/svg"
+              width={size}
+              height={size}
+              viewBox="0 0 24 24"
+              fill="var(--accent)"
+              stroke="var(--accent)"
+              strokeWidth="1"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+          )
+        } else if (index === fullStars && hasHalfStar) {
+          // Half star
+          return (
+            <svg
+              key={index}
+              xmlns="http://www.w3.org/2000/svg"
+              width={size}
+              height={size}
+              viewBox="0 0 24 24"
+              fill="var(--accent)"
+              stroke="var(--accent)"
+              strokeWidth="1"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <defs>
+                <linearGradient id={`half-${index}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="50%" stopColor="var(--accent)" />
+                  <stop offset="50%" stopColor="var(--border)" />
+                </linearGradient>
+              </defs>
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill={`url(#half-${index})`} />
+            </svg>
+          )
+        } else if (showEmpty) {
+          // Empty star
+          return (
+            <svg
+              key={index}
+              xmlns="http://www.w3.org/2000/svg"
+              width={size}
+              height={size}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--border)"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+          )
+        }
+        return null
+      })}
     </div>
   )
 }
@@ -114,22 +167,26 @@ export default function TestimonialsSection() {
   const active = verifiedTestimonials[activeIndex]
 
   return (
-    <section className="relative overflow-hidden bg-[var(--bg-page)] py-16 text-[var(--text-primary)] sm:py-20 lg:py-24">
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute left-0 top-0 h-[320px] w-[420px] rounded-full bg-[var(--accent)]/7 blur-[120px]" />
-        <div className="absolute bottom-0 right-0 h-[300px] w-[380px] rounded-full bg-[var(--accent-lime)]/6 blur-[120px]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.02)_1px,transparent_1px)] bg-[size:82px_82px] opacity-20" />
+    <section className="relative overflow-hidden bg-[var(--bg-section)] py-16 sm:py-20 lg:py-24">
+      {/* Background decorative elements using CSS variables */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute left-0 top-20 h-[320px] w-[420px] rounded-full bg-[var(--accent)]/5 blur-[120px]" />
+        <div className="absolute bottom-0 right-0 h-[300px] w-[380px] rounded-full bg-[var(--accent)]/5 blur-[120px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.03)_1px,transparent_1px)] bg-[size:50px_50px] opacity-25" />
       </div>
 
       <div className="mx-auto max-w-7xl px-5 sm:px-6 md:px-10 lg:px-12">
         <div className="mb-12 max-w-4xl">
-          <div className="mb-5 inline-flex items-center gap-3 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
-            <StarRating size={12} />
-            <span>Verified Client Feedback</span>
+          <div className="mb-5 inline-flex items-center gap-3 rounded-full bg-[var(--accent)]/10 px-4 py-2">
+            <StarRating rating={5} size={12} />
+            <span className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
+              Verified Client Feedback
+            </span>
           </div>
 
           <h2 className="text-4xl font-black leading-[0.96] tracking-[-0.055em] text-[var(--text-primary)] sm:text-5xl md:text-6xl">
-            Trusted by brands serious about <GradientHeading>growth.</GradientHeading>
+            Trusted by brands serious about{' '}
+            <span className="text-[var(--accent)]">growth.</span>
           </h2>
 
           <p className="mt-6 max-w-2xl text-sm leading-8 text-[var(--text-secondary)] sm:text-base">
@@ -139,9 +196,15 @@ export default function TestimonialsSection() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          {/* Main Testimonial Card */}
-          <div className="relative overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] shadow-[var(--shadow-lg)]">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(57,217,122,0.12),transparent_40%)]" />
+          {/* Main Testimonial Card - Active */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-[var(--shadow-lg)] hover:shadow-[var(--shadow-xl)] transition-all duration-300"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/5 to-transparent" />
 
             <div className="relative p-6 sm:p-8 lg:p-10">
               <AnimatePresence mode="wait">
@@ -153,18 +216,28 @@ export default function TestimonialsSection() {
                   transition={{ duration: 0.38 }}
                 >
                   <div className="mb-6">
-                    <StarRating rating={active?.rating || 5} size={17} />
+                    <StarRating rating={active?.rating || 5} size={20} showEmpty />
                   </div>
 
                   <div className="mb-8">
-                    <SvgIcon
-                      name="quote"
-                      size={40}
-                      color="rgba(57,217,122,0.28)"
-                    />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="40"
+                      height="40"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="var(--accent)"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="opacity-30"
+                    >
+                      <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" />
+                      <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z" />
+                    </svg>
                   </div>
 
-                  <blockquote className="max-w-3xl text-xl font-medium leading-9 text-[var(--text-secondary)] sm:text-2xl sm:leading-[1.7]">
+                  <blockquote className="max-w-3xl text-xl font-medium leading-9 text-[var(--text-primary)] sm:text-2xl sm:leading-[1.7]">
                     “{active?.content}”
                   </blockquote>
 
@@ -173,10 +246,10 @@ export default function TestimonialsSection() {
                       <img
                         src={active.image_url || active.avatar_url}
                         alt={active.name}
-                        className="h-14 w-14 rounded-[1.3rem] border border-[var(--accent)]/18 object-cover"
+                        className="h-14 w-14 rounded-xl border border-[var(--accent)]/20 object-cover"
                       />
                     ) : (
-                      <div className="flex h-14 w-14 items-center justify-center rounded-[1.3rem] border border-[var(--accent)]/18 bg-[var(--accent)]/10">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[var(--accent)]/10">
                         <span className="text-lg font-black text-[var(--accent)]">
                           {active?.name?.charAt(0) || 'H'}
                         </span>
@@ -196,9 +269,9 @@ export default function TestimonialsSection() {
                 </motion.div>
               </AnimatePresence>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Sidebar - Other Testimonials */}
+          {/* Sidebar - Other Testimonials Grid */}
           <div className="grid gap-4">
             {verifiedTestimonials.map((testimonial, index) => {
               const isActive = activeIndex === index
@@ -211,18 +284,18 @@ export default function TestimonialsSection() {
                   viewport={{ once: true }}
                   transition={{ duration: 0.38, delay: index * 0.05 }}
                   onClick={() => setActiveIndex(index)}
-                  className={`group rounded-[1.6rem] border p-5 text-left transition-all duration-300 ${
+                  className={`group rounded-xl border p-5 text-left transition-all duration-300 hover:-translate-y-1 ${
                     isActive
-                      ? 'border-[var(--accent)]/24 bg-[var(--bg-card-hover)]'
-                      : 'border-[var(--border)] bg-[var(--bg-card)]/92 hover:border-[var(--accent)]/18 hover:bg-[var(--bg-card-hover)]'
+                      ? 'border-[var(--accent)] bg-[var(--accent)]/5 shadow-[var(--shadow-md)]'
+                      : 'border-[var(--border)] bg-[var(--bg-card)] hover:border-[var(--accent)]/30 hover:shadow-[var(--shadow-md)]'
                   }`}
                 >
                   <div className="mb-4 flex items-center justify-between">
-                    <StarRating rating={testimonial.rating || 5} size={13} />
+                    <StarRating rating={testimonial.rating || 5} size={14} showEmpty />
 
                     {isActive && (
-                      <span className="rounded-full border border-[var(--accent)]/18 bg-[var(--accent)]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--accent)]">
-                        Active
+                      <span className="rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white">
+                        Reading
                       </span>
                     )}
                   </div>
@@ -236,10 +309,10 @@ export default function TestimonialsSection() {
                       <img
                         src={testimonial.image_url || testimonial.avatar_url}
                         alt={testimonial.name}
-                        className="h-11 w-11 rounded-[1rem] border border-[var(--accent)]/16 object-cover"
+                        className="h-11 w-11 rounded-lg border border-[var(--accent)]/20 object-cover"
                       />
                     ) : (
-                      <div className="flex h-11 w-11 items-center justify-center rounded-[1rem] border border-[var(--accent)]/16 bg-[var(--accent)]/10">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--accent)]/10">
                         <span className="text-sm font-black text-[var(--accent)]">
                           {testimonial.name.charAt(0)}
                         </span>
@@ -247,7 +320,7 @@ export default function TestimonialsSection() {
                     )}
 
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-black text-[var(--text-primary)]">
+                      <p className="truncate text-sm font-black text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">
                         {testimonial.name}
                       </p>
                       <p className="truncate text-xs text-[var(--text-muted)]">
@@ -262,6 +335,22 @@ export default function TestimonialsSection() {
               )
             })}
           </div>
+        </div>
+
+        {/* Navigation Dots for Mobile */}
+        <div className="flex justify-center gap-2 mt-8 lg:hidden">
+          {verifiedTestimonials.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setActiveIndex(index)}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                activeIndex === index
+                  ? 'w-6 bg-[var(--accent)]'
+                  : 'w-2 bg-[var(--border)] hover:bg-[var(--accent)]/50'
+              }`}
+              aria-label={`Go to testimonial ${index + 1}`}
+            />
+          ))}
         </div>
       </div>
     </section>

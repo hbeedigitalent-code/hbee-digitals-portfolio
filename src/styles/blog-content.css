@@ -1,8 +1,6 @@
 /**
  * Blog Content Styles
- * 
- * These styles ensure blog HTML content renders as clean article text
- * and prevents any code-style formatting from appearing.
+ * Clean article text rendering with the new design system
  */
 
 .blog-content {
@@ -14,13 +12,12 @@
   white-space: normal !important;
 }
 
-/* Force all children to use normal text rendering */
 .blog-content * {
   font-family: inherit !important;
   white-space: normal !important;
 }
 
-/* Neutralize code/pre elements that may be in the HTML */
+/* Neutralize code/pre elements */
 .blog-content pre,
 .blog-content code {
   all: unset !important;
@@ -172,7 +169,7 @@
   margin-bottom: 0;
 }
 
-/* Images in content */
+/* Images */
 .blog-content img {
   max-width: 100%;
   height: auto;
@@ -223,13 +220,13 @@
   margin: 1.5rem 0;
 }
 
-/* Prevent any remaining code-like rendering */
+/* Prevent code-like rendering */
 .blog-content pre *,
 .blog-content code * {
   font-family: inherit !important;
 }
 
-/* Small text / footnotes */
+/* Small text */
 .blog-content small,
 .blog-content .small {
   font-size: 0.875rem;
@@ -281,7 +278,7 @@
   }
 }
 
-/* Dark mode adjustments */
+/* Dark mode */
 .dark .blog-content {
   color: var(--text-primary);
 }

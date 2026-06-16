@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import SvgIcon from '@/components/ui/SvgIcon'
+import Button from '@/components/ui/Button'
 
 export default function BlogNewsletterSignup() {
   const [email, setEmail] = useState('')
@@ -41,20 +43,20 @@ export default function BlogNewsletterSignup() {
   }
 
   return (
-    <section className="mt-14 rounded-[2rem] border border-[var(--border)] bg-[#07111F] p-6 text-white shadow-xl sm:p-8">
+    <section className="mt-14 rounded-2xl border border-[var(--accent)]/20 bg-[var(--bg-navy)] p-6 text-white sm:p-8">
       <div className="mx-auto max-w-2xl text-center">
-        <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2">
-          <img src="/svgs/newsletter.svg" alt="" className="h-4 w-4" />
-          <span className="text-xs font-black uppercase tracking-[0.16em] text-[#39D97A]">
+        <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-[var(--accent)]/10 px-4 py-2">
+          <SvgIcon name="newsletter" size={14} color="var(--accent)" />
+          <span className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
             Growth Newsletter
           </span>
         </div>
 
-        <h2 className="text-2xl font-black tracking-[-0.04em] sm:text-3xl">
+        <h2 className="text-2xl font-bold tracking-[-0.02em] text-white sm:text-3xl">
           Get ecommerce growth insights in your inbox
         </h2>
 
-        <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-white/70">
+        <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[var(--text-on-dark-muted)]">
           Practical ideas on conversion, customer trust, Shopify growth, website
           performance, and digital systems from Hbee Digitals.
         </p>
@@ -64,7 +66,7 @@ export default function BlogNewsletterSignup() {
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Name"
-            className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm text-white outline-none placeholder:text-white/45 focus:border-[#39D97A]"
+            className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm text-white outline-none placeholder:text-white/45 focus:border-[var(--accent)]"
           />
 
           <input
@@ -72,21 +74,24 @@ export default function BlogNewsletterSignup() {
             onChange={(event) => setEmail(event.target.value)}
             placeholder="Email address"
             type="email"
-            className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm text-white outline-none placeholder:text-white/45 focus:border-[#39D97A]"
+            className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm text-white outline-none placeholder:text-white/45 focus:border-[var(--accent)]"
           />
 
-          <button
+          <Button
+            type="submit"
             disabled={status === 'loading'}
-            className="rounded-full bg-[#39D97A] px-6 py-3 text-sm font-black text-[#07111F] transition hover:scale-[1.02] disabled:opacity-60"
+            variant="cta"
+            size="md"
+            className="min-w-[120px]"
           >
             {status === 'loading' ? 'Joining...' : 'Subscribe'}
-          </button>
+          </Button>
         </form>
 
         {message && (
           <p
             className={`mt-4 text-sm font-bold ${
-              status === 'success' ? 'text-[#39D97A]' : 'text-red-300'
+              status === 'success' ? 'text-[var(--accent)]' : 'text-red-300'
             }`}
           >
             {message}

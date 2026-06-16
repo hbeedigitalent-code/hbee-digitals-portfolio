@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { motion, useReducedMotion } from 'framer-motion'
 import SvgIcon from '@/components/ui/SvgIcon'
 import GradientHeading from '@/components/ui/GradientHeading'
 
@@ -25,7 +26,23 @@ const reviews = [
   },
 ]
 
-// Star rating component for better accessibility
+// Animation variants for staggered cards
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.15,
+    },
+  },
+}
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
+}
+
 function StarRating({ rating = 5 }: { rating?: number }) {
   return (
     <div className="flex items-center gap-1" aria-label={`Rated ${rating} out of 5 stars`}>
@@ -44,6 +61,8 @@ function StarRating({ rating = 5 }: { rating?: number }) {
 }
 
 export default function ReviewCarousel() {
+  const reducedMotion = useReducedMotion()
+
   return (
     <section className="relative overflow-hidden bg-[var(--bg-page)] px-5 py-16 text-[var(--text-primary)] sm:px-6 md:px-10 lg:px-12 lg:py-24">
       <div className="pointer-events-none absolute inset-0">
@@ -53,7 +72,12 @@ export default function ReviewCarousel() {
 
       <div className="relative z-10 mx-auto max-w-7xl">
         <div className="mb-12 grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-end">
-          <div>
+          <motion.div
+            initial={reducedMotion ? false : { opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            viewport={{ once: true }}
+          >
             <p className="eyebrow mb-5 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em]">
               <SvgIcon name="verified" size={14} color="var(--accent)" />
               Client Feedback
@@ -63,19 +87,33 @@ export default function ReviewCarousel() {
               Real feedback that builds{' '}
               <GradientHeading>trust.</GradientHeading>
             </h2>
-          </div>
+          </motion.div>
 
-          <p className="max-w-2xl text-sm leading-8 text-[var(--text-secondary)] sm:text-base lg:justify-self-end">
+          <motion.p
+            initial={reducedMotion ? false : { opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            viewport={{ once: true }}
+            className="max-w-2xl text-sm leading-8 text-[var(--text-secondary)] sm:text-base lg:justify-self-end"
+          >
             Client feedback helps new merchants understand the quality,
             communication, and strategic support behind Hbee Digitals projects.
-          </p>
+          </motion.p>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-3">
-          {reviews.map((review) => (
-            <article
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+          className="grid gap-5 lg:grid-cols-3"
+        >
+          {reviews.map((review, index) => (
+            <motion.article
               key={review.name}
-              className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-md)] transition hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]"
+              variants={cardVariants}
+              custom={index}
+              className="rounded-[2rem] border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-md)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]"
             >
               <StarRating rating={5} />
 
@@ -93,19 +131,25 @@ export default function ReviewCarousel() {
                   <p className="mt-1 text-sm text-[var(--text-muted)]">{review.role}</p>
                 </div>
               </div>
-            </article>
+            </motion.article>
           ))}
-        </div>
+        </motion.div>
 
-        <div className="mt-10 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          viewport={{ once: true }}
+          className="mt-10 text-center"
+        >
           <Link
             href="/reviews"
-            className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] hover:bg-[var(--accent-lime)]"
+            className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-black text-white transition hover:scale-[1.02] hover:bg-[var(--accent-lime)]"
           >
             View All Reviews
-            <SvgIcon name="arrow-diagonal" size={15} color="var(--btn-primary-text)" />
+            <SvgIcon name="arrow-diagonal" size={15} color="white" />
           </Link>
-        </div>
+        </motion.div>
       </div>
     </section>
   )

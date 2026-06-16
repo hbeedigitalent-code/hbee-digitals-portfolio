@@ -93,6 +93,50 @@ function cleanIcon(icon?: string) {
   return cleaned || 'services'
 }
 
+// Animation variants for tab content
+const contentVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { 
+      duration: 0.4, 
+      ease: [0.22, 1, 0.36, 1] 
+    }
+  },
+  exit: { 
+    opacity: 0, 
+    y: -15,
+    transition: { 
+      duration: 0.25, 
+      ease: [0.22, 1, 0.36, 1] 
+    }
+  },
+}
+
+const pointsContainerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.15,
+    },
+  },
+}
+
+const pointVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { 
+    opacity: 1, 
+    x: 0,
+    transition: { 
+      duration: 0.35, 
+      ease: [0.22, 1, 0.36, 1] 
+    }
+  },
+}
+
 export default function TabSwitcher({ items = fallbackItems }: TabSwitcherProps) {
   const reducedMotion = useReducedMotion()
   const [activeIndex, setActiveIndex] = useState(0)
@@ -126,62 +170,66 @@ export default function TabSwitcher({ items = fallbackItems }: TabSwitcherProps)
             </p>
           </div>
 
+          {/* Desktop Tabs */}
           <div className="hidden gap-2 lg:flex">
             {safeItems.map((item, index) => {
               const active = index === activeIndex
 
               return (
-                <button
+                <motion.button
                   key={item.id || item.title || index}
                   type="button"
                   onClick={() => setActiveIndex(index)}
-                  className={`rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.12em] transition ${
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  className={`rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.12em] transition-all duration-200 ${
                     active
-                      ? 'border-[var(--accent)]/24 bg-[var(--accent)]/10 text-[var(--accent)]'
-                      : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:bg-[var(--bg-card-hover)]'
+                      ? 'border-[var(--accent)]/24 bg-[var(--accent)]/10 text-[var(--accent)] shadow-[var(--shadow-sm)]'
+                      : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:border-[var(--accent)]/30 hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)]'
                   }`}
                 >
                   {item.title}
-                </button>
+                </motion.button>
               )
             })}
           </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[0.42fr_0.58fr] lg:items-start">
-          {/* Mobile Tabs */}
+          {/* Mobile Tabs - Horizontal Scroll */}
           <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden">
             {safeItems.map((item, index) => {
               const active = index === activeIndex
 
               return (
-                <button
+                <motion.button
                   key={item.id || item.title || index}
                   type="button"
                   onClick={() => setActiveIndex(index)}
-                  className={`flex-shrink-0 rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.12em] transition ${
+                  whileTap={{ scale: 0.97 }}
+                  className={`flex-shrink-0 rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.12em] transition-all duration-200 ${
                     active
                       ? 'border-[var(--accent)]/24 bg-[var(--accent)]/10 text-[var(--accent)]'
                       : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)]'
                   }`}
                 >
                   {item.title}
-                </button>
+                </motion.button>
               )
             })}
           </div>
 
-          {/* Active Tab Content */}
-          <div className="rounded-[1.7rem] border border-[var(--border)] bg-[var(--bg-card)] p-5 sm:p-6">
+          {/* Active Tab Content with refined animation */}
+          <div className="rounded-[1.7rem] border border-[var(--border)] bg-[var(--bg-card)] p-5 sm:p-6 transition-all duration-300 hover:shadow-[var(--shadow-md)]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeItem.title}
-                initial={reducedMotion ? false : { opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={reducedMotion ? undefined : { opacity: 0, y: -10 }}
-                transition={{ duration: 0.28 }}
+                variants={contentVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
               >
-                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--accent)]/18 bg-[var(--accent)]/10">
+                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--accent)]/18 bg-[var(--accent)]/10 transition-all duration-300 group-hover:scale-105">
                   <SvgIcon
                     name={cleanIcon(activeItem.icon)}
                     size={24}
@@ -200,22 +248,29 @@ export default function TabSwitcher({ items = fallbackItems }: TabSwitcherProps)
             </AnimatePresence>
           </div>
 
-          {/* Points List */}
-          <div className="grid gap-4">
+          {/* Points List - Blue checkmarks instead of green */}
+          <motion.div
+            variants={pointsContainerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid gap-4"
+          >
             {(points.length
               ? points
               : ['Premium systems', 'Performance optimization', 'Long-term scalability']
-            ).map((point) => (
-              <div
+            ).map((point, idx) => (
+              <motion.div
                 key={point}
-                className="flex items-start gap-4 rounded-[1.4rem] border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-5 transition hover:border-[var(--accent)]/25"
+                variants={pointVariants}
+                custom={idx}
+                className="flex items-start gap-4 rounded-[1.4rem] border border-[var(--border)] bg-[var(--bg-card)] p-4 transition-all duration-300 hover:-translate-y-1 hover:border-[var(--blue-500)]/30 hover:shadow-[var(--shadow-md)] sm:p-5"
               >
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-[var(--accent)]/16 bg-[var(--accent)]/10">
-                  <SvgIcon name="verified" size={14} color="var(--accent)" />
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-[var(--blue-500)]/16 bg-[var(--blue-500)]/10 transition-all duration-300">
+                  <SvgIcon name="verified" size={14} color="var(--blue-500)" />
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-black uppercase tracking-[0.12em] text-[var(--accent)]">
+                  <h4 className="text-sm font-black uppercase tracking-[0.12em] text-[var(--blue-500)]">
                     Premium Advantage
                   </h4>
 
@@ -223,9 +278,9 @@ export default function TabSwitcher({ items = fallbackItems }: TabSwitcherProps)
                     {point}
                   </p>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>

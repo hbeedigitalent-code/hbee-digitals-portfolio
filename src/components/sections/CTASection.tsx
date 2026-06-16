@@ -24,13 +24,18 @@ export default function CTASection({ data }: CTASectionProps) {
   } = data || {}
 
   return (
-    <section className="relative overflow-hidden bg-gradient-navy-orange px-5 py-16 text-white sm:px-6 md:px-10 lg:px-12 lg:py-20">
-      {/* Background decorative elements */}
+    <section className="relative overflow-hidden bg-[var(--bg-navy)] px-5 py-16 text-white sm:px-6 md:px-10 lg:px-12 lg:py-20">
+      {/* Background decorative elements - Subtle orange glow */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-20 top-0 h-[320px] w-[420px] rounded-full bg-[var(--accent-orange)]/20 blur-[120px]" />
-        <div className="absolute -right-20 bottom-0 h-[300px] w-[380px] rounded-full bg-[var(--accent)]/15 blur-[120px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center, rgba(255,107,53,0.1), transparent 70%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:80px_80px] opacity-30" />
+        <div className="absolute -left-20 top-0 h-[320px] w-[420px] rounded-full bg-[var(--accent)]/15 blur-[120px]" />
+        <div className="absolute -right-20 bottom-0 h-[300px] w-[380px] rounded-full bg-[var(--accent)]/10 blur-[120px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center, rgba(249,115,22,0.08), transparent 70%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:80px_80px] opacity-20" />
+      </div>
+
+      {/* Subtle glow behind button */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-[300px] h-[300px] rounded-full bg-[var(--accent)]/20 blur-[100px] opacity-40" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-5xl text-center">
@@ -41,7 +46,7 @@ export default function CTASection({ data }: CTASectionProps) {
           viewport={{ once: true }}
         >
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-white backdrop-blur-sm">
-            <span className="h-2 w-2 rounded-full bg-[var(--accent-orange)] animate-pulse" />
+            <span className="h-2 w-2 rounded-full bg-[var(--accent)] animate-pulse" />
             Get Started Today
           </div>
 
@@ -56,7 +61,7 @@ export default function CTASection({ data }: CTASectionProps) {
           <div className="mt-8">
             <Link
               href={buttonLink}
-              className="group inline-flex min-h-[50px] items-center justify-center gap-2 rounded-full bg-gradient-warm px-8 py-3 text-sm font-black text-white shadow-[0_0_30px_rgba(255,107,53,0.3)] transition duration-300 hover:scale-[1.02] hover:shadow-[0_0_50px_rgba(255,107,53,0.5)]"
+              className="btn-cta group inline-flex min-h-[50px] items-center justify-center gap-2 px-8 py-3 text-sm font-black shadow-[0_0_30px_rgba(249,115,22,0.3)] transition duration-300 hover:scale-[1.02] hover:shadow-[0_0_50px_rgba(249,115,22,0.5)]"
             >
               {buttonText}
               <SvgIcon name="arrow-diagonal" size={16} color="white" className="transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />

@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion, useInView, useReducedMotion } from 'framer-motion'
 import SvgIcon from '@/components/ui/SvgIcon'
+import ConsultationPopup from '@/components/ConsultationPopup'
+import Button from '@/components/ui/Button'
 
 interface HeroSectionProps {
   data: {
@@ -20,17 +22,16 @@ interface HeroSectionProps {
   }
 }
 
-const words = ['Shopify Stores', 'Online Stores', 'Modern Brands', 'Digital Growth']
-
-function cleanTitle(title?: string) {
-  return (title || 'Engineering Growth For')
-    .replace(/Shopify Stores\.?/gi, '')
-    .replace(/Online Stores\.?/gi, '')
-    .replace(/Modern Brands\.?/gi, '')
-    .replace(/Digital Growth\.?/gi, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
+// Short, punchy two-word phrases for typewriter (line 3)
+const words = [
+  'Online Stores',
+  'Modern Brands',
+  'Shopify Stores',
+  'Brand Identity',
+  'Customer Trust',
+  'Sales Revenue',
+  'Store Success'
+]
 
 function TypewriterWord({
   active,
@@ -41,6 +42,7 @@ function TypewriterWord({
 }) {
   const [wordIndex, setWordIndex] = useState(0)
   const [text, setText] = useState(words[0])
+  const [isTyping, setIsTyping] = useState(true)
 
   useEffect(() => {
     if (reducedMotion || !active) {
@@ -51,42 +53,51 @@ function TypewriterWord({
     const current = words[wordIndex]
     let index = 0
     setText('')
+    setIsTyping(true)
 
-    const typing = window.setInterval(() => {
+    const typing = setInterval(() => {
       index += 1
       setText(current.slice(0, index))
 
       if (index >= current.length) {
-        window.clearInterval(typing)
-        window.setTimeout(() => {
+        clearInterval(typing)
+        setIsTyping(false)
+        setTimeout(() => {
           setWordIndex((prev) => (prev + 1) % words.length)
-        }, 1700)
+        }, 1800)
       }
-    }, 62)
+    }, 80)
 
-    return () => window.clearInterval(typing)
+    return () => clearInterval(typing)
   }, [wordIndex, active, reducedMotion])
 
   return (
     <span className="inline-block">
-      <span className="inline-block whitespace-nowrap bg-gradient-to-r from-[var(--accent)] via-[var(--accent-lime)] to-[var(--accent-orange)] bg-clip-text text-transparent">
+      <span className="inline-block whitespace-nowrap bg-gradient-to-r from-[var(--blue-500)] via-[var(--blue-600)] to-[var(--accent)] bg-clip-text text-transparent font-bold">
         {text}
-        {!reducedMotion && active && (
-          <span className="ml-1 inline-block h-[0.8em] w-[2px] animate-pulse rounded-full bg-[var(--accent-orange)]" />
+        {!reducedMotion && active && isTyping && (
+          <span className="ml-1 inline-block h-[0.8em] w-[2px] animate-pulse rounded-full bg-gradient-to-r from-[var(--blue-500)] to-[var(--accent)]" />
         )}
       </span>
       <svg
-        className="absolute -bottom-2 left-0 h-3 w-full text-[var(--accent)]/70 sm:-bottom-2 sm:h-4"
+        className="absolute -bottom-2 left-0 h-3 w-full sm:-bottom-2 sm:h-4"
         viewBox="0 0 260 18"
         fill="none"
         preserveAspectRatio="none"
         aria-hidden="true"
       >
+        <defs>
+          <linearGradient id="underlineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="var(--blue-500)" />
+            <stop offset="100%" stopColor="var(--accent)" />
+          </linearGradient>
+        </defs>
         <path
           d="M5 13C62 2 168 2 255 11"
-          stroke="currentColor"
-          strokeWidth="4"
+          stroke="url(#underlineGradient)"
+          strokeWidth="3"
           strokeLinecap="round"
+          fill="none"
         />
       </svg>
     </span>
@@ -95,116 +106,46 @@ function TypewriterWord({
 
 export default function HeroSection({ data }: HeroSectionProps) {
   const sectionRef = useRef<HTMLElement | null>(null)
-  const isInView = useInView(sectionRef, { amount: 0.35 })
+  const isInView = useInView(sectionRef, { amount: 0.35, once: true })
   const reducedMotion = Boolean(useReducedMotion())
+  const [isConsultationOpen, setIsConsultationOpen] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
 
   const {
-    title,
     subtitle = 'We build scalable digital systems, conversion-focused experiences, and growth infrastructure for ambitious e-commerce and modern businesses.',
-    primaryCtaText = 'Get Free Audit',
-    primaryCtaLink = '/contact',
-    secondaryCtaText = 'View Case Studies',
-    secondaryCtaLink = '/portfolio',
+    primaryCtaText = 'Get Free Consultation',
     backgroundImage,
     video_url,
-    featureBullets,
   } = data || {}
-
-  const baseTitle = cleanTitle(title)
-
-  const bullets = useMemo(() => {
-    if (Array.isArray(featureBullets)) return featureBullets.filter(Boolean)
-    if (typeof featureBullets === 'string' && featureBullets.trim()) {
-      return featureBullets.split('|').map((item) => item.trim()).filter(Boolean)
-    }
-    return ['Shopify Optimization', 'Conversion Systems', 'Accessibility Support']
-  }, [featureBullets])
 
   return (
     <section
       ref={sectionRef}
-      className="relative overflow-hidden bg-[var(--bg-page)] px-5 pt-24 pb-10 sm:px-6 md:px-10 lg:pt-28 lg:pb-16"
+      className="relative overflow-hidden bg-[var(--bg-page)] px-5 py-12 sm:px-6 md:px-10 lg:py-20"
     >
-      {/* Light brand-appropriate background glow */}
+      {/* Light background glow - using CSS variables */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute -left-24 top-0 h-[280px] w-[280px] rounded-full bg-[var(--accent)]/5 blur-[90px] sm:h-[350px] sm:w-[350px] sm:blur-[120px]" />
-        <div className="absolute -right-24 bottom-0 h-[260px] w-[260px] rounded-full bg-[var(--accent-lime)]/5 blur-[90px] sm:h-[300px] sm:w-[300px] sm:blur-[100px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center, rgba(57,217,122,0.04), transparent 70%)]" />
+        <div className="absolute -left-24 top-0 h-[280px] w-[280px] rounded-full bg-[var(--blue-500)]/5 blur-[90px] sm:h-[350px] sm:w-[350px] sm:blur-[120px]" />
+        <div className="absolute -right-24 bottom-0 h-[260px] w-[260px] rounded-full bg-[var(--accent)]/5 blur-[90px] sm:h-[300px] sm:w-[300px] sm:blur-[100px]" />
       </div>
 
       <div className="mx-auto max-w-7xl">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:gap-12">
-          {/* Left Column - Content */}
+        <div className="flex flex-col gap-10 lg:flex-row lg:items-center lg:gap-12">
+          
+          {/* IMAGE - First on mobile, Right on desktop */}
           <motion.div
-            initial={reducedMotion ? false : { opacity: 0, y: 22 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-            className="relative z-10 w-full lg:w-1/2"
-          >
-            {/* Top badge */}
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent)] sm:px-4 sm:py-2 sm:text-[11px]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)] sm:h-2 sm:w-2" />
-              Digital Growth Systems
-            </div>
-
-            {/* Main Title - Properly structured */}
-            <h1 className="text-4xl font-black leading-[1.2] tracking-[-0.04em] text-[var(--text-primary)] sm:text-5xl md:text-6xl lg:text-7xl">
-              <div className="mb-2">{baseTitle}</div>
-              <div className="relative inline-block">
-                <TypewriterWord active={isInView} reducedMotion={reducedMotion} />
-              </div>
-            </h1>
-
-            <p className="mt-6 text-base leading-7 text-[var(--text-secondary)] sm:text-lg sm:leading-8">
-              {subtitle}
-            </p>
-
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Link
-                href={primaryCtaLink}
-                className="group inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-gradient-orange-green px-6 py-3 text-sm font-black text-white shadow-md transition hover:scale-[1.02] hover:shadow-lg sm:px-7"
-              >
-                {primaryCtaText}
-                <SvgIcon name="arrow-diagonal" size={14} color="white" />
-              </Link>
-
-              <Link
-                href={secondaryCtaLink}
-                className="group inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-6 py-3 text-sm font-black text-[var(--text-primary)] transition hover:border-[var(--accent)]/25 hover:bg-[var(--bg-card-hover)] sm:px-7"
-              >
-                {secondaryCtaText}
-                <SvgIcon name="arrow-diagonal" size={14} color="var(--accent)" />
-              </Link>
-            </div>
-
-            {/* Feature bullets */}
-            <div className="mt-5 flex flex-wrap items-center gap-2">
-              {bullets.slice(0, 3).map((item) => (
-                <div
-                  key={item}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-[var(--text-secondary)] sm:gap-2 sm:px-3 sm:py-1.5 sm:text-[10px]"
-                >
-                  <SvgIcon name="verified" size={9} color="var(--accent)" />
-                  {item}
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Right Column - Image */}
-          <motion.div
-            initial={reducedMotion ? false : { opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.58, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="relative w-full lg:w-1/2"
+            initial={{ opacity: 0, x: 30 }}
+            animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 30 }}
+            transition={{ duration: 0.6, ease: 'easeOut', delay: 0.1 }}
+            className="order-1 w-full lg:order-2 lg:w-1/2"
           >
             <div className="relative mx-auto w-full max-w-[320px] sm:max-w-[380px] md:max-w-[440px] lg:max-w-[480px]">
-              {/* Soft glow behind image */}
-              <div className="absolute -inset-4 rounded-3xl bg-gradient-to-r from-[var(--accent)]/10 via-[var(--accent-lime)]/5 to-[var(--accent-orange)]/10 blur-2xl" />
+              {/* Subtle glow behind image */}
+              <div className="absolute -inset-4 rounded-3xl bg-gradient-to-r from-[var(--blue-500)]/10 via-[var(--accent)]/5 to-transparent blur-2xl" />
               
-              {/* Image container */}
-              <div className="relative overflow-hidden rounded-2xl bg-[var(--bg-card)] shadow-xl">
-                <div className="relative aspect-square overflow-hidden rounded-xl">
+              {/* Clean image container */}
+              <div className="relative overflow-hidden rounded-2xl shadow-[var(--shadow-xl)]">
+                <div className="relative aspect-square overflow-hidden">
                   {video_url ? (
                     <video
                       src={video_url}
@@ -219,18 +160,118 @@ export default function HeroSection({ data }: HeroSectionProps) {
                   ) : backgroundImage ? (
                     <img
                       src={backgroundImage}
-                      alt=""
+                      alt="Hbee Digitals - Digital Growth Studio"
                       loading="eager"
                       fetchPriority="high"
                       className="h-full w-full object-cover"
                     />
-                  ) : null}
+                  ) : (
+                    <div className="h-full w-full bg-gradient-to-br from-[var(--bg-section)] to-[var(--bg-card)]" />
+                  )}
                 </div>
               </div>
             </div>
           </motion.div>
+
+          {/* TEXT - Second on mobile, Left on desktop */}
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 25 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="order-2 w-full lg:order-1 lg:w-1/2"
+          >
+            {/* Section Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+            >
+              <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)]/10 px-3 py-1 mb-5">
+                <span className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
+                  DIGITAL GROWTH AGENCY
+                </span>
+              </div>
+            </motion.div>
+
+            {/* Main Title */}
+            <motion.h1
+              initial={{ opacity: 0, y: 15 }}
+              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.2] tracking-[-0.02em] text-[var(--text-primary)]"
+            >
+              <div className="mb-1 whitespace-nowrap sm:whitespace-normal">Engineering Digital</div>
+              <div className="mb-1 whitespace-nowrap sm:whitespace-normal">Growth Systems For</div>
+              <div className="relative inline-block mt-1">
+                <TypewriterWord active={isInView} reducedMotion={reducedMotion} />
+              </div>
+            </motion.h1>
+
+            {/* Subheadline */}
+            <motion.p
+              initial={{ opacity: 0, y: 15 }}
+              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="mt-5 text-base leading-7 text-[var(--text-secondary)] sm:text-lg sm:leading-8 max-w-lg"
+            >
+              {subtitle}
+            </motion.p>
+
+            {/* CTA Button with two-color hover animation */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
+              transition={{ duration: 0.5, delay: 0.25 }}
+              className="mt-8"
+            >
+              <motion.button
+                onClick={() => setIsConsultationOpen(true)}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                className="relative inline-flex items-center gap-2 px-8 py-3.5 text-sm font-black rounded-full overflow-hidden transition-all duration-300"
+                whileTap={{ scale: 0.97 }}
+                animate={{
+                  backgroundColor: isHovered ? 'var(--accent)' : 'var(--navy-800)',
+                  boxShadow: isHovered 
+                    ? '0 10px 25px -5px rgba(249,115,22,0.4)' 
+                    : '0 4px 6px -1px rgba(0,0,0,0.1)',
+                }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+              >
+                <span className="relative z-10 text-white">
+                  {primaryCtaText}
+                </span>
+                <motion.svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="relative z-10"
+                  animate={{
+                    x: isHovered ? 4 : 0,
+                    y: isHovered ? -2 : 0,
+                  }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </motion.svg>
+              </motion.button>
+            </motion.div>
+          </motion.div>
         </div>
       </div>
+
+      {/* Consultation Popup Modal */}
+      <ConsultationPopup
+        isOpen={isConsultationOpen}
+        onClose={() => setIsConsultationOpen(false)}
+      />
     </section>
   )
 }

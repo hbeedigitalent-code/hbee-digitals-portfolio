@@ -5,8 +5,7 @@ import { Metadata } from 'next'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import SvgIcon from '@/components/ui/SvgIcon'
-import GradientHeading from '@/components/ui/GradientHeading'
-
+import Button from '@/components/ui/Button'
 import { supabase } from '@/lib/supabase'
 
 interface PortfolioItem {
@@ -32,7 +31,6 @@ interface PortfolioItem {
   is_before_after?: boolean
   featured?: boolean
   is_active?: boolean
-  // New case study fields
   challenge?: string
   solution?: string
   results?: string
@@ -81,11 +79,6 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   return {
     title,
     description: project.seo_description || project.description || 'Conversion-focused ecommerce and digital growth case study.',
-    openGraph: {
-      title,
-      description: project.seo_description || project.description,
-      images: project.image_url ? [{ url: project.image_url }] : [],
-    },
   }
 }
 
@@ -106,102 +99,97 @@ export default async function PortfolioDetailPage({ params }: { params: { slug: 
     <>
       <Navbar />
 
-      <main className="relative overflow-hidden bg-[var(--bg-page)] text-[var(--text-primary)]">
+      <main className="relative overflow-hidden bg-[var(--bg-page)] pt-28">
+        {/* Background */}
         <div className="absolute inset-0 -z-10">
-          <div className="absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-[var(--accent)]/8 blur-[140px]" />
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.018)_1px,transparent_1px)] bg-[size:82px_82px] opacity-20" />
+          <div className="absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-[var(--accent)]/5 blur-[140px]" />
+          <div className="absolute bottom-0 right-0 h-[420px] w-[520px] rounded-full bg-[var(--accent-orange)]/5 blur-[130px]" />
         </div>
 
-        {/* Hero Section */}
-        <section className="relative px-5 pb-16 pt-32 sm:px-6 md:px-10 lg:px-12">
+        {/* Hero */}
+        <section className="px-5 pb-12 sm:px-6 md:px-10 lg:px-12">
           <div className="mx-auto max-w-7xl">
-            <div className="max-w-5xl">
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/18 bg-[var(--bg-card)]/90 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
+            <div className="max-w-4xl">
+              <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)]/10 px-3 py-1 mb-4">
                 <SvgIcon name="portfolio" size={14} color="var(--accent)" />
-                Case Study
+                <span className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
+                  Case Study
+                </span>
               </div>
 
-              <p className="mb-5 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)] mb-3">
                 {project.category || project.industry || 'Digital Growth'}
               </p>
 
-              <h1 className="text-5xl font-black leading-[0.94] tracking-[-0.055em] text-[var(--text-primary)] sm:text-6xl lg:text-7xl">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-[-0.02em] text-[var(--text-primary)]">
                 {title}
               </h1>
 
-              <div className="mt-5 flex flex-wrap gap-3">
-                <span className="rounded-full bg-[var(--accent)] px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--btn-primary-text)]">
+              <div className="mt-4 flex flex-wrap gap-3">
+                <span className="rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-bold text-white">
                   {project.metric_value || 'Growth'}
                   {project.metric_label ? ` ${project.metric_label}` : ''}
                 </span>
                 {project.is_before_after && (
-                  <span className="rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--text-primary)]">
+                  <span className="rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-3 py-1.5 text-xs font-bold text-[var(--text-primary)]">
                     Before / After Transformation
                   </span>
                 )}
               </div>
 
-              <p className="mt-7 max-w-3xl text-base leading-8 text-[var(--text-secondary)] md:text-lg">
+              <p className="mt-6 text-base text-[var(--text-secondary)] leading-relaxed">
                 {project.description ||
                   'Conversion-focused ecommerce growth system designed to improve user trust, brand positioning, and long-term scalability.'}
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link
-                  href="/contact"
-                  className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-gradient-orange-green px-6 py-3 text-sm font-black text-white transition hover:scale-[1.02]"
-                >
-                  Get Free Audit
-                  <SvgIcon name="arrow-diagonal" size={15} color="white" />
-                </Link>
+                <Button href="/contact" variant="cta" size="md">
+                  Get Free Consultation
+                </Button>
                 {project.website_url && (
                   <a
                     href={project.website_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-6 py-3 text-sm font-black text-[var(--accent)]"
+                    className="btn-outline-dark inline-flex items-center gap-2"
                   >
                     Visit Website
-                    <SvgIcon name="arrow-diagonal" size={15} color="var(--accent)" />
+                    <SvgIcon name="arrow-diagonal" size={14} color="white" />
                   </a>
                 )}
               </div>
             </div>
 
             {project.image_url && (
-              <div className="mt-14 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-3 shadow-[var(--shadow-lg)]">
+              <div className="mt-12 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-2 shadow-[var(--shadow-lg)]">
                 <img src={project.image_url} alt={title} className="w-full rounded-xl object-cover" />
               </div>
             )}
           </div>
         </section>
 
-        {/* Challenge & Solution Section */}
+        {/* Challenge & Solution */}
         {(project.challenge || project.solution || project.brief) && (
-          <section className="px-5 py-16 sm:px-6 md:px-10 lg:px-12">
+          <section className="px-5 py-12 sm:px-6 md:px-10 lg:px-12">
             <div className="mx-auto max-w-7xl">
-              <div className="grid gap-8 lg:grid-cols-2">
+              <div className="grid gap-6 md:grid-cols-2">
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-                  <div className="mb-4 flex items-center gap-2">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10">
-                      <SvgIcon name="warning" size={18} color="#ef4444" />
-                    </div>
-                    <p className="text-xs font-black uppercase tracking-wider text-[var(--accent)]">The Challenge</p>
+                  <div className="flex items-center gap-2 mb-3">
+                    <SvgIcon name="warning" size={18} color="var(--accent)" />
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">The Challenge</p>
                   </div>
-                  <p className="text-base leading-7 text-[var(--text-secondary)]">
+                  <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
                     {project.challenge || project.brief ||
                       'The project focused on improving trust signals, simplifying the customer journey, enhancing the mobile experience, and positioning the brand more professionally online.'}
                   </p>
                 </div>
 
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-                  <div className="mb-4 flex items-center gap-2">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-500/10">
-                      <SvgIcon name="check-circle" size={18} color="#10b981" />
-                    </div>
-                    <p className="text-xs font-black uppercase tracking-wider text-[var(--accent)]">The Solution</p>
+                  <div className="flex items-center gap-2 mb-3">
+                    <SvgIcon name="check-circle" size={18} color="var(--accent)" />
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">The Solution</p>
                   </div>
-                  <p className="text-base leading-7 text-[var(--text-secondary)]">
+                  <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
                     {project.solution ||
                       'A comprehensive digital strategy was implemented, focusing on conversion-centered design, improved user experience, and performance optimization.'}
                   </p>
@@ -211,100 +199,122 @@ export default async function PortfolioDetailPage({ params }: { params: { slug: 
           </section>
         )}
 
-        {/* Project Info Sidebar */}
-        <section className="px-5 py-16 sm:px-6 md:px-10 lg:px-12">
-          <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1fr_360px]">
-            {/* Results Section */}
-            <div>
-              <p className="mb-4 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">Results & Impact</p>
-              <h2 className="text-4xl font-black tracking-[-0.04em] text-[var(--text-primary)]">
-                Measurable <GradientHeading>outcomes.</GradientHeading>
-              </h2>
-              <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-                <p className="text-base leading-8 text-[var(--text-secondary)]">
-                  {project.results || project.results_summary ||
-                    'The project successfully improved brand perception, user engagement, conversion rates, and overall digital presence.'}
-                </p>
-              </div>
-
-              {/* Metrics Grid */}
-              {metrics.length > 0 && (
-                <div className="mt-8 grid gap-4 sm:grid-cols-2">
-                  {metrics.map((metric, index) => (
-                    <div key={index} className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
-                      <p className="text-2xl font-black text-[var(--accent)]">{metric.value}</p>
-                      <p className="mt-1 text-sm text-[var(--text-muted)]">{metric.label}</p>
-                    </div>
-                  ))}
+        {/* Results */}
+        <section className="px-5 py-12 sm:px-6 md:px-10 lg:px-12">
+          <div className="mx-auto max-w-7xl">
+            <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)] mb-2">Results & Impact</p>
+                <h2 className="text-3xl font-bold text-[var(--text-primary)]">
+                  Measurable <span className="text-[var(--accent)]">outcomes.</span>
+                </h2>
+                <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+                  <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                    {project.results || project.results_summary ||
+                      'The project successfully improved brand perception, user engagement, conversion rates, and overall digital presence.'}
+                  </p>
                 </div>
-              )}
-            </div>
 
-            {/* Sidebar Info */}
-            <aside className="space-y-5">
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-                <p className="mb-4 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">Project Details</p>
-                <div className="space-y-4">
-                  <InfoCard label="Industry" value={project.industry || 'E-Commerce'} />
-                  <InfoCard label="Project Type" value={project.project_type || 'Growth System'} />
-                  <InfoCard label="Technology" value={project.technology || 'Shopify'} />
-                  {project.website_url && <InfoCard label="Website" value={project.website_url} link={project.website_url} />}
-                </div>
-              </div>
-
-              {/* Technologies Used */}
-              {technologies.length > 0 && (
-                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-                  <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">Technologies Used</p>
-                  <div className="flex flex-wrap gap-2">
-                    {technologies.map((tech) => (
-                      <span key={tech} className="rounded-full border border-[var(--border)] bg-[var(--bg-section)] px-3 py-1 text-xs text-[var(--text-secondary)]">
-                        {tech}
-                      </span>
+                {metrics.length > 0 && (
+                  <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                    {metrics.map((metric, index) => (
+                      <div key={index} className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
+                        <p className="text-2xl font-bold text-[var(--accent)]">{metric.value}</p>
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">{metric.label}</p>
+                      </div>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
-              {/* Testimonial */}
-              {project.testimonial && (
-                <div className="rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-6">
-                  <SvgIcon name="quote" size={24} color="var(--accent)" className="mb-3" />
-                  <p className="text-sm italic text-[var(--text-secondary)]">"{project.testimonial}"</p>
-                  <p className="mt-3 text-xs font-bold text-[var(--accent)]">— {title}</p>
+              <aside className="space-y-4">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)] mb-3">Project Details</p>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase text-[var(--text-muted)]">Industry</p>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{project.industry || 'E-Commerce'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase text-[var(--text-muted)]">Project Type</p>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{project.project_type || 'Growth System'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase text-[var(--text-muted)]">Technology</p>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{project.technology || 'Shopify'}</p>
+                    </div>
+                    {project.website_url && (
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase text-[var(--text-muted)]">Website</p>
+                        <a href={project.website_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[var(--accent)] hover:underline break-all">
+                          {project.website_url.replace('https://', '').replace('http://', '')}
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </aside>
+
+                {technologies.length > 0 && (
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)] mb-3">Technologies Used</p>
+                    <div className="flex flex-wrap gap-2">
+                      {technologies.map((tech) => (
+                        <span key={tech} className="rounded-full bg-[var(--bg-section)] px-2.5 py-1 text-xs text-[var(--text-secondary)]">
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {project.testimonial && (
+                  <div className="rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-5">
+                    <SvgIcon name="quote" size={20} color="var(--accent)" className="mb-2" />
+                    <p className="text-sm italic text-[var(--text-secondary)]">"{project.testimonial}"</p>
+                    <p className="mt-2 text-xs font-bold text-[var(--accent)]">— {title}</p>
+                  </div>
+                )}
+              </aside>
+            </div>
           </div>
         </section>
 
-        {/* Before/After Section */}
+        {/* Before/After */}
         {project.is_before_after && project.before_image && project.after_image && (
-          <section className="px-5 py-16 sm:px-6 md:px-10 lg:px-12">
+          <section className="px-5 py-12 sm:px-6 md:px-10 lg:px-12">
             <div className="mx-auto max-w-7xl">
-              <p className="mb-4 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">Before & After</p>
-              <h2 className="text-4xl font-black tracking-[-0.04em] text-[var(--text-primary)]">
-                From outdated to <GradientHeading>premium.</GradientHeading>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)] mb-2">Before & After</p>
+              <h2 className="text-3xl font-bold text-[var(--text-primary)]">
+                From outdated to <span className="text-[var(--accent)]">premium.</span>
               </h2>
-              <div className="mt-8 grid gap-6 lg:grid-cols-2">
-                <BeforeAfterCard title="Before" image={project.before_image} />
-                <BeforeAfterCard title="After" image={project.after_image} highlight />
+              <div className="mt-8 grid gap-6 md:grid-cols-2">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-3">
+                  <p className="text-sm font-bold mb-2">Before</p>
+                  <img src={project.before_image} alt="Before" className="w-full rounded-xl" />
+                </div>
+                <div className="rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-bold">After</p>
+                    <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-bold text-white">Optimized</span>
+                  </div>
+                  <img src={project.after_image} alt="After" className="w-full rounded-xl" />
+                </div>
               </div>
             </div>
           </section>
         )}
 
-        {/* Gallery Section */}
+        {/* Gallery */}
         {gallery.length > 0 && (
-          <section className="px-5 py-16 sm:px-6 md:px-10 lg:px-12">
+          <section className="px-5 py-12 sm:px-6 md:px-10 lg:px-12">
             <div className="mx-auto max-w-7xl">
-              <p className="mb-4 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">Gallery</p>
-              <h2 className="text-4xl font-black tracking-[-0.04em] text-[var(--text-primary)]">
-                Project <GradientHeading>showcase.</GradientHeading>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)] mb-2">Gallery</p>
+              <h2 className="text-3xl font-bold text-[var(--text-primary)]">
+                Project <span className="text-[var(--accent)]">showcase.</span>
               </h2>
-              <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {gallery.map((image, index) => (
-                  <div key={index} className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-2 transition hover:shadow-lg">
+                  <div key={index} className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-2">
                     <img src={image} alt={`${title} showcase ${index + 1}`} className="w-full rounded-xl" />
                   </div>
                 ))}
@@ -315,25 +325,25 @@ export default async function PortfolioDetailPage({ params }: { params: { slug: 
 
         {/* Related Projects */}
         {relatedProjects.length > 0 && (
-          <section className="px-5 py-16 sm:px-6 md:px-10 lg:px-12">
+          <section className="px-5 py-12 sm:px-6 md:px-10 lg:px-12">
             <div className="mx-auto max-w-7xl">
-              <p className="mb-4 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">Related Work</p>
-              <h2 className="text-4xl font-black tracking-[-0.04em] text-[var(--text-primary)]">
-                More <GradientHeading>case studies.</GradientHeading>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)] mb-2">Related Work</p>
+              <h2 className="text-3xl font-bold text-[var(--text-primary)]">
+                More <span className="text-[var(--accent)]">case studies.</span>
               </h2>
               <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {relatedProjects.map((project) => (
-                  <Link key={project.id} href={`/portfolio/${project.slug}`} className="group overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] transition hover:-translate-y-1 hover:shadow-lg">
-                    <div className="aspect-video overflow-hidden">
+                {relatedProjects.map((related) => (
+                  <Link key={related.id} href={`/portfolio/${related.slug}`} className="group overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]">
+                    <div className="aspect-video overflow-hidden bg-[var(--bg-section)]">
                       <img
-                        src={project.featured_image || project.image_url || ''}
-                        alt={project.client_name || project.title || 'Project'}
+                        src={related.featured_image || related.image_url || ''}
+                        alt={related.client_name || related.title || 'Project'}
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                       />
                     </div>
                     <div className="p-4">
-                      <p className="text-sm font-bold text-[var(--accent)]">{project.category || 'Case Study'}</p>
-                      <h3 className="mt-1 font-black text-[var(--text-primary)]">{project.client_name || project.title}</h3>
+                      <p className="text-xs font-semibold text-[var(--accent)]">{related.category || 'Case Study'}</p>
+                      <h3 className="mt-1 font-bold text-[var(--text-primary)]">{related.client_name || related.title}</h3>
                     </div>
                   </Link>
                 ))}
@@ -342,21 +352,23 @@ export default async function PortfolioDetailPage({ params }: { params: { slug: 
           </section>
         )}
 
-        {/* Final CTA */}
-        <section className="px-5 pb-24 pt-10 sm:px-6 md:px-10 lg:px-12">
+        {/* CTA */}
+        <section className="px-5 pb-24 pt-12 sm:px-6 md:px-10 lg:px-12">
           <div className="mx-auto max-w-7xl">
-            <div className="overflow-hidden rounded-2xl border border-[var(--accent)]/20 bg-gradient-to-r from-[var(--accent)]/5 to-transparent p-8 text-center sm:p-12">
-              <p className="text-xs font-black uppercase tracking-wider text-[var(--accent)]">Ready for your transformation?</p>
-              <h2 className="mx-auto mt-4 max-w-2xl text-3xl font-black leading-tight text-[var(--text-primary)] sm:text-4xl">
+            <div className="rounded-2xl border border-[var(--accent)]/20 bg-[var(--bg-navy)] p-8 text-center sm:p-12">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">
+                Ready for your transformation?
+              </p>
+              <h2 className="mx-auto mt-4 max-w-2xl text-2xl sm:text-3xl font-bold text-white">
                 Let's create a digital experience that works harder for your business.
               </h2>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
-                <Link href="/contact" className="inline-flex min-h-[50px] items-center justify-center rounded-full bg-gradient-orange-green px-8 py-3 text-sm font-black text-white transition hover:scale-[1.02]">
+                <Button href="/contact" variant="cta" size="md">
                   Get Free Consultation
-                </Link>
-                <Link href="/portfolio" className="inline-flex min-h-[50px] items-center justify-center rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-8 py-3 text-sm font-black text-[var(--accent)] transition hover:bg-[var(--accent)]/15">
+                </Button>
+                <Button href="/portfolio" variant="outline-dark" size="md">
                   View More Projects
-                </Link>
+                </Button>
               </div>
             </div>
           </div>
@@ -365,32 +377,5 @@ export default async function PortfolioDetailPage({ params }: { params: { slug: 
 
       <Footer />
     </>
-  )
-}
-
-function InfoCard({ label, value, link }: { label: string; value: string; link?: string }) {
-  return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3">
-      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)]">{label}</p>
-      {link ? (
-        <a href={link} target="_blank" rel="noopener noreferrer" className="mt-1 block break-all text-sm font-bold text-[var(--accent)]">
-          {value}
-        </a>
-      ) : (
-        <p className="mt-1 text-sm font-bold text-[var(--text-primary)]">{value}</p>
-      )}
-    </div>
-  )
-}
-
-function BeforeAfterCard({ title, image, highlight = false }: { title: string; image: string; highlight?: boolean }) {
-  return (
-    <div className={`overflow-hidden rounded-2xl border p-3 transition hover:shadow-lg ${highlight ? 'border-[var(--accent)]/30 bg-[var(--accent)]/5' : 'border-[var(--border)] bg-[var(--bg-card)]'}`}>
-      <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-black uppercase tracking-[0.14em] text-[var(--text-primary)]">{title}</p>
-        {highlight && <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-black text-[var(--btn-primary-text)]">Optimized</span>}
-      </div>
-      <img src={image} alt={title} className="w-full rounded-xl" />
-    </div>
   )
 }

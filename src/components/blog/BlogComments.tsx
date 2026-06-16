@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import SvgIcon from '@/components/ui/SvgIcon'
+import Button from '@/components/ui/Button'
 
 interface Comment {
   id: string
@@ -60,7 +62,7 @@ export default function BlogComments({ postSlug }: BlogCommentsProps) {
       author_name: name.trim(),
       author_email: email.trim() || null,
       content: commentText.trim(),
-      is_approved: false, // Requires admin approval
+      is_approved: false,
     })
 
     if (error) {
@@ -80,13 +82,11 @@ export default function BlogComments({ postSlug }: BlogCommentsProps) {
 
   return (
     <section className="mt-16">
-      {/* Comment count */}
-      <h3 className="mb-6 flex items-center gap-2 text-xl font-black tracking-[-0.02em] text-[var(--text-primary)]">
-        <img src="/svgs/comment.svg" alt="" className="h-5 w-5 opacity-60" />
+      <h3 className="mb-6 flex items-center gap-2 text-xl font-bold tracking-[-0.02em] text-[var(--text-primary)]">
+        <SvgIcon name="comment" size={20} color="var(--text-muted)" />
         {commentCount > 0 ? `${commentCount} Comment${commentCount > 1 ? 's' : ''}` : 'Comments'}
       </h3>
 
-      {/* Approved comments */}
       {loading ? (
         <div className="space-y-4">
           {[1, 2].map((i) => (
@@ -101,7 +101,7 @@ export default function BlogComments({ postSlug }: BlogCommentsProps) {
               className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#07111F] text-xs font-black text-[#39D97A]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--bg-navy)] text-xs font-bold text-[var(--accent)]">
                   {(comment.author_name || 'A').charAt(0).toUpperCase()}
                 </div>
                 <div>
@@ -131,7 +131,6 @@ export default function BlogComments({ postSlug }: BlogCommentsProps) {
         </p>
       )}
 
-      {/* Comment form */}
       <div className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
         <h4 className="mb-1 text-lg font-bold text-[var(--text-primary)]">Leave a comment</h4>
         <p className="mb-5 text-xs text-[var(--text-muted)]">
@@ -149,7 +148,7 @@ export default function BlogComments({ postSlug }: BlogCommentsProps) {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your name"
                 required
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[#39D97A]"
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
               />
             </div>
             <div>
@@ -161,7 +160,7 @@ export default function BlogComments({ postSlug }: BlogCommentsProps) {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
                 type="email"
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[#39D97A]"
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
               />
             </div>
           </div>
@@ -176,23 +175,24 @@ export default function BlogComments({ postSlug }: BlogCommentsProps) {
               placeholder="Share your thoughts..."
               rows={4}
               required
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[#39D97A]"
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
             />
           </div>
 
           <div className="flex items-center gap-4">
-            <button
+            <Button
               type="submit"
               disabled={submitStatus === 'submitting'}
-              className="rounded-full bg-[#39D97A] px-6 py-2.5 text-sm font-black text-[#07111F] transition hover:scale-[1.02] disabled:opacity-60"
+              variant="cta"
+              size="md"
             >
               {submitStatus === 'submitting' ? 'Posting...' : 'Post comment'}
-            </button>
+            </Button>
 
             {submitMessage && (
               <p
                 className={`text-sm font-semibold ${
-                  submitStatus === 'success' ? 'text-[#39D97A]' : 'text-red-400'
+                  submitStatus === 'success' ? 'text-[var(--accent)]' : 'text-red-400'
                 }`}
               >
                 {submitMessage}

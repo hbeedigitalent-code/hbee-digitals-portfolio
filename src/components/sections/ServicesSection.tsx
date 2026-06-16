@@ -1,155 +1,229 @@
 'use client'
 
 import Link from 'next/link'
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion } from 'framer-motion'
+import { supabase } from '@/lib/supabase'
+import { useEffect, useState } from 'react'
 import SvgIcon from '@/components/ui/SvgIcon'
-import GradientHeading from '@/components/ui/GradientHeading'
 
-interface ServiceItem {
+interface Service {
   id: string
   title: string
-  slug?: string
-  description?: string
+  description: string
   short_description?: string
-  icon?: string
-  timeline?: string
-  starting_price?: string
+  full_description?: string
+  icon: string
+  slug: string
+  is_active: boolean
+  display_order: number
 }
 
-interface ServiceSectionProps {
-  services: ServiceItem[]
+interface ServicesSectionProps {
+  services?: Service[]
   title?: string
   subtitle?: string
-  limit?: number
 }
 
-function cleanIcon(icon?: string, title?: string) {
-  const source = icon || title || 'services'
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.06,
+      delayChildren: 0.1,
+    },
+  },
+}
 
-  const cleaned = source
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+}
 
-  if (cleaned.includes('ecommerce') || cleaned.includes('commerce') || cleaned.includes('shopify')) return 'ecommerce'
+const fallbackServices: Service[] = [
+  { id: '1', title: 'Web Development', description: 'Modern, responsive websites built with cutting-edge technology.', short_description: 'Modern, responsive websites built with cutting-edge technology.', icon: 'web-development', slug: 'web-development', is_active: true, display_order: 1 },
+  { id: '2', title: 'UI/UX Design', description: 'Beautiful, intuitive interfaces that users love.', short_description: 'Beautiful, intuitive interfaces that users love.', icon: 'ui-ux', slug: 'ui-ux-design', is_active: true, display_order: 2 },
+  { id: '3', title: 'E-Commerce Solutions', description: 'Complete online store solutions with seamless user experiences.', short_description: 'Complete online store solutions.', icon: 'ecommerce', slug: 'ecommerce', is_active: true, display_order: 3 },
+  { id: '4', title: 'Digital Marketing', description: 'Data-driven marketing strategies that deliver results.', short_description: 'Data-driven marketing strategies.', icon: 'digital-marketing', slug: 'digital-marketing', is_active: true, display_order: 4 },
+  { id: '5', title: 'Brand Strategy', description: 'Comprehensive branding solutions for strong market presence.', short_description: 'Comprehensive branding solutions.', icon: 'branding', slug: 'brand-strategy', is_active: true, display_order: 5 },
+  { id: '6', title: 'SEO Optimization', description: 'Improve search rankings and drive organic traffic.', short_description: 'Improve search rankings and drive organic traffic.', icon: 'seo', slug: 'seo', is_active: true, display_order: 6 },
+  { id: '7', title: 'PPC Management', description: 'Data-driven ad campaigns for maximum ROI.', short_description: 'Data-driven ad campaigns for maximum ROI.', icon: 'ppc', slug: 'ppc', is_active: true, display_order: 7 },
+  { id: '8', title: 'Technical Consulting', description: 'Expert guidance on technology stack and architecture.', short_description: 'Expert guidance on technology stack.', icon: 'consulting', slug: 'technical-consulting', is_active: true, display_order: 8 },
+  { id: '9', title: 'Maintenance & Support', description: 'Ongoing maintenance, security updates, and performance optimization.', short_description: 'Ongoing maintenance and support.', icon: 'support', slug: 'maintenance', is_active: true, display_order: 9 },
+]
+
+function cleanIconName(icon?: string): string {
+  if (!icon) return 'services'
+  const cleaned = icon.toLowerCase().trim()
+  if (cleaned.includes('web')) return 'web-development'
+  if (cleaned.includes('ecom')) return 'ecommerce'
   if (cleaned.includes('ui') || cleaned.includes('ux')) return 'ui-ux'
-  if (cleaned.includes('marketing')) return 'digital-marketing'
+  if (cleaned.includes('market')) return 'digital-marketing'
   if (cleaned.includes('brand')) return 'branding'
-  if (cleaned.includes('web') || cleaned.includes('site')) return 'web-development'
   if (cleaned.includes('consult')) return 'consulting'
-
-  return cleaned || 'services'
+  if (cleaned.includes('seo')) return 'seo'
+  if (cleaned.includes('ppc')) return 'google-analytics'
+  if (cleaned.includes('social')) return 'instagram'
+  if (cleaned.includes('maintenance')) return 'support'
+  if (cleaned.includes('migration')) return 'migration'
+  if (cleaned.includes('design')) return 'design'
+  return cleaned
 }
 
-export default function ServiceSection({ 
-  services, 
-  title = "Services we offer", 
-  subtitle = "Premium digital growth systems designed to improve trust, conversion, and long-term performance.",
-  limit = 6 
-}: ServiceSectionProps) {
-  const reducedMotion = useReducedMotion()
-  
-  if (!services?.length) return null
+export default function ServicesSection({ 
+  services: propServices, 
+  title = "Customized Solutions for Every Stage of Your Digital Growth Journey",
+  subtitle = "Unlock the full potential of your ecommerce venture with our comprehensive suite of services tailored to your business needs."
+}: ServicesSectionProps) {
+  const [services, setServices] = useState<Service[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const displayServices = services.slice(0, limit)
+  useEffect(() => {
+    async function fetchServices() {
+      try {
+        const { data, error } = await supabase
+          .from('services')
+          .select('*')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true })
+
+        if (!error && data && data.length > 0) {
+          setServices(data)
+        } else if (propServices && propServices.length > 0) {
+          setServices(propServices)
+        } else {
+          setServices(fallbackServices)
+        }
+      } catch (err) {
+        console.error('Error fetching services:', err)
+        setServices(fallbackServices)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (propServices && propServices.length > 0) {
+      setServices(propServices)
+      setLoading(false)
+    } else {
+      fetchServices()
+    }
+  }, [propServices])
+
+  if (loading) {
+    return (
+      <section className="relative w-full bg-[var(--bg-navy)]">
+        <div className="mx-auto max-w-7xl px-5 sm:px-6 md:px-8 py-16 md:py-20">
+          <div className="text-center mb-10">
+            <div className="h-6 w-32 animate-pulse rounded-full bg-[var(--accent-orange)]/20 mx-auto mb-3" />
+            <div className="h-8 w-3/4 animate-pulse rounded-lg bg-[var(--accent-orange)]/20 mx-auto mb-3" />
+            <div className="h-4 w-1/2 animate-pulse rounded-lg bg-[var(--accent-orange)]/20 mx-auto" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="p-5 rounded-xl bg-[var(--bg-navy-mid)]/50 animate-pulse">
+                <div className="w-12 h-12 rounded-lg bg-[var(--accent-orange)]/20 mb-4" />
+                <div className="h-6 w-3/4 rounded-lg bg-[var(--accent-orange)]/20 mb-2" />
+                <div className="h-16 w-full rounded-lg bg-[var(--accent-orange)]/20" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  const displayServices = services.length > 0 ? services : fallbackServices
 
   return (
-    <section className="relative overflow-hidden bg-[var(--bg-page)] py-16 text-[var(--text-primary)] sm:py-20 lg:py-24">
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute left-0 top-20 h-[320px] w-[420px] rounded-full bg-[var(--accent)]/8 blur-[120px]" />
-        <div className="absolute bottom-0 right-0 h-[280px] w-[360px] rounded-full bg-[var(--accent-lime)]/6 blur-[100px]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(57,217,122,0.018)_1px,transparent_1px),linear-gradient(90deg,rgba(57,217,122,0.018)_1px,transparent_1px)] bg-[size:82px_82px] opacity-20" />
+    <section className="relative w-full bg-[var(--bg-navy)]">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -left-40 w-80 h-80 rounded-full bg-[var(--accent-orange)]/8 blur-[100px]" />
+        <div className="absolute -bottom-40 -right-40 w-80 h-80 rounded-full bg-[var(--accent-orange)]/8 blur-[100px]" />
       </div>
 
-      <div className="mx-auto max-w-7xl px-5 sm:px-6 md:px-10 lg:px-12">
+      <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-6 md:px-8 py-16 md:py-20 lg:py-24">
         <motion.div
-          initial={reducedMotion ? false : { opacity: 0, y: 18 }}
+          initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.42 }}
           viewport={{ once: true }}
-          className="mb-12 max-w-4xl"
+          transition={{ duration: 0.4 }}
+          className="text-center mb-10 md:mb-12"
         >
-          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/18 bg-[var(--accent)]/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
-            <SvgIcon name="services" size={14} color="var(--accent)" />
-            What We Do
-          </p>
-
-          <h2 className="text-4xl font-black leading-[0.96] tracking-[-0.055em] text-[var(--text-primary)] sm:text-5xl md:text-6xl">
-            {title} <GradientHeading>premium execution.</GradientHeading>
+          <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent-orange)]/10 px-3 py-1 mb-3">
+            <span className="text-[10px] font-semibold text-[var(--accent-orange)] uppercase tracking-wider">
+              SERVICES OVERVIEW
+            </span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 max-w-4xl mx-auto">
+            {title}
           </h2>
-
-          <p className="mt-6 max-w-2xl text-sm leading-8 text-[var(--text-secondary)] sm:text-base">
+          <p className="text-sm md:text-base text-[var(--text-on-dark-muted)] max-w-2xl mx-auto">
             {subtitle}
           </p>
         </motion.div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {displayServices.map((service, index) => {
-            const icon = cleanIcon(service.icon, service.title)
-
+        {/* 3 columns on desktop, 2 on tablet, 1 on mobile */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+        >
+          {displayServices.map((service) => {
+            const href = service.slug ? `/services/${service.slug}` : `/services/${service.title.toLowerCase().replace(/ /g, '-')}`
+            const iconName = cleanIconName(service.icon || service.title)
+            
             return (
               <motion.div
                 key={service.id}
-                initial={reducedMotion ? false : { opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.05 }}
-                viewport={{ once: true }}
+                variants={itemVariants}
+                className="group p-5 rounded-xl bg-[var(--bg-navy-mid)]/50 border border-[var(--border)]/20 transition-all duration-300 hover:border-[var(--accent-orange)]/30 hover:bg-[var(--bg-navy-mid)]"
               >
-                <Link
-                  href={service.slug ? `/services/${service.slug}` : '/services'}
-                  className="group block h-full rounded-[1.8rem] border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-[var(--accent)]/25 hover:shadow-[var(--shadow-md)]"
-                >
-                  <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--accent)]/18 bg-[var(--accent)]/10 transition group-hover:scale-105">
-                    <SvgIcon name={icon} size={26} color="var(--accent)" />
+                <Link href={href}>
+                  <div className="w-12 h-12 rounded-lg bg-[var(--accent-orange)]/10 flex items-center justify-center mb-4 transition-all duration-300 group-hover:scale-105 group-hover:bg-[var(--accent-orange)]/20">
+                    <SvgIcon name={iconName} size={24} color="var(--accent-orange)" />
                   </div>
+                </Link>
 
-                  <h3 className="text-xl font-black leading-tight tracking-[-0.03em] text-[var(--text-primary)]">
+                <Link href={href}>
+                  <h3 className="text-lg font-bold text-white mb-2 transition-all duration-300 group-hover:text-[var(--accent-orange)]">
                     {service.title}
                   </h3>
+                </Link>
 
-                  <p className="mt-3 text-sm leading-7 text-[var(--text-secondary)]">
-                    {service.short_description || service.description || 'A premium digital growth system designed for performance.'}
-                  </p>
+                <p className="text-[var(--text-on-dark-muted)] text-sm leading-relaxed mb-4 line-clamp-3">
+                  {service.full_description || service.description || service.short_description}
+                </p>
 
-                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-                    <div className="inline-flex items-center gap-2 text-sm font-black text-[var(--accent)] transition group-hover:gap-3">
-                      Learn More
-                      <SvgIcon name="arrow-diagonal" size={14} color="var(--accent)" />
-                    </div>
-
-                    {(service.timeline || service.starting_price) && (
-                      <div className="flex gap-2">
-                        {service.timeline && (
-                          <span className="rounded-full border border-[var(--accent)]/16 bg-[var(--accent)]/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-[var(--accent)]">
-                            {service.timeline}
-                          </span>
-                        )}
-                        {service.starting_price && (
-                          <span className="rounded-full border border-[var(--border)] bg-[var(--bg-section)] px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-[var(--text-muted)]">
-                            {service.starting_price}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                <Link
+                  href={href}
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--accent-orange)] transition-all duration-300 group-hover:gap-2"
+                >
+                  Learn More
+                  <SvgIcon name="arrow-right" size={12} color="var(--accent-orange)" />
                 </Link>
               </motion.div>
             )
           })}
-        </div>
+        </motion.div>
 
-        {/* View All Services Link */}
-        {services.length > limit && (
-          <div className="mt-12 text-center">
-            <Link
-              href="/services"
-              className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-8 py-3 text-sm font-black text-[var(--text-primary)] transition hover:border-[var(--accent)]/25 hover:bg-[var(--bg-card-hover)]"
-            >
-              View All Services
-              <SvgIcon name="arrow-diagonal" size={15} color="var(--accent)" />
-            </Link>
-          </div>
-        )}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="text-center mt-10"
+        >
+          <Link
+            href="/services"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-[var(--border)] text-[var(--text-on-dark-muted)] font-medium text-sm transition-all duration-300 hover:border-[var(--accent-orange)] hover:text-[var(--accent-orange)] hover:bg-[var(--accent-orange)]/10"
+          >
+            View All Services
+            <SvgIcon name="arrow-right" size={12} color="var(--accent-orange)" />
+          </Link>
+        </motion.div>
       </div>
     </section>
   )

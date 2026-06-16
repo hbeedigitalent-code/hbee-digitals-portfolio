@@ -1,5 +1,7 @@
+// src/components/home/BeforeAfterPreview.tsx
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
+import BeforeAfterSlider from '@/components/ui/BeforeAfterSlider'
 
 interface BeforeAfterItem {
   id: string
@@ -22,11 +24,11 @@ function getMetric(item: BeforeAfterItem) {
   if (item.metric_value && item.metric_label) {
     return `${item.metric_value} ${item.metric_label}`
   }
-
   return item.metric_value || 'Growth'
 }
 
 export default function BeforeAfterPreview({ items = [] }: { items?: BeforeAfterItem[] }) {
+  // Find first item that has BOTH before and after images
   const item = items.find((project) => project.before_image && project.after_image)
 
   if (!item) return null
@@ -82,68 +84,22 @@ export default function BeforeAfterPreview({ items = [] }: { items?: BeforeAfter
 
             <Link
               href={item.slug ? `/portfolio/${item.slug}` : '/portfolio'}
-              className="inline-flex min-h-[50px] w-fit items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:bg-[var(--accent-lime)]"
+              className="inline-flex min-h-[50px] w-fit items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-black text-white transition hover:bg-[var(--accent-lime)]"
             >
               View Case Study
-              <SvgIcon name="arrow-diagonal" size={15} color="var(--btn-primary-text)" />
+              <SvgIcon name="arrow-diagonal" size={15} color="white" />
             </Link>
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
-            <PreviewCard title="Before" image={item.before_image} />
-
-            <div className="hidden h-16 w-16 items-center justify-center rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 lg:flex">
-              <SvgIcon name="arrow-right" size={26} color="var(--accent)" />
-            </div>
-
-            <PreviewCard title="After" image={item.after_image} highlight />
-          </div>
+          {/* Interactive Before/After Slider */}
+          <BeforeAfterSlider
+            beforeImage={item.before_image || ''}
+            afterImage={item.after_image || ''}
+            beforeLabel="BEFORE"
+            afterLabel="AFTER"
+          />
         </div>
       </div>
     </section>
-  )
-}
-
-function PreviewCard({
-  title,
-  image,
-  highlight = false,
-}: {
-  title: string
-  image?: string
-  highlight?: boolean
-}) {
-  return (
-    <div
-      className={`overflow-hidden rounded-[2rem] border p-3 ${
-        highlight
-          ? 'border-[var(--accent)]/30 bg-[var(--accent)]/10'
-          : 'border-[var(--border)] bg-[var(--bg-section)]'
-      }`}
-    >
-      <div className="mb-4 flex items-center justify-between px-2 pt-2">
-        <p className="text-sm font-black uppercase tracking-[0.16em] text-[var(--text-primary)]">
-          {title}
-        </p>
-
-        {highlight && (
-          <span className="rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--btn-primary-text)]">
-            Optimized
-          </span>
-        )}
-      </div>
-
-      {image ? (
-        <img
-          src={image}
-          alt={`${title} website preview`}
-          className="aspect-[4/3] w-full rounded-[1.5rem] object-cover"
-        />
-      ) : (
-        <div className="flex aspect-[4/3] items-center justify-center rounded-[1.5rem] bg-[var(--bg-card)]">
-          <SvgIcon name="portfolio" size={54} color="var(--accent)" />
-        </div>
-      )}
-    </div>
   )
 }

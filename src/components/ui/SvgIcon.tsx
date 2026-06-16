@@ -1,6 +1,6 @@
 'use client'
 
-import { memo } from 'react'
+import { memo, useState, useEffect } from 'react'
 
 interface SvgIconProps {
   name: string
@@ -9,168 +9,202 @@ interface SvgIconProps {
   className?: string
 }
 
-const iconPaths: Record<string, string> = {
-  // Navigation
-  'arrow-diagonal': 'M7 17L17 7M17 7H7M17 7V17',
-  'arrow-right': 'M5 12h14M12 5l7 7-7 7',
-  'chevron-down': 'M6 9l6 6 6-6',
-  'chevron-left': 'M15 18l-6-6 6-6',
-  'chevron-right': 'M9 18l6-6-6-6',
-  'chevron-up': 'M18 15l-6-6-6 6',
-  menu: 'M4 6h16M4 12h16M4 18h16',
-  close: 'M18 6L6 18M6 6l12 12',
-  search: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
+// Map of icon names to their file paths
+const getIconPath = (name: string): string => {
+  const normalizedName = name.toLowerCase().trim()
+  
+  const iconMap: Record<string, string> = {
+    // Navigation
+    'arrow-right': '/svgs/arrow-right.svg',
+    'arrow-diagonal': '/svgs/arrow-diagonal.svg',
+    'chevron-down': '/svgs/chevron-down.svg',
+    'chevron-left': '/svgs/chevron-left.svg',
+    'chevron-right': '/svgs/chevron-right.svg',
+    'chevron-up': '/svgs/chevron-up.svg',
+    'close': '/svgs/close.svg',
+    'menu': '/svgs/menu.svg',
+    'search': '/svgs/search.svg',
+    
+    // Social
+    'facebook': '/svgs/facebook.svg',
+    'twitter': '/svgs/twitter.svg',
+    'instagram': '/svgs/instagram.svg',
+    'linkedin': '/svgs/linkedin.svg',
+    'whatsapp': '/svgs/whatsapp.svg',
+    'telegram': '/svgs/telegram.svg',
+    'github': '/svgs/github.svg.png',
+    
+    // Trust/Status
+    'verified': '/svgs/verified.svg',
+    'star': '/svgs/star.svg',
+    'security': '/svgs/security.svg',
+    'shield': '/svgs/security.svg',
+    'check-circle': '/svgs/verified.svg',
+    
+    // Communication
+    'email': '/svgs/email.svg',
+    'phone': '/svgs/phone.svg',
+    'location': '/svgs/location.svg',
+    'calendar': '/svgs/calendar.svg',
+    'clock': '/svgs/clock.svg',
+    'user': '/svgs/user.svg',
+    'users': '/svgs/team.svg',
+    'team': '/svgs/team.svg',
+    'support': '/svgs/support.svg',
+    'chat': '/svgs/chat.svg',
+    'chat-support': '/svgs/chat-support.svg',
+    'messages': '/svgs/messages.svg',
+    'notification': '/svgs/notification.svg',
+    
+    // Admin/Settings
+    'settings': '/svgs/settings.svg',
+    'dashboard': '/svgs/dashboard.svg',
+    'profile': '/svgs/profile.svg',
+    'logout': '/svgs/logout.svg',
+    
+    // Content
+    'portfolio': '/svgs/portfolio.svg',
+    'blog': '/svgs/blog.svg',
+    'faq': '/svgs/faq.svg',
+    'pricing': '/svgs/pricing.svg',
+    'services': '/svgs/services.svg',
+    'about': '/svgs/about.svg',
+    'home': '/svgs/logo.svg',
+    'logo': '/svgs/logo.svg',
+    
+    // Performance/Growth
+    'growth': '/svgs/growth.svg',
+    'analytics': '/svgs/analytics.svg',
+    'performance': '/svgs/performance.svg',
+    'precision': '/svgs/precision.svg',
+    'strategy': '/svgs/strategy.svg',
+    'innovation': '/svgs/innovation.svg',
+    'rocket': '/svgs/rocket.svg',
+    
+    // Media
+    'play': '/svgs/play.svg',
+    'pause': '/svgs/pause.svg',
+    'video': '/svgs/video.svg',
+    'image': '/svgs/image.svg',
+    
+    // Actions
+    'link': '/svgs/link.svg',
+    'external': '/svgs/external.svg',
+    'download': '/svgs/download.svg',
+    'upload': '/svgs/upload.svg',
+    'copy': '/svgs/copy.svg',
+    'edit': '/svgs/edit.svg',
+    'trash': '/svgs/trash.svg',
+    'plus': '/svgs/plus.svg',
+    'minus': '/svgs/minus.svg',
+    'check': '/svgs/check.svg',
+    'x': '/svgs/x-close.svg',
+    'x-close': '/svgs/x-close.svg',
+    
+    // Service icons
+    'web-development': '/svgs/web-development.svg',
+    'ecommerce': '/svgs/ecommerce.svg',
+    'digital-marketing': '/svgs/digital-marketing.svg',
+    'branding': '/svgs/branding.svg',
+    'consulting': '/svgs/consulting.svg',
+    'ui-ux': '/svgs/ui-ux.svg',
+    'seo': '/svgs/seo.svg',
+    'ppc': '/svgs/google-analytics.svg',
+    'social': '/svgs/instagram.svg',
+    'maintenance': '/svgs/support.svg',
+    'migration': '/svgs/migration.svg',
+    'development': '/svgs/web-development.svg',
+    'design': '/svgs/design.svg',
+    
+    // Technology
+    'shopify': '/svgs/shopify.svg',
+    'google': '/svgs/google.svg.png',
+    'meta': '/svgs/meta.svg',
+    'klaviyo': '/svgs/klaviyo.svg',
+    'stripe': '/svgs/stripe.svg',
+    'vercel': '/svgs/vercel.svg',
+    'nextjs': '/svgs/nextjs.svg',
+    'supabase': '/svgs/supabase.svg',
+    'wordpress': '/svgs/wordpress.svg',
+    'woocommerce': '/svgs/Woo_Commerce.svg',
+    'wix': '/svgs/Wix.svg.png',
+    'magento': '/svgs/Magento.svg',
+    'bigcommerce': '/svgs/Big_Commerce.svg',
+    'volusion': '/svgs/Volusion.svg',
+    'opencart': '/svgs/Opencart.svg.svg',
+    'amazon': '/svgs/Amazon.svg',
+    
+    // Extra icons
+    'warning': '/svgs/warning.svg',
+    'quote': '/svgs/quote.svg',
+    'newsletter': '/svgs/newsletter.svg',
+    'comment': '/svgs/comment.svg',
+  }
+  
+  return iconMap[normalizedName] || `/svgs/${normalizedName}.svg`
+}
 
-  // Social
-  facebook: 'M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z',
-  twitter: 'M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z',
-  instagram: 'M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37zm1.5-4.87h.01M7.5 3h9a4.5 4.5 0 014.5 4.5v9a4.5 4.5 0 01-4.5 4.5h-9A4.5 4.5 0 013 16.5v-9A4.5 4.5 0 017.5 3z',
-  linkedin: 'M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2zM4 6a2 2 0 100-4 2 2 0 000 4z',
-  github: 'M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22',
-  telegram: 'M21.2 3.2L2.4 11c-1.6.7-1.5 1.6-.3 2l4.8 1.5 11-7c.5-.4 1-.2.6.2l-9 8.2-.3 4.4c.4 0 .6-.2.8-.4l2-2 4.8 3.5c.9.5 1.5.2 1.7-.8l3.2-15c.3-1.3-.5-1.9-1.3-1.5z',
-
-  // Categories
-  portfolio: 'M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z',
-  ecommerce: 'M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0',
-  'web-development': 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
-  branding: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
-  marketing: 'M11 5.08V2M5 11.08V8M17 11.08V8M9 17.08V14M15 17.08V14M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z',
-  consulting: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75',
-  'ui-ux': 'M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5zM2 2l7.586 7.586',
-  'digital-marketing': 'M22 12h-4l-3 9L9 3l-3 9H2',
-
-  // Trust / Status
-  verified: 'M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3',
-  star: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
-  security: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
-  shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
-  award: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
-  'check-circle': 'M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3',
-  check: 'M20 6L9 17l-5-5',
-
-  // Actions
-  rocket: 'M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09zM12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2zM9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5',
-  growth: 'M23 6l-9.5 9.5-5-5L1 18M17 6h6v6',
-  analytics: 'M18 20V10M12 20V4M6 20v-6M3 20h18',
-  performance: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z',
-  precision: 'M12 2a10 10 0 1010 10A10 10 0 0012 2zm0 18a8 8 0 118-8 8 8 0 01-8 8zm1-8h3v2h-5V7h2z',
-  strategy: 'M8 5a2 2 0 012-2h4a2 2 0 012 2v4a2 2 0 01-2 2h-4a2 2 0 01-2-2V5zM6 15a2 2 0 012-2h4a2 2 0 012 2v4a2 2 0 01-2 2h-4a2 2 0 01-2-2v-4zM14 15a2 2 0 012-2h4a2 2 0 012 2v4a2 2 0 01-2 2h-4a2 2 0 01-2-2v-4z',
-  innovation: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z',
-
-  // Communication
-  messages: 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',
-  email: 'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM22 6l-10 7L2 6',
-  phone: 'M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z',
-  notification: 'M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0',
-  chat: 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',
-
-  // Content
-  quote: 'M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3',
-  play: 'M5 3l14 9-14 9V3z',
-  pause: 'M6 4h4v16H6zM14 4h4v16h-4z',
-  video: 'M23 7l-7 5 7 5V7zM1 7v14h14V7H1z',
-  image: 'M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2zM8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM21 15l-5-5-7 7',
-
-  // Misc (existing)
-  settings: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z',
-  dashboard: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
-  profile: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z',
-  user: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z',
-  team: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75',
-  support: 'M18 18.72a9.094 9.094 0 003.24-.92M15 21H3v-1a6 6 0 0112 0v1zM21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-  help: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01',
-  info: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 16v-4M12 8h.01',
-  warning: 'M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01',
-  error: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM15 9l-6 6M9 9l6 6',
-  calendar: 'M19 4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zM16 2v4M8 2v4M3 10h18',
-  location: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 7a3 3 0 110 6 3 3 0 010-6z',
-  globe: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z',
-  link: 'M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71',
-  download: 'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3',
-  upload: 'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12',
-  external: 'M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3',
-  copy: 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2M16 8h6v12a2 2 0 01-2 2h-8a2 2 0 01-2-2V8h2z',
-  edit: 'M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z',
-  trash: 'M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2',
-  plus: 'M12 5v14M5 12h14',
-  minus: 'M5 12h14',
-  more: 'M12 13a1 1 0 100-2 1 1 0 000 2zM19 13a1 1 0 100-2 1 1 0 000 2zM5 13a1 1 0 100-2 1 1 0 000 2z',
-  filter: 'M22 3H2l8 9.46V19l4 2v-8.54L22 3z',
-  sort: 'M11 5h10M11 12h7M11 19h4M3 5l2 2 2-2M3 12l2 2 2-2M3 19l2 2 2-2',
-  heart: 'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z',
-  bookmark: 'M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z',
-  tag: 'M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01',
-  folder: 'M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z',
-  file: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8',
-  home: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2zM9 22V12h6v10',
-  blog: 'M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2zM22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z',
-  newsletter: 'M21.5 12l-8 5-8-5M3 5h18a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V7a2 2 0 012-2z',
-  faq: 'M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10z',
-  cta: 'M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5',
-  systems: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z',
-  footer: 'M3 3h18v18H3zM3 9h18M9 21V9',
-
-  // New icons (without duplicates)
-  'clock': 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 6v6l4 2',
-  'chart': 'M3 3v18h18M18 17V9M12 17V5M6 17v-4',
-  'users': 'M12 4a4 4 0 100 8 4 4 0 000-8zM12 14c-4 0-8 2-8 6h16c0-4-4-6-8-6z',
-  'refresh': 'M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15',
-  'logout': 'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9',
-  'camera': 'M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2zM12 13a3 3 0 100-6 3 3 0 000 6z',
-  'trending-up': 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6',
-  'trending-down': 'M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6',
-  'arrow-left': 'M19 12H5M12 19l-7-7 7-7',
+// Helper to apply color filter to SVG
+const getColorFilter = (color: string): string => {
+  if (!color || color === 'currentColor' || color === 'white' || color === '#ffffff' || color === 'var(--accent)') {
+    return 'none'
+  }
+  
+  // Handle CSS variable colors
+  if (color.includes('var(--accent)')) {
+    return 'brightness(0) saturate(100%) invert(53%) sepia(98%) saturate(1236%) hue-rotate(1deg) brightness(102%) contrast(101%)'
+  }
+  if (color === '#2563EB' || color === 'blue') {
+    return 'brightness(0) saturate(100%) invert(31%) sepia(98%) saturate(1248%) hue-rotate(199deg) brightness(93%) contrast(101%)'
+  }
+  if (color === '#F97316' || color === 'orange') {
+    return 'brightness(0) saturate(100%) invert(53%) sepia(98%) saturate(1236%) hue-rotate(1deg) brightness(102%) contrast(101%)'
+  }
+  
+  return 'none'
 }
 
 function SvgIcon({ name, size = 20, color = 'currentColor', className = '' }: SvgIconProps) {
-  const pathD = iconPaths[name]
+  const [imgError, setImgError] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const iconPath = getIconPath(name)
 
-  if (!pathD) {
-    // Fallback: return a circle with first letter using CSS variable for color
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Don't render during SSR to prevent hydration mismatch
+  if (!mounted) {
     return (
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-        aria-hidden="true"
-      >
-        <circle cx="12" cy="12" r="10" stroke={color} />
-        <text
-          x="12"
-          y="16"
-          textAnchor="middle"
-          fill={color}
-          stroke="none"
-          fontSize="10"
-          fontWeight="bold"
-        >
-          {name.charAt(0).toUpperCase()}
-        </text>
-      </svg>
+      <div 
+        style={{ width: size, height: size }} 
+        className={`inline-block ${className}`}
+      />
+    )
+  }
+
+  // If image fails to load, return null (no fallback circle)
+  if (imgError) {
+    return (
+      <div 
+        style={{ width: size, height: size }} 
+        className={`inline-block ${className}`}
+      />
     )
   }
 
   return (
-    <svg
+    <img
+      src={iconPath}
+      alt={name}
       width={size}
       height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d={pathD} />
-    </svg>
+      className={`object-contain ${className}`}
+      style={{ 
+        filter: getColorFilter(color)
+      }}
+      onError={() => setImgError(true)}
+    />
   )
 }
 

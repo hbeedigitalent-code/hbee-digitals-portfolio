@@ -1,18 +1,16 @@
+// src/app/before-after/page.tsx
+'use client'
+
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import SvgIcon from '@/components/ui/SvgIcon'
-import GradientHeading from '@/components/ui/GradientHeading'
-
-export const metadata = {
-  title: 'Before & After Web Designs | Hbee Digitals',
-  description:
-    'See website and ecommerce transformations by Hbee Digitals, from outdated layouts to premium conversion-focused digital systems.',
-}
-
-export const revalidate = 60
+import BeforeAfterSlider from '@/components/ui/BeforeAfterSlider'
+import { fadeUp, staggerContainer, staggerItem } from '@/lib/animations'
 
 interface PortfolioItem {
   id: string
@@ -30,15 +28,48 @@ interface PortfolioItem {
   results_summary?: string
 }
 
-export default async function BeforeAfterPage() {
-  const { data: projects } = await supabase
-    .from('portfolio_items')
-    .select('*')
-    .eq('is_active', true)
-    .eq('is_before_after', true)
-    .order('display_order', { ascending: true })
+export default function BeforeAfterPage() {
+  const [items, setItems] = useState<PortfolioItem[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const items = projects || []
+  useEffect(() => {
+    async function fetchProjects() {
+      const { data: projects } = await supabase
+        .from('portfolio_items')
+        .select('*')
+        .eq('is_active', true)
+        .eq('is_before_after', true)
+        .order('display_order', { ascending: true })
+
+      setItems(projects || [])
+      setLoading(false)
+    }
+
+    fetchProjects()
+  }, [])
+
+  const getTitle = (item: PortfolioItem) => {
+    return item.client_name || item.title || item.name || 'Project Transformation'
+  }
+
+  const getMetric = (item: PortfolioItem) => {
+    if (item.metric_value && item.metric_label) {
+      return `${item.metric_value} ${item.metric_label}`
+    }
+    return item.metric_value || 'Growth'
+  }
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen flex items-center justify-center bg-[var(--bg-page)]">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-[var(--accent)] border-t-transparent" />
+        </div>
+        <Footer />
+      </>
+    )
+  }
 
   return (
     <>
@@ -53,53 +84,63 @@ export default async function BeforeAfterPage() {
         </div>
 
         {/* Hero Section */}
-        <section className="px-5 py-16 sm:px-6 md:px-10 lg:px-12">
+        <motion.section
+          initial="initial"
+          animate="animate"
+          variants={staggerContainer}
+          className="px-5 py-16 sm:px-6 md:px-10 lg:px-12"
+        >
           <div className="mx-auto max-w-7xl text-center">
-            <p className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-5 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--accent)]">
-              <SvgIcon name="portfolio" size={14} color="var(--accent)" />
-              Before & After Transformations
-            </p>
+            <motion.div variants={staggerItem}>
+              <p className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-5 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--accent)]">
+                <SvgIcon name="portfolio" size={14} color="var(--accent)" />
+                Before & After Transformations
+              </p>
+            </motion.div>
 
-            <h1 className="mx-auto max-w-5xl text-5xl font-black leading-[0.95] tracking-[-0.06em] text-[var(--text-primary)] sm:text-6xl lg:text-7xl">
-              See the <GradientHeading>transformation.</GradientHeading>
-            </h1>
+            <motion.h1 variants={staggerItem} className="mx-auto max-w-5xl text-5xl font-black leading-[0.95] tracking-[-0.06em] text-[var(--text-primary)] sm:text-6xl lg:text-7xl">
+              See the <span className="text-[var(--accent)]">transformation.</span>
+            </motion.h1>
 
-            <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-[var(--text-secondary)]">
+            <motion.p variants={staggerItem} className="mx-auto mt-6 max-w-3xl text-base leading-8 text-[var(--text-secondary)]">
               Witness how outdated websites and stores are transformed into modern,
               premium, conversion-focused digital experiences.
-            </p>
+            </motion.p>
 
-            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <motion.div variants={staggerItem} className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
               <Link
                 href="/contact"
-                className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-gradient-orange-green px-7 py-3 text-sm font-black text-white transition hover:scale-[1.02]"
+                className="btn-primary inline-flex min-h-[52px] items-center justify-center px-7 py-3 text-sm font-black"
               >
                 Start Your Transformation
               </Link>
               <Link
                 href="/portfolio"
-                className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-7 py-3 text-sm font-black text-[var(--accent)] transition hover:bg-[var(--accent)]/15"
+                className="btn-secondary inline-flex min-h-[52px] items-center justify-center gap-2 px-7 py-3 text-sm font-black"
               >
                 View All Work
                 <SvgIcon name="arrow-diagonal" size={15} color="var(--accent)" />
               </Link>
-            </div>
+            </motion.div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Before/After Grid */}
         <section className="px-5 pb-24 sm:px-6 md:px-10 lg:px-12">
           <div className="mx-auto max-w-7xl space-y-12">
             {items.map((item: PortfolioItem, index: number) => {
-              const title = item.client_name || item.title || item.name || 'Project Transformation'
-              const metric = item.metric_value && item.metric_label
-                ? `${item.metric_value} ${item.metric_label}`
-                : item.metric_value || 'Growth'
+              const title = getTitle(item)
+              const metric = getMetric(item)
+              const hasBeforeAfter = item.before_image && item.after_image
 
               return (
-                <div
+                <motion.div
                   key={item.id}
-                  className="group overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 transition hover:shadow-[var(--shadow-lg)]"
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-100px" }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className="group overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-all duration-300 hover:shadow-[var(--shadow-lg)] hover:-translate-y-1"
                 >
                   {/* Header */}
                   <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -115,7 +156,7 @@ export default async function BeforeAfterPage() {
                       )}
                     </div>
                     <div className="flex flex-wrap gap-3">
-                      <span className="rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-black text-[var(--btn-primary-text)]">
+                      <span className="rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-black text-white">
                         {metric}
                       </span>
                       <span className="rounded-full border border-[var(--border)] bg-[var(--bg-section)] px-3 py-1.5 text-xs font-black text-[var(--text-muted)]">
@@ -124,42 +165,30 @@ export default async function BeforeAfterPage() {
                     </div>
                   </div>
 
-                  {/* Before/After Images */}
-                  <div className="grid gap-6 lg:grid-cols-2">
-                    <div className="space-y-2">
-                      <p className="text-sm font-bold text-[var(--text-muted)]">Before</p>
-                      <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-section)]">
-                        {item.before_image ? (
-                          <img
-                            src={item.before_image}
-                            alt={`${title} before transformation`}
-                            className="w-full object-cover transition duration-500 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="flex aspect-video items-center justify-center">
-                            <SvgIcon name="image" size={48} color="var(--text-muted)" />
-                          </div>
-                        )}
+                  {/* Before/After Images - Using Slider for each */}
+                  {hasBeforeAfter ? (
+                    <BeforeAfterSlider
+                      beforeImage={item.before_image!}
+                      afterImage={item.after_image!}
+                      beforeLabel="BEFORE"
+                      afterLabel="AFTER"
+                    />
+                  ) : (
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <div className="space-y-2">
+                        <p className="text-sm font-bold text-[var(--text-muted)]">Before</p>
+                        <div className="flex aspect-video items-center justify-center overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-section)]">
+                          <SvgIcon name="image" size={48} color="var(--text-muted)" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-bold text-[var(--accent)]">After</p>
+                        <div className="flex aspect-video items-center justify-center overflow-hidden rounded-xl border border-[var(--accent)]/20 bg-[var(--bg-section)]">
+                          <SvgIcon name="image" size={48} color="var(--accent)" />
+                        </div>
                       </div>
                     </div>
-
-                    <div className="space-y-2">
-                      <p className="text-sm font-bold text-[var(--accent)]">After</p>
-                      <div className="overflow-hidden rounded-xl border border-[var(--accent)]/20 bg-[var(--bg-section)]">
-                        {item.after_image ? (
-                          <img
-                            src={item.after_image}
-                            alt={`${title} after transformation`}
-                            className="w-full object-cover transition duration-500 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="flex aspect-video items-center justify-center">
-                            <SvgIcon name="image" size={48} color="var(--accent)" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Description and Link */}
                   <div className="mt-6 flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-[var(--border)]">
@@ -170,30 +199,40 @@ export default async function BeforeAfterPage() {
                     </p>
                     <Link
                       href={item.slug ? `/portfolio/${item.slug}` : '/portfolio'}
-                      className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)]/10 px-4 py-2 text-sm font-black text-[var(--accent)] transition hover:bg-[var(--accent)]/20"
+                      className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)]/10 px-4 py-2 text-sm font-black text-[var(--accent)] transition-all duration-200 hover:bg-[var(--accent)]/20 hover:gap-3"
                     >
                       View Full Case Study
                       <SvgIcon name="arrow-diagonal" size={14} color="var(--accent)" />
                     </Link>
                   </div>
-                </div>
+                </motion.div>
               )
             })}
 
             {items.length === 0 && (
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center"
+              >
                 <SvgIcon name="portfolio" size={48} color="var(--text-muted)" className="mx-auto mb-4" />
                 <h2 className="text-xl font-black text-[var(--text-primary)]">No before/after projects yet</h2>
                 <p className="mt-2 text-[var(--text-secondary)]">
                   Add projects from the admin portfolio page and enable the "Show in Before/After" option.
                 </p>
-              </div>
+              </motion.div>
             )}
           </div>
         </section>
 
         {/* CTA Section */}
-        <section className="px-5 pb-24 sm:px-6 md:px-10 lg:px-12">
+        <motion.section
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="px-5 pb-24 sm:px-6 md:px-10 lg:px-12"
+        >
           <div className="mx-auto max-w-7xl rounded-2xl border border-[var(--accent)]/20 bg-gradient-to-r from-[var(--accent)]/5 to-transparent p-8 text-center sm:p-12">
             <p className="text-xs font-black uppercase tracking-wider text-[var(--accent)]">Ready for your transformation?</p>
             <h2 className="mx-auto mt-4 max-w-2xl text-3xl font-black leading-tight text-[var(--text-primary)] sm:text-4xl">
@@ -201,12 +240,12 @@ export default async function BeforeAfterPage() {
             </h2>
             <Link
               href="/contact"
-              className="mt-6 inline-flex min-h-[50px] items-center justify-center rounded-full bg-gradient-orange-green px-8 py-3 text-sm font-black text-white transition hover:scale-[1.02]"
+              className="btn-primary mt-6 inline-flex min-h-[50px] items-center justify-center px-8 py-3 text-sm font-black"
             >
               Get Free Consultation
             </Link>
           </div>
-        </section>
+        </motion.section>
       </main>
 
       <Footer />

@@ -73,7 +73,7 @@ function Counter({ target, suffix = '' }: { target: number; suffix?: string }) {
   }, [isInView, target, reducedMotion])
 
   return (
-    <span ref={ref} className="text-4xl font-black tracking-[-0.04em] sm:text-5xl">
+    <span ref={ref} className="text-3xl font-black tracking-[-0.04em] sm:text-4xl">
       {count}{suffix}+
     </span>
   )
@@ -82,7 +82,6 @@ function Counter({ target, suffix = '' }: { target: number; suffix?: string }) {
 export default function StatsBar({ stats = defaultStats }: StatsBarProps) {
   const reducedMotion = useReducedMotion()
 
-  // Parse numeric value from stat.value (e.g., "87+" -> 87)
   const getNumericValue = (value: string): number => {
     const num = parseInt(value.replace(/[^0-9]/g, ''))
     return isNaN(num) ? 0 : num
@@ -97,43 +96,37 @@ export default function StatsBar({ stats = defaultStats }: StatsBarProps) {
         return (
           <motion.div
             key={stat.label}
-            initial={reducedMotion ? false : { opacity: 0, y: 30 }}
+            initial={reducedMotion ? false : { opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{
-              duration: 0.5,
-              delay: index * 0.1,
+              duration: 0.4,
+              delay: index * 0.08,
               ease: [0.22, 1, 0.36, 1],
             }}
             viewport={{ once: true }}
-            className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--bg-card)] to-[var(--bg-section)] p-5 transition-all duration-500 hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] hover:border-[var(--accent)]/30"
+            className="group relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-md)] hover:border-[var(--accent)]/30"
           >
-            {/* Animated gradient background on hover */}
-            <div className="absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 bg-gradient-to-r from-[var(--accent)]/5 to-[var(--accent-lime)]/5" />
+            <div className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-gradient-to-r from-[var(--accent)]/5 to-transparent" />
 
-            {/* Icon with animation */}
-            <div className="relative mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--accent)]/18 bg-[var(--accent)]/10 transition-transform duration-300 group-hover:scale-110 group-hover:border-[var(--accent)]/30">
-              <SvgIcon name={stat.icon || 'verified'} size={22} color="var(--accent)" />
+            <div className="relative mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--accent)]/18 bg-[var(--accent)]/10 transition-transform duration-300 group-hover:scale-105">
+              <SvgIcon name={stat.icon || 'verified'} size={18} color="var(--accent)" />
             </div>
 
-            {/* Counter Value */}
             <div className="relative">
               <Counter target={numericValue} suffix={suffix} />
             </div>
 
-            {/* Label */}
-            <p className="relative mt-2 text-sm font-bold text-[var(--text-primary)]">
+            <p className="relative mt-2 text-sm font-semibold text-[var(--text-primary)]">
               {stat.label}
             </p>
 
-            {/* Description */}
             {stat.description && (
               <p className="relative mt-1 text-xs text-[var(--text-muted)]">
                 {stat.description}
               </p>
             )}
 
-            {/* Bottom accent line on hover */}
-            <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-gradient-to-r from-[var(--accent)] to-[var(--accent-lime)] transition-all duration-500 group-hover:w-full" />
+            <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-gradient-to-r from-[var(--accent)] to-[var(--accent-lime)] transition-all duration-300 group-hover:w-full" />
           </motion.div>
         )
       })}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import SvgIcon from '@/components/ui/SvgIcon'
 
 interface TocItem {
   id: string
@@ -17,7 +18,6 @@ export default function BlogTableOfContents({ content }: BlogTableOfContentsProp
   const [items, setItems] = useState<TocItem[]>([])
 
   useEffect(() => {
-    // Extract headings from content HTML
     const extracted: TocItem[] = []
     const tempDiv = document.createElement('div')
     tempDiv.innerHTML = content
@@ -27,7 +27,6 @@ export default function BlogTableOfContents({ content }: BlogTableOfContentsProp
       const text = heading.textContent?.trim() || ''
       if (!text) return
 
-      // Create a clean ID from the heading text
       const id = text
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
@@ -42,7 +41,6 @@ export default function BlogTableOfContents({ content }: BlogTableOfContentsProp
 
     setItems(extracted)
 
-    // Add IDs to actual DOM headings after content is rendered
     setTimeout(() => {
       const actualHeadings = document.querySelectorAll('.blog-content h2, .blog-content h3')
       actualHeadings.forEach((heading, idx) => {
@@ -92,8 +90,8 @@ export default function BlogTableOfContents({ content }: BlogTableOfContentsProp
 
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 mb-8">
-      <h3 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-[0.12em] text-[var(--text-primary)]">
-        <img src="/svgs/blog.svg" alt="" className="h-4 w-4 opacity-60" />
+      <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-[var(--text-primary)]">
+        <SvgIcon name="blog" size={16} color="var(--text-muted)" />
         CONTENTS
       </h3>
 
@@ -111,7 +109,7 @@ export default function BlogTableOfContents({ content }: BlogTableOfContentsProp
                   item.level === 3 ? 'pl-4 text-sm' : 'text-base font-medium'
                 } ${
                   activeId === item.id
-                    ? 'text-[#39D97A] font-bold'
+                    ? 'text-[var(--accent)] font-bold'
                     : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                 }`}
               >

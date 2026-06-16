@@ -1,15 +1,17 @@
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { cleanBlogHtml, generateToc, absoluteUrl } from '@/lib/blog-utils'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+import SvgIcon from '@/components/ui/SvgIcon'
+import Button from '@/components/ui/Button'
 import BlogTableOfContents from '@/components/blog/BlogTableOfContents'
 import BlogAuthorBio from '@/components/blog/BlogAuthorBio'
 import BlogReadingTools from '@/components/blog/BlogReadingTools'
 import BlogNewsletterSignup from '@/components/blog/BlogNewsletterSignup'
 import RelatedPosts from '@/components/blog/RelatedPosts'
 import BlogComments from '@/components/blog/BlogComments'
-import PageUtilities from '@/components/ui/PageUtilities'
 import '@/styles/blog-content.css'
 
 interface BlogPost {
@@ -136,14 +138,15 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
     <>
       <Navbar />
 
-      <main className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)]">
-        <article className="mx-auto max-w-[980px] px-4 pt-28 sm:px-6 lg:px-8">
+      <main className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] pt-28">
+        <article className="mx-auto max-w-[980px] px-4 sm:px-6 lg:px-8">
+          {/* Tags */}
           {post.tags && post.tags.length > 0 && (
             <div className="mb-5 flex flex-wrap gap-2">
               {post.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-xs font-black uppercase tracking-wider text-[var(--accent)]"
+                  className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-[var(--accent)]"
                 >
                   {tag}
                 </span>
@@ -151,16 +154,19 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
             </div>
           )}
 
-          <h1 className="max-w-[860px] text-3xl font-black tracking-[-0.04em] text-[var(--text-primary)] sm:text-4xl lg:text-5xl">
+          {/* Title */}
+          <h1 className="max-w-[860px] text-3xl font-black tracking-[-0.02em] text-[var(--text-primary)] sm:text-4xl lg:text-5xl">
             {post.title}
           </h1>
 
+          {/* Excerpt */}
           {post.excerpt && (
             <p className="mt-5 max-w-[760px] text-base leading-8 text-[var(--text-secondary)] sm:text-lg">
               {post.excerpt}
             </p>
           )}
 
+          {/* Author & Reading Tools */}
           <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <BlogAuthorBio
               author={post.author || 'Hbee Digitals'}
@@ -171,8 +177,9 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
             <BlogReadingTools title={post.title} />
           </div>
 
+          {/* Featured Image */}
           {post.featured_image && (
-            <div className="mt-8 overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--bg-section)]">
+            <div className="mt-8 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-section)]">
               <img
                 src={post.featured_image}
                 alt={post.featured_image_alt || post.title}
@@ -182,14 +189,10 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
             </div>
           )}
 
-          {/* ========================================================= */}
-          {/* FIXED: Blog Content Container - TOC is inside this container */}
-          {/* ========================================================= */}
+          {/* Content */}
           <div className="mt-10">
-            {/* Table of Contents - Integrated at the top of content */}
             <BlogTableOfContents content={cleanedContent} />
 
-            {/* Article Content */}
             <div
               className="blog-content"
               dangerouslySetInnerHTML={{ __html: cleanedContent }}
@@ -201,32 +204,31 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
           </div>
         </article>
 
+        {/* CTA */}
         <section className="mx-auto mt-20 max-w-[980px] px-4 pb-20 sm:px-6 lg:px-8">
-          <div className="rounded-[2.5rem] border border-[var(--border)] bg-[#0E1B2D] p-8 text-center sm:p-14">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2">
-              <img src="/svgs/growth.svg" alt="" className="h-4 w-4" />
-              <span className="text-xs font-black uppercase tracking-[0.16em] text-[#39D97A]">
+          <div className="rounded-2xl border border-[var(--accent)]/20 bg-[var(--bg-navy)] p-8 text-center sm:p-14">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-[var(--accent)]/10 px-4 py-2">
+              <SvgIcon name="growth" size={14} color="var(--accent)" />
+              <span className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
                 Need help improving your store?
               </span>
             </div>
 
-            <h2 className="text-2xl font-black tracking-[-0.04em] text-white sm:text-3xl">
+            <h2 className="mx-auto max-w-2xl text-2xl font-bold tracking-[-0.02em] text-white sm:text-3xl">
               Hbee Digitals helps businesses improve trust, user experience,
               conversion flow, and growth systems that turn visitors into customers.
             </h2>
 
-            <a
-              href="/contact"
-              className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#39D97A] px-8 py-4 text-sm font-black text-[#07111F] transition hover:scale-[1.02]"
-            >
-              Request a Growth Review
-              <img src="/svgs/arrow-right.svg" alt="" className="h-4 w-4" />
-            </a>
+            <div className="mt-8">
+              <Button href="/contact" variant="cta" size="lg">
+                Request a Growth Review
+                <SvgIcon name="arrow-right" size={16} color="white" />
+              </Button>
+            </div>
           </div>
         </section>
       </main>
 
-      <PageUtilities />
       <Footer />
     </>
   )

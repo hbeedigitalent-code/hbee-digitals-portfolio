@@ -56,9 +56,9 @@ function getSocialIcon(platform: string): string {
   return 'verified'
 }
 
-// Collapsible section component for mobile
+// Collapsible section component for mobile - closed by default
 function CollapsibleSection({ title, links, defaultOpen = false }: { title: string; links: FooterLink[]; defaultOpen?: boolean }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen)
+  const [isOpen, setIsOpen] = useState(false)
 
   return (
     <div className="border-b border-[var(--border)] md:border-none">
@@ -123,7 +123,7 @@ export default function Footer() {
 
   const columns: FooterColumn[] = footerData?.columns?.length ? footerData.columns : [
     {
-      title: 'Services',
+      title: 'SERVICES',
       links: [
         { label: 'Web Development', href: '/services', icon: 'web-development' },
         { label: 'E-Commerce Solutions', href: '/services', icon: 'ecommerce' },
@@ -134,7 +134,7 @@ export default function Footer() {
       ],
     },
     {
-      title: 'Company',
+      title: 'COMPANY',
       links: [
         { label: 'About Us', href: '/about' },
         { label: 'Portfolio', href: '/portfolio' },
@@ -144,7 +144,7 @@ export default function Footer() {
       ],
     },
     {
-      title: 'Legal',
+      title: 'LEGAL',
       links: [
         { label: 'Privacy Policy', href: '/privacy' },
         { label: 'Terms of Service', href: '/terms' },
@@ -158,41 +158,40 @@ export default function Footer() {
     : []
 
   async function handleSubscribe(e: React.FormEvent) {
-  e.preventDefault();
-  if (!email) return;
-  
-  setSubscribing(true);
-  setSubscribeError(false);
-  setSubscribeSuccess(false);
-  
-  try {
-    const response = await fetch('/api/subscribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name, source: 'footer' }),
-    });
+    e.preventDefault();
+    if (!email) return;
+    
+    setSubscribing(true);
+    setSubscribeError(false);
+    setSubscribeSuccess(false);
+    
+    try {
+      const response = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name, source: 'footer' }),
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    // Check if success (API returns {success: true} or {success: true, message})
-    if (data.success === true) {
-      setSubscribeSuccess(true);
-      setEmail('');
-      setName('');
-      setTimeout(() => setSubscribeSuccess(false), 3000);
-    } else {
-      console.error('Subscription failed:', data.error);
+      if (data.success === true) {
+        setSubscribeSuccess(true);
+        setEmail('');
+        setName('');
+        setTimeout(() => setSubscribeSuccess(false), 3000);
+      } else {
+        console.error('Subscription failed:', data.error);
+        setSubscribeError(true);
+        setTimeout(() => setSubscribeError(false), 3000);
+      }
+    } catch (error) {
+      console.error('Network error:', error);
       setSubscribeError(true);
       setTimeout(() => setSubscribeError(false), 3000);
+    } finally {
+      setSubscribing(false);
     }
-  } catch (error) {
-    console.error('Network error:', error);
-    setSubscribeError(true);
-    setTimeout(() => setSubscribeError(false), 3000);
-  } finally {
-    setSubscribing(false);
   }
-}
 
   return (
     <footer className="relative overflow-hidden bg-[var(--bg-navy)] text-[var(--text-inverse)]">
@@ -210,7 +209,7 @@ export default function Footer() {
           <Link href="/" className="group inline-flex items-center gap-3">
             <LogoMark logoUrl={logoUrl} brandName={brandName} />
             <div>
-              <h2 className="text-lg font-black tracking-[-0.04em] text-[var(--text-inverse)]">
+              <h2 className="text-lg font-black tracking-[-0.04em] text-white">
                 {brandName}
               </h2>
               <p className="text-[10px] text-[var(--accent)]">Digital Growth Studio</p>
@@ -240,11 +239,11 @@ export default function Footer() {
         <div className="grid gap-6 md:grid-cols-4">
           {/* Brand Description Column */}
           <div className="space-y-3">
-            <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
+            <p className="text-base leading-relaxed text-[var(--text-secondary)]">
               {footerDescription}
             </p>
             {socialLinks.length > 0 && (
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-3 pt-2">
                 {socialLinks.map((social) => (
                   <a
                     key={social.platform}
@@ -252,9 +251,9 @@ export default function Footer() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={social.platform}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-section)] transition hover:border-[var(--accent)]/25 hover:bg-[var(--accent)]/10 hover:scale-105"
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-section)] transition hover:border-[var(--accent)]/25 hover:bg-[var(--accent)]/10 hover:scale-105"
                   >
-                    <SvgIcon name={getSocialIcon(social.icon || social.platform)} size={14} color="var(--accent)" />
+                    <SvgIcon name={getSocialIcon(social.icon || social.platform)} size={18} color="var(--accent)" />
                   </a>
                 ))}
               </div>
@@ -262,16 +261,16 @@ export default function Footer() {
           </div>
 
           {columns.map((column) => (
-            <CollapsibleSection key={column.title} title={column.title} links={column.links} defaultOpen />
+            <CollapsibleSection key={column.title} title={column.title} links={column.links} />
           ))}
         </div>
 
-        {/* Newsletter Section */}
-        <div className="mt-8 rounded-xl border border-[var(--border)] bg-gradient-to-r from-[var(--bg-card)] to-[var(--bg-section)] p-5">
+        {/* Newsletter Section - Using Orange Background for better contrast */}
+        <div className="mt-8 rounded-xl bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-orange-light)] p-5">
           <div className="grid gap-4 md:grid-cols-2 md:items-center">
             <div>
-              <h3 className="text-base font-black text-[var(--text-inverse)]">Stay up to date</h3>
-              <p className="mt-1 text-xs text-[var(--text-secondary)]">
+              <h3 className="text-base font-black text-white">Stay up to date</h3>
+              <p className="mt-1 text-sm text-white/80">
                 Get notified about new updates, products, tips and tutorials. No spam. You can always unsubscribe.
               </p>
             </div>
@@ -282,12 +281,12 @@ export default function Footer() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Your Email"
                 required
-                className="flex-1 rounded-full border border-[var(--border)] bg-[var(--bg-section)] px-4 py-2 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]/50"
+                className="flex-1 rounded-full bg-white/20 px-4 py-2 text-sm text-white outline-none placeholder:text-white/60 focus:bg-white/30 focus:ring-2 focus:ring-white/50"
               />
               <button
                 type="submit"
                 disabled={subscribing}
-                className="inline-flex min-h-[40px] items-center justify-center rounded-full bg-gradient-orange-green px-5 py-2 text-sm font-black text-white transition hover:scale-[1.02] disabled:opacity-60"
+                className="inline-flex min-h-[40px] items-center justify-center rounded-full bg-white px-5 py-2 text-sm font-black text-[var(--accent-orange)] transition hover:scale-[1.02] hover:bg-white/90 disabled:opacity-60"
               >
                 {subscribing ? 'Subscribing...' : subscribeSuccess ? '✓ Subscribed!' : subscribeError ? '✗ Failed' : 'Subscribe'}
               </button>
