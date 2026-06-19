@@ -34,11 +34,6 @@ export function Step3GrowthObjectives({ formData, updateField, errors }: Step3Gr
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="mb-2 text-xl font-semibold text-white">Growth Objectives</h3>
-        <p className="text-[var(--text-on-dark-muted)]">Select your top 3 goals for the next 90 days</p>
-      </div>
-
-      <div>
         <label className="mb-3 block text-sm font-medium text-white">
           90-Day Goals * (Select up to 3)
         </label>
@@ -56,7 +51,7 @@ export function Step3GrowthObjectives({ formData, updateField, errors }: Step3Gr
                 className={`rounded-lg border p-3 text-left transition-all ${
                   isSelected
                     ? 'border-[var(--accent-orange)] bg-[var(--accent-orange)]/10 ring-2 ring-[var(--accent-orange)]'
-                    : 'border-[var(--border)] bg-[var(--bg-page)] hover:border-[var(--accent-orange)]'
+                    : 'border-[var(--border)] bg-[var(--bg-navy-mid)] hover:border-[var(--accent-orange)]'
                 } ${isMaxed ? 'cursor-not-allowed opacity-50' : ''}`}
               >
                 <div className="flex items-center justify-between">
@@ -78,7 +73,7 @@ export function Step3GrowthObjectives({ formData, updateField, errors }: Step3Gr
       </div>
 
       <div>
-        <label htmlFor="success_vision" className="mb-1 block text-sm font-medium text-white">
+        <label htmlFor="success_vision" className="mb-1.5 block text-sm font-medium text-white">
           What does success look like for you? *
         </label>
         <textarea
@@ -86,7 +81,7 @@ export function Step3GrowthObjectives({ formData, updateField, errors }: Step3Gr
           value={formData.success_vision}
           onChange={(e) => updateField('success_vision', e.target.value)}
           rows={4}
-          className={`w-full rounded-lg border bg-[var(--bg-page)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
+          className={`w-full rounded-lg border bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
             errors.success_vision ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
           }`}
           placeholder="Describe your vision for success..."

@@ -24,6 +24,26 @@ const stepComponents = {
   7: Step7GrowthReadiness
 }
 
+const stepTitles = {
+  1: 'Business Profile',
+  2: 'Business Stage', 
+  3: 'Growth Objectives',
+  4: 'Visibility & Marketing',
+  5: 'Customer Experience',
+  6: 'Growth Challenges',
+  7: 'Growth Readiness'
+}
+
+const stepSubtext = {
+  1: 'Tell us about your business',
+  2: 'Help us understand where you are in your journey',
+  3: 'Select your top 3 goals for the next 90 days',
+  4: 'How do customers discover your business?',
+  5: 'How do you engage with your customers?',
+  6: 'Help us understand what\'s holding you back',
+  7: 'Tell us about your readiness to grow'
+}
+
 export function AssessmentForm() {
   const router = useRouter()
   
@@ -47,14 +67,32 @@ export function AssessmentForm() {
   }
 
   const StepComponent = stepComponents[currentStep as keyof typeof stepComponents]
+  const currentTitle = stepTitles[currentStep as keyof typeof stepTitles]
+  const currentSubtext = stepSubtext[currentStep as keyof typeof stepSubtext]
 
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-6 md:p-8">
+      {/* Progress Bar Only - No Step Numbers */}
       <StepIndicator
         currentStep={currentStep}
         totalSteps={7}
-        completedSteps={Array.from({ length: currentStep - 1 }, (_, i) => (i + 1) as any)}
       />
+
+      {/* Current Step Title - Bold & Visible */}
+      <motion.div
+        key={`title-${currentStep}`}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="mb-8"
+      >
+        <h2 className="text-2xl md:text-3xl font-bold text-white">
+          {currentTitle}
+        </h2>
+        <p className="mt-1 text-[var(--text-on-dark-muted)]">
+          {currentSubtext}
+        </p>
+      </motion.div>
 
       <AnimatePresence mode="wait">
         <motion.div
@@ -62,7 +100,7 @@ export function AssessmentForm() {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         >
           <StepComponent
             formData={formData}
@@ -73,19 +111,20 @@ export function AssessmentForm() {
       </AnimatePresence>
 
       {errors.submit && (
-        <div className="mt-6 rounded-lg border border-red-500 bg-red-500/10 p-4 text-red-500">
+        <div className="mt-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-red-400">
           {errors.submit}
         </div>
       )}
 
+      {/* Navigation Buttons */}
       <div className="mt-8 flex justify-between gap-4 border-t border-[var(--border)] pt-6">
         <button
           type="button"
           onClick={prevStep}
           disabled={currentStep === 1}
-          className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-transparent px-6 py-3 text-sm font-medium text-[var(--text-primary)] transition-all hover:bg-[var(--bg-card-hover)] hover:transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-transparent px-6 py-3 text-sm font-semibold text-[var(--text-on-dark)] transition-all hover:bg-[var(--bg-card-hover)] disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <SvgIcon name="chevron-left" size={16} />
+          <SvgIcon name="chevron-left" size={16} color="currentColor" />
           Previous
         </button>
 
@@ -94,7 +133,7 @@ export function AssessmentForm() {
             type="button"
             onClick={submitForm}
             disabled={isSubmitting || !isCurrentStepComplete()}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent-orange)] px-6 py-3 text-sm font-medium text-white transition-all hover:bg-[var(--orange-600)] hover:transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)] px-8 py-3 text-sm font-bold text-white transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[var(--accent-orange)]/20"
           >
             {isSubmitting ? (
               <>
@@ -103,8 +142,8 @@ export function AssessmentForm() {
               </>
             ) : (
               <>
-                Submit Assessment
-                <SvgIcon name="check" size={16} />
+                Submit For Review
+                <SvgIcon name="check" size={18} color="white" />
               </>
             )}
           </button>
@@ -113,10 +152,10 @@ export function AssessmentForm() {
             type="button"
             onClick={nextStep}
             disabled={!isCurrentStepComplete()}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent-orange)] px-6 py-3 text-sm font-medium text-white transition-all hover:bg-[var(--orange-600)] hover:transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)] px-8 py-3 text-sm font-bold text-white transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[var(--accent-orange)]/20"
           >
-            Next
-            <SvgIcon name="chevron-right" size={16} />
+            Continue
+            <SvgIcon name="chevron-right" size={16} color="white" />
           </button>
         )}
       </div>

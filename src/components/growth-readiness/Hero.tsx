@@ -6,12 +6,10 @@ import { motion } from 'framer-motion'
 
 export function Hero() {
   return (
-    <section className="section section-dark overflow-hidden">
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--accent-orange)] to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--accent-lime)] to-transparent" />
-      </div>
-
+    <section className="relative overflow-hidden bg-[var(--bg-navy)] py-20 md:py-28">
+      {/* Animated gradient border */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--accent-orange)] to-transparent" />
+      
       <div className="container-custom relative">
         <div className="mx-auto max-w-4xl text-center">
           <motion.div
@@ -21,7 +19,7 @@ export function Hero() {
             className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card-dark)] px-4 py-2"
           >
             <span className="h-2 w-2 rounded-full bg-[var(--accent-lime)] animate-pulse" />
-            <span className="text-sm font-medium text-[var(--text-on-dark-muted)]">
+            <span className="text-sm font-semibold text-[var(--text-on-dark-muted)]">
               Q3 Growth Readiness Initiative
             </span>
           </motion.div>
@@ -30,7 +28,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="section-heading section-heading-dark text-4xl md:text-5xl lg:text-6xl"
+            className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-[1.1]"
           >
             Is Your Business Ready For{' '}
             <span className="bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)] bg-clip-text text-transparent">
@@ -43,7 +41,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="section-description section-description-dark mx-auto text-lg md:text-xl"
+            className="mt-6 text-lg md:text-xl text-[var(--text-on-dark-muted)] max-w-3xl mx-auto"
           >
             The Hbee Growth Readiness Assessment™ helps ecommerce brands evaluate 
             visibility, conversion, retention, authority, and scalability before 
@@ -54,19 +52,19 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-col items-center justify-center gap-4 sm:flex-row"
+            className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
           >
             <Link
               href="/assessment"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent-orange)] px-8 py-3 text-sm font-medium text-white transition-all hover:bg-[var(--orange-600)] hover:transform hover:-translate-y-0.5"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)] px-8 py-3.5 text-sm font-bold text-white transition-all hover:scale-[1.02] shadow-lg shadow-[var(--accent-orange)]/20"
             >
               Start Assessment
-              <SvgIcon name="arrow-right" size={20} />
+              <SvgIcon name="arrow-right" size={20} color="white" />
             </Link>
             
             <Link
               href="#how-it-works"
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-transparent px-8 py-3 text-sm font-medium text-white transition-all hover:bg-white hover:text-[var(--navy-900)] hover:transform hover:-translate-y-0.5"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-transparent px-8 py-3.5 text-sm font-semibold text-white transition-all hover:bg-white/10"
             >
               Learn More
             </Link>

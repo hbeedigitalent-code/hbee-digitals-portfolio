@@ -1,99 +1,58 @@
 'use client'
 
 import { FormStep } from '@/types/growth-readiness'
-import SvgIcon from '@/components/ui/SvgIcon'
 import { motion } from 'framer-motion'
 
 interface StepIndicatorProps {
   currentStep: FormStep
   totalSteps: number
-  completedSteps: FormStep[]
 }
 
-const stepLabels: Record<FormStep, string> = {
-  1: 'Business Profile',
-  2: 'Business Stage',
-  3: 'Growth Objectives',
-  4: 'Visibility & Marketing',
-  5: 'Customer Experience',
-  6: 'Growth Challenges',
-  7: 'Growth Readiness'
-}
-
-const stepIcons: Record<FormStep, string> = {
-  1: 'user',
-  2: 'growth',
-  3: 'target',
-  4: 'visibility-review',
-  5: 'users',
-  6: 'warning',
-  7: 'check'
-}
-
-export function StepIndicator({ currentStep, totalSteps, completedSteps }: StepIndicatorProps) {
+export function StepIndicator({ currentStep, totalSteps }: StepIndicatorProps) {
   const progress = (currentStep / totalSteps) * 100
 
   return (
-    <div className="mb-12">
-      {/* Progress Bar */}
-      <div className="relative mb-8 h-1 w-full overflow-hidden rounded-full bg-[var(--border)]">
+    <div className="mb-8">
+      {/* Progress Bar - Clean & Bold */}
+      <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-[var(--border)]">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.5, ease: 'easeInOut' }}
+          transition={{ duration: 0.6, ease: 'easeInOut' }}
           className="h-full bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)]"
         />
       </div>
 
-      {/* Steps */}
-      <div className="flex justify-between">
+      {/* Progress Percentage - Bold & Visible */}
+      <div className="mt-3 flex justify-between items-center">
+        <span className="text-sm font-bold text-[var(--text-on-dark-muted)]">
+          Progress
+        </span>
+        <span className="text-sm font-bold text-white">
+          {Math.round(progress)}%
+        </span>
+      </div>
+
+      {/* Step Dots - Visual indicators only */}
+      <div className="mt-4 flex justify-center gap-2">
         {Array.from({ length: totalSteps }, (_, i) => {
           const step = (i + 1) as FormStep
           const isActive = step === currentStep
-          const isCompleted = completedSteps.includes(step)
-          const isClickable = isCompleted || isActive
+          const isCompleted = step < currentStep
 
           return (
             <div
               key={step}
-              className="flex flex-col items-center gap-2"
-            >
-              <div
-                className={`
-                  flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition-all
-                  ${isActive ? 'bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)] text-white shadow-lg shadow-[var(--accent-orange)]/20' : ''}
-                  ${isCompleted ? 'bg-[var(--accent-lime)] text-white' : ''}
-                  ${!isActive && !isCompleted ? 'border border-[var(--border)] bg-[var(--bg-card-dark)] text-[var(--text-muted)]' : ''}
-                  ${isClickable ? 'cursor-pointer' : 'cursor-default'}
-                `}
-                onClick={() => {
-                  if (isClickable) {
-                    // Parent component will handle navigation
-                  }
-                }}
-              >
-                {isCompleted ? (
-                  <SvgIcon name="check" size={16} color="white" />
-                ) : (
-                  <SvgIcon name={stepIcons[step]} size={16} color={isActive ? 'white' : 'var(--text-muted)'} />
-                )}
-              </div>
-              <span className={`
-                hidden text-xs font-medium sm:block
-                ${isActive ? 'text-white' : 'text-[var(--text-muted)]'}
-              `}>
-                {stepLabels[step]}
-              </span>
-            </div>
+              className={`h-2 rounded-full transition-all duration-300 ${
+                isActive 
+                  ? 'w-8 bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)]' 
+                  : isCompleted 
+                  ? 'w-2 bg-[var(--accent-lime)]' 
+                  : 'w-2 bg-[var(--border)]'
+              }`}
+            />
           )
         })}
-      </div>
-
-      {/* Mobile Step Label */}
-      <div className="mt-4 text-center sm:hidden">
-        <span className="text-sm font-medium text-white">
-          Step {currentStep} of {totalSteps}: {stepLabels[currentStep]}
-        </span>
       </div>
     </div>
   )

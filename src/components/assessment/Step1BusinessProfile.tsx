@@ -39,14 +39,9 @@ const countries = [
 export function Step1BusinessProfile({ formData, updateField, errors }: Step1BusinessProfileProps) {
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="mb-2 text-xl font-semibold text-white">Business Profile</h3>
-        <p className="text-[var(--text-on-dark-muted)]">Tell us about your business</p>
-      </div>
-
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="business_name" className="mb-1 block text-sm font-medium text-white">
+          <label htmlFor="business_name" className="mb-1.5 block text-sm font-medium text-white">
             Business Name *
           </label>
           <input
@@ -54,7 +49,7 @@ export function Step1BusinessProfile({ formData, updateField, errors }: Step1Bus
             type="text"
             value={formData.business_name}
             onChange={(e) => updateField('business_name', e.target.value)}
-            className={`w-full rounded-lg border bg-[var(--bg-page)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
+            className={`w-full rounded-lg border bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
               errors.business_name ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
             }`}
             placeholder="Your business name"
@@ -65,7 +60,7 @@ export function Step1BusinessProfile({ formData, updateField, errors }: Step1Bus
         </div>
 
         <div>
-          <label htmlFor="website" className="mb-1 block text-sm font-medium text-white">
+          <label htmlFor="website" className="mb-1.5 block text-sm font-medium text-white">
             Website URL *
           </label>
           <input
@@ -73,7 +68,7 @@ export function Step1BusinessProfile({ formData, updateField, errors }: Step1Bus
             type="url"
             value={formData.website}
             onChange={(e) => updateField('website', e.target.value)}
-            className={`w-full rounded-lg border bg-[var(--bg-page)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
+            className={`w-full rounded-lg border bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
               errors.website ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
             }`}
             placeholder="https://yourstore.com"
@@ -84,7 +79,7 @@ export function Step1BusinessProfile({ formData, updateField, errors }: Step1Bus
         </div>
 
         <div>
-          <label htmlFor="contact_name" className="mb-1 block text-sm font-medium text-white">
+          <label htmlFor="contact_name" className="mb-1.5 block text-sm font-medium text-white">
             Contact Name *
           </label>
           <input
@@ -92,7 +87,7 @@ export function Step1BusinessProfile({ formData, updateField, errors }: Step1Bus
             type="text"
             value={formData.contact_name}
             onChange={(e) => updateField('contact_name', e.target.value)}
-            className={`w-full rounded-lg border bg-[var(--bg-page)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
+            className={`w-full rounded-lg border bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
               errors.contact_name ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
             }`}
             placeholder="Your full name"
@@ -103,7 +98,7 @@ export function Step1BusinessProfile({ formData, updateField, errors }: Step1Bus
         </div>
 
         <div>
-          <label htmlFor="email" className="mb-1 block text-sm font-medium text-white">
+          <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-white">
             Email Address *
           </label>
           <input
@@ -111,7 +106,7 @@ export function Step1BusinessProfile({ formData, updateField, errors }: Step1Bus
             type="email"
             value={formData.email}
             onChange={(e) => updateField('email', e.target.value)}
-            className={`w-full rounded-lg border bg-[var(--bg-page)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
+            className={`w-full rounded-lg border bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
               errors.email ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
             }`}
             placeholder="you@email.com"
@@ -122,20 +117,20 @@ export function Step1BusinessProfile({ formData, updateField, errors }: Step1Bus
         </div>
 
         <div>
-          <label htmlFor="country" className="mb-1 block text-sm font-medium text-white">
+          <label htmlFor="country" className="mb-1.5 block text-sm font-medium text-white">
             Country *
           </label>
           <select
             id="country"
             value={formData.country}
             onChange={(e) => updateField('country', e.target.value)}
-            className={`w-full rounded-lg border bg-[var(--bg-page)] px-4 py-3 text-white focus:outline-none focus:ring-2 ${
+            className={`w-full rounded-lg border bg-[var(--bg-navy-mid)] px-4 py-3 text-white focus:outline-none focus:ring-2 ${
               errors.country ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
             }`}
           >
-            <option value="">Select your country</option>
+            <option value="" className="bg-[var(--bg-navy-mid)]">Select your country</option>
             {countries.map((country) => (
-              <option key={country} value={country}>{country}</option>
+              <option key={country} value={country} className="bg-[var(--bg-navy-mid)]">{country}</option>
             ))}
           </select>
           {errors.country && (
@@ -144,20 +139,20 @@ export function Step1BusinessProfile({ formData, updateField, errors }: Step1Bus
         </div>
 
         <div>
-          <label htmlFor="industry" className="mb-1 block text-sm font-medium text-white">
+          <label htmlFor="industry" className="mb-1.5 block text-sm font-medium text-white">
             Industry *
           </label>
           <select
             id="industry"
             value={formData.industry}
             onChange={(e) => updateField('industry', e.target.value)}
-            className={`w-full rounded-lg border bg-[var(--bg-page)] px-4 py-3 text-white focus:outline-none focus:ring-2 ${
+            className={`w-full rounded-lg border bg-[var(--bg-navy-mid)] px-4 py-3 text-white focus:outline-none focus:ring-2 ${
               errors.industry ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
             }`}
           >
-            <option value="">Select your industry</option>
+            <option value="" className="bg-[var(--bg-navy-mid)]">Select your industry</option>
             {industries.map((industry) => (
-              <option key={industry} value={industry}>{industry}</option>
+              <option key={industry} value={industry} className="bg-[var(--bg-navy-mid)]">{industry}</option>
             ))}
           </select>
           {errors.industry && (

@@ -1,6 +1,8 @@
 // src/app/growth-readiness/page.tsx
 // Server Component - No 'use client' needed
 
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
 import { Hero } from '@/components/growth-readiness/Hero'
 import { WhyWeCreated } from '@/components/growth-readiness/WhyWeCreated'
 import { WhatYouReceive } from '@/components/growth-readiness/WhatYouReceive'
@@ -22,15 +24,19 @@ export const metadata = {
 
 export default function GrowthReadinessPage() {
   return (
-    <main className="min-h-screen">
-      <Hero />
-      <WhyWeCreated />
-      <WhatYouReceive />
-      <FrameworkPillars />
-      <WhoItsFor />
-      <HowItWorks />
-      <FAQ />
-      <FinalCTA />
-    </main>
+    <>
+      <Navbar />
+      <main className="min-h-screen bg-[var(--bg-navy)]">
+        <Hero />
+        <WhyWeCreated />
+        <WhatYouReceive />
+        <FrameworkPillars />
+        <WhoItsFor />
+        <HowItWorks />
+        <FAQ />
+        <FinalCTA />
+      </main>
+      <Footer />
+    </>
   )
 }

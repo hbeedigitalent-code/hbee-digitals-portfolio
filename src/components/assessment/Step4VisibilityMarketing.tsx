@@ -58,11 +58,6 @@ export function Step4VisibilityMarketing({ formData, updateField, errors }: Step
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="mb-2 text-xl font-semibold text-white">Visibility & Marketing</h3>
-        <p className="text-[var(--text-on-dark-muted)]">How do customers discover your business?</p>
-      </div>
-
-      <div>
         <label className="mb-3 block text-sm font-medium text-white">
           How do customers discover you? * (Select all that apply)
         </label>
@@ -78,7 +73,7 @@ export function Step4VisibilityMarketing({ formData, updateField, errors }: Step
                 className={`rounded-lg border p-3 text-left transition-all ${
                   isSelected
                     ? 'border-[var(--accent-orange)] bg-[var(--accent-orange)]/10 ring-2 ring-[var(--accent-orange)]'
-                    : 'border-[var(--border)] bg-[var(--bg-page)] hover:border-[var(--accent-orange)]'
+                    : 'border-[var(--border)] bg-[var(--bg-navy-mid)] hover:border-[var(--accent-orange)]'
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -97,20 +92,20 @@ export function Step4VisibilityMarketing({ formData, updateField, errors }: Step
       </div>
 
       <div>
-        <label htmlFor="best_channel" className="mb-1 block text-sm font-medium text-white">
+        <label htmlFor="best_channel" className="mb-1.5 block text-sm font-medium text-white">
           What's your best performing channel? *
         </label>
         <select
           id="best_channel"
           value={formData.best_channel}
           onChange={(e) => updateField('best_channel', e.target.value)}
-          className={`w-full rounded-lg border bg-[var(--bg-page)] px-4 py-3 text-white focus:outline-none focus:ring-2 ${
+          className={`w-full rounded-lg border bg-[var(--bg-navy-mid)] px-4 py-3 text-white focus:outline-none focus:ring-2 ${
             errors.best_channel ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
           }`}
         >
-          <option value="">Select your best channel</option>
+          <option value="" className="bg-[var(--bg-navy-mid)]">Select your best channel</option>
           {channels.map((channel) => (
-            <option key={channel} value={channel}>{channel}</option>
+            <option key={channel} value={channel} className="bg-[var(--bg-navy-mid)]">{channel}</option>
           ))}
         </select>
         {errors.best_channel && (
@@ -131,7 +126,7 @@ export function Step4VisibilityMarketing({ formData, updateField, errors }: Step
               className={`rounded-lg border px-6 py-3 transition-all ${
                 formData.paid_ads_usage === option.value
                   ? 'border-[var(--accent-orange)] bg-[var(--accent-orange)]/10 ring-2 ring-[var(--accent-orange)]'
-                  : 'border-[var(--border)] bg-[var(--bg-page)] hover:border-[var(--accent-orange)]'
+                  : 'border-[var(--border)] bg-[var(--bg-navy-mid)] hover:border-[var(--accent-orange)]'
               }`}
             >
               <span className="text-white">{option.label}</span>
@@ -160,7 +155,7 @@ export function Step4VisibilityMarketing({ formData, updateField, errors }: Step
                   className={`rounded-lg border p-3 text-left transition-all ${
                     isSelected
                       ? 'border-[var(--accent-orange)] bg-[var(--accent-orange)]/10 ring-2 ring-[var(--accent-orange)]'
-                      : 'border-[var(--border)] bg-[var(--bg-page)] hover:border-[var(--accent-orange)]'
+                      : 'border-[var(--border)] bg-[var(--bg-navy-mid)] hover:border-[var(--accent-orange)]'
                   }`}
                 >
                   <div className="flex items-center justify-between">
