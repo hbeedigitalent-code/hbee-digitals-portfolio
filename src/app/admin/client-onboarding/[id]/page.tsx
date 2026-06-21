@@ -60,6 +60,7 @@ interface OnboardingSubmission {
   status: string
   internal_notes: string
   created_at: string
+  files?: { id: string; file_name: string; file_url: string; file_type: string; file_size: number }[]
 }
 
 const statusOptions = [
@@ -104,7 +105,10 @@ export default function AdminOnboardingDetailPage() {
     
     const { data, error } = await supabase
       .from('client_onboarding_submissions')
-      .select('*')
+      .select(`
+        *,
+        files:client_onboarding_files(*)
+      `)
       .eq('id', params.id)
       .single()
 
@@ -406,8 +410,39 @@ export default function AdminOnboardingDetailPage() {
         )}
       </div>
 
-      {/* Files & Links */}
-      {(submission.large_file_links || []).length > 0 && (
+      {/* Uploaded Files */}
+      {(submission.files && submission.files.length > 0) && (
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-6">
+          <h3 className="text-sm font-semibold text-white mb-4">Uploaded Files</h3>
+          
+          <div className="grid gap-3">
+            {submission.files.map((file) => (
+              <div key={file.id} className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] p-3">
+                <div className="flex items-center gap-3">
+                  <SvgIcon name="file" size={20} color="var(--text-muted)" />
+                  <div>
+                    <p className="text-sm font-medium text-white">{file.file_name}</p>
+                    <p className="text-xs text-[var(--text-muted)]">
+                      {(file.file_size / 1024 / 1024).toFixed(2)} MB • {file.file_type || 'Unknown'}
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href={file.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-[var(--accent-orange)] hover:underline"
+                >
+                  Download
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* File Links */}
+      {(submission.large_file_links && submission.large_file_links.length > 0) && (
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-6">
           <h3 className="text-sm font-semibold text-white mb-4">File Links</h3>
           

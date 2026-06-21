@@ -15,6 +15,7 @@ interface OnboardingSubmission {
   budget_range: string
   status: string
   created_at: string
+  files?: { id: string; file_name: string; file_url: string }[]
 }
 
 export default function AdminOnboardingPage() {
@@ -32,7 +33,10 @@ export default function AdminOnboardingPage() {
     
     const { data, error } = await supabase
       .from('client_onboarding_submissions')
-      .select('*')
+      .select(`
+        *,
+        files:client_onboarding_files(*)
+      `)
       .order('created_at', { ascending: false })
 
     if (!error && data) {
@@ -104,6 +108,7 @@ export default function AdminOnboardingPage() {
                 <th className="pb-3 font-medium">Client</th>
                 <th className="pb-3 font-medium">Business</th>
                 <th className="pb-3 font-medium">Services</th>
+                <th className="pb-3 font-medium">Files</th>
                 <th className="pb-3 font-medium">Status</th>
                 <th className="pb-3 font-medium">Date</th>
                 <th className="pb-3 font-medium text-right">Action</th>
@@ -112,7 +117,7 @@ export default function AdminOnboardingPage() {
             <tbody>
               {submissions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-[var(--text-muted)]">
+                  <td colSpan={8} className="py-8 text-center text-[var(--text-muted)]">
                     No onboarding submissions found
                   </td>
                 </tr>
@@ -131,6 +136,9 @@ export default function AdminOnboardingPage() {
                     <td className="py-3 text-[var(--text-muted)]">
                       {s.services_required?.[0] || 'N/A'}
                       {s.services_required?.length > 1 && ` +${s.services_required.length - 1}`}
+                    </td>
+                    <td className="py-3 text-[var(--text-muted)]">
+                      {s.files?.length || 0} files
                     </td>
                     <td className="py-3">
                       <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusColors[s.status] || 'bg-gray-500/20 text-gray-400'}`}>

@@ -1,3 +1,4 @@
+// src/hooks/useOnboardingForm.ts
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
@@ -82,7 +83,6 @@ export function useOnboardingForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
 
-  // Load saved data from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('onboarding_draft')
     if (saved) {
@@ -95,7 +95,6 @@ export function useOnboardingForm() {
     }
   }, [])
 
-  // Save to localStorage on change
   useEffect(() => {
     if (formData.business_name || formData.email) {
       localStorage.setItem('onboarding_draft', JSON.stringify(formData))
@@ -161,6 +160,7 @@ export function useOnboardingForm() {
   }, [])
 
   const submitForm = useCallback(async () => {
+    // Validate all steps
     for (let step = 1; step <= 9; step++) {
       const stepErrors = validateOnboardingStep(step as OnboardingStep, formData)
       if (stepErrors.length > 0) {
@@ -175,14 +175,26 @@ export function useOnboardingForm() {
     }
 
     setIsSubmitting(true)
+    setErrors({})
 
     try {
+      // Create FormData for file uploads
+      const formDataToSend = new FormData()
+      
+      // Prepare the JSON data (excluding files)
+      const { uploaded_files, ...dataWithoutFiles } = formData
+      formDataToSend.append('data', JSON.stringify(dataWithoutFiles))
+      
+      // Append files
+      if (uploaded_files && uploaded_files.length > 0) {
+        for (const file of uploaded_files) {
+          formDataToSend.append('files', file)
+        }
+      }
+
       const response = await fetch('/api/onboarding', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ formData }),
+        body: formDataToSend,
       })
 
       const result = await response.json()

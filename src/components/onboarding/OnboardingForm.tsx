@@ -1,3 +1,4 @@
+// src/components/onboarding/OnboardingForm.tsx
 'use client'
 
 import { useRouter } from 'next/navigation'
