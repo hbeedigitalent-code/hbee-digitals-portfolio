@@ -64,6 +64,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     
     // System
     { name: 'Navigation Menu', href: '/admin/menu', icon: 'menu' },
+    { name: 'Merchants', href: '/admin/merchants', icon: 'users' }, // NEW
     { name: 'Profile', href: '/admin/profile', icon: 'profile' },
     { name: 'Settings', href: '/admin/settings', icon: 'settings' },
   ]

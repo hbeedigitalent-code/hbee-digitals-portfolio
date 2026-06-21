@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClientComponentClient } from '@/lib/supabase-client'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
@@ -14,6 +15,8 @@ export default function ClientLoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [resetSent, setResetSent] = useState(false)
+  const [showReset, setShowReset] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,7 +39,7 @@ export default function ClientLoginPage() {
     }
   }
 
-  const handleMagicLink = async () => {
+  const handleResetPassword = async () => {
     if (!email) {
       setError('Please enter your email address')
       return
@@ -46,18 +49,16 @@ export default function ClientLoginPage() {
     setError('')
 
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/client-portal`,
-        },
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/client-reset-password`,
       })
 
       if (error) throw error
 
-      setError('Magic link sent! Check your email.')
+      setResetSent(true)
+      setShowReset(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send magic link')
+      setError(err instanceof Error ? err.message : 'Failed to send reset email')
     } finally {
       setLoading(false)
     }
@@ -77,64 +78,102 @@ export default function ClientLoginPage() {
           </div>
 
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-6">
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-white">Email Address</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
-                  placeholder="you@email.com"
-                  required
-                />
+            {resetSent ? (
+              <div className="text-center py-4">
+                <SvgIcon name="email" size={48} color="var(--accent-lime)" className="mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-white">Check Your Email</h3>
+                <p className="mt-2 text-[var(--text-muted)]">
+                  We've sent password reset instructions to <strong>{email}</strong>
+                </p>
+                <button
+                  onClick={() => setResetSent(false)}
+                  className="mt-4 text-[var(--accent-orange)] hover:underline"
+                >
+                  Back to login
+                </button>
               </div>
+            ) : (
+              <>
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-white">Email Address</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+                      placeholder="you@email.com"
+                      required
+                    />
+                  </div>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-white">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
+                  {!showReset && (
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-white">Password</label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+                        placeholder="••••••••"
+                        required
+                      />
+                    </div>
+                  )}
 
-              {error && (
-                <div className={`rounded-lg p-3 text-sm ${error.includes('sent') ? 'bg-[var(--accent-lime)]/10 text-[var(--accent-lime)]' : 'bg-red-500/10 text-red-400'}`}>
-                  {error}
+                  {error && (
+                    <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400">
+                      {error}
+                    </div>
+                  )}
+
+                  {!showReset ? (
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full rounded-full bg-[var(--accent-orange)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] disabled:opacity-50"
+                    >
+                      {loading ? 'Signing in...' : 'Sign In'}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResetPassword}
+                      disabled={loading}
+                      className="w-full rounded-full bg-[var(--accent-orange)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] disabled:opacity-50"
+                    >
+                      {loading ? 'Sending...' : 'Send Reset Link'}
+                    </button>
+                  )}
+                </form>
+
+                <div className="mt-4 text-center">
+                  {!showReset ? (
+                    <>
+                      <button
+                        onClick={() => setShowReset(true)}
+                        className="text-sm text-[var(--text-muted)] hover:text-[var(--accent-orange)] transition"
+                      >
+                        Forgot password?
+                      </button>
+                      <div className="mt-3 text-sm text-[var(--text-muted)]">
+                        Don't have an account?{' '}
+                        <Link href="/client-signup" className="text-[var(--accent-orange)] hover:underline">
+                          Sign up
+                        </Link>
+                      </div>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setShowReset(false)}
+                      className="text-sm text-[var(--text-muted)] hover:text-[var(--accent-orange)] transition"
+                    >
+                      Back to login
+                    </button>
+                  )}
                 </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-full bg-[var(--accent-orange)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] disabled:opacity-50"
-              >
-                {loading ? 'Signing in...' : 'Sign In'}
-              </button>
-            </form>
-
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-[var(--border)]" />
-                </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="bg-[var(--bg-card-dark)] px-2 text-[var(--text-muted)]">Or continue with</span>
-                </div>
-              </div>
-
-              <button
-                onClick={handleMagicLink}
-                disabled={loading}
-                className="mt-4 w-full rounded-full border border-[var(--border)] bg-transparent px-6 py-3 text-sm font-semibold text-white transition hover:bg-[var(--bg-navy-mid)] disabled:opacity-50"
-              >
-                Send Magic Link
-              </button>
-            </div>
+              </>
+            )}
           </div>
         </div>
       </main>
