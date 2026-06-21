@@ -1,6 +1,6 @@
 // src/lib/services/merchant-auth-service.ts
 
-// Lazy initialize Supabase admin client - only when needed
+// Lazy initialize Supabase admin client
 let supabaseAdmin: any = null
 
 function getSupabaseAdmin() {
@@ -10,7 +10,7 @@ function getSupabaseAdmin() {
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !supabaseKey) {
-    console.warn('⚠️ Supabase admin credentials not available (build environment)')
+    console.warn('⚠️ Supabase admin credentials not available')
     return null
   }
 
@@ -29,7 +29,6 @@ function getSupabaseAdmin() {
   }
 }
 
-// Lazy initialize Resend - only when needed
 let resendInstance: any = null
 
 function getResend() {
@@ -37,7 +36,7 @@ function getResend() {
 
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
-    console.warn('⚠️ Resend API key not available (build environment)')
+    console.warn('⚠️ Resend API key not available')
     return null
   }
 
@@ -62,22 +61,35 @@ export interface MerchantSignupData {
   password: string
 }
 
-export interface MerchantLoginData {
-  email: string
-  password: string
-}
-
 export async function createMerchantAccount(data: MerchantSignupData) {
+  // Log what we're trying to do
+  console.log('📝 Creating merchant account for:', data.email)
+
   const supabase = getSupabaseAdmin()
   if (!supabase) {
+    console.error('❌ Supabase admin not available')
     return {
       success: false,
-      error: 'Service unavailable. Please try again later.',
+      error: 'System configuration error. Please contact support.',
     }
   }
 
   try {
-    // 1. Create user in Supabase Auth
+    // 1. Check if user already exists
+    const { data: existingUsers, error: checkError } = await supabase.auth.admin.listUsers()
+
+    if (!checkError && existingUsers) {
+      const userExists = existingUsers.users.some((u: any) => u.email === data.email)
+      if (userExists) {
+        return {
+          success: false,
+          error: 'An account with this email already exists. Please login instead.',
+        }
+      }
+    }
+
+    // 2. Create user in Supabase Auth
+    console.log('📝 Creating auth user...')
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
       email: data.email,
       password: data.password,
@@ -89,10 +101,26 @@ export async function createMerchantAccount(data: MerchantSignupData) {
       },
     })
 
-    if (authError) throw authError
-    if (!authUser.user) throw new Error('Failed to create user')
+    if (authError) {
+      console.error('❌ Auth error:', authError)
+      return {
+        success: false,
+        error: authError.message || 'Failed to create account. Please try again.',
+      }
+    }
 
-    // 2. Create merchant account
+    if (!authUser.user) {
+      console.error('❌ No user returned from auth')
+      return {
+        success: false,
+        error: 'Failed to create account. Please try again.',
+      }
+    }
+
+    console.log('✅ Auth user created:', authUser.user.id)
+
+    // 3. Create merchant account
+    console.log('📝 Creating merchant profile...')
     const { data: merchant, error: merchantError } = await supabase
       .from('merchant_accounts')
       .insert({
@@ -104,116 +132,44 @@ export async function createMerchantAccount(data: MerchantSignupData) {
         website_url: data.website_url || null,
         country: data.country || null,
         industry: data.industry || null,
-        status: 'pending',
+        status: 'active',
         email_verified: true,
       })
       .select()
       .single()
 
-    if (merchantError) throw merchantError
+    if (merchantError) {
+      console.error('❌ Merchant error:', merchantError)
+      // User was created but merchant profile failed - still return success but log error
+      return {
+        success: true,
+        merchant: null,
+        user: authUser.user,
+        warning: 'Account created but profile setup incomplete. Please contact support.',
+      }
+    }
 
-    // 3. Send welcome email (if Resend is available)
+    console.log('✅ Merchant profile created')
+
+    // 4. Send welcome email (if Resend is available)
     const resend = getResend()
     if (resend) {
       try {
         await sendWelcomeEmail(resend, data.email, data.contact_name, data.business_name)
+        console.log('✅ Welcome email sent')
       } catch (emailError) {
-        console.error('Welcome email failed:', emailError)
+        console.error('⚠️ Welcome email failed:', emailError)
         // Don't fail account creation
       }
     }
 
     return { success: true, merchant, user: authUser.user }
   } catch (error) {
-    console.error('Create merchant error:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to create account' }
-  }
-}
-
-export async function loginMerchant(data: MerchantLoginData) {
-  try {
-    // Use the standard client for login (not admin)
-    const { createClient } = require('@supabase/supabase-js')
-    const supabaseClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-
-    const { data: authData, error } = await supabaseClient.auth.signInWithPassword({
-      email: data.email,
-      password: data.password,
-    })
-
-    if (error) throw error
-
-    return { success: true, session: authData.session, user: authData.user }
-  } catch (error) {
-    console.error('Login error:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Login failed' }
-  }
-}
-
-export async function sendPasswordReset(email: string) {
-  try {
-    const { createClient } = require('@supabase/supabase-js')
-    const supabaseClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-
-    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hbeedigitals.com'}/client-reset-password`,
-    })
-
-    if (error) throw error
-
-    return { success: true }
-  } catch (error) {
-    console.error('Password reset error:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to send reset email' }
-  }
-}
-
-export async function updatePassword(newPassword: string) {
-  try {
-    const { createClient } = require('@supabase/supabase-js')
-    const supabaseClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-
-    const { error } = await supabaseClient.auth.updateUser({
-      password: newPassword,
-    })
-
-    if (error) throw error
-
-    return { success: true }
-  } catch (error) {
-    console.error('Update password error:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to update password' }
-  }
-}
-
-export async function getMerchantProfile(userId: string) {
-  const supabase = getSupabaseAdmin()
-  if (!supabase) {
-    return { success: false, error: 'Service unavailable' }
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('merchant_accounts')
-      .select('*')
-      .eq('id', userId)
-      .single()
-
-    if (error) throw error
-
-    return { success: true, profile: data }
-  } catch (error) {
-    console.error('Get profile error:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to get profile' }
+    console.error('❌ Create merchant error:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create account. Please try again.',
+    }
   }
 }
 
