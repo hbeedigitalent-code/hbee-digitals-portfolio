@@ -20,22 +20,49 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [siteSettings, setSiteSettings] = useState<any>({})
 
   const navItems = [
+    // Dashboard
     { name: 'Dashboard', href: '/admin/dashboard', icon: 'analytics' },
-    { name: 'Inquiries', href: '/admin/inquiries', icon: 'email', badge: unreadInquiries },
-    { name: 'Newsletter', href: '/admin/newsletter', icon: 'newsletter' },
-    { name: 'Subscribers', href: '/admin/subscribers', icon: 'users' },
+    { name: 'Workspace', href: '/admin/workspace', icon: 'dashboard' },
+    
+    // Client Acquisition
     { name: 'Growth Assessments', href: '/admin/growth-assessments', icon: 'growth-readiness' },
+    { name: 'Client Onboarding', href: '/admin/client-onboarding', icon: 'users' },
+    { name: 'CRM / Leads', href: '/admin/crm', icon: 'user' },
+    
+    // Client Management
+    { name: 'Client Portal', href: '/admin/client-portal', icon: 'portfolio' },
+    { name: 'Projects', href: '/admin/projects', icon: 'projects' },
+    { name: 'Tasks', href: '/admin/tasks', icon: 'check' },
+    { name: 'Proposals', href: '/admin/proposals', icon: 'pricing' },
+    { name: 'Agreements', href: '/admin/agreements', icon: 'security' },
+    { name: 'Client Health', href: '/admin/client-health', icon: 'growth' },
+    
+    // Growth Intelligence
+    { name: 'Growth Intelligence', href: '/admin/growth-intelligence', icon: 'analytics' },
+    { name: 'Audits', href: '/admin/growth-intelligence/audits', icon: 'search' },
+    { name: 'Opportunities', href: '/admin/growth-intelligence/opportunities', icon: 'growth' },
+    
+    // Content
+    { name: 'Blog Posts', href: '/admin/blog', icon: 'blog' },
+    { name: 'Blog Categories', href: '/admin/blog/categories', icon: 'category' },
+    { name: 'Comments', href: '/admin/comments', icon: 'messages' },
+    { name: 'FAQs', href: '/admin/faqs', icon: 'faq' },
+    { name: 'Testimonials', href: '/admin/testimonials', icon: 'star' },
+    
+    // Website
     { name: 'Hero Section', href: '/admin/hero', icon: 'hero' },
     { name: 'About Page', href: '/admin/about', icon: 'about' },
     { name: 'Services', href: '/admin/services', icon: 'services' },
     { name: 'Pricing', href: '/admin/pricing', icon: 'pricing' },
     { name: 'Portfolio', href: '/admin/portfolio', icon: 'portfolio' },
-    { name: 'Testimonials', href: '/admin/testimonials', icon: 'star' },
     { name: 'Team Members', href: '/admin/team', icon: 'team' },
-    { name: 'FAQs', href: '/admin/faqs', icon: 'faq' },
-    { name: 'Blog Posts', href: '/admin/blog', icon: 'blog' },
-    { name: 'Blog Categories', href: '/admin/blog/categories', icon: 'category' },
-    { name: 'Comments', href: '/admin/comments', icon: 'messages' },
+    
+    // Communications
+    { name: 'Inquiries', href: '/admin/inquiries', icon: 'email', badge: unreadInquiries },
+    { name: 'Newsletter', href: '/admin/newsletter', icon: 'newsletter' },
+    { name: 'Subscribers', href: '/admin/subscribers', icon: 'users' },
+    
+    // System
     { name: 'Navigation Menu', href: '/admin/menu', icon: 'menu' },
     { name: 'Profile', href: '/admin/profile', icon: 'profile' },
     { name: 'Settings', href: '/admin/settings', icon: 'settings' },
@@ -188,7 +215,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             
             <div className="flex items-center gap-4">
-              {/* Notification Icon - using bell.svg */}
+              {/* Notification Icon */}
               <Link href="/admin/inquiries" className="relative">
                 <img 
                   src="/svgs/bell.svg" 
