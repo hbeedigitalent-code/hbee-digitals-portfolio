@@ -168,11 +168,9 @@ export default function TurnstileWidget({
           onClick={() => {
             setError(null)
             setIsVerifying(true)
-            // Re-render by triggering effect
             if (containerRef.current) {
               containerRef.current.innerHTML = ''
             }
-            // Force re-render
             setIsLoaded(false)
             setTimeout(() => setIsLoaded(true), 100)
           }}
@@ -186,8 +184,8 @@ export default function TurnstileWidget({
 
   if (!siteKey) {
     return (
-      <div className="text-center py-2 text-red-400 text-sm">
-        Security configuration in progress. Please refresh and try again.
+      <div className="text-center py-2 text-yellow-400 text-sm">
+        ⚠️ Security configuration in progress. Please refresh and try again.
       </div>
     )
   }

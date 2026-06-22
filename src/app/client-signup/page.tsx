@@ -76,9 +76,10 @@ export default function ClientSignupPage() {
 
       if (result.success) {
         setSuccess(true)
+        // Show success message with confirmation note
         setTimeout(() => {
           router.push('/client-login')
-        }, 3000)
+        }, 4000)
       } else {
         setError(result.error || 'Failed to create account')
       }
@@ -101,7 +102,10 @@ export default function ClientSignupPage() {
             </div>
             <h1 className="text-2xl font-bold text-white">Account Created!</h1>
             <p className="mt-2 text-[var(--text-muted)]">
-              Your merchant account has been created. You'll be redirected to login.
+              Your merchant account has been created. Please check your email to confirm your account.
+            </p>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">
+              You'll be redirected to login shortly.
             </p>
             <Link
               href="/client-login"

@@ -83,26 +83,32 @@ export async function POST(req: Request) {
     const body = await req.json()
     console.log('📥 Received form submission:', { formType: body.form_type, source: body.source })
 
-    // Verify Turnstile token
+    // Check if Turnstile is configured
+    const turnstileSecretKey = process.env.TURNSTILE_SECRET_KEY
     const turnstileToken = body.turnstile_token
-    if (!turnstileToken) {
-      console.error('❌ No Turnstile token provided')
-      return NextResponse.json(
-        { error: 'Please complete the security verification.' },
-        { status: 400 }
-      )
-    }
 
-    const verification = await verifyTurnstileToken(turnstileToken)
-    if (!verification.success) {
-      console.error('❌ Turnstile verification failed:', verification.error)
-      return NextResponse.json(
-        { error: verification.error || 'Security verification failed. Please try again.' },
-        { status: 400 }
-      )
-    }
+    // Only verify Turnstile if the secret key is configured
+    if (turnstileSecretKey) {
+      if (!turnstileToken) {
+        console.error('❌ No Turnstile token provided')
+        return NextResponse.json(
+          { error: 'Please complete the security verification.' },
+          { status: 400 }
+        )
+      }
 
-    console.log('✅ Turnstile verification passed')
+      const verification = await verifyTurnstileToken(turnstileToken)
+      if (!verification.success) {
+        console.error('❌ Turnstile verification failed:', verification.error)
+        return NextResponse.json(
+          { error: verification.error || 'Security verification failed. Please try again.' },
+          { status: 400 }
+        )
+      }
+      console.log('✅ Turnstile verification passed')
+    } else {
+      console.log('⚠️ Turnstile secret key not configured - skipping verification')
+    }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey)
     
@@ -201,7 +207,7 @@ export async function POST(req: Request) {
 
     console.log('✅ Form saved to database')
 
-    // Try to send emails, but don't fail if they don't work
+    // Try to send emails
     let emailErrors = []
     
     if (resend) {
@@ -305,7 +311,7 @@ export async function POST(req: Request) {
         const replyTo = process.env.RESEND_REPLY_TO || 'hello@hbeedigitals.com'
 
         await resend.emails.send({
-          from: 'Hbee Digitals <forms@send.hbeedigitals.com>',
+          from: process.env.RESEND_FROM_EMAIL || 'Hbee Digitals <forms@send.hbeedigitals.com>',
           to: adminTo,
           replyTo: email,
           subject: adminSubject,
@@ -313,7 +319,7 @@ export async function POST(req: Request) {
         })
 
         await resend.emails.send({
-          from: 'Hbee Digitals <noreply@send.hbeedigitals.com>',
+          from: process.env.RESEND_FROM_EMAIL || 'Hbee Digitals <noreply@send.hbeedigitals.com>',
           to: email,
           replyTo,
           subject: customerSubject,

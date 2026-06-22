@@ -50,8 +50,11 @@ export default function ClientLoginPage() {
     setError('')
 
     try {
+      // Use SITE_URL from environment instead of window.location
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hbeedigitals.com'
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/client-reset-password`,
+        redirectTo: `${siteUrl}/client-reset-password`,
       })
 
       if (error) throw error
