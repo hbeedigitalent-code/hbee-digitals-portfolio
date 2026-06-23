@@ -104,9 +104,36 @@ function TypewriterWord({
   )
 }
 
+// Trust Bar Component
+function TrustBar() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.3 }}
+      className="mt-3 flex flex-wrap items-center gap-2 text-[10px] sm:text-xs text-[var(--text-muted)]"
+    >
+      <span className="flex items-center gap-1.5">
+        <SvgIcon name="verified" size={12} color="var(--accent)" />
+        <span>No-risk consultation</span>
+      </span>
+      <span className="hidden xs:inline text-[var(--border)]">|</span>
+      <span className="flex items-center gap-1.5">
+        <SvgIcon name="verified" size={12} color="var(--accent)" />
+        <span>Transparent pricing</span>
+      </span>
+      <span className="hidden xs:inline text-[var(--border)]">|</span>
+      <span className="flex items-center gap-1.5">
+        <SvgIcon name="verified" size={12} color="var(--accent)" />
+        <span>Ongoing support</span>
+      </span>
+    </motion.div>
+  )
+}
+
 export default function HeroSection({ data }: HeroSectionProps) {
   const sectionRef = useRef<HTMLElement | null>(null)
-  const isInView = useInView(sectionRef, { amount: 0.35, once: true })
+  const isInView = useInView(sectionRef, { amount: 0.25, once: true })
   const reducedMotion = Boolean(useReducedMotion())
   const [isConsultationOpen, setIsConsultationOpen] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
@@ -121,31 +148,130 @@ export default function HeroSection({ data }: HeroSectionProps) {
   return (
     <section
       ref={sectionRef}
-      className="relative overflow-hidden bg-[var(--bg-page)] px-5 py-12 sm:px-6 md:px-10 lg:py-20"
+      className="relative min-h-[75vh] sm:min-h-[80vh] lg:min-h-[75vh] overflow-hidden bg-[var(--bg-page)] px-5 sm:px-6 md:px-10 lg:px-12 flex items-center pt-14 sm:pt-16 md:pt-20"
     >
-      {/* Light background glow - using CSS variables */}
+      {/* Background glow */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute -left-24 top-0 h-[280px] w-[280px] rounded-full bg-[var(--blue-500)]/5 blur-[90px] sm:h-[350px] sm:w-[350px] sm:blur-[120px]" />
         <div className="absolute -right-24 bottom-0 h-[260px] w-[260px] rounded-full bg-[var(--accent)]/5 blur-[90px] sm:h-[300px] sm:w-[300px] sm:blur-[100px]" />
       </div>
 
-      <div className="mx-auto max-w-7xl">
-        <div className="flex flex-col gap-10 lg:flex-row lg:items-center lg:gap-12">
+      <div className="mx-auto w-full max-w-7xl">
+        {/* Equal height columns on desktop */}
+        <div className="flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-stretch lg:gap-10">
           
-          {/* IMAGE - First on mobile, Right on desktop */}
+          {/* ============================================================ */}
+          {/* CONTENT - 55% | Vertically centered within the column         */}
+          {/* ============================================================ */}
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 25 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="order-2 w-full lg:order-1 lg:w-[55%] flex flex-col justify-center"
+          >
+            <div className="max-w-[560px] mx-auto lg:mx-0 w-full py-2 lg:py-0">
+              {/* Badge - Using star.svg from public/svgs */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+                transition={{ duration: 0.4, delay: 0.05 }}
+              >
+                <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 px-3 py-1.5 mb-2 md:mb-3">
+                  <SvgIcon name="star" size={12} color="var(--accent)" />
+                  <span className="text-[9px] sm:text-[10px] font-semibold text-[var(--accent)] uppercase tracking-wider">
+                    DIGITAL GROWTH AGENCY
+                  </span>
+                </div>
+              </motion.div>
+
+              {/* Headline - Proper mobile hierarchy */}
+              <motion.h1
+                initial={{ opacity: 0, y: 15 }}
+                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="text-[clamp(1.8rem,5vw,3rem)] sm:text-[clamp(2rem,4.5vw,3.5rem)] lg:text-[clamp(2.2rem,3.5vw,4rem)] font-bold leading-[1.08] tracking-[-0.03em] text-[var(--text-primary)]"
+              >
+                <div>Engineering Digital</div>
+                <div>Growth Systems For</div>
+                <div className="relative inline-block mt-0.5">
+                  <TypewriterWord active={isInView} reducedMotion={reducedMotion} />
+                </div>
+              </motion.h1>
+
+              {/* Description - Proper mobile hierarchy */}
+              <motion.p
+                initial={{ opacity: 0, y: 15 }}
+                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
+                transition={{ duration: 0.5, delay: 0.15 }}
+                className="mt-2 md:mt-3 text-sm sm:text-base md:text-lg leading-[1.6] text-[var(--text-secondary)] max-w-[520px]"
+              >
+                {subtitle}
+              </motion.p>
+
+              {/* CTA Button - Increased size */}
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="mt-4 md:mt-5"
+              >
+                <motion.button
+                  onClick={() => setIsConsultationOpen(true)}
+                  onMouseEnter={() => setIsHovered(true)}
+                  onMouseLeave={() => setIsHovered(false)}
+                  className="relative inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 text-sm sm:text-base font-black rounded-full overflow-hidden transition-all duration-300"
+                  whileTap={{ scale: 0.97 }}
+                  animate={{
+                    backgroundColor: isHovered ? 'var(--accent)' : 'var(--navy-800)',
+                    boxShadow: isHovered 
+                      ? '0 10px 25px -5px rgba(249,115,22,0.4)' 
+                      : '0 4px 6px -1px rgba(0,0,0,0.1)',
+                  }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                >
+                  <span className="relative z-10 text-white">
+                    {primaryCtaText}
+                  </span>
+                  <motion.svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="relative z-10"
+                    animate={{
+                      x: isHovered ? 4 : 0,
+                      y: isHovered ? -2 : 0,
+                    }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </motion.svg>
+                </motion.button>
+              </motion.div>
+
+              {/* Trust Bar */}
+              <TrustBar />
+            </div>
+          </motion.div>
+
+          {/* ============================================================ */}
+          {/* IMAGE - 45% | Sets the height for both columns                */}
+          {/* ============================================================ */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 30 }}
             transition={{ duration: 0.6, ease: 'easeOut', delay: 0.1 }}
-            className="order-1 w-full lg:order-2 lg:w-1/2"
+            className="order-1 w-full lg:order-2 lg:w-[45%] flex items-center"
           >
-            <div className="relative mx-auto w-full max-w-[320px] sm:max-w-[380px] md:max-w-[440px] lg:max-w-[480px]">
-              {/* Subtle glow behind image */}
-              <div className="absolute -inset-4 rounded-3xl bg-gradient-to-r from-[var(--blue-500)]/10 via-[var(--accent)]/5 to-transparent blur-2xl" />
-              
-              {/* Clean image container */}
+            <div className="hero-image-wrapper mx-auto lg:mx-0 lg:ml-auto w-full">
               <div className="relative overflow-hidden rounded-2xl shadow-[var(--shadow-xl)]">
-                <div className="relative aspect-square overflow-hidden">
+                <div className="relative aspect-[7/5] overflow-hidden bg-[var(--bg-section)]">
                   {video_url ? (
                     <video
                       src={video_url}
@@ -155,7 +281,7 @@ export default function HeroSection({ data }: HeroSectionProps) {
                       playsInline
                       preload="metadata"
                       poster={backgroundImage}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                     />
                   ) : backgroundImage ? (
                     <img
@@ -163,7 +289,7 @@ export default function HeroSection({ data }: HeroSectionProps) {
                       alt="Hbee Digitals - Digital Growth Studio"
                       loading="eager"
                       fetchPriority="high"
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                     />
                   ) : (
                     <div className="h-full w-full bg-gradient-to-br from-[var(--bg-section)] to-[var(--bg-card)]" />
@@ -171,98 +297,6 @@ export default function HeroSection({ data }: HeroSectionProps) {
                 </div>
               </div>
             </div>
-          </motion.div>
-
-          {/* TEXT - Second on mobile, Left on desktop */}
-          <motion.div
-            initial={{ opacity: 0, y: 25 }}
-            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 25 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="order-2 w-full lg:order-1 lg:w-1/2"
-          >
-            {/* Section Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-            >
-              <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)]/10 px-3 py-1 mb-5">
-                <span className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wider">
-                  DIGITAL GROWTH AGENCY
-                </span>
-              </div>
-            </motion.div>
-
-            {/* Main Title */}
-            <motion.h1
-              initial={{ opacity: 0, y: 15 }}
-              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
-              transition={{ duration: 0.5, delay: 0.15 }}
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.2] tracking-[-0.02em] text-[var(--text-primary)]"
-            >
-              <div className="mb-1 whitespace-nowrap sm:whitespace-normal">Engineering Digital</div>
-              <div className="mb-1 whitespace-nowrap sm:whitespace-normal">Growth Systems For</div>
-              <div className="relative inline-block mt-1">
-                <TypewriterWord active={isInView} reducedMotion={reducedMotion} />
-              </div>
-            </motion.h1>
-
-            {/* Subheadline */}
-            <motion.p
-              initial={{ opacity: 0, y: 15 }}
-              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="mt-5 text-base leading-7 text-[var(--text-secondary)] sm:text-lg sm:leading-8 max-w-lg"
-            >
-              {subtitle}
-            </motion.p>
-
-            {/* CTA Button with two-color hover animation */}
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
-              transition={{ duration: 0.5, delay: 0.25 }}
-              className="mt-8"
-            >
-              <motion.button
-                onClick={() => setIsConsultationOpen(true)}
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
-                className="relative inline-flex items-center gap-2 px-8 py-3.5 text-sm font-black rounded-full overflow-hidden transition-all duration-300"
-                whileTap={{ scale: 0.97 }}
-                animate={{
-                  backgroundColor: isHovered ? 'var(--accent)' : 'var(--navy-800)',
-                  boxShadow: isHovered 
-                    ? '0 10px 25px -5px rgba(249,115,22,0.4)' 
-                    : '0 4px 6px -1px rgba(0,0,0,0.1)',
-                }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
-              >
-                <span className="relative z-10 text-white">
-                  {primaryCtaText}
-                </span>
-                <motion.svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="relative z-10"
-                  animate={{
-                    x: isHovered ? 4 : 0,
-                    y: isHovered ? -2 : 0,
-                  }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
-                </motion.svg>
-              </motion.button>
-            </motion.div>
           </motion.div>
         </div>
       </div>
@@ -272,6 +306,49 @@ export default function HeroSection({ data }: HeroSectionProps) {
         isOpen={isConsultationOpen}
         onClose={() => setIsConsultationOpen(false)}
       />
+
+      {/* ============================================================ */}
+      {/* INLINE STYLES FOR IMAGE WRAPPER                               */}
+      {/* ============================================================ */}
+      <style jsx>{`
+        .hero-image-wrapper {
+          max-width: 240px;
+          width: 100%;
+          margin: 0 auto 12px;
+        }
+
+        @media (min-width: 640px) {
+          .hero-image-wrapper {
+            max-width: 300px;
+            margin: 0 auto 16px;
+          }
+        }
+
+        @media (min-width: 768px) {
+          .hero-image-wrapper {
+            max-width: 340px;
+          }
+        }
+
+        @media (min-width: 1024px) {
+          .hero-image-wrapper {
+            max-width: 440px;
+            width: 100%;
+            margin: 0;
+          }
+        }
+
+        .hero-image-wrapper .aspect-\\[7\\/5\\] {
+          aspect-ratio: 7 / 5;
+        }
+
+        /* Hide separator on very small screens */
+        @media (max-width: 400px) {
+          .xs\\:inline {
+            display: none !important;
+          }
+        }
+      `}</style>
     </section>
   )
 }
