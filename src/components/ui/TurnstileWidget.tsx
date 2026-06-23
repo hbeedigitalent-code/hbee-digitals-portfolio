@@ -31,19 +31,15 @@ export default function TurnstileWidget({
   const [isVerifying, setIsVerifying] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Get site key from environment
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
-  // Load Turnstile script
   useEffect(() => {
-    // Check if site key exists
     if (!siteKey) {
-      console.error('❌ Turnstile: Site key is missing. Add NEXT_PUBLIC_TURNSTILE_SITE_KEY to .env.local')
+      console.warn('⚠️ Turnstile: Site key is missing. Add NEXT_PUBLIC_TURNSTILE_SITE_KEY')
       setError('Security configuration missing')
       return
     }
 
-    // Check if script already exists
     if (document.querySelector('script[src*="turnstile"]')) {
       console.log('✅ Turnstile: Script already loaded')
       setIsLoaded(true)
@@ -61,8 +57,8 @@ export default function TurnstileWidget({
       setIsLoaded(true)
     }
     
-    script.onerror = (err) => {
-      console.error('❌ Turnstile: Failed to load script:', err)
+    script.onerror = () => {
+      console.error('❌ Turnstile: Failed to load script')
       setError('Failed to load security verification')
       onError?.()
     }
@@ -74,23 +70,17 @@ export default function TurnstileWidget({
         try {
           window.turnstile.remove(widgetIdRef.current)
         } catch (e) {
-          // Ignore removal errors
+          // Ignore
         }
       }
     }
   }, [siteKey, onError])
 
-  // Initialize or reset widget
   useEffect(() => {
-    if (!isLoaded || !window.turnstile || !containerRef.current) {
+    if (!isLoaded || !window.turnstile || !containerRef.current || !siteKey) {
       return
     }
 
-    if (!siteKey) {
-      return
-    }
-
-    // Remove existing widget if any
     if (widgetIdRef.current) {
       try {
         window.turnstile.remove(widgetIdRef.current)
@@ -100,19 +90,17 @@ export default function TurnstileWidget({
       }
     }
 
-    // Clear container
     if (containerRef.current) {
       containerRef.current.innerHTML = ''
     }
 
     try {
-      // Render the widget
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         sitekey: siteKey,
         theme: theme,
         size: size,
         callback: (token: string) => {
-          console.log('✅ Turnstile: Verification successful')
+          console.log('✅ Turnstile: Verification successful, token:', token.substring(0, 10) + '...')
           setIsVerifying(false)
           onVerify(token)
         },
@@ -145,7 +133,6 @@ export default function TurnstileWidget({
     }
   }, [isLoaded, siteKey, theme, size, onVerify, onError, onExpire])
 
-  // Handle reset
   useEffect(() => {
     if (reset && widgetIdRef.current && window.turnstile) {
       try {
@@ -185,7 +172,7 @@ export default function TurnstileWidget({
   if (!siteKey) {
     return (
       <div className="text-center py-2 text-yellow-400 text-sm">
-        ⚠️ Security configuration in progress. Please refresh and try again.
+        ⚠️ Security configuration in progress.
       </div>
     )
   }

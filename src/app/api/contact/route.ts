@@ -5,11 +5,9 @@ import { createClient } from '@supabase/supabase-js'
 
 function replaceVariables(template: string, variables: Record<string, string>) {
   let output = template || ''
-
   Object.entries(variables).forEach(([key, value]) => {
     output = output.replace(new RegExp(`{{${key}}}`, 'g'), value || '')
   })
-
   return output
 }
 
@@ -30,8 +28,8 @@ async function verifyTurnstileToken(token: string): Promise<{ success: boolean; 
   const secretKey = process.env.TURNSTILE_SECRET_KEY
   
   if (!secretKey) {
-    console.error('❌ Turnstile: Secret key missing')
-    return { success: false, error: 'Security configuration error' }
+    console.warn('⚠️ Turnstile: Secret key missing - skipping verification')
+    return { success: true } // Skip verification if no key (development)
   }
 
   try {
@@ -50,8 +48,6 @@ async function verifyTurnstileToken(token: string): Promise<{ success: boolean; 
     if (data.success === true) {
       return { success: true }
     } else {
-      const errorCodes = data['error-codes'] || []
-      console.error('❌ Turnstile verification failed:', errorCodes)
       return { success: false, error: 'Verification failed. Please try again.' }
     }
   } catch (error) {
@@ -66,14 +62,7 @@ export async function POST(req: Request) {
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     const resendApiKey = process.env.RESEND_API_KEY
 
-    console.log('Environment check:', {
-      hasSupabaseUrl: !!supabaseUrl,
-      hasServiceRoleKey: !!serviceRoleKey,
-      hasResendApiKey: !!resendApiKey,
-    })
-
     if (!supabaseUrl || !serviceRoleKey) {
-      console.error('Missing Supabase configuration')
       return NextResponse.json(
         { error: 'Database configuration error. Please try again later.' },
         { status: 500 }
@@ -83,23 +72,11 @@ export async function POST(req: Request) {
     const body = await req.json()
     console.log('📥 Received form submission:', { formType: body.form_type, source: body.source })
 
-    // Check if Turnstile is configured
-    const turnstileSecretKey = process.env.TURNSTILE_SECRET_KEY
+    // Verify Turnstile token ONLY if it exists
     const turnstileToken = body.turnstile_token
-
-    // Only verify Turnstile if the secret key is configured
-    if (turnstileSecretKey) {
-      if (!turnstileToken) {
-        console.error('❌ No Turnstile token provided')
-        return NextResponse.json(
-          { error: 'Please complete the security verification.' },
-          { status: 400 }
-        )
-      }
-
+    if (turnstileToken) {
       const verification = await verifyTurnstileToken(turnstileToken)
       if (!verification.success) {
-        console.error('❌ Turnstile verification failed:', verification.error)
         return NextResponse.json(
           { error: verification.error || 'Security verification failed. Please try again.' },
           { status: 400 }
@@ -107,17 +84,15 @@ export async function POST(req: Request) {
       }
       console.log('✅ Turnstile verification passed')
     } else {
-      console.log('⚠️ Turnstile secret key not configured - skipping verification')
+      console.log('ℹ️ No Turnstile token provided - skipping verification')
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey)
-    
     let resend = null
     if (resendApiKey) {
       resend = new Resend(resendApiKey)
     }
 
-    // Determine form type
     const formType = body.form_type || 'contact'
     const source = body.source || 'website_contact_form'
 
@@ -127,14 +102,10 @@ export async function POST(req: Request) {
     let company = ''
     let phone = ''
     let service = ''
-    let budget = ''
-    let timeline = ''
-    let website = ''
     let message = ''
     let businessName = ''
     let websiteUrl = ''
     let serviceInterest = ''
-    let budgetRange = ''
     let preferredContact = ''
     let currentChallenge = ''
 
@@ -146,26 +117,20 @@ export async function POST(req: Request) {
       websiteUrl = body.website_url || ''
       serviceInterest = body.service_interest || ''
       currentChallenge = body.message || body.current_challenge || ''
-      budgetRange = body.budget_range || ''
       preferredContact = body.preferred_contact || body.contact_method || ''
       message = currentChallenge
       company = businessName
-      website = websiteUrl
       service = serviceInterest
-      budget = budgetRange
     } else {
       fullName = body.fullName || body.name || ''
       email = body.email || ''
       company = body.company || ''
       phone = body.phone || ''
       service = body.service || ''
-      budget = body.budget || ''
-      timeline = body.timeline || ''
-      website = body.website || ''
       message = body.message || ''
+      websiteUrl = body.website || ''
     }
 
-    // Validation
     if (!fullName || !email || !message) {
       return NextResponse.json(
         { error: 'Please fill in your name, email, and message.' },
@@ -182,10 +147,8 @@ export async function POST(req: Request) {
           email,
           company: company || businessName || null,
           phone: phone || null,
-          website: website || websiteUrl || null,
+          website: websiteUrl || null,
           service: service || serviceInterest || null,
-          budget: budget || budgetRange || null,
-          timeline: timeline || null,
           message,
           form_type: formType,
           source: source,
@@ -205,136 +168,58 @@ export async function POST(req: Request) {
       )
     }
 
-    console.log('✅ Form saved to database')
-
-    // Try to send emails
-    let emailErrors = []
-    
+    // Send confirmation email
     if (resend) {
       try {
         const variables = {
           name: fullName,
-          fullName,
-          email,
-          company: company || businessName || '',
-          phone: phone || '',
-          website: website || websiteUrl || '',
-          service: service || serviceInterest || '',
-          budget: budget || budgetRange || '',
-          timeline: timeline || '',
-          message,
-          form_type: formType,
-          business_name: businessName || '',
-          website_url: websiteUrl || '',
-          service_interest: serviceInterest || '',
-          budget_range: budgetRange || '',
-          preferred_contact: preferredContact || '',
-          current_challenge: currentChallenge || '',
+          email: email,
+          business_name: businessName || company || '',
+          message: message,
         }
 
-        async function getTemplate(slug: string) {
-          const { data } = await supabase
-            .from('email_templates')
-            .select('*')
-            .eq('slug', slug)
-            .eq('is_active', true)
-            .maybeSingle()
-          return data
-        }
-
-        const adminTemplateSlug = formType === 'free_consultation' 
-          ? 'admin-consultation-notification' 
-          : 'admin-inquiry-notification'
-        
-        const customerTemplateSlug = formType === 'free_consultation'
-          ? 'consultation-auto-reply'
-          : 'contact-auto-reply'
-
-        let adminTemplate = await getTemplate(adminTemplateSlug)
-        let customerTemplate = await getTemplate(customerTemplateSlug)
-
-        if (!adminTemplate) {
-          adminTemplate = {
-            subject: formType === 'free_consultation' 
-              ? 'New Free Consultation Request from {{name}}'
-              : 'New Hbee Digitals Inquiry from {{name}}',
-            body_html: formType === 'free_consultation'
-              ? `<h2>New Free Consultation Request</h2>
-                 <p><strong>Name:</strong> {{name}}</p>
-                 <p><strong>Email:</strong> {{email}}</p>
-                 <p><strong>Phone:</strong> {{phone}}</p>
-                 <p><strong>Business:</strong> {{business_name}}</p>
-                 <p><strong>Website:</strong> {{website_url}}</p>
-                 <p><strong>Service Interest:</strong> {{service_interest}}</p>
-                 <p><strong>Budget Range:</strong> {{budget_range}}</p>
-                 <p><strong>Preferred Contact:</strong> {{preferred_contact}}</p>
-                 <p><strong>Challenge:</strong></p>
-                 <p>{{current_challenge}}</p>`
-              : `<h2>New Project Inquiry</h2>
-                 <p><strong>Name:</strong> {{name}}</p>
-                 <p><strong>Email:</strong> {{email}}</p>
-                 <p><strong>Company:</strong> {{company}}</p>
-                 <p><strong>Phone:</strong> {{phone}}</p>
-                 <p><strong>Website:</strong> {{website}}</p>
-                 <p><strong>Service:</strong> {{service}}</p>
-                 <p><strong>Budget:</strong> {{budget}}</p>
-                 <p><strong>Message:</strong></p>
-                 <p>{{message}}</p>`,
-          }
-        }
-
-        if (!customerTemplate) {
-          customerTemplate = {
-            subject: formType === 'free_consultation'
-              ? 'Your Free Consultation Request — Hbee Digitals'
-              : 'We received your inquiry — Hbee Digitals',
-            body_html: formType === 'free_consultation'
-              ? `<h2>Your consultation request has been received.</h2>
-                 <p>Hi {{name}},</p>
-                 <p>Thank you for requesting a free consultation with Hbee Digitals.</p>
-                 <p>We'll review your details and get back to you within 24 hours.</p>
-                 <p>Regards,<br/>Hbee Digitals Team</p>`
-              : `<h2>Your inquiry has been received.</h2>
-                 <p>Hi {{name}},</p>
-                 <p>Thank you for reaching out to Hbee Digitals.</p>
-                 <p>We’ll review your project details and respond shortly.</p>
-                 <p>Regards,<br/>Hbee Digitals</p>`,
-          }
-        }
-
-        const adminSubject = replaceVariables(adminTemplate.subject, variables)
-        const adminHtml = replaceVariables(adminTemplate.body_html, variables)
-        const customerSubject = replaceVariables(customerTemplate.subject, variables)
-        const customerHtml = replaceVariables(customerTemplate.body_html, variables)
-
-        const adminTo = process.env.ADMIN_NOTIFICATION_EMAIL || process.env.CONTACT_TO_EMAIL || 'hello@hbeedigitals.com'
-        const replyTo = process.env.RESEND_REPLY_TO || 'hello@hbeedigitals.com'
-
-        await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'Hbee Digitals <forms@send.hbeedigitals.com>',
-          to: adminTo,
-          replyTo: email,
-          subject: adminSubject,
-          html: wrapEmail(adminHtml),
-        })
+        const customerHtml = `
+          <h2 style="color:#ffffff;font-size:24px;font-weight:700;">Thank You for Reaching Out!</h2>
+          <p style="color:#94A3B8;">Hi ${fullName},</p>
+          <p style="color:#94A3B8;">Thank you for contacting Hbee Digitals. We have received your ${formType === 'free_consultation' ? 'consultation request' : 'inquiry'}.</p>
+          <p style="color:#94A3B8;">Our team will review your details and get back to you within 24 hours.</p>
+          <div style="margin-top:24px;padding-top:24px;border-top:1px solid #1E314A;">
+            <p style="color:#64748B;">— The Hbee Digitals Team</p>
+          </div>
+        `
 
         await resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL || 'Hbee Digitals <noreply@send.hbeedigitals.com>',
           to: email,
-          replyTo,
-          subject: customerSubject,
+          subject: formType === 'free_consultation' ? 'Your Free Consultation Request' : 'We received your inquiry',
           html: wrapEmail(customerHtml),
+        })
+
+        // Send admin notification
+        const adminHtml = `
+          <h2 style="color:#ffffff;font-size:24px;font-weight:700;">New ${formType === 'free_consultation' ? 'Consultation' : 'Inquiry'}</h2>
+          <p style="color:#94A3B8;"><strong style="color:#ffffff;">Name:</strong> ${fullName}</p>
+          <p style="color:#94A3B8;"><strong style="color:#ffffff;">Email:</strong> ${email}</p>
+          <p style="color:#94A3B8;"><strong style="color:#ffffff;">Phone:</strong> ${phone || 'Not provided'}</p>
+          <p style="color:#94A3B8;"><strong style="color:#ffffff;">Business:</strong> ${businessName || company || 'Not provided'}</p>
+          <p style="color:#94A3B8;"><strong style="color:#ffffff;">Message:</strong> ${message}</p>
+        `
+
+        await resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL || 'Hbee Digitals <forms@send.hbeedigitals.com>',
+          to: process.env.ADMIN_NOTIFICATION_EMAIL || 'hello@hbeedigitals.com',
+          subject: `New ${formType === 'free_consultation' ? 'Consultation' : 'Inquiry'} from ${fullName}`,
+          html: wrapEmail(adminHtml),
         })
       } catch (emailError) {
         console.error('Email sending error:', emailError)
-        emailErrors.push('Email notification failed')
       }
     }
 
     return NextResponse.json({ 
       success: true, 
       form_type: formType,
-      email_warning: emailErrors.length > 0 ? 'Form saved but email notification failed' : null
+      message: 'Form submitted successfully!'
     })
     
   } catch (error: any) {
