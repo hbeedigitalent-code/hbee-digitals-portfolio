@@ -154,9 +154,9 @@ function LoginContent() {
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? (
-                        <SvgIcon name="eye-off" size={20} color="currentColor" />
+                        <SvgIcon name="eye-off" size={20} color="var(--text-muted)" />
                       ) : (
-                        <SvgIcon name="eye" size={20} color="currentColor" />
+                        <SvgIcon name="eye" size={20} color="var(--text-muted)" />
                       )}
                     </button>
                   </div>
@@ -226,7 +226,7 @@ export default function ClientLoginPage() {
   return (
     <>
       <Navbar />
-      <main className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-[var(--bg-navy)] px-4 py-20">
+      <main className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-[var(--bg-navy)] px-4 pt-28 pb-12">
         <Suspense fallback={
           <div className="flex justify-center items-center">
             <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />

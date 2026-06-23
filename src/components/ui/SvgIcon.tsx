@@ -143,8 +143,6 @@ const getIconPath = (name: string): string => {
     // ==========================================
     // GROWTH READINESS PLATFORM ICONS
     // ==========================================
-    
-    // Main Platform Icons
     'growth-readiness': '/svgs/growth-readiness.svg',
     'hgri-score': '/svgs/hgri-score.svg',
     'growth-classification': '/svgs/growth-classification.svg',
@@ -153,43 +151,53 @@ const getIconPath = (name: string): string => {
     'conversion-insights': '/svgs/conversion-insights.svg',
     'growth-recommendations': '/svgs/growth-recommendations.svg',
     'opportunity-review': '/svgs/opportunity-review.svg',
-    
-    // Pillar Icons
     'pillar-visibility': '/svgs/pillar-visibility.svg',
     'pillar-conversion': '/svgs/pillar-conversion.svg',
     'pillar-retention': '/svgs/pillar-retention.svg',
     'pillar-authority': '/svgs/pillar-authority.svg',
     'pillar-scalability': '/svgs/pillar-scalability.svg',
-    
-    // Badge Icons
     'badge-foundation': '/svgs/badge-foundation.svg',
     'badge-growth-potential': '/svgs/badge-growth-potential.svg',
     'badge-growth-ready': '/svgs/badge-growth-ready.svg',
     'badge-scale-ready': '/svgs/badge-scale-ready.svg',
-    
-    // Gradient Icons
     'check-gradient': '/svgs/check-gradient.svg',
-    'arrow-gradient-right': '/svgs/arrow-gradient-right.svg'
+    'arrow-gradient-right': '/svgs/arrow-gradient-right.svg',
+    
+    // Eye icons for password toggle
+    'eye': '/svgs/eye.svg',
+    'eye-off': '/svgs/eye-off.svg',
   }
   
   return iconMap[normalizedName] || `/svgs/${normalizedName}.svg`
 }
 
-// Helper to apply color filter to SVG
+// Helper to get the appropriate CSS filter for colors
 const getColorFilter = (color: string): string => {
-  if (!color || color === 'currentColor' || color === 'white' || color === '#ffffff' || color === 'var(--accent)') {
+  if (!color || color === 'currentColor' || color === 'white' || color === '#ffffff') {
     return 'none'
   }
   
-  // Handle CSS variable colors
-  if (color.includes('var(--accent)')) {
+  // Handle CSS variable colors - these will be applied by the browser
+  if (color === 'var(--accent)' || color === 'var(--accent-orange)') {
+    // Orange #FF8A00
     return 'brightness(0) saturate(100%) invert(53%) sepia(98%) saturate(1236%) hue-rotate(1deg) brightness(102%) contrast(101%)'
   }
-  if (color === '#2563EB' || color === 'blue') {
+  
+  if (color === 'var(--accent-lime)') {
+    // Green #39D97A
+    return 'brightness(0) saturate(100%) invert(67%) sepia(44%) saturate(1390%) hue-rotate(99deg) brightness(98%) contrast(96%)'
+  }
+  
+  if (color === 'var(--blue-500)' || color === 'var(--blue-600)') {
+    // Blue #3B82F6
     return 'brightness(0) saturate(100%) invert(31%) sepia(98%) saturate(1248%) hue-rotate(199deg) brightness(93%) contrast(101%)'
   }
-  if (color === '#F97316' || color === 'orange') {
-    return 'brightness(0) saturate(100%) invert(53%) sepia(98%) saturate(1236%) hue-rotate(1deg) brightness(102%) contrast(101%)'
+  
+  // Handle hex color values
+  if (color.startsWith('#')) {
+    // Convert hex to RGB for filter calculation
+    // This is a simplified approach - works for basic colors
+    return `brightness(0) saturate(100%) invert(${parseInt(color.slice(1,3), 16) / 255 * 100}%) sepia(100%) saturate(1000%) hue-rotate(0deg)`
   }
   
   return 'none'
@@ -214,7 +222,7 @@ function SvgIcon({ name, size = 20, color = 'currentColor', className = '' }: Sv
     )
   }
 
-  // If image fails to load, return null (no fallback circle)
+  // If image fails to load, return fallback
   if (imgError) {
     return (
       <div 
@@ -224,6 +232,16 @@ function SvgIcon({ name, size = 20, color = 'currentColor', className = '' }: Sv
     )
   }
 
+  // Determine the filter to apply
+  const filter = getColorFilter(color)
+  
+  // Determine if we should use CSS variable color directly
+  const useDirectColor = color === 'var(--accent)' || 
+                         color === 'var(--accent-orange)' || 
+                         color === 'var(--accent-lime)' ||
+                         color === 'var(--blue-500)' ||
+                         color === 'var(--blue-600)'
+
   return (
     <img
       src={iconPath}
@@ -232,7 +250,9 @@ function SvgIcon({ name, size = 20, color = 'currentColor', className = '' }: Sv
       height={size}
       className={`object-contain ${className}`}
       style={{ 
-        filter: getColorFilter(color)
+        filter: useDirectColor ? filter : 'none',
+        // If it's a CSS variable, also apply the color as a fallback
+        color: useDirectColor ? color : 'inherit'
       }}
       onError={() => setImgError(true)}
     />

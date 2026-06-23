@@ -12,6 +12,8 @@ export default function ClientResetPasswordPage() {
   const supabase = createClientComponentClient()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -41,7 +43,7 @@ export default function ClientResetPasswordPage() {
 
       setSuccess(true)
       setTimeout(() => {
-        router.push('/client-login')
+        router.push('/client-login?reset=success')
       }, 3000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to reset password')
@@ -54,7 +56,7 @@ export default function ClientResetPasswordPage() {
     return (
       <>
         <Navbar />
-        <main className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-[var(--bg-navy)] px-4 py-20">
+        <main className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-[var(--bg-navy)] px-4 pt-28 pb-12">
           <div className="w-full max-w-md text-center">
             <div className="rounded-full bg-[var(--accent-lime)]/10 p-4 mx-auto w-20 h-20 flex items-center justify-center mb-6">
               <SvgIcon name="check" size={40} color="var(--accent-lime)" />
@@ -73,7 +75,7 @@ export default function ClientResetPasswordPage() {
   return (
     <>
       <Navbar />
-      <main className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-[var(--bg-navy)] px-4 py-20">
+      <main className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-[var(--bg-navy)] px-4 pt-28 pb-12">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-white">Reset Password</h1>
@@ -84,26 +86,54 @@ export default function ClientResetPasswordPage() {
             <form onSubmit={handleReset} className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-white">New Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
-                  placeholder="Min 6 characters"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)] pr-12"
+                    placeholder="Min 6 characters"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white transition"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <SvgIcon name="eye-off" size={20} color="var(--text-muted)" />
+                    ) : (
+                      <SvgIcon name="eye" size={20} color="var(--text-muted)" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-white">Confirm Password</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
-                  placeholder="Confirm your password"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)] pr-12"
+                    placeholder="Confirm your password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white transition"
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showConfirmPassword ? (
+                      <SvgIcon name="eye-off" size={20} color="var(--text-muted)" />
+                    ) : (
+                      <SvgIcon name="eye" size={20} color="var(--text-muted)" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {error && (

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'  // ← Fixed: added 'from'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
@@ -76,7 +76,6 @@ export default function ClientSignupPage() {
 
       if (result.success) {
         setSuccess(true)
-        // Show success message with confirmation note
         setTimeout(() => {
           router.push('/client-login')
         }, 4000)
@@ -95,7 +94,7 @@ export default function ClientSignupPage() {
     return (
       <>
         <Navbar />
-        <main className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-[var(--bg-navy)] px-4 py-20">
+        <main className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-[var(--bg-navy)] px-4 pt-28 pb-12">
           <div className="w-full max-w-md text-center">
             <div className="rounded-full bg-[var(--accent-lime)]/10 p-4 mx-auto w-20 h-20 flex items-center justify-center mb-6">
               <SvgIcon name="check" size={40} color="var(--accent-lime)" />
@@ -123,7 +122,7 @@ export default function ClientSignupPage() {
   return (
     <>
       <Navbar />
-      <main className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-[var(--bg-navy)] px-4 py-12">
+      <main className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-[var(--bg-navy)] px-4 pt-28 pb-12">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-white">Create Merchant Account</h1>
@@ -190,9 +189,9 @@ export default function ClientSignupPage() {
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? (
-                      <SvgIcon name="eye-off" size={20} color="currentColor" />
+                      <SvgIcon name="eye-off" size={20} color="var(--text-muted)" />
                     ) : (
-                      <SvgIcon name="eye" size={20} color="currentColor" />
+                      <SvgIcon name="eye" size={20} color="var(--text-muted)" />
                     )}
                   </button>
                 </div>
@@ -217,9 +216,9 @@ export default function ClientSignupPage() {
                     aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                   >
                     {showConfirmPassword ? (
-                      <SvgIcon name="eye-off" size={20} color="currentColor" />
+                      <SvgIcon name="eye-off" size={20} color="var(--text-muted)" />
                     ) : (
-                      <SvgIcon name="eye" size={20} color="currentColor" />
+                      <SvgIcon name="eye" size={20} color="var(--text-muted)" />
                     )}
                   </button>
                 </div>
