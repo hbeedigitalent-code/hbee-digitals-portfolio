@@ -57,6 +57,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Portfolio', href: '/admin/portfolio', icon: 'portfolio' },
     { name: 'Team Members', href: '/admin/team', icon: 'team' },
     
+    // Add this under the Portfolio section or in Website section
+    { name: 'Before/After', href: '/admin/before-after', icon: 'image' },
     // Communications
     { name: 'Inquiries', href: '/admin/inquiries', icon: 'email', badge: unreadInquiries },
     { name: 'Newsletter', href: '/admin/newsletter', icon: 'newsletter' },
