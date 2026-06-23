@@ -40,11 +40,12 @@ export async function createMerchantAccount(data: MerchantSignupData) {
   console.log('📝 Creating merchant account for:', data.email)
 
   try {
+    // STEP 1: Sign up the user
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/client-login`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/client-confirmation`,
         data: {
           full_name: data.contact_name,
           business_name: data.business_name,
@@ -76,6 +77,7 @@ export async function createMerchantAccount(data: MerchantSignupData) {
 
     console.log('✅ User created:', authData.user.id)
 
+    // STEP 2: Create merchant profile in merchant_accounts table
     const { data: merchant, error: merchantError } = await supabase
       .from('merchant_accounts')
       .insert({
@@ -94,9 +96,20 @@ export async function createMerchantAccount(data: MerchantSignupData) {
       .single()
 
     if (merchantError) {
-      console.error('❌ Merchant error:', merchantError)
+      console.error('❌ Merchant profile error:', merchantError)
+      return {
+        success: true,
+        merchant: null,
+        user: authData.user,
+        warning: 'Account created but profile setup incomplete.',
+        message: 'Please check your email to confirm your account.',
+        needsProfileSetup: true,
+      }
     }
 
+    console.log('✅ Merchant profile created:', merchant)
+
+    // STEP 3: Send welcome email
     const resend = getResend()
     if (resend) {
       try {
@@ -109,9 +122,9 @@ export async function createMerchantAccount(data: MerchantSignupData) {
 
     return {
       success: true,
-      merchant: merchant || null,
+      merchant,
       user: authData.user,
-      message: 'Account created. Please check your email to confirm your account.',
+      message: 'Please check your email to confirm your account.',
     }
   } catch (error) {
     console.error('❌ Create merchant error:', error)
@@ -119,20 +132,6 @@ export async function createMerchantAccount(data: MerchantSignupData) {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create account. Please try again.',
     }
-  }
-}
-
-export async function sendPasswordReset(email: string) {
-  try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/client-reset-password`,
-    })
-
-    if (error) throw error
-    return { success: true }
-  } catch (error) {
-    console.error('Password reset error:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to send reset email' }
   }
 }
 
@@ -148,10 +147,12 @@ async function sendWelcomeEmail(resend: any, email: string, name: string, busine
         </div>
         <p style="color:#94A3B8;font-size:16px;">Hi ${name},</p>
         <p style="color:#94A3B8;font-size:16px;">Welcome to <strong style="color:#ffffff;">Hbee Digitals</strong>! Your merchant account for <strong style="color:#ffffff;">${business}</strong> has been created.</p>
-        <p style="color:#94A3B8;font-size:16px;">Please confirm your email address to activate your account.</p>
+        <p style="color:#94A3B8;font-size:16px;"><strong>Please confirm your email address by clicking the button below:</strong></p>
         <div style="margin:24px 0;padding:16px;background:#07111F;border-radius:12px;text-align:center;">
-          <a href="${siteUrl}/client-login" style="display:inline-block;background:#FF8A00;color:#07111F;padding:12px 32px;border-radius:9999px;text-decoration:none;font-weight:700;">Login to Your Portal</a>
+          <a href="${siteUrl}/client-confirmation" style="display:inline-block;background:#FF8A00;color:#07111F;padding:12px 32px;border-radius:9999px;text-decoration:none;font-weight:700;">Confirm Your Email</a>
         </div>
+        <p style="color:#94A3B8;font-size:16px;">If you have trouble clicking the button, copy this link into your browser:</p>
+        <p style="color:#39D97A;font-size:14px;word-break:break-all;">${siteUrl}/client-confirmation</p>
         <div style="margin-top:24px;padding-top:24px;border-top:1px solid #1E314A;">
           <p style="color:#64748B;">— The Hbee Digitals Team</p>
         </div>
