@@ -3,14 +3,6 @@ import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createClient } from '@supabase/supabase-js'
 
-function replaceVariables(template: string, variables: Record<string, string>) {
-  let output = template || ''
-  Object.entries(variables).forEach(([key, value]) => {
-    output = output.replace(new RegExp(`{{${key}}}`, 'g'), value || '')
-  })
-  return output
-}
-
 function wrapEmail(content: string) {
   return `
     <div style="background:#07111F;padding:40px;font-family:Arial,sans-serif;color:#ffffff;">
@@ -22,38 +14,6 @@ function wrapEmail(content: string) {
       </div>
     </div>
   `
-}
-
-async function verifyTurnstileToken(token: string): Promise<{ success: boolean; error?: string }> {
-  const secretKey = process.env.TURNSTILE_SECRET_KEY
-  
-  if (!secretKey) {
-    console.warn('⚠️ Turnstile: Secret key missing - skipping verification')
-    return { success: true } // Skip verification if no key (development)
-  }
-
-  try {
-    const formData = new FormData()
-    formData.append('secret', secretKey)
-    formData.append('response', token)
-
-    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      body: formData,
-    })
-
-    const data = await response.json()
-    console.log('🔍 Turnstile verification response:', data)
-
-    if (data.success === true) {
-      return { success: true }
-    } else {
-      return { success: false, error: 'Verification failed. Please try again.' }
-    }
-  } catch (error) {
-    console.error('❌ Turnstile verification error:', error)
-    return { success: false, error: 'Verification service unavailable. Please try again.' }
-  }
 }
 
 export async function POST(req: Request) {
@@ -71,21 +31,6 @@ export async function POST(req: Request) {
 
     const body = await req.json()
     console.log('📥 Received form submission:', { formType: body.form_type, source: body.source })
-
-    // Verify Turnstile token ONLY if it exists
-    const turnstileToken = body.turnstile_token
-    if (turnstileToken) {
-      const verification = await verifyTurnstileToken(turnstileToken)
-      if (!verification.success) {
-        return NextResponse.json(
-          { error: verification.error || 'Security verification failed. Please try again.' },
-          { status: 400 }
-        )
-      }
-      console.log('✅ Turnstile verification passed')
-    } else {
-      console.log('ℹ️ No Turnstile token provided - skipping verification')
-    }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey)
     let resend = null
@@ -171,13 +116,6 @@ export async function POST(req: Request) {
     // Send confirmation email
     if (resend) {
       try {
-        const variables = {
-          name: fullName,
-          email: email,
-          business_name: businessName || company || '',
-          message: message,
-        }
-
         const customerHtml = `
           <h2 style="color:#ffffff;font-size:24px;font-weight:700;">Thank You for Reaching Out!</h2>
           <p style="color:#94A3B8;">Hi ${fullName},</p>
@@ -195,7 +133,6 @@ export async function POST(req: Request) {
           html: wrapEmail(customerHtml),
         })
 
-        // Send admin notification
         const adminHtml = `
           <h2 style="color:#ffffff;font-size:24px;font-weight:700;">New ${formType === 'free_consultation' ? 'Consultation' : 'Inquiry'}</h2>
           <p style="color:#94A3B8;"><strong style="color:#ffffff;">Name:</strong> ${fullName}</p>

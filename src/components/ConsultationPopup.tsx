@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import SvgIcon from '@/components/ui/SvgIcon'
-import TurnstileWidget from '@/components/ui/TurnstileWidget'
 
 interface ConsultationPopupProps {
   isOpen: boolean
@@ -43,10 +42,6 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
-  const [resetTurnstile, setResetTurnstile] = useState(false)
-
-  const isTurnstileConfigured = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
   const handleEscKey = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape' && isOpen) onClose()
@@ -63,8 +58,6 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
         if (!isOpen) {
           setSubmitted(false)
           setError('')
-          setTurnstileToken(null)
-          setResetTurnstile(prev => !prev)
           setFormData({
             full_name: '',
             email: '',
@@ -88,30 +81,8 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
-  const handleTurnstileVerify = (token: string) => {
-    console.log('✅ Turnstile token received:', token.substring(0, 10) + '...')
-    setTurnstileToken(token)
-    setError('')
-  }
-
-  const handleTurnstileError = () => {
-    setError('Security verification failed. Please try again.')
-    setTurnstileToken(null)
-  }
-
-  const handleTurnstileExpire = () => {
-    setTurnstileToken(null)
-    setError('Security verification expired. Please verify again.')
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (isTurnstileConfigured && !turnstileToken) {
-      setError('Please complete the security verification.')
-      return
-    }
-    
     setLoading(true)
     setError('')
 
@@ -130,10 +101,6 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
         preferred_contact: formData.contact_method,
       }
 
-      if (isTurnstileConfigured && turnstileToken) {
-        requestBody.turnstile_token = turnstileToken
-      }
-
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -147,14 +114,10 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
         setTimeout(() => onClose(), 4000)
       } else {
         setError(data.error || 'Something went wrong. Please try again.')
-        setResetTurnstile(prev => !prev)
-        setTurnstileToken(null)
       }
     } catch (err) {
       console.error('Submission error:', err)
       setError('Network error. Please try again.')
-      setResetTurnstile(prev => !prev)
-      setTurnstileToken(null)
     } finally {
       setLoading(false)
     }
@@ -313,19 +276,6 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
                       </select>
                     </div>
 
-                    {isTurnstileConfigured && (
-                      <div className="py-2">
-                        <TurnstileWidget
-                          onVerify={handleTurnstileVerify}
-                          onError={handleTurnstileError}
-                          onExpire={handleTurnstileExpire}
-                          reset={resetTurnstile}
-                          theme="light"
-                          size="normal"
-                        />
-                      </div>
-                    )}
-
                     {error && (
                       <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
                         {error}
@@ -334,7 +284,7 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
 
                     <button
                       type="submit"
-                      disabled={loading || (isTurnstileConfigured && !turnstileToken)}
+                      disabled={loading}
                       className="btn-primary w-full justify-center py-3 text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loading ? 'Submitting...' : 'Request Free Consultation'}
