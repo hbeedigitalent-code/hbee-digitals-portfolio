@@ -22,7 +22,6 @@ interface Project {
   project_name: string
   status: string
   progress: number
-  expected_completion_date: string
 }
 
 export default function ClientPortalPage() {
@@ -42,117 +41,98 @@ export default function ClientPortalPage() {
     setError(null)
 
     try {
-      // 1. Get current authenticated user
+      // 1. Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-      if (userError) {
+      if (userError || !user) {
         console.error('Auth error:', userError)
-        setError('Please log in to access your portal.')
-        return
-      }
-
-      if (!user) {
         router.push('/client-login')
         return
       }
 
-      console.log('✅ User found:', user.id)
+      console.log('✅ User ID:', user.id)
 
-      // 2. Get client record from clients table (NOT merchant_accounts)
-      const { data: clientData, error: clientError } = await supabase
+      // 2. Check if client exists
+      let { data: clientData, error: clientError } = await supabase
         .from('clients')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle()
 
+      console.log('Client query result:', { clientData, clientError })
+
       if (clientError) {
         console.error('Client fetch error:', clientError)
-        setError('No client profile found. Please contact support.')
+        setError('Database error fetching client profile.')
         return
       }
 
-      // 3. If no client profile exists, try to create one from merchant_accounts
+      // 3. If no client, try to create one
       if (!clientData) {
-        console.log('⚠️ No client profile found, checking merchant_accounts...')
-
-        // Check merchant_accounts
-        const { data: merchantData, error: merchantError } = await supabase
-          .from('merchant_accounts')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle()
-
-        if (merchantError) {
-          console.error('Merchant fetch error:', merchantError)
+        console.log('⚠️ No client found, creating one...')
+        
+        const newClient = {
+          user_id: user.id,
+          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Client',
+          email: user.email,
+          business_name: user.user_metadata?.business_name || 'My Business',
+          status: 'active',
         }
 
-        if (merchantData) {
-          console.log('✅ Found merchant account, creating client profile...')
+        console.log('Creating client with:', newClient)
 
-          // Create client profile from merchant data
-          const { data: newClient, error: createError } = await supabase
-            .from('clients')
-            .insert({
-              user_id: user.id,
-              full_name: merchantData.contact_name || user.user_metadata?.full_name || 'Client',
-              email: merchantData.email || user.email,
-              business_name: merchantData.business_name || user.user_metadata?.business_name || 'Unknown Business',
-              website_url: merchantData.website_url || null,
-              whatsapp: merchantData.whatsapp || null,
-              country: merchantData.country || null,
-              status: 'active',
-            })
-            .select()
-            .single()
+        const { data: created, error: createError } = await supabase
+          .from('clients')
+          .insert(newClient)
+          .select()
+          .single()
 
-          if (createError) {
-            console.error('Create client error:', createError)
-            setError('Unable to create client profile. Please contact support.')
-            return
-          }
+        if (createError) {
+          console.error('Create client error:', createError)
+          setError(`Unable to create client profile: ${createError.message}`)
+          return
+        }
 
-          if (newClient) {
-            setClient(newClient)
-            console.log('✅ Created client profile:', newClient)
-            
-            // Fetch projects for new client
-            const { data: projectData } = await supabase
-              .from('projects')
-              .select('*')
-              .eq('client_id', newClient.id)
-              .order('created_at', { ascending: false })
-
-            setProjects(projectData || [])
-            setLoading(false)
-            return
-          }
-        } else {
-          // No merchant account either - show error
-          setError('No client profile found. Please contact support.')
+        if (created) {
+          console.log('✅ Client created:', created)
+          setClient(created)
+          // Fetch projects for new client
+          await fetchProjects(created.id)
+          setLoading(false)
           return
         }
       }
 
-      console.log('✅ Client found:', clientData)
-      setClient(clientData)
-
-      // 4. Get projects
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('client_id', clientData.id)
-        .order('created_at', { ascending: false })
-
-      if (projectError) {
-        console.error('Project fetch error:', projectError)
-      } else {
-        setProjects(projectData || [])
+      // 4. Client exists
+      if (clientData) {
+        console.log('✅ Client found:', clientData)
+        setClient(clientData)
+        await fetchProjects(clientData.id)
       }
+
     } catch (err) {
-      console.error('Fetch error:', err)
-      setError('An unexpected error occurred. Please try again.')
+      console.error('Unexpected error:', err)
+      setError('An unexpected error occurred.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function fetchProjects(clientId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Project fetch error:', error)
+      } else {
+        setProjects(data || [])
+      }
+    } catch (err) {
+      console.error('Project fetch error:', err)
     }
   }
 
@@ -171,15 +151,21 @@ export default function ClientPortalPage() {
           <div className="rounded-full bg-red-500/10 p-4 mx-auto w-20 h-20 flex items-center justify-center mb-6">
             <SvgIcon name="warning" size={40} color="#ef4444" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Client Profile Not Found</h1>
+          <h1 className="text-2xl font-bold text-white">Client Profile Error</h1>
           <p className="mt-2 text-[var(--text-muted)]">{error}</p>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            If you've just signed up, please confirm your email address first.
+            Please contact support for assistance.
           </p>
-          <div className="mt-6 flex flex-col gap-3">
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <button
+              onClick={() => window.location.reload()}
+              className="rounded-full bg-[var(--accent-orange)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)]"
+            >
+              Retry
+            </button>
             <Link
               href="/client-login"
-              className="rounded-full bg-[var(--accent-orange)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)]"
+              className="rounded-full border border-[var(--border)] bg-transparent px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--bg-navy-mid)]"
             >
               Go to Login
             </Link>
@@ -199,25 +185,26 @@ export default function ClientPortalPage() {
     return null
   }
 
-  const activeProjects = projects.filter(p => p.status !== 'Completed' && p.status !== 'Archived')
-  const totalProjects = projects.length
-
   return (
     <ClientPortalLayout clientName={client.full_name} businessName={client.business_name}>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-white">Welcome back, {client.full_name.split(' ')[0]}!</h1>
-          <p className="text-[var(--text-muted)]">Here's an overview of your projects</p>
+          <h1 className="text-3xl font-bold text-white">
+            Welcome back, {client.full_name?.split(' ')[0] || 'Client'}!
+          </h1>
+          <p className="text-[var(--text-muted)]">{client.business_name}</p>
         </div>
 
         {/* Stats */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4">
-            <p className="text-2xl font-bold text-white">{totalProjects}</p>
+            <p className="text-2xl font-bold text-white">{projects.length}</p>
             <p className="text-sm text-[var(--text-muted)]">Total Projects</p>
           </div>
           <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4">
-            <p className="text-2xl font-bold text-[var(--accent-orange)]">{activeProjects.length}</p>
+            <p className="text-2xl font-bold text-[var(--accent-orange)]">
+              {projects.filter(p => p.status !== 'Completed').length}
+            </p>
             <p className="text-sm text-[var(--text-muted)]">Active Projects</p>
           </div>
           <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4">
@@ -228,24 +215,18 @@ export default function ClientPortalPage() {
           </div>
           <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4">
             <p className="text-2xl font-bold text-blue-400">
-              {projects.length > 0 ? Math.round(projects.reduce((acc, p) => acc + p.progress, 0) / projects.length) : 0}%
+              {projects.length > 0 ? Math.round(projects.reduce((acc, p) => acc + (p.progress || 0), 0) / projects.length) : 0}%
             </p>
-            <p className="text-sm text-[var(--text-muted)]">Average Progress</p>
+            <p className="text-sm text-[var(--text-muted)]">Avg Progress</p>
           </div>
         </div>
 
-        {/* Recent Projects */}
+        {/* Projects */}
         <div>
           <h2 className="mb-4 text-xl font-bold text-white">Your Projects</h2>
           {projects.length === 0 ? (
             <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-8 text-center">
               <p className="text-[var(--text-muted)]">You don't have any projects yet.</p>
-              <Link
-                href="/contact"
-                className="mt-4 inline-block rounded-full bg-[var(--accent-orange)] px-6 py-2 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)]"
-              >
-                Start a Project
-              </Link>
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">
@@ -262,17 +243,16 @@ export default function ClientPortalPage() {
                       project.status === 'In Progress' ? 'bg-blue-500/20 text-blue-400' :
                       'bg-[var(--accent-orange)]/20 text-[var(--accent-orange)]'
                     }`}>
-                      {project.status}
+                      {project.status || 'New'}
                     </span>
                   </div>
                   <p className="mt-1 text-sm text-[var(--text-muted)]">{project.project_id}</p>
                   <div className="mt-3 h-1.5 w-full rounded-full bg-[var(--bg-navy-mid)]">
                     <div
                       className="h-1.5 rounded-full bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)]"
-                      style={{ width: `${project.progress}%` }}
+                      style={{ width: `${project.progress || 0}%` }}
                     />
                   </div>
-                  <p className="mt-2 text-xs text-[var(--text-muted)]">{project.progress}% complete</p>
                 </Link>
               ))}
             </div>
