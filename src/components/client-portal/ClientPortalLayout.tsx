@@ -2,7 +2,8 @@
 
 import { ReactNode } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { createClientComponentClient } from '@/lib/supabase-client'
 import SvgIcon from '@/components/ui/SvgIcon'
 
 interface ClientPortalLayoutProps {
@@ -22,6 +23,13 @@ const navItems = [
 
 export function ClientPortalLayout({ children, clientName, businessName }: ClientPortalLayoutProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const supabase = createClientComponentClient()
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/client-login')
+  }
 
   return (
     <div className="flex min-h-screen bg-[var(--bg-navy)]">
@@ -61,8 +69,8 @@ export function ClientPortalLayout({ children, clientName, businessName }: Clien
 
         <div className="absolute bottom-0 left-0 right-0 border-t border-[var(--border)] p-4">
           <button
-            onClick={() => {/* Handle logout */}}
-            className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium text-[var(--text-muted)] hover:bg-[var(--bg-navy-mid)] hover:text-white"
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium text-[var(--text-muted)] transition hover:bg-[var(--bg-navy-mid)] hover:text-white"
           >
             <SvgIcon name="logout" size={18} color="var(--text-muted)" />
             Logout

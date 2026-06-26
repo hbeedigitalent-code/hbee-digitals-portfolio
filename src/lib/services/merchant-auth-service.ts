@@ -97,19 +97,34 @@ export async function createMerchantAccount(data: MerchantSignupData) {
 
     if (merchantError) {
       console.error('❌ Merchant profile error:', merchantError)
-      return {
-        success: true,
-        merchant: null,
-        user: authData.user,
-        warning: 'Account created but profile setup incomplete.',
-        message: 'Please check your email to confirm your account.',
-        needsProfileSetup: true,
-      }
+      // Continue anyway - we'll try to create the client profile
+    } else {
+      console.log('✅ Merchant profile created:', merchant)
     }
 
-    console.log('✅ Merchant profile created:', merchant)
+    // STEP 3: ALSO create client profile in clients table (for portal)
+    const { data: client, error: clientError } = await supabase
+      .from('clients')
+      .insert({
+        user_id: authData.user.id,
+        full_name: data.contact_name,
+        email: data.email,
+        business_name: data.business_name,
+        website_url: data.website_url || null,
+        whatsapp: data.whatsapp || null,
+        country: data.country || null,
+        status: 'active',
+      })
+      .select()
+      .single()
 
-    // STEP 3: Send welcome email
+    if (clientError) {
+      console.error('❌ Client profile error:', clientError)
+    } else {
+      console.log('✅ Client profile created:', client)
+    }
+
+    // STEP 4: Send welcome email
     const resend = getResend()
     if (resend) {
       try {
@@ -122,7 +137,8 @@ export async function createMerchantAccount(data: MerchantSignupData) {
 
     return {
       success: true,
-      merchant,
+      merchant: merchant || null,
+      client: client || null,
       user: authData.user,
       message: 'Please check your email to confirm your account.',
     }
