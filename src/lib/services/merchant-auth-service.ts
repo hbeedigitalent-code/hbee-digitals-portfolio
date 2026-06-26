@@ -1,29 +1,10 @@
 // src/lib/services/merchant-auth-service.ts
 
 import { createClient } from '@supabase/supabase-js'
-import { Resend } from 'resend'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-let resendInstance: any = null
-
-function getResend() {
-  if (resendInstance) return resendInstance
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    console.warn('⚠️ Resend API key not available')
-    return null
-  }
-  try {
-    resendInstance = new Resend(apiKey)
-    return resendInstance
-  } catch (e) {
-    console.warn('⚠️ Failed to initialize Resend:', e)
-    return null
-  }
-}
 
 export interface MerchantSignupData {
   business_name: string
@@ -40,7 +21,7 @@ export async function createMerchantAccount(data: MerchantSignupData) {
   console.log('📝 Creating merchant account for:', data.email)
 
   try {
-    // STEP 1: Sign up the user
+    // STEP 1: Sign up the user - Supabase handles the email
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
@@ -97,12 +78,11 @@ export async function createMerchantAccount(data: MerchantSignupData) {
 
     if (merchantError) {
       console.error('❌ Merchant profile error:', merchantError)
-      // Continue anyway - we'll try to create the client profile
     } else {
       console.log('✅ Merchant profile created:', merchant)
     }
 
-    // STEP 3: ALSO create client profile in clients table (for portal)
+    // STEP 3: Create client profile in clients table (for portal)
     const { data: client, error: clientError } = await supabase
       .from('clients')
       .insert({
@@ -124,15 +104,17 @@ export async function createMerchantAccount(data: MerchantSignupData) {
       console.log('✅ Client profile created:', client)
     }
 
-    // STEP 4: Send welcome email
-    const resend = getResend()
-    if (resend) {
-      try {
-        await sendWelcomeEmail(resend, data.email, data.contact_name, data.business_name)
-        console.log('✅ Welcome email sent')
-      } catch (emailError) {
-        console.error('⚠️ Welcome email failed:', emailError)
-      }
+    // STEP 4: Check if profiles were created successfully
+    const hasMerchant = !!merchant
+    const hasClient = !!client
+
+    if (!hasMerchant || !hasClient) {
+      console.warn('⚠️ Some profiles were not created:', {
+        hasMerchant,
+        hasClient,
+        merchantError: merchantError?.message,
+        clientError: clientError?.message,
+      })
     }
 
     return {
@@ -140,7 +122,9 @@ export async function createMerchantAccount(data: MerchantSignupData) {
       merchant: merchant || null,
       client: client || null,
       user: authData.user,
-      message: 'Please check your email to confirm your account.',
+      hasMerchant,
+      hasClient,
+      message: 'Please check your email to confirm your account. (Check spam folder)',
     }
   } catch (error) {
     console.error('❌ Create merchant error:', error)
@@ -151,35 +135,102 @@ export async function createMerchantAccount(data: MerchantSignupData) {
   }
 }
 
-async function sendWelcomeEmail(resend: any, email: string, name: string, business: string) {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hbeedigitals.com'
+export async function getMerchantProfile(userId: string) {
+  try {
+    const { data, error } = await supabase
+      .from('merchant_accounts')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle()
 
-  const html = `
-    <div style="background:#07111F;padding:40px;font-family:Arial,sans-serif;color:#ffffff;">
-      <div style="max-width:680px;margin:0 auto;background:#0E1B2D;border:1px solid #1E314A;border-radius:22px;padding:28px;">
-        <div style="text-align:center;margin-bottom:32px;">
-          <h1 style="color:#ffffff;font-size:28px;font-weight:700;">Welcome to Hbee Digitals</h1>
-          <div style="display:inline-block;background:linear-gradient(135deg,#FF8A00,#39D97A);color:#07111F;padding:4px 16px;border-radius:9999px;font-size:12px;font-weight:600;">Account Created</div>
-        </div>
-        <p style="color:#94A3B8;font-size:16px;">Hi ${name},</p>
-        <p style="color:#94A3B8;font-size:16px;">Welcome to <strong style="color:#ffffff;">Hbee Digitals</strong>! Your merchant account for <strong style="color:#ffffff;">${business}</strong> has been created.</p>
-        <p style="color:#94A3B8;font-size:16px;"><strong>Please confirm your email address by clicking the button below:</strong></p>
-        <div style="margin:24px 0;padding:16px;background:#07111F;border-radius:12px;text-align:center;">
-          <a href="${siteUrl}/client-confirmation" style="display:inline-block;background:#FF8A00;color:#07111F;padding:12px 32px;border-radius:9999px;text-decoration:none;font-weight:700;">Confirm Your Email</a>
-        </div>
-        <p style="color:#94A3B8;font-size:16px;">If you have trouble clicking the button, copy this link into your browser:</p>
-        <p style="color:#39D97A;font-size:14px;word-break:break-all;">${siteUrl}/client-confirmation</p>
-        <div style="margin-top:24px;padding-top:24px;border-top:1px solid #1E314A;">
-          <p style="color:#64748B;">— The Hbee Digitals Team</p>
-        </div>
-      </div>
-    </div>
-  `
+    if (error) {
+      console.error('❌ Get merchant error:', error)
+      return { success: false, error: error.message }
+    }
 
-  await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL || 'Hbee Digitals <noreply@send.hbeedigitals.com>',
-    to: email,
-    subject: `Welcome to Hbee Digitals - ${business}`,
-    html,
-  })
+    return { success: true, data }
+  } catch (error) {
+    console.error('❌ Get merchant error:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get merchant profile',
+    }
+  }
+}
+
+export async function getClientProfile(userId: string) {
+  try {
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (error) {
+      console.error('❌ Get client error:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, data }
+  } catch (error) {
+    console.error('❌ Get client error:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get client profile',
+    }
+  }
+}
+
+export async function createClientProfileFromMerchant(userId: string) {
+  try {
+    // First get the merchant data
+    const { data: merchant, error: merchantError } = await supabase
+      .from('merchant_accounts')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle()
+
+    if (merchantError || !merchant) {
+      console.error('❌ Merchant not found:', merchantError)
+      return { success: false, error: 'Merchant profile not found' }
+    }
+
+    // Get the user data
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      console.error('❌ User not found:', userError)
+      return { success: false, error: 'User not found' }
+    }
+
+    // Create client profile
+    const { data: client, error: clientError } = await supabase
+      .from('clients')
+      .insert({
+        user_id: userId,
+        full_name: merchant.contact_name || user.user_metadata?.full_name || 'Client',
+        email: merchant.email || user.email,
+        business_name: merchant.business_name || user.user_metadata?.business_name || 'My Business',
+        website_url: merchant.website_url || null,
+        whatsapp: merchant.whatsapp || null,
+        country: merchant.country || null,
+        status: 'active',
+      })
+      .select()
+      .single()
+
+    if (clientError) {
+      console.error('❌ Create client error:', clientError)
+      return { success: false, error: clientError.message }
+    }
+
+    console.log('✅ Client profile created from merchant:', client)
+    return { success: true, data: client }
+  } catch (error) {
+    console.error('❌ Create client from merchant error:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create client profile',
+    }
+  }
 }
