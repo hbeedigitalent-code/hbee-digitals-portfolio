@@ -1,67 +1,51 @@
+// src/app/client-portal/files/page.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClientComponentClient } from '@/lib/supabase-client'
-import { ClientPortalLayout } from '@/components/client-portal/ClientPortalLayout'
 import SvgIcon from '@/components/ui/SvgIcon'
+import EmptyState from '@/components/client-portal/EmptyState'
+import StatusBadge from '@/components/client-portal/StatusBadge'
 
-interface Client {
-  id: string
-  full_name: string
-  business_name: string
-}
-
-interface FileItem {
+interface File {
   id: string
   file_name: string
   file_url: string
   file_type: string
   file_size: number
-  category: string
-  uploaded_by: string
   uploaded_at: string
-  project_id: string
-  project_name: string
 }
 
 export default function ClientFilesPage() {
   const supabase = createClientComponentClient()
-  const [client, setClient] = useState<Client | null>(null)
-  const [files, setFiles] = useState<FileItem[]>([])
+  const [files, setFiles] = useState<File[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState('all')
-
-  const categories = ['all', 'Logos', 'Brand Guidelines', 'Product Images', 'Product Videos', 'Website Content', 'Screenshots', 'Audit Reports', 'Other']
+  const [clientId, setClientId] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    fetchClientData()
+    fetchFiles()
   }, [])
 
-  async function fetchClientData() {
+  async function fetchFiles() {
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
-
     if (user) {
       const { data: clientData } = await supabase
         .from('clients')
-        .select('*')
+        .select('id')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
 
       if (clientData) {
-        setClient(clientData)
-
+        setClientId(clientData.id)
         const { data: fileData } = await supabase
           .from('project_files')
-          .select(`
-            *,
-            projects (project_name)
-          `)
+          .select('*')
           .eq('client_id', clientData.id)
           .order('uploaded_at', { ascending: false })
-
         setFiles(fileData || [])
       }
     }
@@ -71,155 +55,146 @@ export default function ClientFilesPage() {
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file || !client) return
+    if (!file || !clientId) return
 
     setUploading(true)
 
     try {
-      const filePath = `client-${client.id}/${Date.now()}-${file.name}`
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('client-portal-files')
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Date.now()}-${file.name}`
+      const filePath = `client-files/${clientId}/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('project-files')
         .upload(filePath, file)
 
       if (uploadError) throw uploadError
 
+      // Get public URL
       const { data: urlData } = supabase.storage
-        .from('client-portal-files')
+        .from('project-files')
         .getPublicUrl(filePath)
 
-      const { error: insertError } = await supabase
+      // Save to database
+      const { error: dbError } = await supabase
         .from('project_files')
         .insert({
-          client_id: client.id,
+          client_id: clientId,
           file_name: file.name,
           file_url: urlData.publicUrl,
-          file_type: file.type,
+          file_type: file.type || 'application/octet-stream',
           file_size: file.size,
-          category: 'Other',
-          uploaded_by: 'Client'
+          uploaded_by: 'client',
         })
 
-      if (insertError) throw insertError
+      if (dbError) throw dbError
 
-      await fetchClientData()
+      // Refresh files
+      await fetchFiles()
     } catch (error) {
       console.error('Upload error:', error)
+      alert('Failed to upload file. Please try again.')
     } finally {
       setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
-  const filteredFiles = selectedCategory === 'all' 
-    ? files 
-    : files.filter(f => f.category === selectedCategory)
-
-  const formatFileSize = (bytes: number) => {
+  function formatFileSize(bytes: number) {
     if (bytes < 1024) return bytes + ' B'
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-    return (bytes / 1024 / 1024).toFixed(1) + ' MB'
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-navy)]">
+      <div className="flex min-h-[400px] items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
       </div>
     )
   }
 
-  if (!client) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-navy)]">
-        <p className="text-[var(--text-muted)]">No client profile found</p>
-      </div>
-    )
-  }
-
   return (
-    <ClientPortalLayout clientName={client.full_name} businessName={client.business_name}>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-white">Files</h1>
-          
-          <div className="flex items-center gap-3">
-            <label className="cursor-pointer rounded-full bg-[var(--accent-orange)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)]">
-              {uploading ? 'Uploading...' : 'Upload File'}
-              <input
-                type="file"
-                onChange={handleFileUpload}
-                className="hidden"
-                disabled={uploading}
-              />
-            </label>
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Files</h1>
+          <p className="text-[var(--text-muted)]">Upload and manage your project files</p>
         </div>
-
-        {/* Category Filter */}
-        <div className="flex flex-wrap gap-2">
-          {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
-                selectedCategory === category
-                  ? 'bg-[var(--accent-orange)] text-white'
-                  : 'border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent-orange)]'
-              }`}
-            >
-              {category.charAt(0).toUpperCase() + category.slice(1)}
-            </button>
-          ))}
+        <div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            onChange={handleFileUpload}
+            className="hidden"
+            id="file-upload"
+          />
+          <label
+            htmlFor="file-upload"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[var(--accent-orange)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] disabled:opacity-50"
+          >
+            <SvgIcon name="upload" size={16} color="white" />
+            {uploading ? 'Uploading...' : 'Upload File'}
+          </label>
         </div>
-
-        {/* File List */}
-        {files.length === 0 ? (
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-12 text-center">
-            <SvgIcon name="file" size={48} color="var(--text-muted)" className="mx-auto mb-4" />
-            <p className="text-[var(--text-muted)]">No files uploaded yet.</p>
-            <p className="text-sm text-[var(--text-muted)]">Upload your first file above.</p>
-          </div>
-        ) : (
-          <div className="grid gap-3">
-            {filteredFiles.map((file) => (
-              <div
-                key={file.id}
-                className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-card-dark)] p-4 transition hover:border-[var(--accent-orange)]"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="rounded-lg bg-[var(--bg-navy-mid)] p-2">
-                    <SvgIcon name="file" size={24} color="var(--accent-orange)" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-white">{file.file_name}</p>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--text-muted)]">
-                      <span>{formatFileSize(file.file_size)}</span>
-                      <span>•</span>
-                      <span>{file.category || 'Other'}</span>
-                      {file.project_name && (
-                        <>
-                          <span>•</span>
-                          <span>{file.project_name}</span>
-                        </>
-                      )}
-                      <span>•</span>
-                      <span>Uploaded {new Date(file.uploaded_at).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                </div>
-                <a
-                  href={file.file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-medium text-[var(--accent-orange)] hover:underline"
-                >
-                  Download
-                </a>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
-    </ClientPortalLayout>
+
+      {files.length === 0 ? (
+        <EmptyState
+          title="No files uploaded"
+          description="Upload your project files, documents, and assets here."
+          icon="file"
+          actionText="Upload File"
+          onAction={() => fileInputRef.current?.click()}
+        />
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-white">
+          <table className="w-full">
+            <thead className="border-b border-[var(--border)] bg-[var(--bg-section)]">
+              <tr className="text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
+                <th className="px-4 py-3">File Name</th>
+                <th className="px-4 py-3 hidden sm:table-cell">Type</th>
+                <th className="px-4 py-3 hidden md:table-cell">Size</th>
+                <th className="px-4 py-3 hidden lg:table-cell">Uploaded</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border)]">
+              {files.map((file) => (
+                <tr key={file.id} className="hover:bg-[var(--bg-section)] transition">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <SvgIcon name="file" size={16} color="var(--text-muted)" />
+                      <span className="text-sm font-medium text-[var(--text-primary)]">{file.file_name}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 hidden sm:table-cell">
+                    <span className="text-sm text-[var(--text-muted)]">{file.file_type?.split('/').pop() || 'Unknown'}</span>
+                  </td>
+                  <td className="px-4 py-3 hidden md:table-cell text-sm text-[var(--text-muted)]">
+                    {formatFileSize(file.file_size)}
+                  </td>
+                  <td className="px-4 py-3 hidden lg:table-cell text-sm text-[var(--text-muted)]">
+                    {new Date(file.uploaded_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <a
+                      href={file.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-[var(--accent-orange)] hover:underline"
+                    >
+                      Download
+                      <SvgIcon name="download" size={14} color="var(--accent-orange)" />
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   )
 }

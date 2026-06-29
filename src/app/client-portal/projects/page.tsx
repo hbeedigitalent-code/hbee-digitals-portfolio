@@ -1,16 +1,11 @@
+// src/app/client-portal/projects/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
 import { createClientComponentClient } from '@/lib/supabase-client'
-import { ClientPortalLayout } from '@/components/client-portal/ClientPortalLayout'
 import Link from 'next/link'
-import SvgIcon from '@/components/ui/SvgIcon'
-
-interface Client {
-  id: string
-  full_name: string
-  business_name: string
-}
+import StatusBadge from '@/components/client-portal/StatusBadge'
+import EmptyState from '@/components/client-portal/EmptyState'
 
 interface Project {
   id: string
@@ -23,48 +18,33 @@ interface Project {
   description: string
 }
 
-const statusColors: Record<string, string> = {
-  'Onboarding': 'bg-yellow-500/20 text-yellow-400',
-  'Assets Required': 'bg-orange-500/20 text-orange-400',
-  'In Review': 'bg-blue-500/20 text-blue-400',
-  'In Progress': 'bg-cyan-500/20 text-cyan-400',
-  'Awaiting Client Feedback': 'bg-purple-500/20 text-purple-400',
-  'Revision Stage': 'bg-pink-500/20 text-pink-400',
-  'Completed': 'bg-[var(--accent-lime)]/20 text-[var(--accent-lime)]',
-  'Archived': 'bg-gray-500/20 text-gray-400',
-}
-
 export default function ClientProjectsPage() {
   const supabase = createClientComponentClient()
-  const [client, setClient] = useState<Client | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchClientData()
+    fetchProjects()
   }, [])
 
-  async function fetchClientData() {
+  async function fetchProjects() {
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
-
     if (user) {
+      // Get client
       const { data: clientData } = await supabase
         .from('clients')
-        .select('*')
+        .select('id')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
 
       if (clientData) {
-        setClient(clientData)
-
         const { data: projectData } = await supabase
           .from('projects')
           .select('*')
           .eq('client_id', clientData.id)
           .order('created_at', { ascending: false })
-
         setProjects(projectData || [])
       }
     }
@@ -74,70 +54,68 @@ export default function ClientProjectsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-navy)]">
+      <div className="flex min-h-[400px] items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
       </div>
     )
   }
 
-  if (!client) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-navy)]">
-        <p className="text-[var(--text-muted)]">No client profile found</p>
-      </div>
-    )
-  }
-
   return (
-    <ClientPortalLayout clientName={client.full_name} businessName={client.business_name}>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-white">Projects</h1>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Your Projects</h1>
+        <p className="text-[var(--text-muted)]">Track the progress of your projects</p>
+      </div>
 
-        {projects.length === 0 ? (
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-12 text-center">
-            <SvgIcon name="projects" size={48} color="var(--text-muted)" className="mx-auto mb-4" />
-            <p className="text-[var(--text-muted)]">You don't have any projects yet.</p>
-          </div>
-        ) : (
-          <div className="grid gap-4">
-            {projects.map((project) => (
-              <Link
-                key={project.id}
-                href={`/client-portal/projects/${project.id}`}
-                className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-5 transition hover:border-[var(--accent-orange)]"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-mono text-[var(--accent-orange)]">{project.project_id}</p>
-                    <h3 className="text-lg font-semibold text-white">{project.project_name}</h3>
-                    <p className="text-sm text-[var(--text-muted)]">{project.description || 'No description'}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`rounded-full px-3 py-1 text-xs font-medium ${statusColors[project.status] || 'bg-gray-500/20 text-gray-400'}`}>
-                      {project.status}
-                    </span>
-                    <p className="mt-2 text-sm text-[var(--text-muted)]">
-                      {project.progress}% complete
-                    </p>
-                  </div>
+      {projects.length === 0 ? (
+        <EmptyState
+          title="No projects yet"
+          description="You don't have any active projects. When you start a project, it will appear here."
+          icon="projects"
+          actionText="Contact Us"
+          onAction={() => window.location.href = '/contact'}
+        />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {projects.map((project) => (
+            <Link
+              key={project.id}
+              href={`/client-portal/projects/${project.id}`}
+              className="rounded-xl border border-[var(--border)] bg-white p-6 transition hover:shadow-md"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="font-semibold text-[var(--text-primary)]">{project.project_name}</p>
+                  <p className="text-sm text-[var(--text-muted)]">{project.project_id}</p>
+                  {project.description && (
+                    <p className="mt-2 text-sm text-[var(--text-muted)] line-clamp-2">{project.description}</p>
+                  )}
                 </div>
-                <div className="mt-3 h-1.5 w-full rounded-full bg-[var(--bg-navy-mid)]">
+                <StatusBadge status={project.status || 'New'} />
+              </div>
+
+              <div className="mt-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-[var(--text-muted)]">Progress</span>
+                  <span className="font-medium text-[var(--text-primary)]">{project.progress || 0}%</span>
+                </div>
+                <div className="mt-1 h-1.5 w-full rounded-full bg-[var(--bg-section)]">
                   <div
                     className="h-1.5 rounded-full bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)]"
-                    style={{ width: `${project.progress}%` }}
+                    style={{ width: `${project.progress || 0}%` }}
                   />
                 </div>
-                <div className="mt-3 flex gap-4 text-xs text-[var(--text-muted)]">
-                  <span>Started: {project.start_date ? new Date(project.start_date).toLocaleDateString() : 'N/A'}</span>
-                  <span>Expected: {project.expected_completion_date ? new Date(project.expected_completion_date).toLocaleDateString() : 'N/A'}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-    </ClientPortalLayout>
+              </div>
+
+              {project.expected_completion_date && (
+                <p className="mt-3 text-xs text-[var(--text-muted)]">
+                  Expected completion: {new Date(project.expected_completion_date).toLocaleDateString()}
+                </p>
+              )}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

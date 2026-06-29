@@ -1,79 +1,52 @@
+// src/app/client-portal/requests/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
 import { createClientComponentClient } from '@/lib/supabase-client'
-import { ClientPortalLayout } from '@/components/client-portal/ClientPortalLayout'
 import SvgIcon from '@/components/ui/SvgIcon'
+import EmptyState from '@/components/client-portal/EmptyState'
+import StatusBadge from '@/components/client-portal/StatusBadge'
 
-interface Client {
+interface Request {
   id: string
-  full_name: string
-  business_name: string
-}
-
-interface RequestItem {
-  id: string
-  project_id: string
   title: string
   description: string
   status: string
-  due_date: string
-  response: string | null
   created_at: string
-  completed_at: string | null
-  projects: { project_name: string }
-}
-
-const statusColors: Record<string, string> = {
-  'open': 'bg-yellow-500/20 text-yellow-400',
-  'client_responded': 'bg-blue-500/20 text-blue-400',
-  'completed': 'bg-[var(--accent-lime)]/20 text-[var(--accent-lime)]',
-  'closed': 'bg-gray-500/20 text-gray-400',
-}
-
-const statusLabels: Record<string, string> = {
-  'open': 'Open',
-  'client_responded': 'Responded',
-  'completed': 'Completed',
-  'closed': 'Closed',
+  response: string | null
 }
 
 export default function ClientRequestsPage() {
   const supabase = createClientComponentClient()
-  const [client, setClient] = useState<Client | null>(null)
-  const [requests, setRequests] = useState<RequestItem[]>([])
+  const [requests, setRequests] = useState<Request[]>([])
   const [loading, setLoading] = useState(true)
-  const [responding, setResponding] = useState<{ [key: string]: boolean }>({})
-  const [responseText, setResponseText] = useState<{ [key: string]: string }>({})
+  const [showForm, setShowForm] = useState(false)
+  const [formData, setFormData] = useState({ title: '', description: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [clientId, setClientId] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchClientData()
+    fetchRequests()
   }, [])
 
-  async function fetchClientData() {
+  async function fetchRequests() {
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
-
     if (user) {
       const { data: clientData } = await supabase
         .from('clients')
-        .select('*')
+        .select('id')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
 
       if (clientData) {
-        setClient(clientData)
-
+        setClientId(clientData.id)
         const { data: requestData } = await supabase
           .from('project_requests')
-          .select(`
-            *,
-            projects (project_name)
-          `)
+          .select('*')
           .eq('client_id', clientData.id)
           .order('created_at', { ascending: false })
-
         setRequests(requestData || [])
       }
     }
@@ -81,157 +54,139 @@ export default function ClientRequestsPage() {
     setLoading(false)
   }
 
-  async function handleRespond(requestId: string) {
-    const response = responseText[requestId]
-    if (!response || !response.trim()) return
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!formData.title || !formData.description || !clientId) return
 
-    setResponding(prev => ({ ...prev, [requestId]: true }))
+    setSubmitting(true)
 
     try {
       const { error } = await supabase
         .from('project_requests')
-        .update({
-          response: response.trim(),
-          status: 'client_responded'
+        .insert({
+          client_id: clientId,
+          title: formData.title,
+          description: formData.description,
+          status: 'open',
         })
-        .eq('id', requestId)
 
-      if (!error) {
-        setResponseText(prev => ({ ...prev, [requestId]: '' }))
-        await fetchClientData()
-      }
+      if (error) throw error
+
+      setFormData({ title: '', description: '' })
+      setShowForm(false)
+      await fetchRequests()
     } catch (error) {
-      console.error('Response error:', error)
+      console.error('Submit error:', error)
+      alert('Failed to submit request. Please try again.')
     } finally {
-      setResponding(prev => ({ ...prev, [requestId]: false }))
+      setSubmitting(false)
     }
   }
 
-  const openRequests = requests.filter(r => r.status === 'open' || r.status === 'client_responded')
-  const completedRequests = requests.filter(r => r.status === 'completed' || r.status === 'closed')
-
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-navy)]">
+      <div className="flex min-h-[400px] items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
       </div>
     )
   }
 
-  if (!client) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-navy)]">
-        <p className="text-[var(--text-muted)]">No client profile found</p>
-      </div>
-    )
-  }
-
   return (
-    <ClientPortalLayout clientName={client.full_name} businessName={client.business_name}>
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-white">Requests</h1>
-
-        {/* Open Requests */}
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="mb-4 text-lg font-semibold text-white">Open Requests ({openRequests.length})</h2>
-          {openRequests.length === 0 ? (
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-8 text-center">
-              <p className="text-[var(--text-muted)]">No open requests</p>
-            </div>
-          ) : (
-            <div className="grid gap-4">
-              {openRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-5"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-3">
-                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusColors[request.status]}`}>
-                          {statusLabels[request.status]}
-                        </span>
-                        <span className="text-sm text-[var(--text-muted)]">
-                          {request.projects?.project_name || 'Project'}
-                        </span>
-                      </div>
-                      <h3 className="mt-2 text-lg font-semibold text-white">{request.title}</h3>
-                      <p className="mt-1 text-sm text-[var(--text-muted)]">{request.description}</p>
-                      {request.due_date && (
-                        <p className="mt-2 text-xs text-[var(--text-muted)]">
-                          Due: {new Date(request.due_date).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Response Input */}
-                  {request.status === 'open' && (
-                    <div className="mt-4 flex gap-3">
-                      <textarea
-                        value={responseText[request.id] || ''}
-                        onChange={(e) => setResponseText(prev => ({ ...prev, [request.id]: e.target.value }))}
-                        placeholder="Type your response..."
-                        className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-2 text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
-                        rows={2}
-                      />
-                      <button
-                        onClick={() => handleRespond(request.id)}
-                        disabled={responding[request.id] || !responseText[request.id]?.trim()}
-                        className="rounded-full bg-[var(--accent-orange)] px-6 py-2 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] disabled:opacity-50"
-                      >
-                        {responding[request.id] ? 'Sending...' : 'Respond'}
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Existing Response */}
-                  {request.response && (
-                    <div className="mt-3 rounded-lg bg-[var(--bg-navy-mid)] p-3">
-                      <p className="text-xs text-[var(--text-muted)]">Your Response:</p>
-                      <p className="text-sm text-white">{request.response}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Requests</h1>
+          <p className="text-[var(--text-muted)]">Submit and track your requests</p>
         </div>
-
-        {/* Completed Requests */}
-        {completedRequests.length > 0 && (
-          <div>
-            <h2 className="mb-4 text-lg font-semibold text-white">Completed ({completedRequests.length})</h2>
-            <div className="grid gap-3">
-              {completedRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4 opacity-70"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-3">
-                        <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusColors[request.status]}`}>
-                          {statusLabels[request.status]}
-                        </span>
-                        <span className="text-sm text-[var(--text-muted)]">
-                          {request.projects?.project_name || 'Project'}
-                        </span>
-                      </div>
-                      <h3 className="mt-1 font-medium text-white">{request.title}</h3>
-                    </div>
-                    {request.completed_at && (
-                      <span className="text-xs text-[var(--text-muted)]">
-                        Completed {new Date(request.completed_at).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="inline-flex items-center gap-2 rounded-full bg-[var(--accent-orange)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)]"
+        >
+          <SvgIcon name="plus" size={16} color="white" />
+          New Request
+        </button>
       </div>
-    </ClientPortalLayout>
+
+      {/* New Request Form */}
+      {showForm && (
+        <div className="rounded-xl border border-[var(--border)] bg-white p-6">
+          <h3 className="mb-4 font-semibold text-[var(--text-primary)]">Submit New Request</h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">Title *</label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full rounded-lg border border-[var(--border)] px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+                placeholder="Brief title of your request"
+                required
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">Description *</label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={4}
+                className="w-full rounded-lg border border-[var(--border)] px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+                placeholder="Describe your request in detail"
+                required
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="rounded-full bg-[var(--accent-orange)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] disabled:opacity-50"
+              >
+                {submitting ? 'Submitting...' : 'Submit Request'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                className="rounded-full border border-[var(--border)] px-6 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-section)]"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Requests List */}
+      {requests.length === 0 ? (
+        <EmptyState
+          title="No requests yet"
+          description="Submit a request and our team will get back to you."
+          icon="messages"
+          actionText="Submit Request"
+          onAction={() => setShowForm(true)}
+        />
+      ) : (
+        <div className="space-y-4">
+          {requests.map((req) => (
+            <div key={req.id} className="rounded-xl border border-[var(--border)] bg-white p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-semibold text-[var(--text-primary)]">{req.title}</h3>
+                  <p className="mt-1 text-sm text-[var(--text-muted)]">{req.description}</p>
+                  <p className="mt-2 text-xs text-[var(--text-muted)]">
+                    Submitted: {new Date(req.created_at).toLocaleDateString()}
+                  </p>
+                  {req.response && (
+                    <div className="mt-3 rounded-lg bg-[var(--bg-section)] p-3">
+                      <p className="text-sm font-medium text-[var(--text-primary)]">Response:</p>
+                      <p className="text-sm text-[var(--text-muted)]">{req.response}</p>
+                    </div>
+                  )}
+                </div>
+                <StatusBadge status={req.status || 'open'} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

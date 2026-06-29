@@ -1,19 +1,19 @@
+// src/app/client-portal/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
 import { createClientComponentClient } from '@/lib/supabase-client'
-import { ClientPortalLayout } from '@/components/client-portal/ClientPortalLayout'
+import StatsCard from '@/components/client-portal/StatsCard'
+import EmptyState from '@/components/client-portal/EmptyState'
+import StatusBadge from '@/components/client-portal/StatusBadge'
 import SvgIcon from '@/components/ui/SvgIcon'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 
 interface Client {
   id: string
-  user_id: string
   full_name: string
   business_name: string
   email: string
-  status: string
 }
 
 interface Project {
@@ -22,243 +22,266 @@ interface Project {
   project_name: string
   status: string
   progress: number
+  start_date: string
 }
 
-export default function ClientPortalPage() {
-  const router = useRouter()
+interface Request {
+  id: string
+  title: string
+  status: string
+  created_at: string
+}
+
+interface Deliverable {
+  id: string
+  title: string
+  status: string
+  created_at: string
+}
+
+interface Invoice {
+  id: string
+  invoice_number: string
+  amount: number
+  status: string
+  due_date: string
+}
+
+export default function ClientPortalDashboard() {
   const supabase = createClientComponentClient()
   const [client, setClient] = useState<Client | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
+  const [requests, setRequests] = useState<Request[]>([])
+  const [deliverables, setDeliverables] = useState<Deliverable[]>([])
+  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [files, setFiles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchClientData()
+    fetchData()
   }, [])
 
-  async function fetchClientData() {
+  async function fetchData() {
     setLoading(true)
-    setError(null)
 
-    try {
-      // 1. Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
+    // Get user
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
 
-      if (userError || !user) {
-        console.error('Auth error:', userError)
-        router.push('/client-login')
-        return
-      }
+    // Get client
+    const { data: clientData } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    setClient(clientData)
 
-      console.log('✅ User ID:', user.id)
-
-      // 2. Check if client exists
-      let { data: clientData, error: clientError } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      console.log('Client query result:', { clientData, clientError })
-
-      if (clientError) {
-        console.error('Client fetch error:', clientError)
-        setError('Database error fetching client profile.')
-        return
-      }
-
-      // 3. If no client, try to create one
-      if (!clientData) {
-        console.log('⚠️ No client found, creating one...')
-        
-        const newClient = {
-          user_id: user.id,
-          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Client',
-          email: user.email,
-          business_name: user.user_metadata?.business_name || 'My Business',
-          status: 'active',
-        }
-
-        console.log('Creating client with:', newClient)
-
-        const { data: created, error: createError } = await supabase
-          .from('clients')
-          .insert(newClient)
-          .select()
-          .single()
-
-        if (createError) {
-          console.error('Create client error:', createError)
-          setError(`Unable to create client profile: ${createError.message}`)
-          return
-        }
-
-        if (created) {
-          console.log('✅ Client created:', created)
-          setClient(created)
-          // Fetch projects for new client
-          await fetchProjects(created.id)
-          setLoading(false)
-          return
-        }
-      }
-
-      // 4. Client exists
-      if (clientData) {
-        console.log('✅ Client found:', clientData)
-        setClient(clientData)
-        await fetchProjects(clientData.id)
-      }
-
-    } catch (err) {
-      console.error('Unexpected error:', err)
-      setError('An unexpected error occurred.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function fetchProjects(clientId: string) {
-    try {
-      const { data, error } = await supabase
+    if (clientData) {
+      // Get projects
+      const { data: projectData } = await supabase
         .from('projects')
         .select('*')
-        .eq('client_id', clientId)
+        .eq('client_id', clientData.id)
         .order('created_at', { ascending: false })
+      setProjects(projectData || [])
 
-      if (error) {
-        console.error('Project fetch error:', error)
-      } else {
-        setProjects(data || [])
-      }
-    } catch (err) {
-      console.error('Project fetch error:', err)
+      // Get requests
+      const { data: requestData } = await supabase
+        .from('project_requests')
+        .select('*')
+        .eq('client_id', clientData.id)
+        .order('created_at', { ascending: false })
+      setRequests(requestData || [])
+
+      // Get deliverables
+      const { data: deliverableData } = await supabase
+        .from('project_deliverables')
+        .select('*')
+        .order('created_at', { ascending: false })
+      setDeliverables(deliverableData || [])
+
+      // Get invoices
+      const { data: invoiceData } = await supabase
+        .from('project_invoices')
+        .select('*')
+        .order('created_at', { ascending: false })
+      setInvoices(invoiceData || [])
+
+      // Get files
+      const { data: fileData } = await supabase
+        .from('project_files')
+        .select('*')
+        .eq('client_id', clientData.id)
+        .order('created_at', { ascending: false })
+      setFiles(fileData || [])
     }
+
+    setLoading(false)
   }
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-navy)]">
+      <div className="flex min-h-[400px] items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
       </div>
     )
   }
 
-  if (error) {
-    return (
-      <div className="flex min-h-[calc(100vh-200px)] flex-col items-center justify-center bg-[var(--bg-navy)] px-4">
-        <div className="max-w-md text-center">
-          <div className="rounded-full bg-red-500/10 p-4 mx-auto w-20 h-20 flex items-center justify-center mb-6">
-            <SvgIcon name="warning" size={40} color="#ef4444" />
-          </div>
-          <h1 className="text-2xl font-bold text-white">Client Profile Error</h1>
-          <p className="mt-2 text-[var(--text-muted)]">{error}</p>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Please contact support for assistance.
-          </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <button
-              onClick={() => window.location.reload()}
-              className="rounded-full bg-[var(--accent-orange)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)]"
-            >
-              Retry
-            </button>
-            <Link
-              href="/client-login"
-              className="rounded-full border border-[var(--border)] bg-transparent px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--bg-navy-mid)]"
-            >
-              Go to Login
-            </Link>
-            <Link
-              href="/contact"
-              className="rounded-full border border-[var(--border)] bg-transparent px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--bg-navy-mid)]"
-            >
-              Contact Support
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (!client) {
-    return null
-  }
+  const activeProjects = projects.filter(p => p.status !== 'Completed')
+  const pendingRequests = requests.filter(r => r.status === 'pending' || r.status === 'open')
 
   return (
-    <ClientPortalLayout clientName={client.full_name} businessName={client.business_name}>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-white">
-            Welcome back, {client.full_name?.split(' ')[0] || 'Client'}!
-          </h1>
-          <p className="text-[var(--text-muted)]">{client.business_name}</p>
-        </div>
+    <div className="space-y-8">
+      {/* Welcome */}
+      <div>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+          Welcome back, {client?.full_name?.split(' ')[0] || 'Client'}!
+        </h1>
+        <p className="text-[var(--text-muted)]">
+          {client?.business_name || 'Your business'} — Here's an overview of your projects
+        </p>
+      </div>
 
-        {/* Stats */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4">
-            <p className="text-2xl font-bold text-white">{projects.length}</p>
-            <p className="text-sm text-[var(--text-muted)]">Total Projects</p>
-          </div>
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4">
-            <p className="text-2xl font-bold text-[var(--accent-orange)]">
-              {projects.filter(p => p.status !== 'Completed').length}
-            </p>
-            <p className="text-sm text-[var(--text-muted)]">Active Projects</p>
-          </div>
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4">
-            <p className="text-2xl font-bold text-[var(--accent-lime)]">
-              {projects.filter(p => p.status === 'Completed').length}
-            </p>
-            <p className="text-sm text-[var(--text-muted)]">Completed</p>
-          </div>
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4">
-            <p className="text-2xl font-bold text-blue-400">
-              {projects.length > 0 ? Math.round(projects.reduce((acc, p) => acc + (p.progress || 0), 0) / projects.length) : 0}%
-            </p>
-            <p className="text-sm text-[var(--text-muted)]">Avg Progress</p>
-          </div>
-        </div>
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatsCard title="Active Projects" value={activeProjects.length} icon="projects" />
+        <StatsCard title="Pending Requests" value={pendingRequests.length} icon="messages" color="var(--blue-500)" bgColor="var(--blue-500)/10" />
+        <StatsCard title="Uploaded Files" value={files.length} icon="file" color="var(--text-primary)" bgColor="var(--bg-section)" />
+        <StatsCard title="Deliverables" value={deliverables.length} icon="download" color="var(--accent-lime)" bgColor="var(--accent-lime)/10" />
+      </div>
 
-        {/* Projects */}
-        <div>
-          <h2 className="mb-4 text-xl font-bold text-white">Your Projects</h2>
-          {projects.length === 0 ? (
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-8 text-center">
-              <p className="text-[var(--text-muted)]">You don't have any projects yet.</p>
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {projects.slice(0, 4).map((project) => (
-                <Link
-                  key={project.id}
-                  href={`/client-portal/projects/${project.id}`}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4 transition hover:border-[var(--accent-orange)]"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium text-white">{project.project_name}</p>
-                    <span className={`rounded-full px-2 py-1 text-xs font-medium ${
-                      project.status === 'Completed' ? 'bg-[var(--accent-lime)]/20 text-[var(--accent-lime)]' :
-                      project.status === 'In Progress' ? 'bg-blue-500/20 text-blue-400' :
-                      'bg-[var(--accent-orange)]/20 text-[var(--accent-orange)]'
-                    }`}>
-                      {project.status || 'New'}
-                    </span>
+      {/* Quick Actions */}
+      <div className="rounded-xl border border-[var(--border)] bg-white p-6">
+        <h2 className="mb-4 text-sm font-semibold text-[var(--text-primary)]">Quick Actions</h2>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/client-portal/files"
+            className="rounded-full bg-[var(--accent-orange)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)]"
+          >
+            Upload File
+          </Link>
+          <Link
+            href="/client-portal/requests"
+            className="rounded-full border border-[var(--border)] px-5 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-section)]"
+          >
+            Submit Request
+          </Link>
+          <Link
+            href="/client-portal/deliverables"
+            className="rounded-full border border-[var(--border)] px-5 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-section)]"
+          >
+            View Deliverables
+          </Link>
+          <Link
+            href="/client-portal/invoices"
+            className="rounded-full border border-[var(--border)] px-5 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-section)]"
+          >
+            View Invoices
+          </Link>
+        </div>
+      </div>
+
+      {/* Recent Projects */}
+      <div>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Your Projects</h2>
+          <Link href="/client-portal/projects" className="text-sm text-[var(--accent-orange)] hover:underline">
+            View All
+          </Link>
+        </div>
+        {projects.length === 0 ? (
+          <EmptyState
+            title="No projects yet"
+            description="You don't have any active projects. When you start a project, it will appear here."
+            icon="projects"
+            actionText="Get Started"
+            onAction={() => window.location.href = '/contact'}
+          />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {projects.slice(0, 4).map((project) => (
+              <Link
+                key={project.id}
+                href={`/client-portal/projects/${project.id}`}
+                className="rounded-xl border border-[var(--border)] bg-white p-5 transition hover:shadow-md"
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-medium text-[var(--text-primary)]">{project.project_name}</p>
+                    <p className="text-sm text-[var(--text-muted)]">{project.project_id}</p>
                   </div>
-                  <p className="mt-1 text-sm text-[var(--text-muted)]">{project.project_id}</p>
-                  <div className="mt-3 h-1.5 w-full rounded-full bg-[var(--bg-navy-mid)]">
+                  <StatusBadge status={project.status || 'New'} />
+                </div>
+                <div className="mt-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[var(--text-muted)]">Progress</span>
+                    <span className="font-medium text-[var(--text-primary)]">{project.progress || 0}%</span>
+                  </div>
+                  <div className="mt-1 h-1.5 w-full rounded-full bg-[var(--bg-section)]">
                     <div
                       className="h-1.5 rounded-full bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)]"
                       style={{ width: `${project.progress || 0}%` }}
                     />
                   </div>
-                </Link>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Recent Activity */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Recent Requests */}
+        <div className="rounded-xl border border-[var(--border)] bg-white p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="font-semibold text-[var(--text-primary)]">Recent Requests</h3>
+            <Link href="/client-portal/requests" className="text-sm text-[var(--accent-orange)] hover:underline">
+              View All
+            </Link>
+          </div>
+          {requests.length === 0 ? (
+            <p className="text-sm text-[var(--text-muted)]">No requests yet</p>
+          ) : (
+            <div className="space-y-3">
+              {requests.slice(0, 3).map((req) => (
+                <div key={req.id} className="flex items-center justify-between border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">
+                  <div>
+                    <p className="text-sm font-medium text-[var(--text-primary)]">{req.title}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{new Date(req.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <StatusBadge status={req.status || 'pending'} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Recent Deliverables */}
+        <div className="rounded-xl border border-[var(--border)] bg-white p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="font-semibold text-[var(--text-primary)]">Recent Deliverables</h3>
+            <Link href="/client-portal/deliverables" className="text-sm text-[var(--accent-orange)] hover:underline">
+              View All
+            </Link>
+          </div>
+          {deliverables.length === 0 ? (
+            <p className="text-sm text-[var(--text-muted)]">No deliverables yet</p>
+          ) : (
+            <div className="space-y-3">
+              {deliverables.slice(0, 3).map((d) => (
+                <div key={d.id} className="flex items-center justify-between border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">
+                  <div>
+                    <p className="text-sm font-medium text-[var(--text-primary)]">{d.title}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{new Date(d.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <StatusBadge status={d.status || 'pending'} />
+                </div>
               ))}
             </div>
           )}
         </div>
       </div>
-    </ClientPortalLayout>
+    </div>
   )
 }
