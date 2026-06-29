@@ -61,14 +61,12 @@ export default function ClientRequestsPage() {
     setSubmitting(true)
 
     try {
-      const { error } = await supabase
-        .from('project_requests')
-        .insert({
-          client_id: clientId,
-          title: formData.title,
-          description: formData.description,
-          status: 'open',
-        })
+      const { error } = await supabase.from('project_requests').insert({
+        client_id: clientId,
+        title: formData.title,
+        description: formData.description,
+        status: 'open',
+      })
 
       if (error) throw error
 
@@ -107,7 +105,6 @@ export default function ClientRequestsPage() {
         </button>
       </div>
 
-      {/* New Request Form */}
       {showForm && (
         <div className="rounded-xl border border-[var(--border)] bg-white p-6">
           <h3 className="mb-4 font-semibold text-[var(--text-primary)]">Submit New Request</h3>
@@ -154,7 +151,6 @@ export default function ClientRequestsPage() {
         </div>
       )}
 
-      {/* Requests List */}
       {requests.length === 0 ? (
         <EmptyState
           title="No requests yet"

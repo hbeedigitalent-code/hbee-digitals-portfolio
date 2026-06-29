@@ -11,6 +11,7 @@ export default function ClientSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState({
@@ -20,6 +21,7 @@ export default function ClientSettingsPage() {
     whatsapp: '',
     website_url: '',
     country: '',
+    profile_image: '',
   })
 
   useEffect(() => {
@@ -46,11 +48,52 @@ export default function ClientSettingsPage() {
           whatsapp: clientData.whatsapp || '',
           website_url: clientData.website_url || '',
           country: clientData.country || '',
+          profile_image: clientData.profile_image || '',
         })
       }
     }
 
     setLoading(false)
+  }
+
+  async function handleProfileImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !client) return
+
+    setUploading(true)
+
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${client.user_id}-${Date.now()}.${fileExt}`
+      const filePath = `profile-images/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('client-portal')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      const { data: urlData } = supabase.storage
+        .from('client-portal')
+        .getPublicUrl(filePath)
+
+      // Update client profile with image URL
+      const { error: updateError } = await supabase
+        .from('clients')
+        .update({ profile_image: urlData.publicUrl })
+        .eq('user_id', client.user_id)
+
+      if (updateError) throw updateError
+
+      setFormData({ ...formData, profile_image: urlData.publicUrl })
+      setMessage({ type: 'success', text: 'Profile image updated successfully!' })
+    } catch (error) {
+      console.error('Upload error:', error)
+      setMessage({ type: 'error', text: 'Failed to upload image. Please try again.' })
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -98,22 +141,49 @@ export default function ClientSettingsPage() {
 
       <div className="rounded-xl border border-[var(--border)] bg-white p-6">
         {/* Profile Image */}
-        <div className="mb-6 flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent-orange)]/10 text-2xl font-bold text-[var(--accent-orange)]">
-            {formData.full_name?.charAt(0) || 'C'}
+        <div className="mb-6 flex items-center gap-6">
+          <div className="relative">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[var(--accent-orange)] text-3xl font-bold text-white">
+              {formData.profile_image ? (
+                <img
+                  src={formData.profile_image}
+                  alt="Profile"
+                  className="h-full w-full rounded-full object-cover"
+                />
+              ) : (
+                formData.full_name?.charAt(0) || 'C'
+              )}
+            </div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="absolute -bottom-1 -right-1 rounded-full bg-[var(--accent-orange)] p-1.5 text-white hover:bg-[var(--orange-600)] disabled:opacity-50"
+            >
+              <SvgIcon name="edit" size={14} color="white" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleProfileImageUpload}
+              className="hidden"
+            />
           </div>
           <div>
             <p className="font-medium text-[var(--text-primary)]">{formData.full_name}</p>
             <p className="text-sm text-[var(--text-muted)]">{formData.email}</p>
+            {uploading && <p className="text-sm text-[var(--text-muted)]">Uploading...</p>}
           </div>
         </div>
 
         {message && (
-          <div className={`mb-4 rounded-lg p-3 text-sm ${
-            message.type === 'success' 
-              ? 'bg-green-50 text-green-700 border border-green-200' 
-              : 'bg-red-50 text-red-700 border border-red-200'
-          }`}>
+          <div
+            className={`mb-4 rounded-lg p-3 text-sm ${
+              message.type === 'success'
+                ? 'bg-green-50 text-green-700 border border-green-200'
+                : 'bg-red-50 text-red-700 border border-red-200'
+            }`}
+          >
             {message.text}
           </div>
         )}

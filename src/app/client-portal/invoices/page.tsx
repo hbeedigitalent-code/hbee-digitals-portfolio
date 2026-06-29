@@ -97,7 +97,7 @@ export default function ClientInvoicesPage() {
                     {new Date(invoice.due_date).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 font-semibold text-[var(--text-primary)]">
-                    {invoice.currency || 'USD'} ${invoice.amount.toFixed(2)}
+                    {invoice.currency || 'USD'} ${invoice.amount?.toFixed(2)}
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={invoice.status || 'pending'} />

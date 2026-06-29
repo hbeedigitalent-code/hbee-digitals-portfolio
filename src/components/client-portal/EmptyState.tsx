@@ -11,12 +11,12 @@ interface EmptyStateProps {
   onAction?: () => void
 }
 
-export default function EmptyState({ 
-  title, 
-  description, 
-  icon = 'inbox', 
-  actionText, 
-  onAction 
+export default function EmptyState({
+  title,
+  description,
+  icon = 'inbox',
+  actionText,
+  onAction,
 }: EmptyStateProps) {
   return (
     <div className="rounded-xl border border-[var(--border)] bg-white p-12 text-center">

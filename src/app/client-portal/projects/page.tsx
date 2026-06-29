@@ -32,7 +32,6 @@ export default function ClientProjectsPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      // Get client
       const { data: clientData } = await supabase
         .from('clients')
         .select('id')
@@ -73,7 +72,7 @@ export default function ClientProjectsPage() {
           description="You don't have any active projects. When you start a project, it will appear here."
           icon="projects"
           actionText="Contact Us"
-          onAction={() => window.location.href = '/contact'}
+          onAction={() => (window.location.href = '/contact')}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -109,7 +108,7 @@ export default function ClientProjectsPage() {
 
               {project.expected_completion_date && (
                 <p className="mt-3 text-xs text-[var(--text-muted)]">
-                  Expected completion: {new Date(project.expected_completion_date).toLocaleDateString()}
+                  Expected: {new Date(project.expected_completion_date).toLocaleDateString()}
                 </p>
               )}
             </Link>

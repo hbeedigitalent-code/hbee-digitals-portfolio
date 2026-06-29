@@ -5,7 +5,6 @@ import { useEffect, useState, useRef } from 'react'
 import { createClientComponentClient } from '@/lib/supabase-client'
 import SvgIcon from '@/components/ui/SvgIcon'
 import EmptyState from '@/components/client-portal/EmptyState'
-import StatusBadge from '@/components/client-portal/StatusBadge'
 
 interface File {
   id: string
@@ -60,11 +59,11 @@ export default function ClientFilesPage() {
     setUploading(true)
 
     try {
-      // Upload to Supabase Storage
       const fileExt = file.name.split('.').pop()
       const fileName = `${Date.now()}-${file.name}`
       const filePath = `client-files/${clientId}/${fileName}`
 
+      // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('project-files')
         .upload(filePath, file)
@@ -77,20 +76,17 @@ export default function ClientFilesPage() {
         .getPublicUrl(filePath)
 
       // Save to database
-      const { error: dbError } = await supabase
-        .from('project_files')
-        .insert({
-          client_id: clientId,
-          file_name: file.name,
-          file_url: urlData.publicUrl,
-          file_type: file.type || 'application/octet-stream',
-          file_size: file.size,
-          uploaded_by: 'client',
-        })
+      const { error: dbError } = await supabase.from('project_files').insert({
+        client_id: clientId,
+        file_name: file.name,
+        file_url: urlData.publicUrl,
+        file_type: file.type || 'application/octet-stream',
+        file_size: file.size,
+        uploaded_by: 'client',
+      })
 
       if (dbError) throw dbError
 
-      // Refresh files
       await fetchFiles()
     } catch (error) {
       console.error('Upload error:', error)

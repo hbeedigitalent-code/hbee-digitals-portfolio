@@ -11,11 +11,20 @@ interface StatsCardProps {
   bgColor?: string
 }
 
-export default function StatsCard({ title, value, icon, color = 'var(--accent-orange)', bgColor = 'var(--accent-orange)/10' }: StatsCardProps) {
+export default function StatsCard({
+  title,
+  value,
+  icon,
+  color = 'var(--accent-orange)',
+  bgColor = 'var(--accent-orange)/10',
+}: StatsCardProps) {
   return (
     <div className="rounded-xl border border-[var(--border)] bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-center gap-4">
-        <div className={`flex h-12 w-12 items-center justify-center rounded-xl`} style={{ background: bgColor }}>
+        <div
+          className={`flex h-12 w-12 items-center justify-center rounded-xl`}
+          style={{ background: bgColor }}
+        >
           <SvgIcon name={icon} size={22} color={color} />
         </div>
         <div>

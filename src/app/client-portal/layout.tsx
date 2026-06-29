@@ -15,8 +15,8 @@ export default function ClientPortalLayout({
   const router = useRouter()
   const pathname = usePathname()
   const supabase = createClientComponentClient()
-  const [loading, setLoading] = useState(true)
   const [client, setClient] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -46,6 +46,21 @@ export default function ClientPortalLayout({
     checkAuth()
   }, [router, supabase])
 
+  // Handle window resize for sidebar
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setSidebarOpen(false)
+      } else {
+        setSidebarOpen(true)
+      }
+    }
+
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--bg-page)]">
@@ -54,21 +69,30 @@ export default function ClientPortalLayout({
     )
   }
 
+  if (!client) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-page)]">
+        <div className="text-center">
+          <p className="text-[var(--text-muted)]">No client profile found. Please contact support.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-h-screen bg-[var(--bg-page)]">
       {/* Sidebar */}
-      <ClientPortalSidebar 
+      <ClientPortalSidebar
         client={client}
         pathname={pathname}
         isOpen={sidebarOpen}
         mobileOpen={mobileMenuOpen}
         onMobileClose={() => setMobileMenuOpen(false)}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
       />
 
       {/* Main Content */}
-      <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
-        <ClientPortalHeader 
+      <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'lg:ml-[280px]' : 'lg:ml-[72px]'}`}>
+        <ClientPortalHeader
           client={client}
           sidebarOpen={sidebarOpen}
           onMenuClick={() => setMobileMenuOpen(true)}

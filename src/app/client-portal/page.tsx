@@ -14,6 +14,7 @@ interface Client {
   full_name: string
   business_name: string
   email: string
+  created_at: string
 }
 
 interface Project {
@@ -32,29 +33,14 @@ interface Request {
   created_at: string
 }
 
-interface Deliverable {
-  id: string
-  title: string
-  status: string
-  created_at: string
-}
-
-interface Invoice {
-  id: string
-  invoice_number: string
-  amount: number
-  status: string
-  due_date: string
-}
-
 export default function ClientPortalDashboard() {
   const supabase = createClientComponentClient()
   const [client, setClient] = useState<Client | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [requests, setRequests] = useState<Request[]>([])
-  const [deliverables, setDeliverables] = useState<Deliverable[]>([])
-  const [invoices, setInvoices] = useState<Invoice[]>([])
   const [files, setFiles] = useState<any[]>([])
+  const [deliverables, setDeliverables] = useState<any[]>([])
+  const [invoices, setInvoices] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -64,56 +50,55 @@ export default function ClientPortalDashboard() {
   async function fetchData() {
     setLoading(true)
 
-    // Get user
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    // Get client
-    const { data: clientData } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle()
-    setClient(clientData)
-
-    if (clientData) {
-      // Get projects
-      const { data: projectData } = await supabase
-        .from('projects')
+    if (user) {
+      const { data: clientData } = await supabase
+        .from('clients')
         .select('*')
-        .eq('client_id', clientData.id)
-        .order('created_at', { ascending: false })
-      setProjects(projectData || [])
+        .eq('user_id', user.id)
+        .maybeSingle()
 
-      // Get requests
-      const { data: requestData } = await supabase
-        .from('project_requests')
-        .select('*')
-        .eq('client_id', clientData.id)
-        .order('created_at', { ascending: false })
-      setRequests(requestData || [])
+      if (clientData) {
+        setClient(clientData)
 
-      // Get deliverables
-      const { data: deliverableData } = await supabase
-        .from('project_deliverables')
-        .select('*')
-        .order('created_at', { ascending: false })
-      setDeliverables(deliverableData || [])
+        // Projects
+        const { data: projectData } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('client_id', clientData.id)
+          .order('created_at', { ascending: false })
+        setProjects(projectData || [])
 
-      // Get invoices
-      const { data: invoiceData } = await supabase
-        .from('project_invoices')
-        .select('*')
-        .order('created_at', { ascending: false })
-      setInvoices(invoiceData || [])
+        // Requests
+        const { data: requestData } = await supabase
+          .from('project_requests')
+          .select('*')
+          .eq('client_id', clientData.id)
+          .order('created_at', { ascending: false })
+        setRequests(requestData || [])
 
-      // Get files
-      const { data: fileData } = await supabase
-        .from('project_files')
-        .select('*')
-        .eq('client_id', clientData.id)
-        .order('created_at', { ascending: false })
-      setFiles(fileData || [])
+        // Files
+        const { data: fileData } = await supabase
+          .from('project_files')
+          .select('*')
+          .eq('client_id', clientData.id)
+          .order('uploaded_at', { ascending: false })
+        setFiles(fileData || [])
+
+        // Deliverables
+        const { data: deliverableData } = await supabase
+          .from('project_deliverables')
+          .select('*')
+          .order('created_at', { ascending: false })
+        setDeliverables(deliverableData || [])
+
+        // Invoices
+        const { data: invoiceData } = await supabase
+          .from('project_invoices')
+          .select('*')
+          .order('created_at', { ascending: false })
+        setInvoices(invoiceData || [])
+      }
     }
 
     setLoading(false)
@@ -127,27 +112,46 @@ export default function ClientPortalDashboard() {
     )
   }
 
-  const activeProjects = projects.filter(p => p.status !== 'Completed')
-  const pendingRequests = requests.filter(r => r.status === 'pending' || r.status === 'open')
+  const activeProjects = projects.filter((p) => p.status !== 'Completed')
+  const pendingRequests = requests.filter((r) => r.status === 'pending' || r.status === 'open')
 
   return (
     <div className="space-y-8">
       {/* Welcome */}
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-          Welcome back, {client?.full_name?.split(' ')[0] || 'Client'}!
-        </h1>
-        <p className="text-[var(--text-muted)]">
-          {client?.business_name || 'Your business'} — Here's an overview of your projects
-        </p>
+      <div className="rounded-xl border border-[var(--border)] bg-white p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+              Welcome back, {client?.full_name?.split(' ')[0] || 'Client'}!
+            </h1>
+            <p className="text-[var(--text-muted)]">
+              {client?.business_name || 'Your business'} — Here's an overview of your projects
+            </p>
+          </div>
+          <div className="text-sm text-[var(--text-muted)]">
+            Member since {client?.created_at ? new Date(client.created_at).toLocaleDateString() : 'Recently'}
+          </div>
+        </div>
       </div>
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard title="Active Projects" value={activeProjects.length} icon="projects" />
-        <StatsCard title="Pending Requests" value={pendingRequests.length} icon="messages" color="var(--blue-500)" bgColor="var(--blue-500)/10" />
+        <StatsCard
+          title="Pending Requests"
+          value={pendingRequests.length}
+          icon="messages"
+          color="var(--blue-500)"
+          bgColor="var(--blue-500)/10"
+        />
         <StatsCard title="Uploaded Files" value={files.length} icon="file" color="var(--text-primary)" bgColor="var(--bg-section)" />
-        <StatsCard title="Deliverables" value={deliverables.length} icon="download" color="var(--accent-lime)" bgColor="var(--accent-lime)/10" />
+        <StatsCard
+          title="Deliverables"
+          value={deliverables.length}
+          icon="download"
+          color="var(--accent-lime)"
+          bgColor="var(--accent-lime)/10"
+        />
       </div>
 
       {/* Quick Actions */}
@@ -194,8 +198,8 @@ export default function ClientPortalDashboard() {
             title="No projects yet"
             description="You don't have any active projects. When you start a project, it will appear here."
             icon="projects"
-            actionText="Get Started"
-            onAction={() => window.location.href = '/contact'}
+            actionText="Contact Us"
+            onAction={() => (window.location.href = '/contact')}
           />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
@@ -232,7 +236,6 @@ export default function ClientPortalDashboard() {
 
       {/* Recent Activity */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Recent Requests */}
         <div className="rounded-xl border border-[var(--border)] bg-white p-6">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-semibold text-[var(--text-primary)]">Recent Requests</h3>
@@ -257,25 +260,24 @@ export default function ClientPortalDashboard() {
           )}
         </div>
 
-        {/* Recent Deliverables */}
         <div className="rounded-xl border border-[var(--border)] bg-white p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-semibold text-[var(--text-primary)]">Recent Deliverables</h3>
-            <Link href="/client-portal/deliverables" className="text-sm text-[var(--accent-orange)] hover:underline">
+            <h3 className="font-semibold text-[var(--text-primary)]">Invoices</h3>
+            <Link href="/client-portal/invoices" className="text-sm text-[var(--accent-orange)] hover:underline">
               View All
             </Link>
           </div>
-          {deliverables.length === 0 ? (
-            <p className="text-sm text-[var(--text-muted)]">No deliverables yet</p>
+          {invoices.length === 0 ? (
+            <p className="text-sm text-[var(--text-muted)]">No invoices yet</p>
           ) : (
             <div className="space-y-3">
-              {deliverables.slice(0, 3).map((d) => (
-                <div key={d.id} className="flex items-center justify-between border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">
+              {invoices.slice(0, 3).map((inv) => (
+                <div key={inv.id} className="flex items-center justify-between border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">
                   <div>
-                    <p className="text-sm font-medium text-[var(--text-primary)]">{d.title}</p>
-                    <p className="text-xs text-[var(--text-muted)]">{new Date(d.created_at).toLocaleDateString()}</p>
+                    <p className="text-sm font-medium text-[var(--text-primary)]">{inv.invoice_number}</p>
+                    <p className="text-xs text-[var(--text-muted)]">${inv.amount?.toFixed(2)}</p>
                   </div>
-                  <StatusBadge status={d.status || 'pending'} />
+                  <StatusBadge status={inv.status || 'pending'} />
                 </div>
               ))}
             </div>
