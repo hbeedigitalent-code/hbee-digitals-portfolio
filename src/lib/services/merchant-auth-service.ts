@@ -21,7 +21,7 @@ export async function createMerchantAccount(data: MerchantSignupData) {
   console.log('📝 Creating merchant account for:', data.email)
 
   try {
-    // STEP 1: Sign up the user - Supabase handles the email
+    // Sign up the user - Supabase handles the email confirmation
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
@@ -58,7 +58,7 @@ export async function createMerchantAccount(data: MerchantSignupData) {
 
     console.log('✅ User created:', authData.user.id)
 
-    // STEP 2: Create merchant profile in merchant_accounts table
+    // Create merchant profile
     const { data: merchant, error: merchantError } = await supabase
       .from('merchant_accounts')
       .insert({
@@ -82,7 +82,7 @@ export async function createMerchantAccount(data: MerchantSignupData) {
       console.log('✅ Merchant profile created:', merchant)
     }
 
-    // STEP 3: Create client profile in clients table (for portal)
+    // Create client profile
     const { data: client, error: clientError } = await supabase
       .from('clients')
       .insert({
@@ -104,133 +104,16 @@ export async function createMerchantAccount(data: MerchantSignupData) {
       console.log('✅ Client profile created:', client)
     }
 
-    // STEP 4: Check if profiles were created successfully
-    const hasMerchant = !!merchant
-    const hasClient = !!client
-
-    if (!hasMerchant || !hasClient) {
-      console.warn('⚠️ Some profiles were not created:', {
-        hasMerchant,
-        hasClient,
-        merchantError: merchantError?.message,
-        clientError: clientError?.message,
-      })
-    }
-
     return {
       success: true,
-      merchant: merchant || null,
-      client: client || null,
       user: authData.user,
-      hasMerchant,
-      hasClient,
-      message: 'Please check your email to confirm your account. (Check spam folder)',
+      message: 'Please check your email to confirm your account.',
     }
   } catch (error) {
     console.error('❌ Create merchant error:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to create account. Please try again.',
-    }
-  }
-}
-
-export async function getMerchantProfile(userId: string) {
-  try {
-    const { data, error } = await supabase
-      .from('merchant_accounts')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle()
-
-    if (error) {
-      console.error('❌ Get merchant error:', error)
-      return { success: false, error: error.message }
-    }
-
-    return { success: true, data }
-  } catch (error) {
-    console.error('❌ Get merchant error:', error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to get merchant profile',
-    }
-  }
-}
-
-export async function getClientProfile(userId: string) {
-  try {
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle()
-
-    if (error) {
-      console.error('❌ Get client error:', error)
-      return { success: false, error: error.message }
-    }
-
-    return { success: true, data }
-  } catch (error) {
-    console.error('❌ Get client error:', error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to get client profile',
-    }
-  }
-}
-
-export async function createClientProfileFromMerchant(userId: string) {
-  try {
-    // First get the merchant data
-    const { data: merchant, error: merchantError } = await supabase
-      .from('merchant_accounts')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle()
-
-    if (merchantError || !merchant) {
-      console.error('❌ Merchant not found:', merchantError)
-      return { success: false, error: 'Merchant profile not found' }
-    }
-
-    // Get the user data
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      console.error('❌ User not found:', userError)
-      return { success: false, error: 'User not found' }
-    }
-
-    // Create client profile
-    const { data: client, error: clientError } = await supabase
-      .from('clients')
-      .insert({
-        user_id: userId,
-        full_name: merchant.contact_name || user.user_metadata?.full_name || 'Client',
-        email: merchant.email || user.email,
-        business_name: merchant.business_name || user.user_metadata?.business_name || 'My Business',
-        website_url: merchant.website_url || null,
-        whatsapp: merchant.whatsapp || null,
-        country: merchant.country || null,
-        status: 'active',
-      })
-      .select()
-      .single()
-
-    if (clientError) {
-      console.error('❌ Create client error:', clientError)
-      return { success: false, error: clientError.message }
-    }
-
-    console.log('✅ Client profile created from merchant:', client)
-    return { success: true, data: client }
-  } catch (error) {
-    console.error('❌ Create client from merchant error:', error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to create client profile',
+      error: error instanceof Error ? error.message : 'Failed to create account.',
     }
   }
 }
