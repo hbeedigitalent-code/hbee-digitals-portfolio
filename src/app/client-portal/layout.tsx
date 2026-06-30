@@ -29,7 +29,6 @@ export default function ClientPortalLayout({
         return
       }
 
-      // Get client profile
       const { data: clientData } = await supabase
         .from('clients')
         .select('*')
@@ -46,7 +45,7 @@ export default function ClientPortalLayout({
     checkAuth()
   }, [router, supabase])
 
-  // Handle window resize for sidebar
+  // Handle window resize
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 1024) {
@@ -81,7 +80,7 @@ export default function ClientPortalLayout({
 
   return (
     <div className="flex min-h-screen bg-[var(--bg-page)]">
-      {/* Sidebar */}
+      {/* Sidebar - Fixed on desktop */}
       <ClientPortalSidebar
         client={client}
         pathname={pathname}
@@ -90,8 +89,8 @@ export default function ClientPortalLayout({
         onMobileClose={() => setMobileMenuOpen(false)}
       />
 
-      {/* Main Content */}
-      <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'lg:ml-[280px]' : 'lg:ml-[72px]'}`}>
+      {/* Main Content Area - Pushed right by sidebar */}
+      <div className="flex-1 min-w-0">
         <ClientPortalHeader
           client={client}
           sidebarOpen={sidebarOpen}

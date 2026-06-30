@@ -77,7 +77,6 @@ export default function ClientSettingsPage() {
         .from('client-portal')
         .getPublicUrl(filePath)
 
-      // Update client profile with image URL
       const { error: updateError } = await supabase
         .from('clients')
         .update({ profile_image: urlData.publicUrl })

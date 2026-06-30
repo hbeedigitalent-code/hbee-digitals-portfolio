@@ -77,7 +77,7 @@ export default function ClientPortalSidebar({
               key={item.name}
               href={item.href}
               onClick={() => {
-                onMobileClose()
+                if (mobileOpen) onMobileClose()
               }}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                 isActive
@@ -113,7 +113,7 @@ export default function ClientPortalSidebar({
 
   return (
     <>
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar - Fixed with proper positioning */}
       <aside
         className={`hidden lg:block fixed inset-y-0 left-0 z-40 transition-all duration-300 ${
           isOpen ? 'w-[280px]' : 'w-[72px]'
@@ -122,7 +122,7 @@ export default function ClientPortalSidebar({
         {sidebarContent}
       </aside>
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar - Slide in overlay */}
       {mobileOpen && (
         <>
           <div

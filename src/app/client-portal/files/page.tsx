@@ -63,19 +63,16 @@ export default function ClientFilesPage() {
       const fileName = `${Date.now()}-${file.name}`
       const filePath = `client-files/${clientId}/${fileName}`
 
-      // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('project-files')
         .upload(filePath, file)
 
       if (uploadError) throw uploadError
 
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from('project-files')
         .getPublicUrl(filePath)
 
-      // Save to database
       const { error: dbError } = await supabase.from('project_files').insert({
         client_id: clientId,
         file_name: file.name,

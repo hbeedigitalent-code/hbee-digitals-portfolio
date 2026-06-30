@@ -13,8 +13,6 @@ interface Project {
   project_name: string
   status: string
   progress: number
-  start_date: string
-  expected_completion_date: string
   description: string
 }
 
@@ -86,9 +84,6 @@ export default function ClientProjectsPage() {
                 <div>
                   <p className="font-semibold text-[var(--text-primary)]">{project.project_name}</p>
                   <p className="text-sm text-[var(--text-muted)]">{project.project_id}</p>
-                  {project.description && (
-                    <p className="mt-2 text-sm text-[var(--text-muted)] line-clamp-2">{project.description}</p>
-                  )}
                 </div>
                 <StatusBadge status={project.status || 'New'} />
               </div>
@@ -105,12 +100,6 @@ export default function ClientProjectsPage() {
                   />
                 </div>
               </div>
-
-              {project.expected_completion_date && (
-                <p className="mt-3 text-xs text-[var(--text-muted)]">
-                  Expected: {new Date(project.expected_completion_date).toLocaleDateString()}
-                </p>
-              )}
             </Link>
           ))}
         </div>

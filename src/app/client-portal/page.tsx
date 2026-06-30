@@ -6,7 +6,6 @@ import { createClientComponentClient } from '@/lib/supabase-client'
 import StatsCard from '@/components/client-portal/StatsCard'
 import EmptyState from '@/components/client-portal/EmptyState'
 import StatusBadge from '@/components/client-portal/StatusBadge'
-import SvgIcon from '@/components/ui/SvgIcon'
 import Link from 'next/link'
 
 interface Client {
@@ -23,7 +22,6 @@ interface Project {
   project_name: string
   status: string
   progress: number
-  start_date: string
 }
 
 interface Request {
