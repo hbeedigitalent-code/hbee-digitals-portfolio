@@ -54,7 +54,15 @@ export default function ClientPortalSidebar({
         <div className="border-b border-[var(--border)] p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent-orange)] text-white font-semibold text-sm">
-              {client?.full_name?.charAt(0) || 'C'}
+              {client?.profile_image ? (
+                <img 
+                  src={client.profile_image} 
+                  alt="Profile" 
+                  className="h-full w-full rounded-full object-cover"
+                />
+              ) : (
+                client?.full_name?.charAt(0) || 'C'
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-[var(--text-primary)] truncate">

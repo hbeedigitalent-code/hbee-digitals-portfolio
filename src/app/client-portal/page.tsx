@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { createClientComponentClient } from '@/lib/supabase-client'
 import StatsCard from '@/components/client-portal/StatsCard'
 import EmptyState from '@/components/client-portal/EmptyState'
-import StatusBadge from '@/components/client-portal/StatusBadge'
+import SvgIcon from '@/components/ui/SvgIcon'
 import Link from 'next/link'
 
 interface Client {
@@ -212,7 +212,13 @@ export default function ClientPortalDashboard() {
                     <p className="font-medium text-[var(--text-primary)]">{project.project_name}</p>
                     <p className="text-sm text-[var(--text-muted)]">{project.project_id}</p>
                   </div>
-                  <StatusBadge status={project.status || 'New'} />
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                    project.status === 'Completed' ? 'bg-green-100 text-green-700' :
+                    project.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
+                    'bg-yellow-100 text-yellow-700'
+                  }`}>
+                    {project.status || 'New'}
+                  </span>
                 </div>
                 <div className="mt-3">
                   <div className="flex justify-between text-sm">
@@ -251,7 +257,13 @@ export default function ClientPortalDashboard() {
                     <p className="text-sm font-medium text-[var(--text-primary)]">{req.title}</p>
                     <p className="text-xs text-[var(--text-muted)]">{new Date(req.created_at).toLocaleDateString()}</p>
                   </div>
-                  <StatusBadge status={req.status || 'pending'} />
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                    req.status === 'completed' ? 'bg-green-100 text-green-700' :
+                    req.status === 'approved' ? 'bg-blue-100 text-blue-700' :
+                    'bg-yellow-100 text-yellow-700'
+                  }`}>
+                    {req.status || 'pending'}
+                  </span>
                 </div>
               ))}
             </div>
@@ -260,7 +272,7 @@ export default function ClientPortalDashboard() {
 
         <div className="rounded-xl border border-[var(--border)] bg-white p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-semibold text-[var(--text-primary)]">Invoices</h3>
+            <h3 className="font-semibold text-[var(--text-primary)]">Recent Invoices</h3>
             <Link href="/client-portal/invoices" className="text-sm text-[var(--accent-orange)] hover:underline">
               View All
             </Link>
@@ -275,7 +287,13 @@ export default function ClientPortalDashboard() {
                     <p className="text-sm font-medium text-[var(--text-primary)]">{inv.invoice_number}</p>
                     <p className="text-xs text-[var(--text-muted)]">${inv.amount?.toFixed(2)}</p>
                   </div>
-                  <StatusBadge status={inv.status || 'pending'} />
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                    inv.status === 'paid' ? 'bg-green-100 text-green-700' :
+                    inv.status === 'overdue' ? 'bg-red-100 text-red-700' :
+                    'bg-yellow-100 text-yellow-700'
+                  }`}>
+                    {inv.status || 'pending'}
+                  </span>
                 </div>
               ))}
             </div>

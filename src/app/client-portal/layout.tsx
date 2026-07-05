@@ -1,24 +1,34 @@
 // src/app/client-portal/layout.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClientComponentClient } from '@/lib/supabase-client'
-import ClientPortalSidebar from '@/components/client-portal/ClientPortalSidebar'
-import ClientPortalHeader from '@/components/client-portal/ClientPortalHeader'
+import SvgIcon from '@/components/ui/SvgIcon'
 
-export default function ClientPortalLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const router = useRouter()
+export default function ClientPortalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
   const supabase = createClientComponentClient()
   const [client, setClient] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [clientAvatar, setClientAvatar] = useState('')
+  const [clientName, setClientName] = useState('')
+  const [businessName, setBusinessName] = useState('')
+
+  const navItems = [
+    { name: 'Dashboard', href: '/client-portal', icon: 'dashboard' },
+    { name: 'Projects', href: '/client-portal/projects', icon: 'projects' },
+    { name: 'Files', href: '/client-portal/files', icon: 'file' },
+    { name: 'Requests', href: '/client-portal/requests', icon: 'messages' },
+    { name: 'Deliverables', href: '/client-portal/deliverables', icon: 'download' },
+    { name: 'Invoices', href: '/client-portal/invoices', icon: 'pricing' },
+    { name: 'Settings', href: '/client-portal/settings', icon: 'settings' },
+  ]
 
   useEffect(() => {
     async function checkAuth() {
@@ -37,16 +47,17 @@ export default function ClientPortalLayout({
 
       if (clientData) {
         setClient(clientData)
+        setClientName(clientData.full_name || 'Client')
+        setBusinessName(clientData.business_name || '')
+        setClientAvatar(clientData.profile_image || '')
       }
 
       setLoading(false)
     }
 
     checkAuth()
-  }, [router, supabase])
 
-  // Handle window resize
-  useEffect(() => {
+    // Handle window resize for sidebar
     const handleResize = () => {
       if (window.innerWidth < 1024) {
         setSidebarOpen(false)
@@ -58,11 +69,16 @@ export default function ClientPortalLayout({
     handleResize()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [])
+  }, [router, supabase])
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    router.push('/client-login')
+  }
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-page)]">
+      <div className="flex items-center justify-center min-h-screen bg-[var(--bg-page)]">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
       </div>
     )
@@ -70,7 +86,7 @@ export default function ClientPortalLayout({
 
   if (!client) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-page)]">
+      <div className="flex items-center justify-center min-h-screen bg-[var(--bg-page)]">
         <div className="text-center">
           <p className="text-[var(--text-muted)]">No client profile found. Please contact support.</p>
         </div>
@@ -78,30 +94,227 @@ export default function ClientPortalLayout({
     )
   }
 
-  return (
-    <div className="flex min-h-screen bg-[var(--bg-page)]">
-      {/* Sidebar - Fixed on desktop */}
-      <ClientPortalSidebar
-        client={client}
-        pathname={pathname}
-        isOpen={sidebarOpen}
-        mobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
-      />
+  const avatarLetter = clientName ? clientName.charAt(0).toUpperCase() : 'C'
 
-      {/* Main Content Area - Pushed right by sidebar */}
-      <div className="flex-1 min-w-0">
-        <ClientPortalHeader
-          client={client}
-          sidebarOpen={sidebarOpen}
-          onMenuClick={() => setMobileMenuOpen(true)}
-        />
-        <main className="p-4 md:p-6 lg:p-8">
-          <div className="mx-auto max-w-7xl">
-            {children}
+  return (
+    <div className="flex h-screen overflow-hidden bg-[var(--bg-page)]">
+      {/* Desktop Sidebar */}
+      <div className={`hidden lg:flex lg:flex-col ${sidebarOpen ? 'w-72' : 'w-20'} bg-[var(--bg-card)] border-r border-[var(--border)] transition-all duration-300 flex-shrink-0`}>
+        {/* Logo */}
+        <div className="p-4 border-b border-[var(--border)]">
+          <div className="flex items-center justify-between">
+            <Link href="/client-portal" className="flex items-center gap-2">
+              <SvgIcon name="logo" size={32} color="var(--accent-orange)" />
+              {sidebarOpen && <span className="font-bold text-[var(--text-primary)]">Client Portal</span>}
+            </Link>
+            <button 
+              onClick={() => setSidebarOpen(!sidebarOpen)} 
+              className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
+            >
+              {sidebarOpen ? '◀' : '▶'}
+            </button>
           </div>
-        </main>
+        </div>
+
+        {/* Client Info */}
+        {sidebarOpen && (
+          <div className="p-4 border-b border-[var(--border)]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[var(--accent-orange)] flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
+                {clientAvatar ? (
+                  <img src={clientAvatar} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  avatarLetter
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-[var(--text-primary)] truncate">{clientName}</p>
+                {businessName && (
+                  <p className="text-xs text-[var(--text-muted)] truncate">{businessName}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SCROLLABLE NAVIGATION */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition mb-1 ${
+                pathname === item.href
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-section)] hover:text-[var(--text-primary)]'
+              } ${!sidebarOpen ? 'justify-center' : ''}`}
+            >
+              <SvgIcon 
+                name={item.icon} 
+                size={18} 
+                color={pathname === item.href ? 'white' : 'currentColor'} 
+              />
+              {sidebarOpen && <span className="flex-1 text-sm font-medium">{item.name}</span>}
+            </Link>
+          ))}
+        </div>
+
+        {/* Footer with Logout Button */}
+        <div className="p-4 border-t border-[var(--border)]">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-red-400/20 bg-red-400/10 text-red-400 font-bold text-sm hover:bg-red-400/20 transition"
+          >
+            <SvgIcon name="logout" size={16} color="#ef4444" />
+            {sidebarOpen && 'Logout'}
+          </button>
+        </div>
       </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--bg-page)]/95 backdrop-blur-2xl px-4 py-3 lg:px-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="lg:hidden p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-section)]"
+              >
+                <SvgIcon name="menu" size={20} color="currentColor" />
+              </button>
+              <h1 className="text-lg font-bold text-[var(--text-primary)]">
+                {navItems.find(i => i.href === pathname)?.name || 'Dashboard'}
+              </h1>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              {/* Notification Icon */}
+              <button className="relative p-2 rounded-lg hover:bg-[var(--bg-section)] transition">
+                <SvgIcon name="bell" size={20} color="var(--text-muted)" />
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500" />
+              </button>
+
+              {/* Profile Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  className="flex items-center gap-2 p-1 rounded-lg hover:bg-[var(--bg-section)] transition"
+                >
+                  <div className="w-8 h-8 rounded-full bg-[var(--accent-orange)] flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
+                    {clientAvatar ? (
+                      <img src={clientAvatar} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      avatarLetter
+                    )}
+                  </div>
+                  <span className="hidden sm:block text-sm text-[var(--text-primary)]">{clientName}</span>
+                  <SvgIcon name="chevron-down" size={14} color="currentColor" className="hidden sm:block" />
+                </button>
+
+                {profileOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
+                    <div className="absolute right-0 mt-2 w-64 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-3 z-50 shadow-lg">
+                      <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider">Signed in as</p>
+                      <p className="mt-1 text-xs font-bold text-[var(--text-primary)] break-words">{client?.email}</p>
+                      <Link 
+                        href="/client-portal/settings" 
+                        onClick={() => setProfileOpen(false)}
+                        className="block mt-3 text-center text-xs font-bold text-[var(--text-primary)] py-2 rounded-lg border border-[var(--border)] hover:bg-[var(--bg-section)]"
+                      >
+                        Profile Settings
+                      </Link>
+                      <button 
+                        onClick={handleLogout}
+                        className="w-full mt-2 py-2 rounded-lg border border-red-400/20 bg-red-400/10 text-red-400 font-bold text-xs hover:bg-red-400/20 transition flex items-center justify-center gap-2"
+                      >
+                        <SvgIcon name="logout" size={14} color="#ef4444" />
+                        Logout
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* SCROLLABLE CONTENT */}
+        <div className="flex-1 overflow-y-auto p-4 lg:p-6 bg-[var(--bg-page)]">
+          {children}
+        </div>
+      </div>
+
+      {/* Mobile Sidebar */}
+      {mobileMenuOpen && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/75 z-40 lg:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div className="fixed left-0 top-0 w-72 h-full bg-[var(--bg-card)] border-r border-[var(--border)] z-50 flex flex-col lg:hidden">
+            <div className="p-4 border-b border-[var(--border)] flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <SvgIcon name="logo" size={28} color="var(--accent-orange)" />
+                <span className="font-bold text-[var(--text-primary)]">Client Portal</span>
+              </div>
+              <button onClick={() => setMobileMenuOpen(false)} className="text-[var(--text-muted)] text-xl">✕</button>
+            </div>
+
+            {/* Client Info - Mobile */}
+            <div className="p-4 border-b border-[var(--border)]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[var(--accent-orange)] flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
+                  {clientAvatar ? (
+                    <img src={clientAvatar} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    avatarLetter
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-[var(--text-primary)] truncate">{clientName}</p>
+                  {businessName && (
+                    <p className="text-xs text-[var(--text-muted)] truncate">{businessName}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition mb-1 ${
+                    pathname === item.href
+                      ? 'bg-[var(--accent)] text-white'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-section)]'
+                  }`}
+                >
+                  <SvgIcon 
+                    name={item.icon} 
+                    size={18} 
+                    color={pathname === item.href ? 'white' : 'currentColor'} 
+                  />
+                  <span className="flex-1 text-sm font-medium">{item.name}</span>
+                </Link>
+              ))}
+            </div>
+            <div className="p-4 border-t border-[var(--border)]">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-red-400/20 bg-red-400/10 text-red-400 font-bold text-sm hover:bg-red-400/20 transition"
+              >
+                <SvgIcon name="logout" size={16} color="#ef4444" />
+                Logout
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

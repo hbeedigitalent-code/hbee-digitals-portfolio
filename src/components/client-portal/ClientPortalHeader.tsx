@@ -54,7 +54,15 @@ export default function ClientPortalHeader({ client, sidebarOpen, onMenuClick }:
               className="flex items-center gap-2 rounded-lg p-1 hover:bg-[var(--bg-section)] transition"
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent-orange)] text-white font-semibold text-sm">
-                {client?.full_name?.charAt(0) || 'C'}
+                {client?.profile_image ? (
+                  <img 
+                    src={client.profile_image} 
+                    alt="Profile" 
+                    className="h-full w-full rounded-full object-cover"
+                  />
+                ) : (
+                  client?.full_name?.charAt(0) || 'C'
+                )}
               </div>
               <span className="hidden sm:block text-sm font-medium text-[var(--text-primary)]">
                 {client?.full_name || 'Client'}
