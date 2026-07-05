@@ -60,6 +60,8 @@ export default function ClientSettingsPage() {
             marketing_emails: clientData.marketing_emails || false,
           }
         })
+      } else {
+        console.warn('⚠️ No client profile found for user:', user.id)
       }
     }
 
@@ -99,7 +101,6 @@ export default function ClientSettingsPage() {
       setMessage({ type: 'success', text: 'Profile image updated successfully!' })
       
       await fetchClient()
-      // Dispatch event to update header/sidebar
       window.dispatchEvent(new Event('clientProfileUpdate'))
     } catch (error) {
       console.error('Upload error:', error)
@@ -192,7 +193,7 @@ export default function ClientSettingsPage() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="absolute -bottom-1 -right-1 rounded-full bg-[var(--accent)] p-2 text-white hover:bg-[var(--accent-hover)] disabled:opacity-50 transition"
+              className="absolute -bottom-1 -right-1 rounded-full bg-[var(--accent)] p-2 text-white hover:opacity-80 disabled:opacity-50 transition"
             >
               <SvgIcon name="edit" size={16} color="white" />
             </button>
