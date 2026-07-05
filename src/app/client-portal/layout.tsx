@@ -16,9 +16,6 @@ export default function ClientPortalLayout({ children }: { children: React.React
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
-  const [clientAvatar, setClientAvatar] = useState('')
-  const [clientName, setClientName] = useState('')
-  const [businessName, setBusinessName] = useState('')
 
   const navItems = [
     { name: 'Dashboard', href: '/client-portal', icon: 'dashboard' },
@@ -47,9 +44,6 @@ export default function ClientPortalLayout({ children }: { children: React.React
 
       if (clientData) {
         setClient(clientData)
-        setClientName(clientData.full_name || 'Client')
-        setBusinessName(clientData.business_name || '')
-        setClientAvatar(clientData.profile_image || '')
       }
 
       setLoading(false)
@@ -57,7 +51,6 @@ export default function ClientPortalLayout({ children }: { children: React.React
 
     checkAuth()
 
-    // Handle window resize for sidebar
     const handleResize = () => {
       if (window.innerWidth < 1024) {
         setSidebarOpen(false)
@@ -79,7 +72,7 @@ export default function ClientPortalLayout({ children }: { children: React.React
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[var(--bg-page)]">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
       </div>
     )
   }
@@ -94,7 +87,7 @@ export default function ClientPortalLayout({ children }: { children: React.React
     )
   }
 
-  const avatarLetter = clientName ? clientName.charAt(0).toUpperCase() : 'C'
+  const avatarLetter = client.full_name ? client.full_name.charAt(0).toUpperCase() : 'C'
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--bg-page)]">
@@ -104,7 +97,7 @@ export default function ClientPortalLayout({ children }: { children: React.React
         <div className="p-4 border-b border-[var(--border)]">
           <div className="flex items-center justify-between">
             <Link href="/client-portal" className="flex items-center gap-2">
-              <SvgIcon name="logo" size={32} color="var(--accent-orange)" />
+              <SvgIcon name="logo" size={32} color="var(--accent)" />
               {sidebarOpen && <span className="font-bold text-[var(--text-primary)]">Client Portal</span>}
             </Link>
             <button 
@@ -120,24 +113,24 @@ export default function ClientPortalLayout({ children }: { children: React.React
         {sidebarOpen && (
           <div className="p-4 border-b border-[var(--border)]">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[var(--accent-orange)] flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
-                {clientAvatar ? (
-                  <img src={clientAvatar} alt="Profile" className="w-full h-full object-cover" />
+              <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
+                {client.profile_image ? (
+                  <img src={client.profile_image} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
                   avatarLetter
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-[var(--text-primary)] truncate">{clientName}</p>
-                {businessName && (
-                  <p className="text-xs text-[var(--text-muted)] truncate">{businessName}</p>
+                <p className="text-sm font-bold text-[var(--text-primary)] truncate">{client.full_name}</p>
+                {client.business_name && (
+                  <p className="text-xs text-[var(--text-muted)] truncate">{client.business_name}</p>
                 )}
               </div>
             </div>
           </div>
         )}
 
-        {/* SCROLLABLE NAVIGATION */}
+        {/* Navigation */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-3">
           {navItems.map((item) => (
             <Link
@@ -152,14 +145,14 @@ export default function ClientPortalLayout({ children }: { children: React.React
               <SvgIcon 
                 name={item.icon} 
                 size={18} 
-                color={pathname === item.href ? 'white' : 'currentColor'} 
+                color={pathname === item.href ? 'white' : 'var(--text-muted)'} 
               />
               {sidebarOpen && <span className="flex-1 text-sm font-medium">{item.name}</span>}
             </Link>
           ))}
         </div>
 
-        {/* Footer with Logout Button */}
+        {/* Logout */}
         <div className="p-4 border-t border-[var(--border)]">
           <button
             onClick={handleLogout}
@@ -174,15 +167,14 @@ export default function ClientPortalLayout({ children }: { children: React.React
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--bg-page)]/95 backdrop-blur-2xl px-4 py-3 lg:px-6">
+        <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--bg-card)]/95 backdrop-blur-2xl px-4 py-3 lg:px-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {/* Mobile menu button */}
               <button
                 onClick={() => setMobileMenuOpen(true)}
                 className="lg:hidden p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-section)]"
               >
-                <SvgIcon name="menu" size={20} color="currentColor" />
+                <SvgIcon name="menu" size={20} color="var(--text-primary)" />
               </button>
               <h1 className="text-lg font-bold text-[var(--text-primary)]">
                 {navItems.find(i => i.href === pathname)?.name || 'Dashboard'}
@@ -190,7 +182,7 @@ export default function ClientPortalLayout({ children }: { children: React.React
             </div>
             
             <div className="flex items-center gap-4">
-              {/* Notification Icon */}
+              {/* Notification */}
               <button className="relative p-2 rounded-lg hover:bg-[var(--bg-section)] transition">
                 <SvgIcon name="bell" size={20} color="var(--text-muted)" />
                 <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500" />
@@ -202,15 +194,15 @@ export default function ClientPortalLayout({ children }: { children: React.React
                   onClick={() => setProfileOpen(!profileOpen)}
                   className="flex items-center gap-2 p-1 rounded-lg hover:bg-[var(--bg-section)] transition"
                 >
-                  <div className="w-8 h-8 rounded-full bg-[var(--accent-orange)] flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
-                    {clientAvatar ? (
-                      <img src={clientAvatar} alt="Profile" className="w-full h-full object-cover" />
+                  <div className="w-8 h-8 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
+                    {client.profile_image ? (
+                      <img src={client.profile_image} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
                       avatarLetter
                     )}
                   </div>
-                  <span className="hidden sm:block text-sm text-[var(--text-primary)]">{clientName}</span>
-                  <SvgIcon name="chevron-down" size={14} color="currentColor" className="hidden sm:block" />
+                  <span className="hidden sm:block text-sm text-[var(--text-primary)]">{client.full_name}</span>
+                  <SvgIcon name="chevron-down" size={14} color="var(--text-muted)" className="hidden sm:block" />
                 </button>
 
                 {profileOpen && (
@@ -218,7 +210,7 @@ export default function ClientPortalLayout({ children }: { children: React.React
                     <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
                     <div className="absolute right-0 mt-2 w-64 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-3 z-50 shadow-lg">
                       <p className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-wider">Signed in as</p>
-                      <p className="mt-1 text-xs font-bold text-[var(--text-primary)] break-words">{client?.email}</p>
+                      <p className="mt-1 text-xs font-bold text-[var(--text-primary)] break-words">{client.email}</p>
                       <Link 
                         href="/client-portal/settings" 
                         onClick={() => setProfileOpen(false)}
@@ -241,7 +233,7 @@ export default function ClientPortalLayout({ children }: { children: React.React
           </div>
         </header>
 
-        {/* SCROLLABLE CONTENT */}
+        {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 lg:p-6 bg-[var(--bg-page)]">
           {children}
         </div>
@@ -257,26 +249,25 @@ export default function ClientPortalLayout({ children }: { children: React.React
           <div className="fixed left-0 top-0 w-72 h-full bg-[var(--bg-card)] border-r border-[var(--border)] z-50 flex flex-col lg:hidden">
             <div className="p-4 border-b border-[var(--border)] flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <SvgIcon name="logo" size={28} color="var(--accent-orange)" />
+                <SvgIcon name="logo" size={28} color="var(--accent)" />
                 <span className="font-bold text-[var(--text-primary)]">Client Portal</span>
               </div>
               <button onClick={() => setMobileMenuOpen(false)} className="text-[var(--text-muted)] text-xl">✕</button>
             </div>
 
-            {/* Client Info - Mobile */}
             <div className="p-4 border-b border-[var(--border)]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[var(--accent-orange)] flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
-                  {clientAvatar ? (
-                    <img src={clientAvatar} alt="Profile" className="w-full h-full object-cover" />
+                <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold text-sm flex-shrink-0 overflow-hidden">
+                  {client.profile_image ? (
+                    <img src={client.profile_image} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
                     avatarLetter
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-[var(--text-primary)] truncate">{clientName}</p>
-                  {businessName && (
-                    <p className="text-xs text-[var(--text-muted)] truncate">{businessName}</p>
+                  <p className="text-sm font-bold text-[var(--text-primary)] truncate">{client.full_name}</p>
+                  {client.business_name && (
+                    <p className="text-xs text-[var(--text-muted)] truncate">{client.business_name}</p>
                   )}
                 </div>
               </div>
@@ -297,7 +288,7 @@ export default function ClientPortalLayout({ children }: { children: React.React
                   <SvgIcon 
                     name={item.icon} 
                     size={18} 
-                    color={pathname === item.href ? 'white' : 'currentColor'} 
+                    color={pathname === item.href ? 'white' : 'var(--text-muted)'} 
                   />
                   <span className="flex-1 text-sm font-medium">{item.name}</span>
                 </Link>

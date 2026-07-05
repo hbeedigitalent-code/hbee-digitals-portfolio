@@ -19,16 +19,16 @@ export default function EmptyState({
   onAction,
 }: EmptyStateProps) {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-white p-12 text-center">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
       <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--bg-section)]">
         <SvgIcon name={icon} size={32} color="var(--text-muted)" />
       </div>
-      <h3 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h3>
+      <h3 className="text-lg font-black text-[var(--text-primary)]">{title}</h3>
       <p className="mt-2 text-sm text-[var(--text-muted)]">{description}</p>
       {actionText && onAction && (
         <button
           onClick={onAction}
-          className="mt-4 rounded-full bg-[var(--accent-orange)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)]"
+          className="mt-4 rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-bold text-white transition hover:opacity-90"
         >
           {actionText}
         </button>
