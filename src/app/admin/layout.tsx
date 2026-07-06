@@ -1,3 +1,4 @@
+// src/app/admin/layout.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -20,53 +21,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [siteSettings, setSiteSettings] = useState<any>({})
 
   const navItems = [
-    // Dashboard
     { name: 'Dashboard', href: '/admin/dashboard', icon: 'analytics' },
     { name: 'Workspace', href: '/admin/workspace', icon: 'dashboard' },
-    
-    // Client Acquisition
     { name: 'Growth Assessments', href: '/admin/growth-assessments', icon: 'growth-readiness' },
     { name: 'Client Onboarding', href: '/admin/client-onboarding', icon: 'users' },
     { name: 'CRM / Leads', href: '/admin/crm', icon: 'user' },
-    
-    // Client Management
     { name: 'Client Portal', href: '/admin/client-portal', icon: 'portfolio' },
     { name: 'Projects', href: '/admin/projects', icon: 'projects' },
     { name: 'Tasks', href: '/admin/tasks', icon: 'check' },
     { name: 'Proposals', href: '/admin/proposals', icon: 'pricing' },
     { name: 'Agreements', href: '/admin/agreements', icon: 'security' },
     { name: 'Client Health', href: '/admin/client-health', icon: 'growth' },
-    
-    // Growth Intelligence
     { name: 'Growth Intelligence', href: '/admin/growth-intelligence', icon: 'analytics' },
     { name: 'Audits', href: '/admin/growth-intelligence/audits', icon: 'search' },
     { name: 'Opportunities', href: '/admin/growth-intelligence/opportunities', icon: 'growth' },
-    
-    // Content
     { name: 'Blog Posts', href: '/admin/blog', icon: 'blog' },
     { name: 'Blog Categories', href: '/admin/blog/categories', icon: 'category' },
     { name: 'Comments', href: '/admin/comments', icon: 'messages' },
     { name: 'FAQs', href: '/admin/faqs', icon: 'faq' },
     { name: 'Testimonials', href: '/admin/testimonials', icon: 'star' },
-    
-    // Website
     { name: 'Hero Section', href: '/admin/hero', icon: 'hero' },
     { name: 'About Page', href: '/admin/about', icon: 'about' },
     { name: 'Services', href: '/admin/services', icon: 'services' },
     { name: 'Pricing', href: '/admin/pricing', icon: 'pricing' },
     { name: 'Portfolio', href: '/admin/portfolio', icon: 'portfolio' },
     { name: 'Team Members', href: '/admin/team', icon: 'team' },
-    
-    // Add this under the Portfolio section or in Website section
     { name: 'Before/After', href: '/admin/before-after', icon: 'image' },
-    // Communications
     { name: 'Inquiries', href: '/admin/inquiries', icon: 'email', badge: unreadInquiries },
     { name: 'Newsletter', href: '/admin/newsletter', icon: 'newsletter' },
     { name: 'Subscribers', href: '/admin/subscribers', icon: 'users' },
-    
-    // System
     { name: 'Navigation Menu', href: '/admin/menu', icon: 'menu' },
-    { name: 'Merchants', href: '/admin/merchants', icon: 'users' }, // NEW
+    { name: 'Merchants', href: '/admin/merchants', icon: 'users' },
     { name: 'Profile', href: '/admin/profile', icon: 'profile' },
     { name: 'Settings', href: '/admin/settings', icon: 'settings' },
   ]
@@ -123,7 +108,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   if (pathname === '/admin/login') return <>{children}</>
-  if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  if (loading) return <div className="flex items-center justify-center min-h-screen bg-[var(--bg-page)]">Loading...</div>
   if (!user) return null
 
   const avatarLetter = adminName ? adminName.charAt(0).toUpperCase() : 'A'
@@ -131,7 +116,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const companyName = siteSettings?.site_name || 'Hbee Digitals'
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-[var(--bg-page)]">
       {/* Desktop Sidebar */}
       <div className={`hidden lg:flex lg:flex-col ${sidebarOpen ? 'w-72' : 'w-20'} bg-[var(--bg-card)] border-r border-[var(--border)] transition-all duration-300 flex-shrink-0`}>
         {/* Logo */}
@@ -145,7 +130,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   className="w-8 h-8 rounded-lg object-cover"
                 />
               ) : (
-                <div className="w-8 h-8 bg-gradient-orange-green rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-[var(--accent)] rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-sm">{companyName.charAt(0)}</span>
                 </div>
               )}
@@ -175,9 +160,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <SvgIcon 
                 name={item.icon} 
                 size={18} 
-                color={pathname === item.href ? 'white' : 'currentColor'} 
+                color={pathname === item.href ? 'white' : 'var(--text-muted)'} 
               />
-              {sidebarOpen && <span className="flex-1 text-sm font-medium">{item.name}</span>}
+              {sidebarOpen && <span className="flex-1 text-sm font-medium text-[var(--text-primary)]">{item.name}</span>}
               {item.badge && item.badge > 0 && sidebarOpen && (
                 <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-xs font-bold">
                   {item.badge}
@@ -193,8 +178,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-red-400/20 bg-red-400/10 text-red-400 font-bold text-sm hover:bg-red-400/20 transition"
           >
-            <img src="/svgs/logout.svg" alt="Logout" className="w-4 h-4" />
-            {sidebarOpen && 'Logout'}
+            <SvgIcon name="logout" size={16} color="#ef4444" />
+            {sidebarOpen && <span className="text-sm text-red-400">Logout</span>}
           </button>
         </div>
       </div>
@@ -202,15 +187,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--bg-page)]/95 backdrop-blur-2xl px-4 py-3 lg:px-6">
+        <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--bg-card)]/95 backdrop-blur-2xl px-4 py-3 lg:px-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {/* Mobile menu button */}
               <button
                 onClick={() => setMobileMenuOpen(true)}
                 className="lg:hidden p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-section)]"
               >
-                <SvgIcon name="menu" size={20} color="currentColor" />
+                <SvgIcon name="menu" size={20} color="var(--text-primary)" />
               </button>
               <h1 className="text-lg font-bold text-[var(--text-primary)]">
                 {navItems.find(i => i.href === pathname)?.name || 'Dashboard'}
@@ -218,16 +202,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             
             <div className="flex items-center gap-4">
-              {/* Notification Icon */}
               <Link href="/admin/inquiries" className="relative">
-                <img 
-                  src="/svgs/bell.svg" 
-                  alt="Notifications" 
-                  className="w-5 h-5 text-[var(--text-muted)] hover:text-[var(--accent)] transition"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none'
-                  }}
-                />
+                <SvgIcon name="bell" size={20} color="var(--text-muted)" />
                 {unreadInquiries > 0 && (
                   <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
                     {unreadInquiries > 99 ? '99+' : unreadInquiries}
@@ -248,12 +224,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       className="w-8 h-8 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-orange-green flex items-center justify-center text-white font-bold">
+                    <div className="w-8 h-8 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold">
                       {avatarLetter}
                     </div>
                   )}
-                  <span className="hidden sm:block text-sm text-[var(--text-primary)]">{adminName}</span>
-                  <SvgIcon name="chevron-down" size={14} color="currentColor" className="hidden sm:block" />
+                  <span className="hidden sm:block text-sm font-medium text-[var(--text-primary)]">{adminName}</span>
+                  <SvgIcon name="chevron-down" size={14} color="var(--text-muted)" className="hidden sm:block" />
                 </button>
 
                 {profileOpen && (
@@ -273,7 +249,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         onClick={handleLogout}
                         className="w-full mt-2 py-2 rounded-lg border border-red-400/20 bg-red-400/10 text-red-400 font-bold text-xs hover:bg-red-400/20 transition flex items-center justify-center gap-2"
                       >
-                        <img src="/svgs/logout.svg" alt="Logout" className="w-3 h-3" />
+                        <SvgIcon name="logout" size={14} color="#ef4444" />
                         Logout
                       </button>
                     </div>
@@ -285,7 +261,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* SCROLLABLE CONTENT */}
-        <div className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <div className="flex-1 overflow-y-auto p-4 lg:p-6 bg-[var(--bg-page)]">
           {children}
         </div>
       </div>
@@ -303,7 +279,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 {companyLogo ? (
                   <img src={companyLogo} alt={companyName} className="w-8 h-8 rounded-lg object-cover" />
                 ) : (
-                  <div className="w-8 h-8 bg-gradient-orange-green rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-[var(--accent)] rounded-lg flex items-center justify-center">
                     <span className="text-white font-bold text-sm">{companyName.charAt(0)}</span>
                   </div>
                 )}
@@ -326,9 +302,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <SvgIcon 
                     name={item.icon} 
                     size={18} 
-                    color={pathname === item.href ? 'white' : 'currentColor'} 
+                    color={pathname === item.href ? 'white' : 'var(--text-muted)'} 
                   />
-                  <span className="flex-1 text-sm font-medium">{item.name}</span>
+                  <span className="flex-1 text-sm font-medium text-[var(--text-primary)]">{item.name}</span>
                   {item.badge && item.badge > 0 && (
                     <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-xs font-bold">
                       {item.badge}
@@ -342,7 +318,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 onClick={handleLogout}
                 className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-red-400/20 bg-red-400/10 text-red-400 font-bold text-sm hover:bg-red-400/20 transition"
               >
-                <img src="/svgs/logout.svg" alt="Logout" className="w-4 h-4" />
+                <SvgIcon name="logout" size={16} color="#ef4444" />
                 Logout
               </button>
             </div>

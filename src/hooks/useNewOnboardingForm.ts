@@ -3,35 +3,28 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { NewOnboardingFormData, OnboardingStep } from '@/types/new-client-onboarding'
+import { createClientComponentClient } from '@/lib/supabase-client'
 
 const initialFormData: NewOnboardingFormData = {
-  // Step 1
   project_title: '',
   business_name: '',
   website_url: '',
   service_needed: '',
   project_goals: '',
-  
-  // Step 2
   preferred_timeline: '',
   budget_range: '',
   main_challenge: '',
-  
-  // Step 3
   uploaded_files: [],
-  
-  // Step 4
   full_name: '',
   email: '',
   whatsapp: '',
   communication_method: '',
   notes: '',
-  
-  // Step 5
   consent: false
 }
 
 export function useNewOnboardingForm() {
+  const supabase = createClientComponentClient()
   const [currentStep, setCurrentStep] = useState<OnboardingStep>(1)
   const [formData, setFormData] = useState<NewOnboardingFormData>(initialFormData)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -86,7 +79,6 @@ export function useNewOnboardingForm() {
         if (!formData.main_challenge?.trim()) stepErrors.main_challenge = 'Main challenge is required'
         break
       case 3:
-        // Optional - no validation needed
         break
       case 4:
         if (!formData.full_name?.trim()) stepErrors.full_name = 'Full name is required'
@@ -147,6 +139,13 @@ export function useNewOnboardingForm() {
       }
     }
 
+    // Check if user is authenticated
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      setErrors({ submit: 'You must be logged in to submit' })
+      return false
+    }
+
     setIsSubmitting(true)
     setErrors({})
 
@@ -162,12 +161,15 @@ export function useNewOnboardingForm() {
         }
       }
 
+      console.log('📤 Submitting onboarding...')
+      
       const response = await fetch('/api/onboarding', {
         method: 'POST',
         body: formDataToSend,
       })
 
       const result = await response.json()
+      console.log('📥 Response:', result)
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to submit onboarding')
@@ -177,13 +179,13 @@ export function useNewOnboardingForm() {
       localStorage.removeItem('new_onboarding_draft')
       return true
     } catch (error) {
-      console.error('Submission error:', error)
+      console.error('❌ Submission error:', error)
       setErrors({ submit: error instanceof Error ? error.message : 'Failed to submit onboarding' })
       return false
     } finally {
       setIsSubmitting(false)
     }
-  }, [formData, validateStep])
+  }, [formData, validateStep, supabase])
 
   return {
     currentStep,

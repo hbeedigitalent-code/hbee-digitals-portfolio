@@ -1,3 +1,4 @@
+// src/app/admin/dashboard/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -41,7 +42,6 @@ export default function AdminDashboardPage() {
   async function fetchDashboardData() {
     setLoading(true)
 
-    // Get all counts in parallel
     const [
       projectsRes,
       clientsRes,
@@ -64,7 +64,6 @@ export default function AdminDashboardPage() {
       supabase.from('growth_scores').select('classification', { count: 'exact' }),
     ])
 
-    // Calculate stats
     const totalProjects = projectsRes.data?.length || 0
     const activeProjects = projectsRes.data?.filter((p: any) => p.status !== 'Completed' && p.status !== 'Archived').length || 0
     const totalClients = clientsRes.data?.length || 0
@@ -72,7 +71,6 @@ export default function AdminDashboardPage() {
     const pendingAssessments = assessmentsRes.count || 0
     const pendingOnboarding = onboardingRes.count || 0
     
-    // Tasks
     const today = new Date()
     const weekEnd = new Date(today)
     weekEnd.setDate(weekEnd.getDate() + 7)
@@ -90,11 +88,9 @@ export default function AdminDashboardPage() {
     const pendingInquiries = inquiriesRes.count || 0
     const revenuePipeline = invoicesRes.data?.reduce((sum: number, inv: any) => sum + (inv.amount || 0), 0) || 0
     
-    // Project completion rate
     const completedProjects = projectsRes.data?.filter((p: any) => p.status === 'Completed').length || 0
     const projectCompletionRate = totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0
 
-    // Growth scores
     const totalGrowthScores = growthScoresRes.data?.length || 0
     const growthReady = growthScoresRes.data?.filter((s: any) => s.classification === 'Growth Ready' || s.classification === 'Scale Ready').length || 0
 
@@ -114,10 +110,8 @@ export default function AdminDashboardPage() {
       growthReady
     })
 
-    // Fetch recent activities (latest 5 from various sources)
     const activities: any[] = []
     
-    // Get recent assessments
     const { data: recentAssessments } = await supabase
       .from('growth_assessments')
       .select('id, status, created_at, merchants(business_name)')
@@ -136,7 +130,6 @@ export default function AdminDashboardPage() {
       })
     }
 
-    // Get recent leads
     const { data: recentLeads } = await supabase
       .from('leads')
       .select('id, lead_name, status, created_at')
@@ -155,7 +148,6 @@ export default function AdminDashboardPage() {
       })
     }
 
-    // Sort by time (most recent first) and take 5
     activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
     setRecentActivities(activities.slice(0, 5))
 
@@ -165,7 +157,7 @@ export default function AdminDashboardPage() {
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
       </div>
     )
   }
@@ -173,51 +165,50 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Dashboard</h1>
         <span className="text-sm text-[var(--text-muted)]">
           Last updated: {new Date().toLocaleString()}
         </span>
       </div>
 
-      {/* Quick Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-xl font-bold text-[var(--accent-orange)]">{stats?.activeProjects}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-xl font-bold text-[var(--accent)]">{stats?.activeProjects}</div>
           <div className="text-xs text-[var(--text-muted)]">Active Projects</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-xl font-bold text-white">{stats?.totalClients}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-xl font-bold text-[var(--text-primary)]">{stats?.totalClients}</div>
           <div className="text-xs text-[var(--text-muted)]">Total Clients</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-xl font-bold text-yellow-400">{stats?.newLeads}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-xl font-bold text-yellow-500">{stats?.newLeads}</div>
           <div className="text-xs text-[var(--text-muted)]">New Leads</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-xl font-bold text-blue-400">{stats?.pendingAssessments}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-xl font-bold text-blue-500">{stats?.pendingAssessments}</div>
           <div className="text-xs text-[var(--text-muted)]">Pending Assessments</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
           <div className="text-xl font-bold text-[var(--accent-lime)]">{stats?.growthReady}</div>
           <div className="text-xs text-[var(--text-muted)]">Growth Ready</div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-lg font-bold text-purple-400">{stats?.pendingOnboarding}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-lg font-bold text-purple-500">{stats?.pendingOnboarding}</div>
           <div className="text-xs text-[var(--text-muted)]">Pending Onboarding</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-lg font-bold text-cyan-400">{stats?.tasksDueThisWeek}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-lg font-bold text-cyan-500">{stats?.tasksDueThisWeek}</div>
           <div className="text-xs text-[var(--text-muted)]">Tasks Due</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-lg font-bold text-red-400">{stats?.overdueTasks}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-lg font-bold text-red-500">{stats?.overdueTasks}</div>
           <div className="text-xs text-[var(--text-muted)]">Overdue</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-lg font-bold text-[var(--accent-orange)]">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-lg font-bold text-[var(--accent)]">
             ${(stats?.revenuePipeline || 0).toLocaleString()}
           </div>
           <div className="text-xs text-[var(--text-muted)]">Revenue Pipeline</div>
@@ -225,27 +216,25 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Quick Actions */}
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-5">
-          <h2 className="mb-4 text-sm font-semibold text-white">Quick Actions</h2>
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+          <h2 className="mb-4 text-sm font-semibold text-[var(--text-primary)]">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-2">
             {quickActions.map((action) => (
               <Link
                 key={action.name}
                 href={action.href}
-                className="flex flex-col items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] p-3 transition hover:border-[var(--accent-orange)]"
+                className="flex flex-col items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 transition hover:border-[var(--accent)]"
               >
-                <SvgIcon name={action.icon} size={20} color="var(--accent-orange)" />
-                <span className="text-center text-xs font-medium text-white">{action.name}</span>
+                <SvgIcon name={action.icon} size={20} color="var(--accent)" />
+                <span className="text-center text-xs font-medium text-[var(--text-primary)]">{action.name}</span>
               </Link>
             ))}
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-5 lg:col-span-2">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5 lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-white">Recent Activity</h2>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Recent Activity</h2>
             <span className="text-xs text-[var(--text-muted)]">Latest updates</span>
           </div>
           {recentActivities.length === 0 ? (
@@ -257,7 +246,7 @@ export default function AdminDashboardPage() {
                   <div className={`mt-0.5 rounded-full p-1.5 ${
                     activity.type === 'assessment' ? 'bg-blue-500/20' :
                     activity.type === 'lead' ? 'bg-yellow-500/20' :
-                    'bg-[var(--accent-orange)]/20'
+                    'bg-[var(--accent)]/20'
                   }`}>
                     <SvgIcon 
                       name={activity.type === 'assessment' ? 'growth-readiness' : activity.type === 'lead' ? 'user' : 'notification'} 
@@ -265,13 +254,13 @@ export default function AdminDashboardPage() {
                       color={
                         activity.type === 'assessment' ? '#3B82F6' :
                         activity.type === 'lead' ? '#FBBF24' :
-                        'var(--accent-orange)'
+                        'var(--accent)'
                       } 
                     />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-white">{activity.title}</p>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{activity.title}</p>
                       <span className="text-xs text-[var(--text-muted)]">{activity.time}</span>
                     </div>
                     {activity.status && (
@@ -280,7 +269,7 @@ export default function AdminDashboardPage() {
                   </div>
                   <Link
                     href={activity.href}
-                    className="text-xs text-[var(--accent-orange)] hover:underline"
+                    className="text-xs text-[var(--accent)] hover:underline"
                   >
                     View
                   </Link>
