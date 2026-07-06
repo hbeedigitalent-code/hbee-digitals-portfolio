@@ -83,24 +83,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       
       // Check if user is an admin
       if (data.user) {
-        const adminCheck = await isAdmin(data.user.id)
-        
-        if (!adminCheck) {
-          // Not an admin → redirect to client portal
-          router.push('/client-portal')
+        try {
+          const adminCheck = await isAdmin(data.user.id)
+          
+          if (!adminCheck) {
+            // Not an admin → redirect to client portal
+            router.push('/client-portal')
+            setLoading(false)
+            return
+          }
+          
+          setIsAuthorized(true)
+          setUser(data.user)
+          const avatar = data.user?.user_metadata?.avatar_url || siteSettings?.logo_url || ''
+          const name = data.user?.user_metadata?.full_name || siteSettings?.site_name || 'Admin'
+          setAdminAvatar(avatar)
+          setAdminName(name)
+          
+          if (avatar) localStorage.setItem('admin_avatar', avatar)
+          if (name) localStorage.setItem('admin_name', name)
+        } catch (err) {
+          console.error('Admin check error:', err)
+          router.push('/admin/login')
           setLoading(false)
           return
         }
-        
-        setIsAuthorized(true)
-        setUser(data.user)
-        const avatar = data.user?.user_metadata?.avatar_url || siteSettings?.logo_url || ''
-        const name = data.user?.user_metadata?.full_name || siteSettings?.site_name || 'Admin'
-        setAdminAvatar(avatar)
-        setAdminName(name)
-        
-        if (avatar) localStorage.setItem('admin_avatar', avatar)
-        if (name) localStorage.setItem('admin_name', name)
       }
       
       setLoading(false)
