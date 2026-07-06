@@ -1,9 +1,9 @@
+// src/app/admin/team/page.tsx
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import SvgIcon from '@/components/ui/SvgIcon'
 
 interface TeamMember {
@@ -78,16 +78,14 @@ export default function TeamMembersPage() {
   }
 
   const handleFileUpload = async (file: File) => {
-    // Validate file size (10MB max)
     if (file.size > 10 * 1024 * 1024) {
-      showMessage('File size exceeds 10MB limit. Please choose a smaller file.', 'error')
+      showMessage('File size exceeds 10MB limit.', 'error')
       return null
     }
 
-    // Validate file type
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']
     if (!allowedTypes.includes(file.type)) {
-      showMessage('Please upload a valid image file (JPEG, PNG, WebP, GIF, or SVG).', 'error')
+      showMessage('Please upload a valid image file.', 'error')
       return null
     }
 
@@ -95,12 +93,10 @@ export default function TeamMembersPage() {
     setUploadProgress(0)
 
     try {
-      // Generate unique file name
       const fileExt = file.name.split('.').pop()
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`
       const filePath = `team-members/${fileName}`
 
-      // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('team-avatars')
         .upload(filePath, file, {
@@ -110,14 +106,13 @@ export default function TeamMembersPage() {
 
       if (uploadError) {
         console.error('Upload error:', uploadError)
-        showMessage('Failed to upload image. Please try again.', 'error')
+        showMessage('Failed to upload image.', 'error')
         setUploading(false)
         return null
       }
 
       setUploadProgress(100)
 
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from('team-avatars')
         .getPublicUrl(filePath)
@@ -126,7 +121,7 @@ export default function TeamMembersPage() {
       return urlData.publicUrl
     } catch (err) {
       console.error('Upload error:', err)
-      showMessage('Failed to upload image. Please try again.', 'error')
+      showMessage('Failed to upload image.', 'error')
       setUploading(false)
       return null
     }
@@ -170,7 +165,7 @@ export default function TeamMembersPage() {
       resetForm()
     } catch (err) {
       console.error('Save error:', err)
-      showMessage('Failed to save team member. Please try again.', 'error')
+      showMessage('Failed to save team member.', 'error')
     } finally {
       setSaving(false)
     }
@@ -217,13 +212,13 @@ export default function TeamMembersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-black text-[var(--text-primary)]">Team Members</h2>
-          <p className="text-sm text-[var(--text-secondary)]">Manage your team members with images.</p>
+          <h2 className="text-2xl font-bold text-[var(--text-primary)]">Team Members</h2>
+          <p className="text-sm text-[var(--text-muted)]">Manage your team members with images.</p>
         </div>
         {!showForm && (
           <button 
             onClick={() => setShowForm(true)} 
-            className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-black text-[var(--btn-primary-text)] hover:bg-[var(--accent-hover)] transition"
+            className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-bold text-white transition hover:opacity-90"
           >
             + Add Member
           </button>
@@ -233,8 +228,8 @@ export default function TeamMembersPage() {
       {message && (
         <div className={`rounded-lg p-4 text-sm ${
           messageType === 'success' 
-            ? 'bg-green-500/10 border border-green-500/30 text-green-400' 
-            : 'bg-red-500/10 border border-red-500/30 text-red-400'
+            ? 'bg-[var(--accent-lime)]/10 border border-[var(--accent-lime)]/30 text-[var(--accent-lime)]' 
+            : 'bg-red-500/10 border border-red-500/30 text-red-500'
         }`}>
           {message}
         </div>
@@ -242,47 +237,44 @@ export default function TeamMembersPage() {
 
       {showForm && (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-          <h3 className="mb-4 text-lg font-black">{editingItem ? 'Edit Member' : 'Add Member'}</h3>
+          <h3 className="mb-4 text-lg font-bold text-[var(--text-primary)]">{editingItem ? 'Edit Member' : 'Add Member'}</h3>
           
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Name & Position */}
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm font-bold">Name *</label>
+                <label className="mb-1 block text-sm font-bold text-[var(--text-primary)]">Name *</label>
                 <input 
                   required 
                   value={formData.name} 
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" 
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] p-3 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" 
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-bold">Position *</label>
+                <label className="mb-1 block text-sm font-bold text-[var(--text-primary)]">Position *</label>
                 <input 
                   required 
                   value={formData.position} 
                   onChange={(e) => setFormData({ ...formData, position: e.target.value })} 
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" 
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] p-3 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" 
                 />
               </div>
             </div>
 
-            {/* Bio */}
             <div>
-              <label className="mb-1 block text-sm font-bold">Bio</label>
+              <label className="mb-1 block text-sm font-bold text-[var(--text-primary)]">Bio</label>
               <textarea 
                 rows={3} 
                 value={formData.bio} 
                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })} 
-                className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" 
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] p-3 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" 
               />
             </div>
 
             {/* Image Upload Section */}
             <div>
-              <label className="mb-1 block text-sm font-bold">Profile Image</label>
+              <label className="mb-1 block text-sm font-bold text-[var(--text-primary)]">Profile Image</label>
               
-              {/* Current Image Preview */}
               {formData.image_url && (
                 <div className="mb-3 flex items-center gap-4 rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3">
                   <div className="h-16 w-16 overflow-hidden rounded-full border-2 border-[var(--accent)]">
@@ -297,7 +289,7 @@ export default function TeamMembersPage() {
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, image_url: '' })}
-                      className="text-xs text-red-400 hover:text-red-300"
+                      className="text-xs text-red-500 hover:text-red-400"
                     >
                       Remove Image
                     </button>
@@ -306,10 +298,9 @@ export default function TeamMembersPage() {
               )}
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                {/* File Upload */}
                 <div className="flex-1">
                   <label className="cursor-pointer block">
-                    <div className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[var(--border)] bg-[var(--bg-section)] p-4 transition hover:border-[var(--accent)]">
+                    <div className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[var(--border)] bg-[var(--bg-page)] p-4 transition hover:border-[var(--accent)]">
                       <SvgIcon name="upload" size={20} color="var(--accent)" />
                       <span className="text-sm font-medium text-[var(--text-muted)]">
                         {uploading ? 'Uploading...' : 'Click to Upload Image'}
@@ -340,16 +331,14 @@ export default function TeamMembersPage() {
                   </p>
                 </div>
 
-                {/* OR Divider */}
                 <div className="flex items-center text-sm text-[var(--text-muted)]">OR</div>
 
-                {/* URL Input */}
                 <div className="flex-1">
                   <input 
                     value={formData.image_url} 
                     onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} 
                     placeholder="https://example.com/image.jpg" 
-                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" 
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] p-3 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" 
                   />
                   <p className="mt-1 text-xs text-[var(--text-muted)]">
                     Paste image URL directly
@@ -358,43 +347,41 @@ export default function TeamMembersPage() {
               </div>
             </div>
 
-            {/* Social Links */}
             <div className="grid gap-4 md:grid-cols-2">
               <input 
                 placeholder="Twitter URL" 
                 value={formData.social_twitter} 
                 onChange={(e) => setFormData({ ...formData, social_twitter: e.target.value })} 
-                className="rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" 
+                className="rounded-lg border border-[var(--border)] bg-[var(--bg-page)] p-3 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" 
               />
               <input 
                 placeholder="LinkedIn URL" 
                 value={formData.social_linkedin} 
                 onChange={(e) => setFormData({ ...formData, social_linkedin: e.target.value })} 
-                className="rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" 
+                className="rounded-lg border border-[var(--border)] bg-[var(--bg-page)] p-3 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" 
               />
               <input 
                 placeholder="GitHub URL" 
                 value={formData.social_github} 
                 onChange={(e) => setFormData({ ...formData, social_github: e.target.value })} 
-                className="rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" 
+                className="rounded-lg border border-[var(--border)] bg-[var(--bg-page)] p-3 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" 
               />
               <input 
                 placeholder="Instagram URL" 
                 value={formData.social_instagram} 
                 onChange={(e) => setFormData({ ...formData, social_instagram: e.target.value })} 
-                className="rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" 
+                className="rounded-lg border border-[var(--border)] bg-[var(--bg-page)] p-3 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" 
               />
             </div>
 
-            {/* Display Order & Active Status */}
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm font-bold">Display Order</label>
+                <label className="mb-1 block text-sm font-bold text-[var(--text-primary)]">Display Order</label>
                 <input 
                   type="number" 
                   value={formData.display_order} 
                   onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })} 
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" 
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] p-3 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" 
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -404,23 +391,22 @@ export default function TeamMembersPage() {
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} 
                   className="h-4 w-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]" 
                 />
-                <label className="text-sm font-medium">Active on website</label>
+                <label className="text-sm font-medium text-[var(--text-primary)]">Active on website</label>
               </div>
             </div>
 
-            {/* Form Actions */}
             <div className="flex gap-3">
               <button 
                 type="submit" 
                 disabled={saving || uploading} 
-                className="rounded-full bg-[var(--accent)] px-6 py-2 text-sm font-black text-[var(--btn-primary-text)] transition hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                className="rounded-full bg-[var(--accent)] px-6 py-2 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
               >
                 {saving ? 'Saving...' : (editingItem ? 'Update' : 'Create')}
               </button>
               <button 
                 type="button" 
                 onClick={resetForm} 
-                className="rounded-full border border-[var(--border)] px-6 py-2 text-sm font-black text-[var(--text-primary)] hover:bg-[var(--bg-section)] transition"
+                className="rounded-full border border-[var(--border)] px-6 py-2 text-sm font-bold text-[var(--text-primary)] hover:bg-[var(--bg-section)] transition"
               >
                 Cancel
               </button>
@@ -443,8 +429,8 @@ export default function TeamMembersPage() {
                   />
                 </div>
               ) : (
-                <div className="h-14 w-14 rounded-full bg-gradient-to-br from-[var(--accent)] to-[var(--accent-orange)] flex items-center justify-center">
-                  <span className="text-xl font-black text-white">{member.name.charAt(0)}</span>
+                <div className="h-14 w-14 rounded-full bg-[var(--accent)] flex items-center justify-center">
+                  <span className="text-xl font-bold text-white">{member.name.charAt(0)}</span>
                 </div>
               )}
               <div>
@@ -456,7 +442,6 @@ export default function TeamMembersPage() {
               </div>
             </div>
 
-            {/* Social Links */}
             {(member.social_twitter || member.social_linkedin || member.social_github || member.social_instagram) && (
               <div className="mt-3 flex gap-2">
                 {member.social_twitter && (
@@ -485,8 +470,8 @@ export default function TeamMembersPage() {
             <div className="mt-4 flex items-center justify-between pt-3 border-t border-[var(--border)]">
               <span className={`rounded-full px-2 py-1 text-xs font-bold ${
                 member.is_active 
-                  ? 'bg-green-500/20 text-green-400' 
-                  : 'bg-gray-500/20 text-gray-400'
+                  ? 'bg-[var(--accent-lime)]/20 text-[var(--accent-lime)]' 
+                  : 'bg-gray-500/20 text-gray-500'
               }`}>
                 {member.is_active ? 'Active' : 'Inactive'}
               </span>
@@ -505,7 +490,7 @@ export default function TeamMembersPage() {
                 </button>
                 <button 
                   onClick={() => handleDelete(member.id)} 
-                  className="text-xs text-red-400 hover:text-red-300"
+                  className="text-xs text-red-500 hover:text-red-400"
                 >
                   Delete
                 </button>

@@ -1,3 +1,4 @@
+// src/app/admin/proposals/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -7,12 +8,12 @@ import SvgIcon from '@/components/ui/SvgIcon'
 import { Proposal, ProposalStatus } from '@/types/admin-crm'
 
 const statusColors: Record<ProposalStatus, string> = {
-  'Draft': 'bg-gray-500/20 text-gray-400',
-  'Sent': 'bg-blue-500/20 text-blue-400',
-  'Viewed': 'bg-yellow-500/20 text-yellow-400',
+  'Draft': 'bg-gray-500/20 text-gray-500',
+  'Sent': 'bg-blue-500/20 text-blue-500',
+  'Viewed': 'bg-yellow-500/20 text-yellow-500',
   'Approved': 'bg-[var(--accent-lime)]/20 text-[var(--accent-lime)]',
-  'Rejected': 'bg-red-500/20 text-red-400',
-  'Expired': 'bg-gray-500/20 text-gray-400',
+  'Rejected': 'bg-red-500/20 text-red-500',
+  'Expired': 'bg-gray-500/20 text-gray-500',
 }
 
 export default function AdminProposalsPage() {
@@ -58,7 +59,7 @@ export default function AdminProposalsPage() {
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
       </div>
     )
   }
@@ -66,31 +67,31 @@ export default function AdminProposalsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Proposals</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Proposals</h1>
         <Link
           href="/admin/proposals/new"
-          className="rounded-full bg-[var(--accent-orange)] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)]"
+          className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90"
         >
           + New Proposal
         </Link>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4 text-center">
-          <div className="text-2xl font-bold text-white">{stats.total}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
+          <div className="text-2xl font-bold text-[var(--text-primary)]">{stats.total}</div>
           <div className="text-sm text-[var(--text-muted)]">Total Proposals</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4 text-center">
-          <div className="text-2xl font-bold text-blue-400">{stats.sent}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
+          <div className="text-2xl font-bold text-blue-500">{stats.sent}</div>
           <div className="text-sm text-[var(--text-muted)]">Sent</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4 text-center">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
           <div className="text-2xl font-bold text-[var(--accent-lime)]">{stats.approved}</div>
           <div className="text-sm text-[var(--text-muted)]">Approved</div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-5">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1">
             <SvgIcon name="search" size={16} color="var(--text-muted)" className="absolute left-3 top-2.5" />
@@ -99,13 +100,13 @@ export default function AdminProposalsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search proposals..."
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] pl-10 pr-4 py-2 text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] pl-10 pr-4 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+            className="rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
           >
             <option value="all">All Statuses</option>
             {Object.keys(statusColors).map((status) => (
@@ -135,14 +136,14 @@ export default function AdminProposalsPage() {
                 </tr>
               ) : (
                 filteredProposals.map((proposal) => (
-                  <tr key={proposal.id} className="border-b border-[var(--border)] hover:bg-[var(--bg-card-dark)]/50">
-                    <td className="py-3 font-medium text-white">
+                  <tr key={proposal.id} className="border-b border-[var(--border)] hover:bg-[var(--bg-section)]">
+                    <td className="py-3 font-medium text-[var(--text-primary)]">
                       {proposal.proposal_number}
                     </td>
                     <td className="py-3 text-[var(--text-muted)]">
                       {proposal.business_name || proposal.project_title}
                     </td>
-                    <td className="py-3 text-white">
+                    <td className="py-3 text-[var(--text-primary)]">
                       ${proposal.investment?.toLocaleString() || 'N/A'}
                     </td>
                     <td className="py-3">
@@ -156,10 +157,10 @@ export default function AdminProposalsPage() {
                     <td className="py-3 text-right">
                       <Link
                         href={`/admin/proposals/${proposal.id}`}
-                        className="inline-flex items-center gap-1 text-[var(--accent-orange)] hover:underline"
+                        className="inline-flex items-center gap-1 text-[var(--accent)] hover:underline"
                       >
                         View
-                        <SvgIcon name="arrow-right" size={12} color="var(--accent-orange)" />
+                        <SvgIcon name="arrow-right" size={12} color="var(--accent)" />
                       </Link>
                     </td>
                   </tr>

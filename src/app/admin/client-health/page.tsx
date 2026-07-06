@@ -1,3 +1,4 @@
+// src/app/admin/client-health/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -35,7 +36,6 @@ export default function AdminClientHealthPage() {
   async function fetchClientHealth() {
     setLoading(true)
 
-    // Get all clients with their projects
     const { data: clientData } = await supabase
       .from('clients')
       .select(`
@@ -58,14 +58,12 @@ export default function AdminClientHealthPage() {
       for (const client of clientData) {
         if (client.projects && client.projects.length > 0) {
           for (const project of client.projects) {
-            // Get pending requests
             const { count: requestCount } = await supabase
               .from('project_requests')
               .select('*', { count: 'exact', head: true })
               .eq('project_id', project.id)
               .eq('status', 'open')
 
-            // Calculate risk level
             let riskLevel = 'Low'
             if (project.status === 'Awaiting Client Feedback') {
               riskLevel = 'High'
@@ -109,14 +107,14 @@ export default function AdminClientHealthPage() {
 
   const riskColors: Record<string, string> = {
     'Low': 'bg-[var(--accent-lime)]/20 text-[var(--accent-lime)]',
-    'Medium': 'bg-yellow-500/20 text-yellow-400',
-    'High': 'bg-red-500/20 text-red-400',
+    'Medium': 'bg-yellow-500/20 text-yellow-500',
+    'High': 'bg-red-500/20 text-red-500',
   }
 
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
       </div>
     )
   }
@@ -124,20 +122,20 @@ export default function AdminClientHealthPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Client Health</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Client Health</h1>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4 text-center">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
           <div className="text-2xl font-bold text-[var(--accent-lime)]">{stats.low}</div>
           <div className="text-sm text-[var(--text-muted)]">Low Risk</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4 text-center">
-          <div className="text-2xl font-bold text-yellow-400">{stats.medium}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
+          <div className="text-2xl font-bold text-yellow-500">{stats.medium}</div>
           <div className="text-sm text-[var(--text-muted)]">Medium Risk</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4 text-center">
-          <div className="text-2xl font-bold text-red-400">{stats.high}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
+          <div className="text-2xl font-bold text-red-500">{stats.high}</div>
           <div className="text-sm text-[var(--text-muted)]">High Risk</div>
         </div>
       </div>
@@ -146,7 +144,7 @@ export default function AdminClientHealthPage() {
         <select
           value={riskFilter}
           onChange={(e) => setRiskFilter(e.target.value)}
-          className="rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+          className="rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
         >
           <option value="all">All Risk Levels</option>
           <option value="Low">Low</option>
@@ -155,7 +153,7 @@ export default function AdminClientHealthPage() {
         </select>
       </div>
 
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-5">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -177,8 +175,8 @@ export default function AdminClientHealthPage() {
                 </tr>
               ) : (
                 filteredClients.map((client) => (
-                  <tr key={`${client.id}-${client.project_id}`} className="border-b border-[var(--border)] hover:bg-[var(--bg-card-dark)]/50">
-                    <td className="py-3 font-medium text-white">
+                  <tr key={`${client.id}-${client.project_id}`} className="border-b border-[var(--border)] hover:bg-[var(--bg-section)]">
+                    <td className="py-3 font-medium text-[var(--text-primary)]">
                       {client.full_name}
                       <p className="text-xs text-[var(--text-muted)]">{client.business_name}</p>
                     </td>
@@ -188,9 +186,9 @@ export default function AdminClientHealthPage() {
                     </td>
                     <td className="py-3">
                       <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-16 rounded-full bg-[var(--bg-navy-mid)]">
+                        <div className="h-1.5 w-16 rounded-full bg-[var(--bg-section)]">
                           <div
-                            className="h-1.5 rounded-full bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)]"
+                            className="h-1.5 rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-lime)]"
                             style={{ width: `${client.progress}%` }}
                           />
                         </div>
@@ -208,10 +206,10 @@ export default function AdminClientHealthPage() {
                     <td className="py-3 text-right">
                       <Link
                         href={`/admin/client-portal/${client.id}`}
-                        className="inline-flex items-center gap-1 text-[var(--accent-orange)] hover:underline"
+                        className="inline-flex items-center gap-1 text-[var(--accent)] hover:underline"
                       >
                         View
-                        <SvgIcon name="arrow-right" size={12} color="var(--accent-orange)" />
+                        <SvgIcon name="arrow-right" size={12} color="var(--accent)" />
                       </Link>
                     </td>
                   </tr>

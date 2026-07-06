@@ -1,3 +1,4 @@
+// src/app/admin/workspace/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -32,7 +33,6 @@ export default function AdminWorkspacePage() {
   async function fetchDashboardData() {
     setLoading(true)
 
-    // Fetch stats
     const [
       projectsRes,
       leadsRes,
@@ -51,13 +51,11 @@ export default function AdminWorkspacePage() {
       supabase.from('project_invoices').select('status, amount').eq('status', 'overdue'),
     ])
 
-    // Calculate stats
     const activeProjects = projectsRes.data?.filter(p => p.status !== 'Completed' && p.status !== 'Archived').length || 0
     const newLeads = leadsRes.count || 0
     const pendingAssessments = assessmentsRes.count || 0
     const pendingOnboarding = onboardingRes.count || 0
     
-    // Tasks due this week
     const today = new Date()
     const weekEnd = new Date(today)
     weekEnd.setDate(weekEnd.getDate() + 7)
@@ -75,12 +73,10 @@ export default function AdminWorkspacePage() {
     const pendingClientRequests = requestsRes.count || 0
     const unpaidInvoices = invoicesRes.count || 0
     
-    // Project completion rate
     const totalProjects = projectsRes.data?.length || 0
     const completedProjects = projectsRes.data?.filter(p => p.status === 'Completed').length || 0
     const projectCompletionRate = totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0
 
-    // Revenue pipeline (sum of unpaid invoices)
     const revenuePipeline = invoicesRes.data?.reduce((sum, inv) => sum + (inv.amount || 0), 0) || 0
 
     setStats({
@@ -96,7 +92,6 @@ export default function AdminWorkspacePage() {
       revenuePipeline
     })
 
-    // Fetch recent tasks
     const { data: recentTaskData } = await supabase
       .from('tasks')
       .select('*')
@@ -105,7 +100,6 @@ export default function AdminWorkspacePage() {
 
     setRecentTasks(recentTaskData || [])
 
-    // Fetch upcoming deadlines (projects)
     const { data: deadlineData } = await supabase
       .from('projects')
       .select('*')
@@ -122,7 +116,7 @@ export default function AdminWorkspacePage() {
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
       </div>
     )
   }
@@ -130,7 +124,7 @@ export default function AdminWorkspacePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Workspace</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Workspace</h1>
         <span className="text-sm text-[var(--text-muted)]">
           Last updated: {new Date().toLocaleString()}
         </span>
@@ -138,43 +132,43 @@ export default function AdminWorkspacePage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-xl font-bold text-[var(--accent-orange)]">{stats?.activeProjects}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-xl font-bold text-[var(--accent)]">{stats?.activeProjects}</div>
           <div className="text-xs text-[var(--text-muted)]">Active Projects</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-xl font-bold text-yellow-400">{stats?.newLeads}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-xl font-bold text-yellow-500">{stats?.newLeads}</div>
           <div className="text-xs text-[var(--text-muted)]">New Leads</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-xl font-bold text-blue-400">{stats?.pendingAssessments}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-xl font-bold text-blue-500">{stats?.pendingAssessments}</div>
           <div className="text-xs text-[var(--text-muted)]">Pending Assessments</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-xl font-bold text-purple-400">{stats?.pendingOnboarding}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-xl font-bold text-purple-500">{stats?.pendingOnboarding}</div>
           <div className="text-xs text-[var(--text-muted)]">Pending Onboarding</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
           <div className="text-xl font-bold text-[var(--accent-lime)]">{stats?.projectCompletionRate}%</div>
           <div className="text-xs text-[var(--text-muted)]">Completion Rate</div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-lg font-bold text-cyan-400">{stats?.tasksDueThisWeek}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-lg font-bold text-cyan-500">{stats?.tasksDueThisWeek}</div>
           <div className="text-xs text-[var(--text-muted)]">Tasks Due This Week</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-lg font-bold text-red-400">{stats?.overdueTasks}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-lg font-bold text-red-500">{stats?.overdueTasks}</div>
           <div className="text-xs text-[var(--text-muted)]">Overdue Tasks</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-lg font-bold text-pink-400">{stats?.pendingClientRequests}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-lg font-bold text-pink-500">{stats?.pendingClientRequests}</div>
           <div className="text-xs text-[var(--text-muted)]">Client Requests</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-lg font-bold text-[var(--accent-orange)]">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-lg font-bold text-[var(--accent)]">
             ${stats?.revenuePipeline.toLocaleString()}
           </div>
           <div className="text-xs text-[var(--text-muted)]">Revenue Pipeline</div>
@@ -183,10 +177,10 @@ export default function AdminWorkspacePage() {
 
       {/* Recent Tasks & Upcoming Deadlines */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-white">Recent Tasks</h2>
-            <Link href="/admin/tasks" className="text-xs text-[var(--accent-orange)] hover:underline">
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Recent Tasks</h2>
+            <Link href="/admin/tasks" className="text-xs text-[var(--accent)] hover:underline">
               View All
             </Link>
           </div>
@@ -195,18 +189,18 @@ export default function AdminWorkspacePage() {
           ) : (
             <div className="space-y-2">
               {recentTasks.map((task) => (
-                <div key={task.id} className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] p-2.5">
+                <div key={task.id} className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-2.5">
                   <div>
-                    <p className="text-sm font-medium text-white">{task.title}</p>
+                    <p className="text-sm font-medium text-[var(--text-primary)]">{task.title}</p>
                     <p className="text-xs text-[var(--text-muted)]">
                       {task.status} • {task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No due date'}
                     </p>
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    task.priority === 'Urgent' ? 'bg-red-500/20 text-red-400' :
-                    task.priority === 'High' ? 'bg-orange-500/20 text-orange-400' :
-                    task.priority === 'Medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-blue-500/20 text-blue-400'
+                    task.priority === 'Urgent' ? 'bg-red-500/20 text-red-500' :
+                    task.priority === 'High' ? 'bg-orange-500/20 text-orange-500' :
+                    task.priority === 'Medium' ? 'bg-yellow-500/20 text-yellow-500' :
+                    'bg-blue-500/20 text-blue-500'
                   }`}>
                     {task.priority}
                   </span>
@@ -216,10 +210,10 @@ export default function AdminWorkspacePage() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-white">Upcoming Deadlines</h2>
-            <Link href="/admin/projects" className="text-xs text-[var(--accent-orange)] hover:underline">
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Upcoming Deadlines</h2>
+            <Link href="/admin/projects" className="text-xs text-[var(--accent)] hover:underline">
               View All
             </Link>
           </div>
@@ -228,9 +222,9 @@ export default function AdminWorkspacePage() {
           ) : (
             <div className="space-y-2">
               {upcomingDeadlines.map((project) => (
-                <div key={project.id} className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] p-2.5">
+                <div key={project.id} className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-2.5">
                   <div>
-                    <p className="text-sm font-medium text-white">{project.project_name}</p>
+                    <p className="text-sm font-medium text-[var(--text-primary)]">{project.project_name}</p>
                     <p className="text-xs text-[var(--text-muted)]">
                       {project.project_id} • {project.progress}% complete
                     </p>

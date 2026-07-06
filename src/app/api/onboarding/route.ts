@@ -1,12 +1,14 @@
 // src/app/api/onboarding/route.ts
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { generateProjectId } from '@/lib/services/project-id-generator'
+import { sendOnboardingConfirmation } from '@/lib/emails/onboarding-confirmation'
+import { sendAdminOnboardingNotification } from '@/lib/emails/admin-onboarding-notification'
 
 export async function POST(req: Request) {
   console.log('📝 Onboarding API called')
 
   try {
-    // Parse FormData
     const formData = await req.formData()
     const dataRaw = formData.get('data') as string
     
@@ -29,7 +31,6 @@ export async function POST(req: Request) {
       files: uploadedFiles.length
     })
 
-    // Get Supabase client with service role key
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -43,38 +44,31 @@ export async function POST(req: Request) {
 
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Generate project ID
-    const projectId = `ONB-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`
+    // Generate project ID using the new format: HBEE-2026-1001
+    const projectId = await generateProjectId()
     console.log('📋 Project ID:', projectId)
 
-    // Prepare insert data - using columns that exist in your table
     const insertData = {
       project_id: projectId,
       status: 'New Submission',
-      // Step 1: Project Details
       project_title: data.project_title || null,
       business_name: data.business_name || null,
       website_url: data.website_url || null,
       service_needed: data.service_needed || null,
       project_goals: data.project_goals || null,
-      // Step 2: Timeline & Budget
       preferred_timeline: data.preferred_timeline || null,
       budget_range: data.budget_range || null,
       main_challenge: data.main_challenge || null,
-      // Step 3: Brand Assets (files handled separately)
-      // Step 4: Contact Information
       full_name: data.full_name || null,
       email: data.email || null,
       whatsapp: data.whatsapp || null,
       communication_method: data.communication_method || null,
       notes: data.notes || null,
-      // Step 5: Review & Submit
       consent: data.consent || false,
     }
 
     console.log('📝 Inserting data:', JSON.stringify(insertData, null, 2))
 
-    // Insert into database
     const { data: submission, error: submissionError } = await supabase
       .from('client_onboarding_submissions')
       .insert(insertData)
@@ -145,7 +139,30 @@ export async function POST(req: Request) {
       }
     }
 
-    // Return success
+    // Send emails
+    try {
+      await sendOnboardingConfirmation(
+        data.full_name || 'Client',
+        data.email,
+        projectId
+      )
+      console.log('✅ Confirmation email sent')
+    } catch (emailError) {
+      console.error('⚠️ Email error:', emailError)
+    }
+
+    try {
+      await sendAdminOnboardingNotification(
+        data.full_name || 'Client',
+        data.business_name || 'Business',
+        data.email,
+        projectId
+      )
+      console.log('✅ Admin notification sent')
+    } catch (emailError) {
+      console.error('⚠️ Admin notification error:', emailError)
+    }
+
     return NextResponse.json({
       success: true,
       project_id: projectId,

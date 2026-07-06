@@ -165,7 +165,7 @@ export default function AdminOnboardingDetailPage() {
             href="/admin/client-onboarding"
             className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
           >
-            <SvgIcon name="chevron-left" size={16} color="currentColor" />
+            <SvgIcon name="chevron-left" size={16} color="var(--text-muted)" />
             Back to Onboarding
           </Link>
           <h1 className="text-2xl font-bold text-[var(--text-primary)] mt-2">

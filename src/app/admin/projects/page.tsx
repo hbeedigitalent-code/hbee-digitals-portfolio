@@ -1,113 +1,196 @@
+// src/app/admin/projects/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClientComponentClient } from '@/lib/supabase-client'
 import Link from 'next/link'
-import BulkDeleteEnhanced from '@/components/BulkDeleteEnhanced'
+import SvgIcon from '@/components/ui/SvgIcon'
 
 interface Project {
   id: string
-  title: string
+  project_id: string
+  project_name: string
   status: string
+  progress: number
+  client_id: string
+  clients?: { business_name: string; full_name: string }
   created_at: string
 }
 
-export default function ProjectsList() {
+const statusColors: Record<string, string> = {
+  'Pending Review': 'bg-yellow-500/20 text-yellow-500',
+  'Active': 'bg-[var(--accent-lime)]/20 text-[var(--accent-lime)]',
+  'In Progress': 'bg-blue-500/20 text-blue-500',
+  'Awaiting Client': 'bg-purple-500/20 text-purple-500',
+  'Completed': 'bg-green-500/20 text-green-500',
+  'Paused': 'bg-gray-500/20 text-gray-500',
+}
+
+export default function AdminProjectsPage() {
+  const supabase = createClientComponentClient()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [stats, setStats] = useState({ total: 0, active: 0, completed: 0 })
 
   useEffect(() => {
     fetchProjects()
   }, [])
 
-  const fetchProjects = async () => {
-    const { data } = await supabase.from('projects').select('*').order('created_at', { ascending: false })
-    setProjects(data || [])
+  async function fetchProjects() {
+    setLoading(true)
+
+    const { data, error } = await supabase
+      .from('projects')
+      .select(`
+        *,
+        clients (business_name, full_name)
+      `)
+      .order('created_at', { ascending: false })
+
+    if (!error && data) {
+      setProjects(data)
+      const total = data.length
+      const active = data.filter((p: any) => p.status !== 'Completed' && p.status !== 'Archived').length
+      const completed = data.filter((p: any) => p.status === 'Completed').length
+      setStats({ total, active, completed })
+    }
+
     setLoading(false)
   }
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Delete this project?')) {
-      await supabase.from('projects').delete().eq('id', id)
-      fetchProjects()
-    }
-  }
-
-  const handleToggleSelect = (id: string, checked: boolean) => {
-    const event = new CustomEvent('toggleSelect', { detail: { id, checked } })
-    document.dispatchEvent(event)
-  }
+  const filteredProjects = projects.filter(project => {
+    const matchesSearch = 
+      project.project_name?.toLowerCase().includes(search.toLowerCase()) ||
+      project.project_id?.toLowerCase().includes(search.toLowerCase()) ||
+      project.clients?.business_name?.toLowerCase().includes(search.toLowerCase())
+    const matchesStatus = statusFilter === 'all' || project.status === statusFilter
+    return matchesSearch && matchesStatus
+  })
 
   if (loading) {
-    return <div className="text-center py-12">Loading projects...</div>
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+      </div>
+    )
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">All Projects</h2>
-        <Link href="/admin/projects/new" className="px-4 py-2 text-white rounded-lg" style={{ backgroundColor: 'var(--primary-color)' }}>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Projects</h1>
+        <Link
+          href="/admin/projects/new"
+          className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+        >
           + New Project
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        {projects.length === 0 ? (
-          <div className="p-12 text-center">
-            <p className="text-gray-500">No projects yet.</p>
-          </div>
-        ) : (
-          <>
-            <BulkDeleteEnhanced 
-              table="projects" 
-              items={projects} 
-              onDelete={fetchProjects}
-              itemName="projects"
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
+          <div className="text-2xl font-bold text-[var(--text-primary)]">{stats.total}</div>
+          <div className="text-sm text-[var(--text-muted)]">Total Projects</div>
+        </div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
+          <div className="text-2xl font-bold text-[var(--accent)]">{stats.active}</div>
+          <div className="text-sm text-[var(--text-muted)]">Active</div>
+        </div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
+          <div className="text-2xl font-bold text-[var(--accent-lime)]">{stats.completed}</div>
+          <div className="text-sm text-[var(--text-muted)]">Completed</div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative flex-1">
+            <SvgIcon name="search" size={16} color="var(--text-muted)" className="absolute left-3 top-2.5" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search projects..."
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] pl-10 pr-4 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="p-4 text-left w-10"></th>
-                    <th className="p-4 text-left">Title</th>
-                    <th className="p-4 text-left">Status</th>
-                    <th className="p-4 text-left">Created</th>
-                    <th className="p-4 text-left">Actions</th>
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+          >
+            <option value="all">All Statuses</option>
+            {Object.keys(statusColors).map((status) => (
+              <option key={status} value={status}>{status}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[var(--border)] text-left text-[var(--text-muted)]">
+                <th className="pb-3 font-medium">Project</th>
+                <th className="pb-3 font-medium">Client</th>
+                <th className="pb-3 font-medium">Progress</th>
+                <th className="pb-3 font-medium">Status</th>
+                <th className="pb-3 font-medium">Created</th>
+                <th className="pb-3 font-medium text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredProjects.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-[var(--text-muted)]">
+                    No projects found
+                  </td>
+                </tr>
+              ) : (
+                filteredProjects.map((project) => (
+                  <tr key={project.id} className="border-b border-[var(--border)] hover:bg-[var(--bg-section)]">
+                    <td className="py-3 font-medium text-[var(--text-primary)]">
+                      {project.project_name}
+                      <p className="text-xs text-[var(--text-muted)]">{project.project_id}</p>
+                    </td>
+                    <td className="py-3 text-[var(--text-muted)]">
+                      {project.clients?.business_name || 'N/A'}
+                    </td>
+                    <td className="py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-16 rounded-full bg-[var(--bg-section)]">
+                          <div
+                            className="h-1.5 rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-lime)]"
+                            style={{ width: `${project.progress || 0}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-[var(--text-muted)]">{project.progress || 0}%</span>
+                      </div>
+                    </td>
+                    <td className="py-3">
+                      <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusColors[project.status] || 'bg-gray-500/20 text-gray-500'}`}>
+                        {project.status || 'New'}
+                      </span>
+                    </td>
+                    <td className="py-3 text-[var(--text-muted)]">
+                      {new Date(project.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="py-3 text-right">
+                      <Link
+                        href={`/admin/projects/${project.id}`}
+                        className="inline-flex items-center gap-1 text-[var(--accent)] hover:underline"
+                      >
+                        View
+                        <SvgIcon name="arrow-right" size={12} color="var(--accent)" />
+                      </Link>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {projects.map((project) => (
-                    <tr key={project.id} className="border-t hover:bg-gray-50">
-                      <td className="p-4">
-                        <input
-                          type="checkbox"
-                          data-id={project.id}
-                          className="select-checkbox w-4 h-4 cursor-pointer"
-                          onChange={(e) => handleToggleSelect(project.id, e.target.checked)}
-                        />
-                      </td>
-                      <td className="p-4 font-medium">{project.title}</td>
-                      <td className="p-4">
-                        <span className={`px-2 py-1 rounded text-xs ${project.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                          {project.status}
-                        </span>
-                      </td>
-                      <td className="p-4 text-sm text-gray-500">{new Date(project.created_at).toLocaleDateString()}</td>
-                      <td className="p-4">
-                        <Link href={`/admin/projects/${project.id}`} className="text-blue-600 hover:text-blue-800 mr-3">
-                          Edit
-                        </Link>
-                        <button onClick={() => handleDelete(project.id)} className="text-red-600 hover:text-red-800">
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

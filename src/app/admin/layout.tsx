@@ -6,12 +6,14 @@ import { supabase } from '@/lib/supabase'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
+import { isAdmin } from '@/lib/services/admin-service'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [isAuthorized, setIsAuthorized] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [unreadInquiries, setUnreadInquiries] = useState(0)
@@ -65,9 +67,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     async function checkAuth() {
       const { data } = await supabase.auth.getUser()
-      if (!data.user && pathname !== '/admin/login') {
+      
+      // If on login page, don't check admin
+      if (pathname === '/admin/login') {
+        setLoading(false)
+        return
+      }
+      
+      // If not logged in → redirect to login
+      if (!data.user) {
         router.push('/admin/login')
-      } else if (data.user) {
+        setLoading(false)
+        return
+      }
+      
+      // Check if user is an admin
+      if (data.user) {
+        const adminCheck = await isAdmin(data.user.id)
+        
+        if (!adminCheck) {
+          // Not an admin → redirect to client portal
+          router.push('/client-portal')
+          setLoading(false)
+          return
+        }
+        
+        setIsAuthorized(true)
         setUser(data.user)
         const avatar = data.user?.user_metadata?.avatar_url || siteSettings?.logo_url || ''
         const name = data.user?.user_metadata?.full_name || siteSettings?.site_name || 'Admin'
@@ -77,6 +102,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         if (avatar) localStorage.setItem('admin_avatar', avatar)
         if (name) localStorage.setItem('admin_name', name)
       }
+      
       setLoading(false)
     }
     checkAuth()
@@ -107,9 +133,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.push('/admin/login')
   }
 
+  // If on login page, don't render sidebar
   if (pathname === '/admin/login') return <>{children}</>
+  
   if (loading) return <div className="flex items-center justify-center min-h-screen bg-[var(--bg-page)]">Loading...</div>
-  if (!user) return null
+  if (!user || !isAuthorized) return null
 
   const avatarLetter = adminName ? adminName.charAt(0).toUpperCase() : 'A'
   const companyLogo = siteSettings?.logo_url || ''
