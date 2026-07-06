@@ -1,6 +1,7 @@
+// src/components/onboarding/NewStepIndicator.tsx
 'use client'
 
-import { OnboardingStep } from '@/types/client-onboarding'
+import { OnboardingStep } from '@/types/new-client-onboarding'
 import { motion } from 'framer-motion'
 
 interface StepIndicatorProps {
@@ -18,13 +19,13 @@ export function StepIndicator({ currentStep, totalSteps }: StepIndicatorProps) {
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
           transition={{ duration: 0.6 }}
-          className="h-full bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)]"
+          className="h-full bg-[var(--accent)]"
         />
       </div>
 
       <div className="mt-3 flex justify-between items-center">
-        <span className="text-sm font-bold text-[var(--text-on-dark-muted)]">Progress</span>
-        <span className="text-sm font-bold text-white">{Math.round(progress)}%</span>
+        <span className="text-sm font-bold text-[var(--text-muted)]">Progress</span>
+        <span className="text-sm font-bold text-[var(--text-primary)]">{Math.round(progress)}%</span>
       </div>
 
       <div className="mt-4 flex justify-center gap-2">
@@ -38,9 +39,9 @@ export function StepIndicator({ currentStep, totalSteps }: StepIndicatorProps) {
               key={step}
               className={`h-2 rounded-full transition-all duration-300 ${
                 isActive 
-                  ? 'w-8 bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)]' 
+                  ? 'w-8 bg-[var(--accent)]' 
                   : isCompleted 
-                  ? 'w-2 bg-[var(--accent-lime)]' 
+                  ? 'w-2 bg-[var(--accent)]/60' 
                   : 'w-2 bg-[var(--border)]'
               }`}
             />

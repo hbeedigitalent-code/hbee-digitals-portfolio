@@ -1,7 +1,6 @@
 // src/app/api/onboarding/route.ts
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { createClientComponentClient } from '@/lib/supabase-client'
 import { generateProjectId } from '@/lib/services/project-id-generator'
 import { sendOnboardingConfirmation } from '@/lib/emails/onboarding-confirmation'
 import { sendAdminOnboardingNotification } from '@/lib/emails/admin-onboarding-notification'
@@ -29,10 +28,87 @@ export async function POST(req: Request) {
     // Generate unique project ID
     const projectId = await generateProjectId()
 
-    // Insert onboarding submission
-    const { data: submission, error: submissionError } = await supabase
-      .from('client_onboarding_submissions')
-      .insert({
+    // Check if this is the new 5-step format or old 9-step format
+    const isNewFormat = data.project_title !== undefined
+
+    let insertData: any = {}
+
+    if (isNewFormat) {
+      // NEW 5-STEP FORMAT
+      insertData = {
+        project_id: projectId,
+        // Step 1: Project Details
+        project_title: data.project_title,
+        business_name: data.business_name,
+        website_url: data.website_url || null,
+        service_needed: data.service_needed,
+        project_goals: data.project_goals,
+        
+        // Step 2: Timeline & Budget
+        preferred_timeline: data.preferred_timeline,
+        budget_range: data.budget_range,
+        main_challenge: data.main_challenge || null,
+        
+        // Step 3: Brand Assets (files handled separately)
+        
+        // Step 4: Contact Information
+        full_name: data.full_name,
+        email: data.email,
+        whatsapp: data.whatsapp,
+        communication_method: data.communication_method,
+        notes: data.notes || null,
+        
+        // Step 5: Review & Submit
+        consent: data.consent,
+        status: 'Pending Review',
+        
+        // Set legacy fields to null for compatibility
+        country: null,
+        industry: null,
+        business_stage: null,
+        monthly_revenue: null,
+        heard_about_us: null,
+        services_required: [],
+        project_goal: null,
+        priority_1: null,
+        priority_2: null,
+        priority_3: null,
+        target_outcome: null,
+        expected_deadline: null,
+        target_audience: null,
+        traffic_sources: [],
+        marketing_challenges: null,
+        competitors: [],
+        inspiration_websites: [],
+        email_platform: null,
+        crm: null,
+        brand_mission: null,
+        brand_values: null,
+        brand_voice: null,
+        brand_colors: null,
+        brand_fonts: null,
+        target_customer_profile: null,
+        existing_brand_guidelines: null,
+        platform: null,
+        needs_collaborator_access: null,
+        collaborator_request_code: null,
+        staff_access_email: null,
+        store_login_url: null,
+        access_instructions: null,
+        technical_notes: null,
+        decision_maker_name: null,
+        decision_maker_role: null,
+        decision_maker_email: null,
+        decision_maker_phone: null,
+        team_members: [],
+        large_file_links: [],
+        additional_requests: null,
+        special_instructions: null,
+        success_metrics: null,
+      }
+    } else {
+      // OLD 9-STEP FORMAT (backward compatibility)
+      insertData = {
         project_id: projectId,
         full_name: data.full_name,
         email: data.email,
@@ -84,7 +160,14 @@ export async function POST(req: Request) {
         special_instructions: data.special_instructions,
         success_metrics: data.success_metrics,
         consent: data.consent,
-      })
+        status: 'Pending Review',
+      }
+    }
+
+    // Insert onboarding submission
+    const { data: submission, error: submissionError } = await supabase
+      .from('client_onboarding_submissions')
+      .insert(insertData)
       .select()
       .single()
 
@@ -103,12 +186,11 @@ export async function POST(req: Request) {
       for (const file of uploadedFiles) {
         try {
           // Create a unique file path
-          const fileExtension = file.name.split('.').pop()
           const fileName = `${Date.now()}-${file.name}`
           const filePath = `${projectId}/${fileName}`
 
           // Upload to Supabase Storage
-          const { data: uploadData, error: uploadError } = await supabase.storage
+          const { error: uploadError } = await supabase.storage
             .from('onboarding-files')
             .upload(filePath, file, {
               cacheControl: '3600',
@@ -152,12 +234,12 @@ export async function POST(req: Request) {
     // Send emails
     try {
       await sendOnboardingConfirmation(
-        data.full_name,
+        data.full_name || data.contact_name || 'Client',
         data.email,
         projectId
       )
       await sendAdminOnboardingNotification(
-        data.full_name,
+        data.full_name || data.contact_name || 'Client',
         data.business_name,
         data.email,
         projectId

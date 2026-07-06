@@ -1,6 +1,7 @@
+// src/app/client-onboarding/page.tsx
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
-import { OnboardingForm } from '@/components/onboarding/OnboardingForm'
+import { NewOnboardingForm } from '@/components/onboarding/NewOnboardingForm'
 
 export const metadata = {
   title: 'Client Onboarding | Hbee Digitals',
@@ -11,18 +12,18 @@ export default function ClientOnboardingPage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-[var(--bg-navy)] py-12 md:py-20">
+      <main className="min-h-screen bg-[var(--bg-page)] py-12 md:py-20">
         <div className="container-custom">
           <div className="mx-auto max-w-4xl">
             <div className="mb-8 text-center">
-              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+              <h1 className="text-3xl md:text-4xl font-bold text-[var(--text-primary)] mb-2">
                 Client Onboarding
               </h1>
-              <p className="text-[var(--text-on-dark-muted)] text-base md:text-lg">
+              <p className="text-[var(--text-muted)] text-base md:text-lg">
                 Tell us about your project so we can get started.
               </p>
             </div>
-            <OnboardingForm />
+            <NewOnboardingForm />
           </div>
         </div>
       </main>

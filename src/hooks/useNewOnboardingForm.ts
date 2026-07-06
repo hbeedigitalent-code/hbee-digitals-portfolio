@@ -1,90 +1,45 @@
-// src/hooks/useOnboardingForm.ts
+// src/hooks/useNewOnboardingForm.ts
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { OnboardingFormData, OnboardingStep } from '@/types/client-onboarding'
-import { validateOnboardingStep, isOnboardingStepComplete } from '@/lib/validators/onboarding-validation'
+import { NewOnboardingFormData, OnboardingStep } from '@/types/new-client-onboarding'
 
-const initialFormData: OnboardingFormData = {
+const initialFormData: NewOnboardingFormData = {
   // Step 1
+  project_title: '',
+  business_name: '',
+  website_url: '',
+  service_needed: '',
+  project_goals: '',
+  
+  // Step 2
+  preferred_timeline: '',
+  budget_range: '',
+  main_challenge: '',
+  
+  // Step 3
+  uploaded_files: [],
+  
+  // Step 4
   full_name: '',
   email: '',
   whatsapp: '',
-  business_name: '',
-  website_url: '',
-  country: '',
-  industry: '',
-  business_stage: '',
-  monthly_revenue: '',
-  heard_about_us: '',
-  
-  // Step 2
-  services_required: [],
-  project_goal: '',
-  main_challenge: '',
-  priority_1: '',
-  priority_2: '',
-  priority_3: '',
-  target_outcome: '',
-  expected_deadline: '',
-  budget_range: '',
-  
-  // Step 3
-  target_audience: '',
-  traffic_sources: [],
-  marketing_challenges: '',
-  competitors: [],
-  inspiration_websites: [],
-  email_platform: '',
-  crm: '',
-  
-  // Step 4
-  brand_mission: '',
-  brand_values: '',
-  brand_voice: '',
-  brand_colors: '',
-  brand_fonts: '',
-  target_customer_profile: '',
-  existing_brand_guidelines: '',
+  communication_method: '',
+  notes: '',
   
   // Step 5
-  platform: '',
-  needs_collaborator_access: '',
-  collaborator_request_code: '',
-  staff_access_email: '',
-  store_login_url: '',
-  access_instructions: '',
-  technical_notes: '',
-  
-  // Step 6
-  decision_maker_name: '',
-  decision_maker_role: '',
-  decision_maker_email: '',
-  decision_maker_phone: '',
-  team_members: [],
-  
-  // Step 7
-  uploaded_files: [],
-  large_file_links: [],
-  
-  // Step 8
-  additional_requests: '',
-  special_instructions: '',
-  success_metrics: '',
-  
-  // Step 9
   consent: false
 }
 
-export function useOnboardingForm() {
+export function useNewOnboardingForm() {
   const [currentStep, setCurrentStep] = useState<OnboardingStep>(1)
-  const [formData, setFormData] = useState<OnboardingFormData>(initialFormData)
+  const [formData, setFormData] = useState<NewOnboardingFormData>(initialFormData)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
 
   useEffect(() => {
-    const saved = localStorage.getItem('onboarding_draft')
+    const saved = localStorage.getItem('new_onboarding_draft')
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
@@ -97,13 +52,13 @@ export function useOnboardingForm() {
 
   useEffect(() => {
     if (formData.business_name || formData.email) {
-      localStorage.setItem('onboarding_draft', JSON.stringify(formData))
+      localStorage.setItem('new_onboarding_draft', JSON.stringify(formData))
     }
   }, [formData])
 
-  const updateField = useCallback(<K extends keyof OnboardingFormData>(
+  const updateField = useCallback(<K extends keyof NewOnboardingFormData>(
     field: K,
-    value: OnboardingFormData[K]
+    value: NewOnboardingFormData[K]
   ) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     if (errors[field as string]) {
@@ -115,15 +70,43 @@ export function useOnboardingForm() {
     }
   }, [errors])
 
+  const validateStep = useCallback((step: OnboardingStep): Record<string, string> => {
+    const stepErrors: Record<string, string> = {}
+
+    switch (step) {
+      case 1:
+        if (!formData.project_title?.trim()) stepErrors.project_title = 'Project title is required'
+        if (!formData.business_name?.trim()) stepErrors.business_name = 'Business name is required'
+        if (!formData.service_needed) stepErrors.service_needed = 'Service is required'
+        if (!formData.project_goals?.trim()) stepErrors.project_goals = 'Project goals are required'
+        break
+      case 2:
+        if (!formData.preferred_timeline) stepErrors.preferred_timeline = 'Timeline is required'
+        if (!formData.budget_range) stepErrors.budget_range = 'Budget range is required'
+        if (!formData.main_challenge?.trim()) stepErrors.main_challenge = 'Main challenge is required'
+        break
+      case 3:
+        // Optional - no validation needed
+        break
+      case 4:
+        if (!formData.full_name?.trim()) stepErrors.full_name = 'Full name is required'
+        if (!formData.email?.trim()) stepErrors.email = 'Email is required'
+        if (!formData.whatsapp?.trim()) stepErrors.whatsapp = 'WhatsApp is required'
+        if (!formData.communication_method) stepErrors.communication_method = 'Communication method is required'
+        break
+      case 5:
+        if (!formData.consent) stepErrors.consent = 'You must consent to proceed'
+        break
+    }
+
+    return stepErrors
+  }, [formData])
+
   const goToStep = useCallback((step: OnboardingStep) => {
     if (step > currentStep) {
-      const stepErrors = validateOnboardingStep(currentStep, formData)
-      if (stepErrors.length > 0) {
-        const errorMap: Record<string, string> = {}
-        stepErrors.forEach(err => {
-          errorMap[err.field] = err.message
-        })
-        setErrors(errorMap)
+      const stepErrors = validateStep(currentStep)
+      if (Object.keys(stepErrors).length > 0) {
+        setErrors(stepErrors)
         return false
       }
     }
@@ -131,10 +114,10 @@ export function useOnboardingForm() {
     setErrors({})
     window.scrollTo({ top: 0, behavior: 'smooth' })
     return true
-  }, [currentStep, formData])
+  }, [currentStep, validateStep])
 
   const nextStep = useCallback(() => {
-    if (currentStep < 9) {
+    if (currentStep < 5) {
       return goToStep((currentStep + 1) as OnboardingStep)
     }
     return true
@@ -149,27 +132,17 @@ export function useOnboardingForm() {
   }, [currentStep])
 
   const isCurrentStepComplete = useCallback(() => {
-    return isOnboardingStepComplete(currentStep, formData)
-  }, [currentStep, formData])
-
-  const resetForm = useCallback(() => {
-    setFormData(initialFormData)
-    setCurrentStep(1)
-    setErrors({})
-    localStorage.removeItem('onboarding_draft')
-  }, [])
+    const stepErrors = validateStep(currentStep)
+    return Object.keys(stepErrors).length === 0
+  }, [currentStep, validateStep])
 
   const submitForm = useCallback(async () => {
     // Validate all steps
-    for (let step = 1; step <= 9; step++) {
-      const stepErrors = validateOnboardingStep(step as OnboardingStep, formData)
-      if (stepErrors.length > 0) {
+    for (let step = 1; step <= 5; step++) {
+      const stepErrors = validateStep(step as OnboardingStep)
+      if (Object.keys(stepErrors).length > 0) {
         setCurrentStep(step as OnboardingStep)
-        const errorMap: Record<string, string> = {}
-        stepErrors.forEach(err => {
-          errorMap[err.field] = err.message
-        })
-        setErrors(errorMap)
+        setErrors(stepErrors)
         return false
       }
     }
@@ -178,14 +151,11 @@ export function useOnboardingForm() {
     setErrors({})
 
     try {
-      // Create FormData for file uploads
       const formDataToSend = new FormData()
       
-      // Prepare the JSON data (excluding files)
       const { uploaded_files, ...dataWithoutFiles } = formData
       formDataToSend.append('data', JSON.stringify(dataWithoutFiles))
       
-      // Append files
       if (uploaded_files && uploaded_files.length > 0) {
         for (const file of uploaded_files) {
           formDataToSend.append('files', file)
@@ -204,7 +174,7 @@ export function useOnboardingForm() {
       }
 
       setIsSubmitted(true)
-      localStorage.removeItem('onboarding_draft')
+      localStorage.removeItem('new_onboarding_draft')
       return true
     } catch (error) {
       console.error('Submission error:', error)
@@ -213,7 +183,7 @@ export function useOnboardingForm() {
     } finally {
       setIsSubmitting(false)
     }
-  }, [formData])
+  }, [formData, validateStep])
 
   return {
     currentStep,
@@ -226,7 +196,6 @@ export function useOnboardingForm() {
     nextStep,
     prevStep,
     isCurrentStepComplete,
-    resetForm,
     submitForm
   }
 }
