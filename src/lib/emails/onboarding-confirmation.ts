@@ -1,7 +1,6 @@
 // src/lib/emails/onboarding-confirmation.ts
 import { Resend } from 'resend'
 
-// Only initialize Resend if API key exists
 const resendApiKey = process.env.RESEND_API_KEY
 const resend = resendApiKey ? new Resend(resendApiKey) : null
 
@@ -15,6 +14,18 @@ export async function sendOnboardingConfirmation(
     return
   }
 
+  // These colors will be replaced with your CSS variables
+  // Once you send your CSS file, I'll update these
+  const brandColors = {
+    navy: '#0B1628',
+    navyMid: '#1A2B47',
+    orange: '#F97316',
+    orangeDark: '#EA580C',
+    lime: '#39D97A',
+    gray: '#94A3B8',
+    border: '#1E314A',
+  }
+
   const html = `
 <!DOCTYPE html>
 <html>
@@ -23,22 +34,14 @@ export async function sendOnboardingConfirmation(
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Project Details Received — ${projectId}</title>
   <style>
-    /* Email client reset */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       margin: 0;
       padding: 0;
       background-color: #f4f6f9;
       font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Arial, sans-serif;
       line-height: 1.6;
-      color: #1a1a2e;
     }
-
-    /* Container */
     .email-wrapper {
       max-width: 600px;
       margin: 0 auto;
@@ -48,28 +51,21 @@ export async function sendOnboardingConfirmation(
       background: #ffffff;
       border-radius: 24px;
       padding: 48px 40px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
       border: 1px solid #e8ecf1;
     }
-
-    /* Header */
-    .email-header {
-      text-align: center;
-      margin-bottom: 32px;
-    }
+    .email-header { text-align: center; margin-bottom: 32px; }
     .email-logo {
       display: inline-block;
       font-size: 28px;
       font-weight: 800;
-      color: #0B1628;
+      color: ${brandColors.navy};
       text-decoration: none;
     }
-    .email-logo span {
-      color: #F97316;
-    }
+    .email-logo span { color: ${brandColors.orange}; }
     .badge {
       display: inline-block;
-      background: linear-gradient(135deg, #F97316, #39D97A);
+      background: ${brandColors.orange};
       color: #ffffff;
       padding: 6px 18px;
       border-radius: 9999px;
@@ -79,17 +75,11 @@ export async function sendOnboardingConfirmation(
       letter-spacing: 0.06em;
       margin-top: 12px;
     }
-
-    /* Content */
-    .email-content {
-      color: #1a1a2e;
-    }
     .email-content h1 {
       font-size: 26px;
       font-weight: 700;
-      color: #0B1628;
+      color: ${brandColors.navy};
       margin-bottom: 8px;
-      line-height: 1.2;
     }
     .email-content p {
       font-size: 16px;
@@ -97,11 +87,7 @@ export async function sendOnboardingConfirmation(
       margin: 12px 0;
       line-height: 1.7;
     }
-    .email-content p strong {
-      color: #0B1628;
-    }
-
-    /* Project ID Box */
+    .email-content p strong { color: ${brandColors.navy}; }
     .project-id-box {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
@@ -120,16 +106,14 @@ export async function sendOnboardingConfirmation(
     .project-id-box .id {
       font-size: 28px;
       font-weight: 700;
-      color: #F97316;
+      color: ${brandColors.orange};
       letter-spacing: 0.05em;
       margin-top: 4px;
       display: block;
     }
-
-    /* CTA Button */
     .btn-primary {
       display: inline-block;
-      background: #F97316;
+      background: ${brandColors.orange};
       color: #ffffff;
       padding: 14px 40px;
       border-radius: 9999px;
@@ -140,19 +124,10 @@ export async function sendOnboardingConfirmation(
       margin: 8px 0;
     }
     .btn-primary:hover {
-      background: #EA580C;
+      background: ${brandColors.orangeDark};
       transform: translateY(-2px);
       box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
     }
-
-    /* Divider */
-    .divider {
-      border: none;
-      border-top: 1px solid #e2e8f0;
-      margin: 28px 0;
-    }
-
-    /* Steps */
     .steps {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -176,7 +151,7 @@ export async function sendOnboardingConfirmation(
       display: inline-block;
       width: 24px;
       height: 24px;
-      background: #F97316;
+      background: ${brandColors.orange};
       color: #ffffff;
       border-radius: 50%;
       text-align: center;
@@ -185,8 +160,11 @@ export async function sendOnboardingConfirmation(
       line-height: 24px;
       flex-shrink: 0;
     }
-
-    /* Footer */
+    .divider {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 28px 0;
+    }
     .email-footer {
       margin-top: 32px;
       padding-top: 24px;
@@ -195,13 +173,8 @@ export async function sendOnboardingConfirmation(
       color: #94a3b8;
       font-size: 14px;
     }
-    .email-footer a {
-      color: #F97316;
-      text-decoration: none;
-    }
-    .email-footer a:hover {
-      text-decoration: underline;
-    }
+    .email-footer a { color: ${brandColors.orange}; text-decoration: none; }
+    .email-footer a:hover { text-decoration: underline; }
     .social-links {
       margin: 16px 0 8px;
       display: flex;
@@ -213,107 +186,49 @@ export async function sendOnboardingConfirmation(
       font-size: 14px;
       text-decoration: none;
     }
-    .social-links a:hover {
-      color: #F97316;
-    }
+    .social-links a:hover { color: ${brandColors.orange}; }
 
-    /* ============================================ */
-    /* DARK MODE SUPPORT (Auto-detects device theme) */
-    /* ============================================ */
+    /* Dark Mode Support */
     @media (prefers-color-scheme: dark) {
-      body {
-        background-color: #0B1628;
-      }
+      body { background-color: ${brandColors.navy}; }
       .email-container {
-        background: #0E1B2D;
-        border-color: #1E314A;
+        background: ${brandColors.navyMid};
+        border-color: ${brandColors.border};
       }
-      .email-content {
-        color: #e2e8f0;
-      }
-      .email-content h1 {
-        color: #ffffff;
-      }
-      .email-content p {
-        color: #94a3b8;
-      }
-      .email-content p strong {
-        color: #ffffff;
-      }
-      .email-logo {
-        color: #ffffff;
-      }
+      .email-content h1 { color: #ffffff; }
+      .email-content p { color: ${brandColors.gray}; }
+      .email-content p strong { color: #ffffff; }
+      .email-logo { color: #ffffff; }
       .project-id-box {
-        background: #07111F;
-        border-color: #1E314A;
+        background: ${brandColors.navy};
+        border-color: ${brandColors.border};
       }
-      .project-id-box .label {
-        color: #64748b;
-      }
-      .divider {
-        border-color: #1E314A;
-      }
+      .project-id-box .label { color: #64748b; }
       .steps li {
-        background: #07111F;
-        border-color: #1E314A;
-        color: #94a3b8;
+        background: ${brandColors.navy};
+        border-color: ${brandColors.border};
+        color: ${brandColors.gray};
       }
-      .btn-primary {
-        background: linear-gradient(135deg, #F97316, #EA580C);
-      }
-      .btn-primary:hover {
-        box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4);
-      }
-      .email-footer {
-        border-color: #1E314A;
-        color: #64748b;
-      }
-      .email-footer a {
-        color: #F97316;
-      }
-      .social-links a {
-        color: #64748b;
-      }
-      .social-links a:hover {
-        color: #F97316;
-      }
+      .divider { border-color: ${brandColors.border}; }
+      .email-footer { border-color: ${brandColors.border}; color: #64748b; }
+      .email-footer a { color: ${brandColors.orange}; }
+      .social-links a { color: #64748b; }
+      .social-links a:hover { color: ${brandColors.orange}; }
     }
 
-    /* Mobile Responsive */
     @media (max-width: 480px) {
-      .email-container {
-        padding: 28px 20px;
-        border-radius: 16px;
-      }
-      .email-wrapper {
-        padding: 20px 12px;
-      }
-      .email-content h1 {
-        font-size: 22px;
-      }
-      .steps {
-        grid-template-columns: 1fr;
-      }
-      .project-id-box .id {
-        font-size: 22px;
-      }
-      .btn-primary {
-        display: block;
-        text-align: center;
-        padding: 14px 24px;
-      }
-    }
-
-    /* Gmail App Fixes */
-    .gmail-fix {
-      display: none !important;
+      .email-container { padding: 28px 20px; border-radius: 16px; }
+      .email-wrapper { padding: 20px 12px; }
+      .email-content h1 { font-size: 22px; }
+      .steps { grid-template-columns: 1fr; }
+      .project-id-box .id { font-size: 22px; }
+      .btn-primary { display: block; text-align: center; padding: 14px 24px; }
     }
   </style>
 </head>
 <body>
   <div class="email-wrapper">
     <div class="email-container">
-      <!-- Header -->
       <div class="email-header">
         <a href="https://www.hbeedigitals.com" class="email-logo">
           Hbee <span>Digitals</span>
@@ -321,14 +236,10 @@ export async function sendOnboardingConfirmation(
         <div class="badge">Onboarding Received</div>
       </div>
 
-      <!-- Content -->
       <div class="email-content">
         <h1>Project Details Received</h1>
-
         <p>Hi <strong>${fullName}</strong>,</p>
-
         <p>Thank you for completing your onboarding with <strong>Hbee Digitals</strong>.</p>
-
         <p>Your project details, files, and requirements have been received and are now under review.</p>
 
         <div class="project-id-box">
@@ -337,7 +248,6 @@ export async function sendOnboardingConfirmation(
         </div>
 
         <p>Here's what happens next:</p>
-
         <ul class="steps">
           <li><span class="step-num">1</span> Review by project team</li>
           <li><span class="step-num">2</span> Project kickoff planning</li>
@@ -350,16 +260,14 @@ export async function sendOnboardingConfirmation(
             View Your Project
           </a>
         </p>
-
         <p style="font-size: 14px; color: #94a3b8; text-align: center; margin-top: 8px;">
           You'll receive updates as your project progresses.
         </p>
       </div>
 
-      <!-- Footer -->
       <div class="email-footer">
         <p style="margin-bottom: 4px;">
-          <strong style="color: #0B1628; dark-mode-color: #ffffff;">Hbee Digitals</strong>
+          <strong style="color: ${brandColors.navy};">Hbee Digitals</strong>
         </p>
         <p style="font-size: 13px;">
           Premium websites, ecommerce systems, and conversion-focused digital experiences.
@@ -372,13 +280,9 @@ export async function sendOnboardingConfirmation(
           © ${new Date().getFullYear()} Hbee Digitals. All rights reserved.
         </p>
         <p style="font-size: 11px; color: #94a3b8;">
-          <a href="https://www.hbeedigitals.com/privacy" style="color: #94a3b8; text-decoration: underline;">
-            Privacy Policy
-          </a>
+          <a href="https://www.hbeedigitals.com/privacy">Privacy Policy</a>
           &nbsp;·&nbsp;
-          <a href="https://www.hbeedigitals.com/terms" style="color: #94a3b8; text-decoration: underline;">
-            Terms of Service
-          </a>
+          <a href="https://www.hbeedigitals.com/terms">Terms of Service</a>
         </p>
       </div>
     </div>

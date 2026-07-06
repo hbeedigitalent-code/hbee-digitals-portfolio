@@ -4,8 +4,8 @@
 import { useEffect, useState } from 'react'
 import { createClientComponentClient } from '@/lib/supabase-client'
 import Link from 'next/link'
-import StatusBadge from '@/components/client-portal/StatusBadge'
-import EmptyState from '@/components/client-portal/EmptyState'
+import { useRouter } from 'next/navigation'
+import SvgIcon from '@/components/ui/SvgIcon'
 
 interface Project {
   id: string
@@ -14,9 +14,11 @@ interface Project {
   status: string
   progress: number
   description: string
+  created_at: string
 }
 
 export default function ClientProjectsPage() {
+  const router = useRouter()
   const supabase = createClientComponentClient()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
@@ -49,44 +51,87 @@ export default function ClientProjectsPage() {
     setLoading(false)
   }
 
+  const getStatusColor = (status: string) => {
+    if (!status) return 'bg-gray-100 text-gray-700 dark:bg-gray-800/50 dark:text-gray-400'
+    const s = status.toLowerCase()
+    switch (s) {
+      case 'pending review':
+        return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+      case 'active':
+      case 'in progress':
+        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+      case 'completed':
+        return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+      case 'paused':
+        return 'bg-gray-100 text-gray-700 dark:bg-gray-800/50 dark:text-gray-400'
+      case 'awaiting client':
+        return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+      default:
+        return 'bg-gray-100 text-gray-700 dark:bg-gray-800/50 dark:text-gray-400'
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Your Projects</h1>
-        <p className="text-[var(--text-muted)]">Track the progress of your projects</p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Your Projects</h1>
+          <p className="text-sm text-[var(--text-muted)]">Track the progress of your projects</p>
+        </div>
+        <Link
+          href="/client-portal/project-request"
+          className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+        >
+          <SvgIcon name="plus" size={16} color="white" />
+          Request New Project
+        </Link>
       </div>
 
       {projects.length === 0 ? (
-        <EmptyState
-          title="No projects yet"
-          description="You don't have any active projects. When you start a project, it will appear here."
-          icon="projects"
-          actionText="Contact Us"
-          onAction={() => (window.location.href = '/contact')}
-        />
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--bg-section)]">
+            <SvgIcon name="projects" size={32} color="var(--text-muted)" />
+          </div>
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">No projects yet</h3>
+          <p className="mt-2 text-sm text-[var(--text-muted)]">
+            Start by requesting a new project. Our team will review and get back to you.
+          </p>
+          <Link
+            href="/client-portal/project-request"
+            className="mt-4 inline-block rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+          >
+            Request New Project
+          </Link>
+        </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {projects.map((project) => (
             <Link
               key={project.id}
               href={`/client-portal/projects/${project.id}`}
-              className="rounded-xl border border-[var(--border)] bg-white p-6 transition hover:shadow-md"
+              className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6 transition hover:shadow-md"
             >
               <div className="flex items-start justify-between">
                 <div>
                   <p className="font-semibold text-[var(--text-primary)]">{project.project_name}</p>
                   <p className="text-sm text-[var(--text-muted)]">{project.project_id}</p>
                 </div>
-                <StatusBadge status={project.status || 'New'} />
+                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${getStatusColor(project.status)}`}>
+                  {project.status || 'New'}
+                </span>
               </div>
+
+              {project.description && (
+                <p className="mt-2 text-sm text-[var(--text-muted)] line-clamp-2">{project.description}</p>
+              )}
 
               <div className="mt-3">
                 <div className="flex justify-between text-sm">
@@ -95,11 +140,15 @@ export default function ClientProjectsPage() {
                 </div>
                 <div className="mt-1 h-1.5 w-full rounded-full bg-[var(--bg-section)]">
                   <div
-                    className="h-1.5 rounded-full bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)]"
+                    className="h-1.5 rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-lime)]"
                     style={{ width: `${project.progress || 0}%` }}
                   />
                 </div>
               </div>
+
+              <p className="mt-3 text-xs text-[var(--text-muted)]">
+                Created: {new Date(project.created_at).toLocaleDateString()}
+              </p>
             </Link>
           ))}
         </div>
