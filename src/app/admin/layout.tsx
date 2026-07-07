@@ -7,11 +7,15 @@ import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
 
+// Hardcoded admin emails as fallback
+const ADMIN_EMAILS = ['hello.hbeedigitals@gmail.com']
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [isAuthorized, setIsAuthorized] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [unreadInquiries, setUnreadInquiries] = useState(0)
@@ -79,58 +83,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return
       }
       
-      // ✅ User is logged in - check if admin
+      // ✅ Check if user is admin using hardcoded emails + database check
       if (data.user) {
-        try {
-          // Check admin_users table
-          const { data: adminData, error: adminError } = await supabase
-            .from('admin_users')
-            .select('*')
-            .eq('user_id', data.user.id)
-            .eq('is_active', true)
-            .maybeSingle()
-
-          if (adminError) {
-            console.error('Admin check error:', adminError)
-          }
-
-          // Also check by email as fallback
-          let isAdmin = !!adminData
-          
-          if (!isAdmin && data.user.email) {
-            const { data: emailData } = await supabase
-              .from('admin_users')
-              .select('*')
-              .eq('email', data.user.email)
-              .eq('is_active', true)
-              .maybeSingle()
-            
-            isAdmin = !!emailData
-          }
-
-          if (!isAdmin) {
-            // Not admin → redirect to client portal
-            router.push('/client-portal')
-            setLoading(false)
-            return
-          }
-
-          // ✅ Admin verified
-          setUser(data.user)
-          const avatar = data.user?.user_metadata?.avatar_url || siteSettings?.logo_url || ''
-          const name = data.user?.user_metadata?.full_name || siteSettings?.site_name || 'Admin'
-          setAdminAvatar(avatar)
-          setAdminName(name)
-          
-          if (avatar) localStorage.setItem('admin_avatar', avatar)
-          if (name) localStorage.setItem('admin_name', name)
-          
-        } catch (err) {
-          console.error('Admin check error:', err)
-          router.push('/admin/login')
+        const isAdmin = await checkIsAdmin(data.user)
+        
+        if (!isAdmin) {
+          router.push('/client-portal')
           setLoading(false)
           return
         }
+        
+        setIsAuthorized(true)
+        setUser(data.user)
+        const avatar = data.user?.user_metadata?.avatar_url || siteSettings?.logo_url || ''
+        const name = data.user?.user_metadata?.full_name || siteSettings?.site_name || 'Admin'
+        setAdminAvatar(avatar)
+        setAdminName(name)
+        
+        if (avatar) localStorage.setItem('admin_avatar', avatar)
+        if (name) localStorage.setItem('admin_name', name)
       }
       
       setLoading(false)
@@ -156,6 +127,39 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => window.removeEventListener('adminProfileUpdate', handleProfileUpdate)
   }, [pathname, router, siteSettings])
 
+  async function checkIsAdmin(user: any): Promise<boolean> {
+    // 1. Check hardcoded admin emails first
+    if (user.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      console.log('✅ Admin found via hardcoded email:', user.email)
+      return true
+    }
+    
+    // 2. Try database check (with better error handling)
+    try {
+      const { data, error } = await supabase
+        .from('admin_users')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .maybeSingle()
+      
+      if (error) {
+        console.error('⚠️ Admin check error:', error)
+        // Don't fail - fallback to hardcoded emails
+        return false
+      }
+      
+      if (data) {
+        console.log('✅ Admin found via database:', data.email)
+        return true
+      }
+    } catch (err) {
+      console.error('⚠️ Admin check exception:', err)
+    }
+    
+    return false
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut()
     localStorage.removeItem('admin_avatar')
@@ -167,7 +171,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (pathname === '/admin/login') return <>{children}</>
   
   if (loading) return <div className="flex items-center justify-center min-h-screen bg-[var(--bg-page)]">Loading...</div>
-  if (!user) return null
+  if (!user || !isAuthorized) return null
 
   const avatarLetter = adminName ? adminName.charAt(0).toUpperCase() : 'A'
   const companyLogo = siteSettings?.logo_url || ''
