@@ -11,53 +11,88 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Missing userId or token' }, { status: 400 })
     }
 
+    console.log('🔍 2FA Login attempt for userId:', userId)
+
     // Get user's 2FA secret
-    const { data, error } = await supabase
+    const { data: twoFAData, error: twoFAError } = await supabase
       .from('admin_2fa')
       .select('secret, is_enabled')
       .eq('user_id', userId)
       .single()
 
-    if (error || !data) {
+    if (twoFAError || !twoFAData) {
+      console.error('❌ 2FA data error:', twoFAError)
       return NextResponse.json({ success: false, error: '2FA not setup' }, { status: 400 })
     }
 
-    if (!data.is_enabled) {
+    if (!twoFAData.is_enabled) {
+      console.error('❌ 2FA not enabled')
       return NextResponse.json({ success: false, error: '2FA not enabled' }, { status: 400 })
     }
 
     // Verify token
     const verified = speakeasy.totp.verify({
-      secret: data.secret,
+      secret: twoFAData.secret,
       encoding: 'base32',
       token: token,
       window: 1
     })
 
     if (!verified) {
+      console.error('❌ Invalid 2FA code')
       return NextResponse.json({ success: false, error: 'Invalid verification code' }, { status: 400 })
     }
 
-    // ✅ 2FA IS VERIFIED - NOW CHECK IF USER IS ADMIN
+    console.log('✅ 2FA verified for userId:', userId)
+
+    // ✅ 2FA IS VERIFIED - CHECK IF USER IS ADMIN
+    // Try by user_id first
     const { data: adminData, error: adminError } = await supabase
       .from('admin_users')
       .select('*')
       .eq('user_id', userId)
       .eq('is_active', true)
-      .single()
+      .maybeSingle()
 
-    if (adminError || !adminData) {
-      console.error('Admin check error:', adminError)
+    if (adminError) {
+      console.error('❌ Admin check error:', adminError)
+    }
+
+    // If not found by user_id, try by email
+    let adminUser = adminData
+
+    if (!adminUser) {
+      console.log('🔍 Admin not found by user_id, trying by email...')
+      
+      // Get the user's email from auth
+      const { data: userData } = await supabase.auth.admin.getUserById(userId)
+      
+      if (userData?.user?.email) {
+        const { data: emailData } = await supabase
+          .from('admin_users')
+          .select('*')
+          .eq('email', userData.user.email)
+          .eq('is_active', true)
+          .maybeSingle()
+        
+        adminUser = emailData
+      }
+    }
+
+    if (!adminUser) {
+      console.error('❌ User is NOT admin - userId:', userId)
       return NextResponse.json(
         { success: false, error: 'User is not authorized as admin' },
         { status: 403 }
       )
     }
 
+    console.log('✅ Admin verified:', adminUser.email)
+
     // ✅ USER IS ADMIN - ALLOW ACCESS
     return NextResponse.json({ 
       success: true,
-      admin: adminData
+      admin: adminUser
     })
 
   } catch (error: any) {
