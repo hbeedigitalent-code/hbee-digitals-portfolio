@@ -86,13 +86,24 @@ export default function ClientProjectsPage() {
           <h1 className="text-2xl font-bold text-[var(--text-primary)]">Your Projects</h1>
           <p className="text-sm text-[var(--text-muted)]">Track the progress of your projects</p>
         </div>
-        <Link
-          href="/client-portal/project-request"
-          className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
-        >
-          <SvgIcon name="plus" size={16} color="white" />
-          Request New Project
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          {/* Quick Project Request Button */}
+          <Link
+            href="/client-portal/project-request"
+            className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+          >
+            <SvgIcon name="plus" size={16} color="white" />
+            Request New Project
+          </Link>
+          {/* Full Onboarding Button */}
+          <Link
+            href="/client-onboarding"
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-6 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-section)]"
+          >
+            <SvgIcon name="file" size={16} color="var(--text-muted)" />
+            Full Onboarding
+          </Link>
+        </div>
       </div>
 
       {projects.length === 0 ? (
@@ -104,12 +115,22 @@ export default function ClientProjectsPage() {
           <p className="mt-2 text-sm text-[var(--text-muted)]">
             Start by requesting a new project. Our team will review and get back to you.
           </p>
-          <Link
-            href="/client-portal/project-request"
-            className="mt-4 inline-block rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
-          >
-            Request New Project
-          </Link>
+          <div className="mt-4 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/client-portal/project-request"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+            >
+              <SvgIcon name="plus" size={16} color="white" />
+              Quick Request
+            </Link>
+            <Link
+              href="/client-onboarding"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-6 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-section)]"
+            >
+              <SvgIcon name="file" size={16} color="var(--text-muted)" />
+              Full Onboarding
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">

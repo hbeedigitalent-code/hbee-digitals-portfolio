@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
+import { isAdmin } from '@/lib/services/admin-service'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -80,41 +81,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return
       }
       
-      // Check if user is an admin
+      // Check if user is an admin using the service
       if (data.user) {
         try {
-          // Check if the user is in admin_users table
-          const { data: adminData, error: adminError } = await supabase
-            .from('admin_users')
-            .select('*')
-            .eq('user_id', data.user.id)
-            .eq('is_active', true)
-            .maybeSingle()
+          const adminCheck = await isAdmin(data.user.id)
           
-          if (adminError) {
-            console.error('Admin check error:', adminError)
-          }
-          
-          // If not found by user_id, try by email
-          let isAdminUser = !!adminData
-          
-          if (!isAdminUser && data.user.email) {
-            const { data: emailData, error: emailError } = await supabase
-              .from('admin_users')
-              .select('*')
-              .eq('email', data.user.email)
-              .eq('is_active', true)
-              .maybeSingle()
-            
-            if (emailError) {
-              console.error('Admin email check error:', emailError)
-            }
-            
-            isAdminUser = !!emailData
-          }
-          
-          if (!isAdminUser) {
-            // Not an admin → redirect to client portal
+          if (!adminCheck) {
             router.push('/client-portal')
             setLoading(false)
             return
