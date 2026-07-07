@@ -96,10 +96,11 @@ export function ProjectRequestForm({
     }
 
     try {
-      // Generate project ID
-      const projectId = `PROJ-${Date.now().toString().slice(-6)}`
+      console.log('📝 Submitting project request...')
+      console.log('Client ID:', clientId)
+      console.log('User ID:', userId)
 
-      // 1. Create project request
+      // 1. Insert project request
       const { data: requestData, error: requestError } = await supabase
         .from('project_requests')
         .insert({
@@ -115,11 +116,17 @@ export function ProjectRequestForm({
           status: 'Pending Review',
         })
         .select()
-        .single()
 
-      if (requestError) throw requestError
+      if (requestError) {
+        console.error('❌ Request error:', requestError)
+        throw new Error(requestError.message || 'Failed to create request')
+      }
+
+      console.log('✅ Project request created:', requestData)
 
       // 2. Create a project record with Pending Review status
+      const projectId = `PROJ-${Date.now().toString().slice(-6)}`
+      
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
         .insert({
@@ -133,10 +140,12 @@ export function ProjectRequestForm({
           start_date: new Date().toISOString(),
         })
         .select()
-        .single()
 
       if (projectError) {
-        console.error('Project creation error:', projectError)
+        console.error('⚠️ Project creation error:', projectError)
+        // Don't fail - the request was saved
+      } else {
+        console.log('✅ Project created:', projectData)
       }
 
       setSuccess(true)
@@ -148,8 +157,8 @@ export function ProjectRequestForm({
       }, 2000)
 
     } catch (err) {
-      console.error('Request error:', err)
-      setError('Failed to submit request. Please try again.')
+      console.error('❌ Request error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to submit request. Please try again.')
     } finally {
       setLoading(false)
     }

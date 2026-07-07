@@ -6,14 +6,12 @@ import { supabase } from '@/lib/supabase'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
-import { isAdmin } from '@/lib/services/admin-service'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [isAuthorized, setIsAuthorized] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [unreadInquiries, setUnreadInquiries] = useState(0)
@@ -81,18 +79,43 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return
       }
       
-      // Check if user is an admin using the service
+      // ✅ User is logged in - check if admin
       if (data.user) {
         try {
-          const adminCheck = await isAdmin(data.user.id)
+          // Check admin_users table
+          const { data: adminData, error: adminError } = await supabase
+            .from('admin_users')
+            .select('*')
+            .eq('user_id', data.user.id)
+            .eq('is_active', true)
+            .maybeSingle()
+
+          if (adminError) {
+            console.error('Admin check error:', adminError)
+          }
+
+          // Also check by email as fallback
+          let isAdmin = !!adminData
           
-          if (!adminCheck) {
+          if (!isAdmin && data.user.email) {
+            const { data: emailData } = await supabase
+              .from('admin_users')
+              .select('*')
+              .eq('email', data.user.email)
+              .eq('is_active', true)
+              .maybeSingle()
+            
+            isAdmin = !!emailData
+          }
+
+          if (!isAdmin) {
+            // Not admin → redirect to client portal
             router.push('/client-portal')
             setLoading(false)
             return
           }
-          
-          setIsAuthorized(true)
+
+          // ✅ Admin verified
           setUser(data.user)
           const avatar = data.user?.user_metadata?.avatar_url || siteSettings?.logo_url || ''
           const name = data.user?.user_metadata?.full_name || siteSettings?.site_name || 'Admin'
@@ -101,6 +124,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           
           if (avatar) localStorage.setItem('admin_avatar', avatar)
           if (name) localStorage.setItem('admin_name', name)
+          
         } catch (err) {
           console.error('Admin check error:', err)
           router.push('/admin/login')
@@ -143,7 +167,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (pathname === '/admin/login') return <>{children}</>
   
   if (loading) return <div className="flex items-center justify-center min-h-screen bg-[var(--bg-page)]">Loading...</div>
-  if (!user || !isAuthorized) return null
+  if (!user) return null
 
   const avatarLetter = adminName ? adminName.charAt(0).toUpperCase() : 'A'
   const companyLogo = siteSettings?.logo_url || ''

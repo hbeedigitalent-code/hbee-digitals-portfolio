@@ -1,4 +1,5 @@
-﻿'use client'
+﻿// src/app/admin/login/page.tsx
+'use client'
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -64,6 +65,7 @@ export default function AdminLogin() {
     setLoading(false)
   }
 
+  // ✅ UPDATED: handle2FAVerify with hard redirect
   const handle2FAVerify = async () => {
     setLoading(true)
     setError('')
@@ -78,12 +80,14 @@ export default function AdminLogin() {
       const result = await response.json()
 
       if (result.success) {
-        router.push('/admin/dashboard')
+        // ✅ Hard redirect to admin dashboard
+        window.location.href = '/admin/dashboard'
       } else {
-        setError(result.error || 'Invalid 2FA code')
+        setError(result.error || 'Invalid 2FA code or not authorized')
       }
-    } catch {
-      setError('Failed to verify 2FA code')
+    } catch (err) {
+      console.error('2FA verification error:', err)
+      setError('Failed to verify 2FA code. Please try again.')
     }
     setLoading(false)
   }

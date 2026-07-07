@@ -1,3 +1,4 @@
+// src/app/api/admin/2fa/login/route.ts
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import speakeasy from 'speakeasy'
@@ -33,11 +34,32 @@ export async function POST(request: Request) {
       window: 1
     })
 
-    if (verified) {
-      return NextResponse.json({ success: true })
+    if (!verified) {
+      return NextResponse.json({ success: false, error: 'Invalid verification code' }, { status: 400 })
     }
 
-    return NextResponse.json({ success: false, error: 'Invalid verification code' }, { status: 400 })
+    // ✅ 2FA IS VERIFIED - NOW CHECK IF USER IS ADMIN
+    const { data: adminData, error: adminError } = await supabase
+      .from('admin_users')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .single()
+
+    if (adminError || !adminData) {
+      console.error('Admin check error:', adminError)
+      return NextResponse.json(
+        { success: false, error: 'User is not authorized as admin' },
+        { status: 403 }
+      )
+    }
+
+    // ✅ USER IS ADMIN - ALLOW ACCESS
+    return NextResponse.json({ 
+      success: true,
+      admin: adminData
+    })
+
   } catch (error: any) {
     console.error('Login verify error:', error)
     return NextResponse.json({ success: false, error: error.message || 'Verification failed' }, { status: 500 })
