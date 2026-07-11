@@ -1,9 +1,11 @@
+// src/app/admin/blog/categories/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import SvgIcon from '@/components/ui/SvgIcon'
 
 interface BlogCategory {
   id: string
@@ -46,14 +48,12 @@ export default function AdminBlogCategoriesPage() {
     async function fetchCategories() {
       setLoading(true)
 
-      // Get categories
       const { data: catData, error: catError } = await supabase
         .from('blog_categories')
         .select('*')
         .order('name', { ascending: true })
 
       if (catError) {
-        // Table might not exist yet, use posts tags as fallback
         console.log('Categories table may not exist, using tags from posts')
         await fetchTagsFromPosts()
       } else {
@@ -199,8 +199,8 @@ export default function AdminBlogCategoriesPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-page)]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#39D97A] border-t-transparent" />
+      <div className="flex min-h-[400px] items-center justify-center bg-[var(--bg-page)]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
       </div>
     )
   }
@@ -223,6 +223,7 @@ export default function AdminBlogCategoriesPage() {
             href="/admin/blog"
             className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-5 py-2.5 text-sm font-semibold text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
           >
+            <SvgIcon name="chevron-left" size={16} color="var(--text-muted)" />
             Back to Blog
           </Link>
         </div>
@@ -232,8 +233,8 @@ export default function AdminBlogCategoriesPage() {
           <div
             className={`mb-4 rounded-xl px-4 py-3 text-sm font-semibold ${
               actionMessage.includes('Error')
-                ? 'bg-red-500/10 text-red-400'
-                : 'bg-[#39D97A]/10 text-[#39D97A]'
+                ? 'bg-red-500/10 text-red-500'
+                : 'bg-[var(--accent-lime)]/10 text-[var(--accent-lime)]'
             }`}
           >
             {actionMessage}
@@ -257,7 +258,7 @@ export default function AdminBlogCategoriesPage() {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Ecommerce Growth"
                   required
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[#39D97A]"
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
                 />
               </div>
               <div>
@@ -269,7 +270,7 @@ export default function AdminBlogCategoriesPage() {
                   onChange={(e) => setSlug(e.target.value)}
                   placeholder="ecommerce-growth"
                   required
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[#39D97A]"
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
                 />
               </div>
             </div>
@@ -283,14 +284,14 @@ export default function AdminBlogCategoriesPage() {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Optional description for this category"
                 rows={2}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[#39D97A]"
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
               />
             </div>
 
             <div className="flex items-center gap-3">
               <button
                 type="submit"
-                className="rounded-full bg-[#39D97A] px-6 py-2.5 text-sm font-black text-[#07111F] transition hover:scale-[1.02]"
+                className="rounded-full bg-[var(--accent-lime)] px-6 py-2.5 text-sm font-black text-[var(--btn-primary-text)] transition hover:opacity-90"
               >
                 {isEditing ? 'Update' : 'Add'} Category
               </button>
@@ -355,17 +356,17 @@ export default function AdminBlogCategoriesPage() {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => startEdit(cat)}
-                          className="rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-[var(--bg-page)] hover:text-[#39D97A]"
+                          className="rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-[var(--bg-page)] hover:text-[var(--accent)]"
                           title="Edit"
                         >
-                          <img src="/svgs/blog.svg" alt="Edit" className="h-4 w-4" />
+                          <SvgIcon name="edit" size={16} color="currentColor" />
                         </button>
                         <button
                           onClick={() => deleteCategory(cat.id)}
-                          className="rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
+                          className="rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-500"
                           title="Delete"
                         >
-                          <span className="text-xs font-bold">X</span>
+                          <SvgIcon name="trash" size={16} color="currentColor" />
                         </button>
                       </div>
                     </td>

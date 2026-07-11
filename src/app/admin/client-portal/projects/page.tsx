@@ -1,3 +1,4 @@
+// src/app/admin/projects/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -17,14 +18,14 @@ interface Project {
 }
 
 const statusColors: Record<string, string> = {
-  'Onboarding': 'bg-yellow-500/20 text-yellow-400',
-  'Assets Required': 'bg-orange-500/20 text-orange-400',
-  'In Review': 'bg-blue-500/20 text-blue-400',
-  'In Progress': 'bg-cyan-500/20 text-cyan-400',
-  'Awaiting Client Feedback': 'bg-purple-500/20 text-purple-400',
-  'Revision Stage': 'bg-pink-500/20 text-pink-400',
+  'Onboarding': 'bg-yellow-500/20 text-yellow-500',
+  'Assets Required': 'bg-orange-500/20 text-orange-500',
+  'In Review': 'bg-blue-500/20 text-blue-500',
+  'In Progress': 'bg-cyan-500/20 text-cyan-500',
+  'Awaiting Client Feedback': 'bg-purple-500/20 text-purple-500',
+  'Revision Stage': 'bg-pink-500/20 text-pink-500',
   'Completed': 'bg-[var(--accent-lime)]/20 text-[var(--accent-lime)]',
-  'Archived': 'bg-gray-500/20 text-gray-400',
+  'Archived': 'bg-[var(--text-muted)]/20 text-[var(--text-muted)]',
 }
 
 export default function AdminProjectsPage() {
@@ -64,7 +65,7 @@ export default function AdminProjectsPage() {
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
       </div>
     )
   }
@@ -72,28 +73,28 @@ export default function AdminProjectsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Projects</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Projects</h1>
         <div className="text-sm text-[var(--text-muted)]">
           {projects.length} total projects
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4 text-center">
-          <div className="text-2xl font-bold text-white">{stats.total}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
+          <div className="text-2xl font-bold text-[var(--text-primary)]">{stats.total}</div>
           <div className="text-sm text-[var(--text-muted)]">Total Projects</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4 text-center">
-          <div className="text-2xl font-bold text-[var(--accent-orange)]">{stats.active}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
+          <div className="text-2xl font-bold text-[var(--accent)]">{stats.active}</div>
           <div className="text-sm text-[var(--text-muted)]">Active</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4 text-center">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
           <div className="text-2xl font-bold text-[var(--accent-lime)]">{stats.completed}</div>
           <div className="text-sm text-[var(--text-muted)]">Completed</div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-6">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -116,11 +117,11 @@ export default function AdminProjectsPage() {
                 </tr>
               ) : (
                 projects.map((project) => (
-                  <tr key={project.id} className="border-b border-[var(--border)] hover:bg-[var(--bg-card-dark)]/50">
-                    <td className="py-3 font-mono text-sm font-medium text-[var(--accent-orange)]">
+                  <tr key={project.id} className="border-b border-[var(--border)] hover:bg-[var(--bg-section)]">
+                    <td className="py-3 font-mono text-sm font-medium text-[var(--accent)]">
                       {project.project_id}
                     </td>
-                    <td className="py-3 font-medium text-white">
+                    <td className="py-3 font-medium text-[var(--text-primary)]">
                       {project.project_name}
                     </td>
                     <td className="py-3 text-[var(--text-muted)]">
@@ -131,9 +132,9 @@ export default function AdminProjectsPage() {
                     </td>
                     <td className="py-3">
                       <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-16 rounded-full bg-[var(--bg-navy-mid)]">
+                        <div className="h-1.5 w-16 rounded-full bg-[var(--bg-section)]">
                           <div
-                            className="h-1.5 rounded-full bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)]"
+                            className="h-1.5 rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-lime)]"
                             style={{ width: `${project.progress}%` }}
                           />
                         </div>
@@ -148,10 +149,10 @@ export default function AdminProjectsPage() {
                     <td className="py-3 text-right">
                       <Link
                         href={`/admin/projects/${project.id}`}
-                        className="inline-flex items-center gap-1 text-[var(--accent-orange)] hover:underline"
+                        className="inline-flex items-center gap-1 text-[var(--accent)] hover:underline"
                       >
                         View
-                        <SvgIcon name="arrow-right" size={12} color="var(--accent-orange)" />
+                        <SvgIcon name="arrow-right" size={12} color="var(--accent)" />
                       </Link>
                     </td>
                   </tr>

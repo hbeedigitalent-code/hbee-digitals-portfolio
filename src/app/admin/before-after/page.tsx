@@ -1,3 +1,4 @@
+// src/app/admin/before-after/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -19,7 +20,7 @@ interface BeforeAfterItem {
   description: string
   results_summary: string
   is_active: boolean
-  is_before_after: boolean  // ← ADD THIS LINE
+  is_before_after: boolean
   display_order: number
   created_at: string
 }
@@ -88,7 +89,7 @@ export default function AdminBeforeAfterPage() {
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
       </div>
     )
   }
@@ -98,14 +99,14 @@ export default function AdminBeforeAfterPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Before & After Transformations</h1>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Before & After Transformations</h1>
           <p className="text-sm text-[var(--text-muted)]">
             Manage transformations displayed on the Before/After page
           </p>
         </div>
         <Link
           href="/admin/before-after/new"
-          className="inline-flex items-center gap-2 rounded-full bg-[var(--accent-orange)] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[var(--orange-600)]"
+          className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-bold text-white transition hover:opacity-90"
         >
           <SvgIcon name="plus" size={16} color="white" />
           New Transformation
@@ -114,20 +115,20 @@ export default function AdminBeforeAfterPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-xl font-bold text-white">{items.length}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-xl font-bold text-[var(--text-primary)]">{items.length}</div>
           <div className="text-xs text-[var(--text-muted)]">Total</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
           <div className="text-xl font-bold text-[var(--accent-lime)]">{items.filter(i => i.is_active).length}</div>
           <div className="text-xs text-[var(--text-muted)]">Active</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-xl font-bold text-[var(--accent-orange)]">{items.filter(i => i.is_before_after).length}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-xl font-bold text-[var(--accent)]">{items.filter(i => i.is_before_after).length}</div>
           <div className="text-xs text-[var(--text-muted)]">Before/After</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-3 text-center">
-          <div className="text-xl font-bold text-blue-400">{items.filter(i => i.metric_value).length}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
+          <div className="text-xl font-bold text-blue-500">{items.filter(i => i.metric_value).length}</div>
           <div className="text-xs text-[var(--text-muted)]">With Metrics</div>
         </div>
       </div>
@@ -140,13 +141,13 @@ export default function AdminBeforeAfterPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search by title, client, or category..."
-            className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+            className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
           />
         </div>
         <select
           value={filterActive}
           onChange={(e) => setFilterActive(e.target.value)}
-          className="rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+          className="rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
         >
           <option value="all">All Status</option>
           <option value="active">Active</option>
@@ -157,25 +158,25 @@ export default function AdminBeforeAfterPage() {
             setSearchTerm('')
             setFilterActive('all')
           }}
-          className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--text-muted)] hover:bg-[var(--bg-card-dark)] transition"
+          className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--text-muted)] hover:bg-[var(--bg-section)] transition"
         >
           Clear
         </button>
       </div>
 
       {/* List */}
-      <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)]">
+      <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
         {filteredItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <SvgIcon name="image" size={48} color="var(--text-muted)" />
-            <h3 className="mt-4 text-lg font-semibold text-white">No transformations found</h3>
+            <h3 className="mt-4 text-lg font-semibold text-[var(--text-primary)]">No transformations found</h3>
             <p className="text-sm text-[var(--text-muted)]">
               {items.length === 0 ? 'Add your first before/after transformation!' : 'Try adjusting your filters'}
             </p>
             {items.length === 0 && (
               <Link
                 href="/admin/before-after/new"
-                className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--accent-orange)] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[var(--orange-600)]"
+                className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-bold text-white transition hover:opacity-90"
               >
                 <SvgIcon name="plus" size={16} color="white" />
                 Create First Transformation
@@ -201,7 +202,7 @@ export default function AdminBeforeAfterPage() {
                     <td className="px-4 py-3 text-sm text-[var(--text-muted)]">{index + 1}</td>
                     <td className="px-4 py-3">
                       <div>
-                        <div className="font-medium text-white">{item.title || item.client_name}</div>
+                        <div className="font-medium text-[var(--text-primary)]">{item.title || item.client_name}</div>
                         <div className="text-xs text-[var(--text-muted)]">{item.client_name}</div>
                       </div>
                     </td>
@@ -210,7 +211,7 @@ export default function AdminBeforeAfterPage() {
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
                       {item.metric_value ? (
-                        <span className="text-sm font-semibold text-[var(--accent-orange)]">
+                        <span className="text-sm font-semibold text-[var(--accent)]">
                           {item.metric_value} {item.metric_label || ''}
                         </span>
                       ) : (
@@ -233,13 +234,13 @@ export default function AdminBeforeAfterPage() {
                       <div className="flex items-center justify-end gap-2">
                         <Link
                           href={`/admin/before-after/${item.id}`}
-                          className="rounded-lg px-3 py-1.5 text-sm text-[var(--accent-orange)] hover:bg-[var(--accent-orange)]/10 transition"
+                          className="rounded-lg px-3 py-1.5 text-sm text-[var(--accent)] hover:bg-[var(--accent)]/10 transition"
                         >
                           Edit
                         </Link>
                         <button
                           onClick={() => deleteItem(item.id)}
-                          className="rounded-lg px-3 py-1.5 text-sm text-red-400 hover:bg-red-400/10 transition"
+                          className="rounded-lg px-3 py-1.5 text-sm text-red-500 hover:bg-red-500/10 transition"
                         >
                           Delete
                         </button>

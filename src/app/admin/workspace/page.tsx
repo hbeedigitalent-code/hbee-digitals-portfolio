@@ -130,7 +130,6 @@ export default function AdminWorkspacePage() {
         </span>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
           <div className="text-xl font-bold text-[var(--accent)]">{stats?.activeProjects}</div>
@@ -175,7 +174,6 @@ export default function AdminWorkspacePage() {
         </div>
       </div>
 
-      {/* Recent Tasks & Upcoming Deadlines */}
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
           <div className="flex items-center justify-between mb-4">

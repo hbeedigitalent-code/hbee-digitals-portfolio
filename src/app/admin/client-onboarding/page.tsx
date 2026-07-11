@@ -61,7 +61,7 @@ export default function AdminOnboardingPage() {
     'Ready To Start': 'bg-[var(--accent-lime)]/20 text-[var(--accent-lime)]',
     'In Progress': 'bg-purple-500/20 text-purple-500',
     'Completed': 'bg-green-500/20 text-green-500',
-    'Archived': 'bg-gray-500/20 text-gray-500',
+    'Archived': 'bg-[var(--text-muted)]/20 text-[var(--text-muted)]',
   }
 
   if (loading) {
@@ -142,7 +142,7 @@ export default function AdminOnboardingPage() {
                       {s.files?.length || 0} files
                     </td>
                     <td className="py-3">
-                      <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusColors[s.status] || 'bg-gray-500/20 text-gray-500'}`}>
+                      <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusColors[s.status] || 'bg-[var(--text-muted)]/20 text-[var(--text-muted)]'}`}>
                         {s.status || 'Unknown'}
                       </span>
                     </td>

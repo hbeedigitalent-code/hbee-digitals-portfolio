@@ -1,35 +1,73 @@
 // src/app/api/admin/2fa/login/route.ts
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import speakeasy from 'speakeasy'
 
-// Use SERVICE ROLE key for admin checks
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+// Lazy initialize Supabase clients - only when needed
+let supabaseAdmin: any = null
+let supabaseAnon: any = null
 
-// Admin client with service role (bypasses RLS)
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-})
+function getSupabaseClients() {
+  if (supabaseAdmin && supabaseAnon) {
+    return { supabaseAdmin, supabaseAnon }
+  }
 
-// Regular client for 2FA (uses anon key)
-const supabaseAnon = createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set')
+  }
+
+  // Dynamic import to avoid build-time issues
+  const { createClient } = require('@supabase/supabase-js')
+
+  if (supabaseServiceKey) {
+    supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
+  }
+
+  if (supabaseAnonKey) {
+    supabaseAnon = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
+  }
+
+  return { supabaseAdmin, supabaseAnon }
+}
 
 export async function POST(request: Request) {
   try {
     const { userId, token } = await request.json()
 
     if (!userId || !token) {
-      return NextResponse.json({ success: false, error: 'Missing userId or token' }, { status: 400 })
+      return NextResponse.json(
+        { success: false, error: 'Missing userId or token' },
+        { status: 400 }
+      )
     }
 
     console.log('🔍 2FA Login attempt for userId:', userId)
 
+    const { supabaseAdmin: adminClient, supabaseAnon: anonClient } = getSupabaseClients()
+
+    if (!anonClient) {
+      console.error('❌ Supabase anon client not available')
+      return NextResponse.json(
+        { success: false, error: 'Server configuration error' },
+        { status: 500 }
+      )
+    }
+
     // 1. Get user's 2FA secret (using anon client)
-    const { data: twoFAData, error: twoFAError } = await supabaseAnon
+    const { data: twoFAData, error: twoFAError } = await anonClient
       .from('admin_2fa')
       .select('secret, is_enabled')
       .eq('user_id', userId)
@@ -37,12 +75,18 @@ export async function POST(request: Request) {
 
     if (twoFAError || !twoFAData) {
       console.error('❌ 2FA data error:', twoFAError)
-      return NextResponse.json({ success: false, error: '2FA not setup' }, { status: 400 })
+      return NextResponse.json(
+        { success: false, error: '2FA not setup' },
+        { status: 400 }
+      )
     }
 
     if (!twoFAData.is_enabled) {
       console.error('❌ 2FA not enabled')
-      return NextResponse.json({ success: false, error: '2FA not enabled' }, { status: 400 })
+      return NextResponse.json(
+        { success: false, error: '2FA not enabled' },
+        { status: 400 }
+      )
     }
 
     // 2. Verify token
@@ -55,13 +99,24 @@ export async function POST(request: Request) {
 
     if (!verified) {
       console.error('❌ Invalid 2FA code')
-      return NextResponse.json({ success: false, error: 'Invalid verification code' }, { status: 400 })
+      return NextResponse.json(
+        { success: false, error: 'Invalid verification code' },
+        { status: 400 }
+      )
     }
 
     console.log('✅ 2FA verified for userId:', userId)
 
     // 3. CHECK IF USER IS ADMIN - USING SERVICE ROLE (BYPASSES RLS)
-    const { data: adminData, error: adminError } = await supabaseAdmin
+    if (!adminClient) {
+      console.error('❌ Supabase admin client not available')
+      return NextResponse.json(
+        { success: false, error: 'Server configuration error' },
+        { status: 500 }
+      )
+    }
+
+    const { data: adminData, error: adminError } = await adminClient
       .from('admin_users')
       .select('*')
       .eq('user_id', userId)
@@ -83,13 +138,15 @@ export async function POST(request: Request) {
     console.log('✅ Admin verified:', adminData.email)
 
     // ✅ USER IS ADMIN - ALLOW ACCESS
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       admin: adminData
     })
-
   } catch (error: any) {
     console.error('Login verify error:', error)
-    return NextResponse.json({ success: false, error: error.message || 'Verification failed' }, { status: 500 })
+    return NextResponse.json(
+      { success: false, error: error.message || 'Verification failed' },
+      { status: 500 }
+    )
   }
 }

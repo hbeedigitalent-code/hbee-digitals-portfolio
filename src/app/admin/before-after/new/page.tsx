@@ -1,3 +1,4 @@
+// src/app/admin/before-after/new/page.tsx
 'use client'
 
 import { useState, useRef } from 'react'
@@ -85,7 +86,6 @@ export default function NewBeforeAfterPage() {
     setLoading(true)
     setError(null)
 
-    // Validate
     if (!formData.title && !formData.client_name) {
       setError('Please enter a title or client name')
       setLoading(false)
@@ -125,12 +125,12 @@ export default function NewBeforeAfterPage() {
       <div className="flex items-center gap-4">
         <Link
           href="/admin/before-after"
-          className="rounded-lg p-2 text-[var(--text-muted)] hover:bg-[var(--bg-card-dark)] transition"
+          className="rounded-lg p-2 text-[var(--text-muted)] hover:bg-[var(--bg-section)] transition"
         >
-          <SvgIcon name="chevron-left" size={20} />
+          <SvgIcon name="chevron-left" size={20} color="var(--text-muted)" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-white">New Transformation</h1>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">New Transformation</h1>
           <p className="text-sm text-[var(--text-muted)]">Add a new before/after transformation</p>
         </div>
       </div>
@@ -144,32 +144,32 @@ export default function NewBeforeAfterPage() {
 
         <div className="grid gap-6 md:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-white">Client Name *</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">Client Name *</label>
             <input
               type="text"
               name="client_name"
               value={formData.client_name}
               onChange={handleChange}
               placeholder="e.g. Acme Corp"
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
               required
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-white">Title</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">Title</label>
             <input
               type="text"
               name="title"
               value={formData.title}
               onChange={handleChange}
               placeholder="e.g. Website Transformation"
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-white">Slug</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">Slug</label>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -177,12 +177,12 @@ export default function NewBeforeAfterPage() {
                 value={formData.slug}
                 onChange={handleChange}
                 placeholder="acme-corp-transformation"
-                className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+                className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
               />
               <button
                 type="button"
                 onClick={generateSlug}
-                className="rounded-lg border border-[var(--border)] px-4 py-2.5 text-sm text-[var(--text-muted)] hover:bg-[var(--bg-card-dark)] transition"
+                className="rounded-lg border border-[var(--border)] px-4 py-2.5 text-sm text-[var(--text-muted)] hover:bg-[var(--bg-section)] transition"
               >
                 Generate
               </button>
@@ -190,12 +190,12 @@ export default function NewBeforeAfterPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-white">Category</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">Category</label>
             <select
               name="category"
               value={formData.category}
               onChange={handleChange}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             >
               <option value="">Select category</option>
               <option value="Ecommerce">Ecommerce</option>
@@ -209,61 +209,61 @@ export default function NewBeforeAfterPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-white">Metric Value</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">Metric Value</label>
             <input
               type="text"
               name="metric_value"
               value={formData.metric_value}
               onChange={handleChange}
               placeholder="e.g. 245%"
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-white">Metric Label</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">Metric Label</label>
             <input
               type="text"
               name="metric_label"
               value={formData.metric_label}
               onChange={handleChange}
               placeholder="e.g. Increase in Revenue"
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="mb-1 block text-sm font-medium text-white">Description</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">Description</label>
             <textarea
               name="description"
               value={formData.description}
               onChange={handleChange}
               rows={3}
               placeholder="Describe the transformation..."
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="mb-1 block text-sm font-medium text-white">Results Summary</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">Results Summary</label>
             <textarea
               name="results_summary"
               value={formData.results_summary}
               onChange={handleChange}
               rows={2}
               placeholder="Summary of results achieved..."
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-white">Display Order</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">Display Order</label>
             <input
               type="number"
               name="display_order"
               value={formData.display_order}
               onChange={handleChange}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
           </div>
 
@@ -274,17 +274,17 @@ export default function NewBeforeAfterPage() {
                 name="is_active"
                 checked={formData.is_active}
                 onChange={handleChange}
-                className="h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-page)] text-[var(--accent-orange)] focus:ring-[var(--accent-orange)]"
+                className="h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-page)] text-[var(--accent)] focus:ring-[var(--accent)]"
               />
-              <span className="text-sm text-white">Active</span>
+              <span className="text-sm text-[var(--text-primary)]">Active</span>
             </label>
           </div>
         </div>
 
         {/* Image Upload Section */}
         <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4">
-            <label className="mb-2 block text-sm font-medium text-white">Before Image *</label>
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
+            <label className="mb-2 block text-sm font-medium text-[var(--text-primary)]">Before Image *</label>
             <input
               ref={fileInputRef}
               type="file"
@@ -296,18 +296,18 @@ export default function NewBeforeAfterPage() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="w-full rounded-lg border-2 border-dashed border-[var(--border)] bg-[var(--bg-page)] p-6 text-center text-[var(--text-muted)] hover:border-[var(--accent-orange)] transition"
+              className="w-full rounded-lg border-2 border-dashed border-[var(--border)] bg-[var(--bg-page)] p-6 text-center text-[var(--text-muted)] hover:border-[var(--accent)] transition"
             >
               {formData.before_image ? (
                 <div className="space-y-2">
                   <SvgIcon name="check" size={24} color="var(--accent-lime)" />
-                  <p className="text-sm text-white">Image uploaded</p>
+                  <p className="text-sm text-[var(--text-primary)]">Image uploaded</p>
                   <p className="text-xs text-[var(--text-muted)]">Click to change</p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   <SvgIcon name="image" size={32} color="var(--text-muted)" />
-                  <p className="text-sm">Click to upload before image</p>
+                  <p className="text-sm text-[var(--text-muted)]">Click to upload before image</p>
                   <p className="text-xs text-[var(--text-muted)]">PNG, JPG, WEBP up to 5MB</p>
                 </div>
               )}
@@ -321,12 +321,11 @@ export default function NewBeforeAfterPage() {
             )}
           </div>
 
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4">
-            <label className="mb-2 block text-sm font-medium text-white">After Image *</label>
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
+            <label className="mb-2 block text-sm font-medium text-[var(--text-primary)]">After Image *</label>
             <button
               type="button"
               onClick={() => {
-                // We need a separate file input for after image
                 const input = document.createElement('input')
                 input.type = 'file'
                 input.accept = 'image/*'
@@ -354,18 +353,18 @@ export default function NewBeforeAfterPage() {
                 input.click()
               }}
               disabled={uploading}
-              className="w-full rounded-lg border-2 border-dashed border-[var(--border)] bg-[var(--bg-page)] p-6 text-center text-[var(--text-muted)] hover:border-[var(--accent-orange)] transition"
+              className="w-full rounded-lg border-2 border-dashed border-[var(--border)] bg-[var(--bg-page)] p-6 text-center text-[var(--text-muted)] hover:border-[var(--accent)] transition"
             >
               {formData.after_image ? (
                 <div className="space-y-2">
                   <SvgIcon name="check" size={24} color="var(--accent-lime)" />
-                  <p className="text-sm text-white">Image uploaded</p>
+                  <p className="text-sm text-[var(--text-primary)]">Image uploaded</p>
                   <p className="text-xs text-[var(--text-muted)]">Click to change</p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   <SvgIcon name="image" size={32} color="var(--text-muted)" />
-                  <p className="text-sm">Click to upload after image</p>
+                  <p className="text-sm text-[var(--text-muted)]">Click to upload after image</p>
                   <p className="text-xs text-[var(--text-muted)]">PNG, JPG, WEBP up to 5MB</p>
                 </div>
               )}
@@ -384,13 +383,13 @@ export default function NewBeforeAfterPage() {
           <button
             type="submit"
             disabled={loading || uploading}
-            className="rounded-full bg-[var(--accent-orange)] px-8 py-3 font-bold text-white transition hover:bg-[var(--orange-600)] disabled:opacity-50"
+            className="rounded-full bg-[var(--accent)] px-8 py-3 font-bold text-white transition hover:opacity-90 disabled:opacity-50"
           >
             {loading ? 'Creating...' : 'Create Transformation'}
           </button>
           <Link
             href="/admin/before-after"
-            className="rounded-full border border-[var(--border)] px-8 py-3 font-bold text-[var(--text-muted)] transition hover:bg-[var(--bg-card-dark)]"
+            className="rounded-full border border-[var(--border)] px-8 py-3 font-bold text-[var(--text-muted)] transition hover:bg-[var(--bg-section)]"
           >
             Cancel
           </Link>

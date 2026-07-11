@@ -1,3 +1,4 @@
+// src/app/admin/client-portal/[client_id]/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -69,7 +70,7 @@ export default function AdminClientDetailPage() {
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
       </div>
     )
   }
@@ -88,12 +89,12 @@ export default function AdminClientDetailPage() {
         <div>
           <Link
             href="/admin/client-portal"
-            className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-white transition"
+            className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
           >
-            <SvgIcon name="chevron-left" size={16} color="currentColor" />
+            <SvgIcon name="chevron-left" size={16} color="var(--text-muted)" />
             Back to Clients
           </Link>
-          <h1 className="text-2xl font-bold text-white mt-2">
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] mt-2">
             {client.full_name}
           </h1>
           <p className="text-sm text-[var(--text-muted)]">{client.business_name}</p>
@@ -102,32 +103,32 @@ export default function AdminClientDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Client Info */}
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-6">
-          <h3 className="text-sm font-semibold text-white mb-4">Client Information</h3>
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+          <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Client Information</h3>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <p className="text-xs text-[var(--text-muted)]">Full Name</p>
-              <p className="text-sm text-white">{client.full_name}</p>
+              <p className="text-sm text-[var(--text-primary)]">{client.full_name}</p>
             </div>
             <div>
               <p className="text-xs text-[var(--text-muted)]">Email</p>
-              <p className="text-sm text-white">{client.email}</p>
+              <p className="text-sm text-[var(--text-primary)]">{client.email}</p>
             </div>
             <div>
               <p className="text-xs text-[var(--text-muted)]">WhatsApp</p>
-              <p className="text-sm text-white">{client.whatsapp || 'N/A'}</p>
+              <p className="text-sm text-[var(--text-primary)]">{client.whatsapp || 'N/A'}</p>
             </div>
             <div>
               <p className="text-xs text-[var(--text-muted)]">Business</p>
-              <p className="text-sm text-white">{client.business_name}</p>
+              <p className="text-sm text-[var(--text-primary)]">{client.business_name}</p>
             </div>
             <div>
               <p className="text-xs text-[var(--text-muted)]">Website</p>
-              <p className="text-sm text-white">{client.website_url || 'N/A'}</p>
+              <p className="text-sm text-[var(--text-primary)]">{client.website_url || 'N/A'}</p>
             </div>
             <div>
               <p className="text-xs text-[var(--text-muted)]">Country</p>
-              <p className="text-sm text-white">{client.country || 'N/A'}</p>
+              <p className="text-sm text-[var(--text-primary)]">{client.country || 'N/A'}</p>
             </div>
             <div>
               <p className="text-xs text-[var(--text-muted)]">Status</p>
@@ -135,18 +136,18 @@ export default function AdminClientDetailPage() {
             </div>
             <div>
               <p className="text-xs text-[var(--text-muted)]">Joined</p>
-              <p className="text-sm text-white">{new Date(client.created_at).toLocaleDateString()}</p>
+              <p className="text-sm text-[var(--text-primary)]">{new Date(client.created_at).toLocaleDateString()}</p>
             </div>
           </div>
         </div>
 
         {/* Projects */}
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-6">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-white">Projects ({projects.length})</h3>
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Projects ({projects.length})</h3>
             <Link
               href={`/admin/projects/new?client=${client.id}`}
-              className="text-sm text-[var(--accent-orange)] hover:underline"
+              className="text-sm text-[var(--accent)] hover:underline"
             >
               + Add Project
             </Link>
@@ -159,11 +160,11 @@ export default function AdminClientDetailPage() {
                 <Link
                   key={project.id}
                   href={`/admin/projects/${project.id}`}
-                  className="block rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] p-3 transition hover:border-[var(--accent-orange)]"
+                  className="block rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 transition hover:border-[var(--accent)]"
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-white">{project.project_name}</p>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{project.project_name}</p>
                       <p className="text-xs text-[var(--text-muted)]">{project.project_id}</p>
                     </div>
                     <div className="text-right">

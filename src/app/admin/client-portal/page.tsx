@@ -1,3 +1,4 @@
+// src/app/admin/client-portal/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -52,14 +53,14 @@ export default function AdminClientPortalPage() {
 
   const statusColors: Record<string, string> = {
     'Active': 'bg-[var(--accent-lime)]/20 text-[var(--accent-lime)]',
-    'Inactive': 'bg-gray-500/20 text-gray-400',
-    'Pending': 'bg-yellow-500/20 text-yellow-400',
+    'Inactive': 'bg-[var(--text-muted)]/20 text-[var(--text-muted)]',
+    'Pending': 'bg-yellow-500/20 text-yellow-500',
   }
 
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
       </div>
     )
   }
@@ -67,28 +68,28 @@ export default function AdminClientPortalPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Client Portal</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Client Portal</h1>
         <div className="text-sm text-[var(--text-muted)]">
           {clients.length} total clients
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4 text-center">
-          <div className="text-2xl font-bold text-white">{stats.total}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
+          <div className="text-2xl font-bold text-[var(--text-primary)]">{stats.total}</div>
           <div className="text-sm text-[var(--text-muted)]">Total Clients</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4 text-center">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
           <div className="text-2xl font-bold text-[var(--accent-lime)]">{stats.active}</div>
           <div className="text-sm text-[var(--text-muted)]">Active</div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-4 text-center">
-          <div className="text-2xl font-bold text-gray-400">{stats.inactive}</div>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
+          <div className="text-2xl font-bold text-[var(--text-muted)]">{stats.inactive}</div>
           <div className="text-sm text-[var(--text-muted)]">Inactive</div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-6">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -110,8 +111,8 @@ export default function AdminClientPortalPage() {
                 </tr>
               ) : (
                 clients.map((client) => (
-                  <tr key={client.id} className="border-b border-[var(--border)] hover:bg-[var(--bg-card-dark)]/50">
-                    <td className="py-3 font-medium text-white">
+                  <tr key={client.id} className="border-b border-[var(--border)] hover:bg-[var(--bg-section)]">
+                    <td className="py-3 font-medium text-[var(--text-primary)]">
                       {client.full_name}
                     </td>
                     <td className="py-3 text-[var(--text-muted)]">
@@ -121,7 +122,7 @@ export default function AdminClientPortalPage() {
                       {client.projects?.length || 0}
                     </td>
                     <td className="py-3">
-                      <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusColors[client.status] || 'bg-gray-500/20 text-gray-400'}`}>
+                      <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusColors[client.status] || 'bg-[var(--text-muted)]/20 text-[var(--text-muted)]'}`}>
                         {client.status || 'Active'}
                       </span>
                     </td>
@@ -131,10 +132,10 @@ export default function AdminClientPortalPage() {
                     <td className="py-3 text-right">
                       <Link
                         href={`/admin/client-portal/${client.id}`}
-                        className="inline-flex items-center gap-1 text-[var(--accent-orange)] hover:underline"
+                        className="inline-flex items-center gap-1 text-[var(--accent)] hover:underline"
                       >
                         View
-                        <SvgIcon name="arrow-right" size={12} color="var(--accent-orange)" />
+                        <SvgIcon name="arrow-right" size={12} color="var(--accent)" />
                       </Link>
                     </td>
                   </tr>

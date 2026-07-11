@@ -1,9 +1,11 @@
+// src/app/admin/comments/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import SvgIcon from '@/components/ui/SvgIcon'
 
 interface BlogComment {
   id: string
@@ -121,8 +123,8 @@ export default function AdminCommentsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-page)]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#39D97A] border-t-transparent" />
+      <div className="flex min-h-[400px] items-center justify-center bg-[var(--bg-page)]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
       </div>
     )
   }
@@ -146,13 +148,14 @@ export default function AdminCommentsPage() {
             href="/admin/blog"
             className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-5 py-2.5 text-sm font-semibold text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
           >
+            <SvgIcon name="chevron-left" size={16} color="var(--text-muted)" />
             Back to Blog
           </Link>
         </div>
 
         {/* Action message */}
         {actionMessage && (
-          <div className="mb-4 rounded-xl bg-[#39D97A]/10 px-4 py-3 text-sm font-semibold text-[#39D97A]">
+          <div className="mb-4 rounded-xl bg-[var(--accent-lime)]/10 px-4 py-3 text-sm font-semibold text-[var(--accent-lime)]">
             {actionMessage}
           </div>
         )}
@@ -165,7 +168,7 @@ export default function AdminCommentsPage() {
               onClick={() => setFilter(f)}
               className={`rounded-lg px-4 py-2 text-xs font-bold capitalize transition ${
                 filter === f
-                  ? 'bg-[#39D97A] text-[#07111F]'
+                  ? 'bg-[var(--accent-lime)] text-[var(--btn-primary-text)]'
                   : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
               }`}
             >
@@ -181,11 +184,7 @@ export default function AdminCommentsPage() {
         <div className="space-y-4">
           {filteredComments.length === 0 && (
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
-              <img
-                src="/svgs/comment.svg"
-                alt=""
-                className="mx-auto mb-4 h-12 w-12 opacity-20"
-              />
+              <SvgIcon name="messages" size={48} color="var(--text-muted)" className="mx-auto mb-4" />
               <p className="text-[var(--text-muted)]">No comments found</p>
             </div>
           )}
@@ -199,7 +198,7 @@ export default function AdminCommentsPage() {
                 <div className="flex-1">
                   {/* Author info */}
                   <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#07111F] text-xs font-black text-[#39D97A]">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--bg-section)] text-xs font-black text-[var(--accent)]">
                       {(comment.author_name || 'A').charAt(0).toUpperCase()}
                     </div>
                     <div>
@@ -227,9 +226,9 @@ export default function AdminCommentsPage() {
                   <Link
                     href={`/blog/${comment.post_slug}`}
                     target="_blank"
-                    className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#39D97A] hover:underline"
+                    className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent)] hover:underline"
                   >
-                    <img src="/svgs/link.svg" alt="" className="h-3 w-3" />
+                    <SvgIcon name="link" size={14} color="var(--accent)" />
                     on /blog/{comment.post_slug}
                   </Link>
 
@@ -244,8 +243,8 @@ export default function AdminCommentsPage() {
                   <span
                     className={`rounded-full px-2.5 py-1 text-xs font-bold ${
                       comment.is_approved
-                        ? 'bg-[#39D97A]/10 text-[#39D97A]'
-                        : 'bg-amber-500/10 text-amber-400'
+                        ? 'bg-[var(--accent-lime)]/10 text-[var(--accent-lime)]'
+                        : 'bg-yellow-500/10 text-yellow-500'
                     }`}
                   >
                     {comment.is_approved ? 'Approved' : 'Pending'}
@@ -255,14 +254,14 @@ export default function AdminCommentsPage() {
                     {!comment.is_approved ? (
                       <button
                         onClick={() => approveComment(comment.id)}
-                        className="rounded-lg bg-[#39D97A]/10 px-3 py-1.5 text-xs font-bold text-[#39D97A] transition hover:bg-[#39D97A]/20"
+                        className="rounded-lg bg-[var(--accent-lime)]/10 px-3 py-1.5 text-xs font-bold text-[var(--accent-lime)] transition hover:bg-[var(--accent-lime)]/20"
                       >
                         Approve
                       </button>
                     ) : (
                       <button
                         onClick={() => hideComment(comment.id)}
-                        className="rounded-lg bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-400 transition hover:bg-amber-500/20"
+                        className="rounded-lg bg-yellow-500/10 px-3 py-1.5 text-xs font-bold text-yellow-500 transition hover:bg-yellow-500/20"
                       >
                         Hide
                       </button>
@@ -270,9 +269,9 @@ export default function AdminCommentsPage() {
 
                     <button
                       onClick={() => deleteComment(comment.id)}
-                      className="rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
+                      className="rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-500"
                     >
-                      <span className="text-xs font-bold">Delete</span>
+                      <SvgIcon name="trash" size={16} color="currentColor" />
                     </button>
                   </div>
                 </div>

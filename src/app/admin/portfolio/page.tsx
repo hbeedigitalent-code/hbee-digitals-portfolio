@@ -1,3 +1,4 @@
+// src/app/admin/portfolio/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -89,6 +90,7 @@ export default function AdminPortfolioPage() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
+  const [showForm, setShowForm] = useState(false)
 
   useEffect(() => {
     fetchItems()
@@ -120,6 +122,7 @@ export default function AdminPortfolioPage() {
     setForm(defaultForm)
     setMessage('')
     setErrorMessage('')
+    setShowForm(false)
   }
 
   function editItem(item: any) {
@@ -148,6 +151,7 @@ export default function AdminPortfolioPage() {
       is_active: item.is_active ?? true,
       is_before_after: item.is_before_after || false,
     })
+    setShowForm(true)
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -258,13 +262,17 @@ export default function AdminPortfolioPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-black text-[var(--text-primary)]">Portfolio & Case Studies</h2>
-          <p className="text-sm text-[var(--text-secondary)]">Manage portfolio items, case studies, and before/after transformations.</p>
+          <p className="text-sm text-[var(--text-muted)]">Manage portfolio items, case studies, and before/after transformations.</p>
         </div>
         <button
-          onClick={resetForm}
-          className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02]"
+          onClick={() => {
+            resetForm()
+            setShowForm(true)
+          }}
+          className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-black text-white transition hover:opacity-90"
         >
-          + Create New Project
+          <SvgIcon name="plus" size={16} color="white" className="inline mr-1" />
+          Create New Project
         </button>
       </div>
 
@@ -275,13 +283,13 @@ export default function AdminPortfolioPage() {
       )}
 
       {errorMessage && (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-bold text-red-400">
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-bold text-red-500">
           {errorMessage}
         </div>
       )}
 
       {/* Create/Edit Form */}
-      {form.id || form.title || form.client_name ? (
+      {showForm && (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-black text-[var(--text-primary)]">
@@ -325,7 +333,7 @@ export default function AdminPortfolioPage() {
                   type="text"
                   value={form.client_name}
                   onChange={(e) => updateField('client_name', e.target.value)}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
                 />
               </div>
               <div>
@@ -335,7 +343,7 @@ export default function AdminPortfolioPage() {
                   value={form.category}
                   onChange={(e) => updateField('category', e.target.value)}
                   placeholder="Fashion, E-commerce, Healthcare"
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
                 />
               </div>
               <div>
@@ -345,7 +353,7 @@ export default function AdminPortfolioPage() {
                   value={form.project_type}
                   onChange={(e) => updateField('project_type', e.target.value)}
                   placeholder="Shopify Redesign + CRO"
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
                 />
               </div>
             </div>
@@ -356,7 +364,7 @@ export default function AdminPortfolioPage() {
                 rows={3}
                 value={form.description}
                 onChange={(e) => updateField('description', e.target.value)}
-                className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
               />
             </div>
 
@@ -368,7 +376,7 @@ export default function AdminPortfolioPage() {
                   value={form.metric_value}
                   onChange={(e) => updateField('metric_value', e.target.value)}
                   placeholder="+38%"
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
                 />
               </div>
               <div>
@@ -378,7 +386,7 @@ export default function AdminPortfolioPage() {
                   value={form.metric_label}
                   onChange={(e) => updateField('metric_label', e.target.value)}
                   placeholder="Conversion Lift"
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
                 />
               </div>
             </div>
@@ -411,7 +419,7 @@ export default function AdminPortfolioPage() {
                   rows={4}
                   value={form.brief}
                   onChange={(e) => updateField('brief', e.target.value)}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
                 />
               </div>
               <div>
@@ -420,7 +428,7 @@ export default function AdminPortfolioPage() {
                   rows={4}
                   value={form.results_summary}
                   onChange={(e) => updateField('results_summary', e.target.value)}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
                 />
               </div>
             </div>
@@ -432,7 +440,7 @@ export default function AdminPortfolioPage() {
                   type="number"
                   value={form.display_order}
                   onChange={(e) => updateField('display_order', parseInt(e.target.value) || 0)}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
                 />
               </div>
               <div>
@@ -442,7 +450,7 @@ export default function AdminPortfolioPage() {
                   value={form.website_url}
                   onChange={(e) => updateField('website_url', e.target.value)}
                   placeholder="https://example.com"
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
                 />
               </div>
               <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3">
@@ -477,13 +485,13 @@ export default function AdminPortfolioPage() {
             <button
               type="submit"
               disabled={saving}
-              className="w-full rounded-full bg-[var(--accent)] py-2.5 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] disabled:opacity-50"
+              className="w-full rounded-full bg-[var(--accent)] py-2.5 text-sm font-black text-white transition hover:opacity-90 disabled:opacity-50"
             >
               {saving ? 'Saving...' : form.id ? 'Update Portfolio Item' : 'Create Portfolio Item'}
             </button>
           </form>
         </div>
-      ) : null}
+      )}
 
       {/* Portfolio Items List */}
       <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
@@ -507,32 +515,36 @@ export default function AdminPortfolioPage() {
                         <span className="rounded-full bg-[var(--accent)]/20 px-2 py-0.5 text-[10px] font-bold text-[var(--accent)]">Featured</span>
                       )}
                       {!item.is_active && (
-                        <span className="rounded-full bg-gray-500/20 px-2 py-0.5 text-[10px] font-bold text-gray-400">Hidden</span>
+                        <span className="rounded-full bg-[var(--text-muted)]/20 px-2 py-0.5 text-[10px] font-bold text-[var(--text-muted)]">Hidden</span>
                       )}
                     </div>
-                    <p className="mt-1 text-sm text-[var(--text-secondary)]">{item.category || 'Uncategorized'}</p>
+                    <p className="mt-1 text-sm text-[var(--text-muted)]">{item.category || 'Uncategorized'}</p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <Link
-                        href={`/admin/portfolio/${item.id}`}
-                        className="rounded-full bg-[var(--accent)] px-3 py-1 text-xs font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02]"
+                      <button
+                        onClick={() => editItem(item)}
+                        className="rounded-full bg-[var(--accent)] px-3 py-1 text-xs font-black text-white transition hover:opacity-90"
                       >
                         Edit
-                      </Link>
+                      </button>
                       <button
                         onClick={() => toggleFeatured(item.id, item.featured)}
-                        className={`rounded-full px-3 py-1 text-xs font-bold transition ${item.featured ? 'bg-yellow-500/20 text-yellow-400' : 'border border-[var(--border)] text-[var(--text-muted)]'}`}
+                        className={`rounded-full px-3 py-1 text-xs font-bold transition ${
+                          item.featured ? 'bg-yellow-500/20 text-yellow-500' : 'border border-[var(--border)] text-[var(--text-muted)]'
+                        }`}
                       >
                         {item.featured ? 'Unfeature' : 'Feature'}
                       </button>
                       <button
                         onClick={() => toggleActive(item.id, item.is_active)}
-                        className={`rounded-full px-3 py-1 text-xs font-bold transition ${item.is_active ? 'bg-green-500/20 text-green-400' : 'bg-green-500/20 text-green-400'}`}
+                        className={`rounded-full px-3 py-1 text-xs font-bold transition ${
+                          item.is_active ? 'bg-[var(--accent-lime)]/20 text-[var(--accent-lime)]' : 'bg-[var(--text-muted)]/20 text-[var(--text-muted)]'
+                        }`}
                       >
                         {item.is_active ? 'Active' : 'Activate'}
                       </button>
                       <button
                         onClick={() => deleteItem(item.id)}
-                        className="rounded-full border border-red-500/30 px-3 py-1 text-xs font-bold text-red-400 transition hover:bg-red-500/10"
+                        className="rounded-full border border-red-500/30 px-3 py-1 text-xs font-bold text-red-500 transition hover:bg-red-500/10"
                       >
                         Delete
                       </button>

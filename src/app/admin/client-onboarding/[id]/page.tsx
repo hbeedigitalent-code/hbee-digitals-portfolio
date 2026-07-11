@@ -85,7 +85,7 @@ const statusColors: Record<string, string> = {
   'Awaiting Approval': 'bg-indigo-500/20 text-indigo-500',
   'In Progress': 'bg-cyan-500/20 text-cyan-500',
   'Completed': 'bg-green-500/20 text-green-500',
-  'Archived': 'bg-gray-500/20 text-gray-500',
+  'Archived': 'bg-[var(--text-muted)]/20 text-[var(--text-muted)]',
 }
 
 export default function AdminOnboardingDetailPage() {
@@ -173,7 +173,7 @@ export default function AdminOnboardingDetailPage() {
           </h1>
         </div>
         <div className="flex items-center gap-3">
-          <span className={`rounded-full px-3 py-1 text-xs font-medium ${statusColors[submission.status] || 'bg-gray-500/20 text-gray-500'}`}>
+          <span className={`rounded-full px-3 py-1 text-xs font-medium ${statusColors[submission.status] || 'bg-[var(--text-muted)]/20 text-[var(--text-muted)]'}`}>
             {submission.status}
           </span>
         </div>
