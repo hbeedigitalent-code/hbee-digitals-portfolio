@@ -1,5 +1,4 @@
 // src/app/growth-readiness/page.tsx
-// Server Component - No 'use client' needed
 
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'

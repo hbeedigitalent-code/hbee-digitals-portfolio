@@ -240,15 +240,21 @@ export async function POST(request: NextRequest) {
       // Don't fail the request, just log
     }
 
-    // 5. Send confirmation email to merchant (FIXED - only 2 arguments)
+    // 5. Send confirmation email to merchant using HOS template
     try {
-      const { sendGrowthAssessmentConfirmation } = await import('@/lib/emails/growth-assessment-confirmation')
-      await sendGrowthAssessmentConfirmation(body.contact_name, body.email)
+      const { sendAssessmentReceivedEmail } = await import('@/lib/emails/hos/assessment-received')
+      await sendAssessmentReceivedEmail({
+        firstName: body.contact_name.split(' ')[0] || body.contact_name,
+        email: body.email,
+        assessmentId: assessment.id,
+        portalUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hbeedigitals.com'}/client-signup`
+      })
+      console.log('✅ HOS assessment received email sent to:', body.email)
     } catch (emailError) {
       console.error('Merchant confirmation email error:', emailError)
     }
 
-    // 6. Send admin notification (FIXED - check function signature)
+    // 6. Send admin notification
     try {
       const { sendAdminGrowthAssessmentNotification } = await import('@/lib/emails/admin-growth-assessment-notification')
       await sendAdminGrowthAssessmentNotification(
@@ -275,6 +281,19 @@ export async function POST(request: NextRequest) {
         })
     } catch (notifError) {
       console.error('Notification creation error:', notifError)
+    }
+
+    // 8. Send review started email to merchant
+    try {
+      const { sendReviewStartedEmail } = await import('@/lib/emails/hos/review-started')
+      await sendReviewStartedEmail({
+        firstName: body.contact_name.split(' ')[0] || body.contact_name,
+        email: body.email,
+        portalUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hbeedigitals.com'}/client-portal`
+      })
+      console.log('✅ Review started email sent to:', body.email)
+    } catch (emailError) {
+      console.error('Review started email error:', emailError)
     }
 
     return NextResponse.json({
