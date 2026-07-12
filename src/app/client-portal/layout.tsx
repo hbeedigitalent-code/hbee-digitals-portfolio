@@ -1,4 +1,5 @@
 // src/app/client-portal/layout.tsx
+
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -19,6 +20,7 @@ export default function ClientPortalLayout({ children }: { children: React.React
 
   const navItems = [
     { name: 'Dashboard', href: '/client-portal', icon: 'dashboard' },
+    { name: 'Growth Profile', href: '/client-portal/growth-profile', icon: 'growth-readiness' },
     { name: 'Projects', href: '/client-portal/projects', icon: 'projects' },
     { name: 'Files', href: '/client-portal/files', icon: 'file' },
     { name: 'Requests', href: '/client-portal/requests', icon: 'messages' },

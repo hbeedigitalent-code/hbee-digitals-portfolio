@@ -1,3 +1,4 @@
+// src/components/growth-readiness/WhyWeCreated.tsx
 'use client'
 
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -58,23 +59,31 @@ export function WhyWeCreated() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-6"
+            className="mt-8 rounded-2xl border border-[var(--border-dark)] bg-[var(--bg-card-dark)] p-6"
           >
             <div className="flex flex-wrap items-center gap-4 text-sm text-[var(--text-on-dark-muted)]">
               <span className="flex items-center gap-2">
-                <SvgIcon name="check" size={16} color="var(--accent-lime)" />
+                <div className="rounded-full bg-[var(--accent-lime)]/20 p-1">
+                  <SvgIcon name="check" size={14} color="var(--accent-lime)" />
+                </div>
                 Data-driven insights
               </span>
               <span className="flex items-center gap-2">
-                <SvgIcon name="check" size={16} color="var(--accent-orange)" />
+                <div className="rounded-full bg-[var(--accent-orange)]/20 p-1">
+                  <SvgIcon name="check" size={14} color="var(--accent-orange)" />
+                </div>
                 5 growth pillars
               </span>
               <span className="flex items-center gap-2">
-                <SvgIcon name="check" size={16} color="var(--accent-lime)" />
+                <div className="rounded-full bg-[var(--accent-lime)]/20 p-1">
+                  <SvgIcon name="check" size={14} color="var(--accent-lime)" />
+                </div>
                 Actionable recommendations
               </span>
               <span className="flex items-center gap-2">
-                <SvgIcon name="check" size={16} color="var(--accent-orange)" />
+                <div className="rounded-full bg-[var(--accent-orange)]/20 p-1">
+                  <SvgIcon name="check" size={14} color="var(--accent-orange)" />
+                </div>
                 100-point scoring system
               </span>
             </div>

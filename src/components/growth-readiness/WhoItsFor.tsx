@@ -1,3 +1,4 @@
+// src/components/growth-readiness/WhoItsFor.tsx
 'use client'
 
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -76,10 +77,12 @@ export function WhoItsFor() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.05 }}
-              className="flex items-start gap-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-6"
+              className="flex items-start gap-4 rounded-2xl border border-[var(--border-dark)] bg-[var(--bg-card-dark)] p-6 transition-all hover:border-[var(--accent-orange)]"
             >
               <div className="flex-shrink-0">
-                <SvgIcon name={audience.icon} size={28} color="var(--accent-orange)" />
+                <div className="rounded-xl bg-[var(--accent-orange)]/10 p-2.5">
+                  <SvgIcon name={audience.icon} size={24} color="var(--accent-orange)" />
+                </div>
               </div>
               <div>
                 <h3 className="font-semibold text-white">{audience.title}</h3>

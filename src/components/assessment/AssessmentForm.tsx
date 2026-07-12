@@ -1,6 +1,8 @@
+// src/components/assessment/AssessmentForm.tsx
+
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { StepIndicator } from './StepIndicator'
 import { Step1BusinessProfile } from './Step1BusinessProfile'
@@ -44,6 +46,12 @@ const stepSubtext = {
   7: 'Tell us about your readiness to grow'
 }
 
+const containerVariants = {
+  hidden: { opacity: 0, x: 20 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
+  exit: { opacity: 0, x: -20, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } }
+}
+
 export function AssessmentForm() {
   const router = useRouter()
   
@@ -71,14 +79,14 @@ export function AssessmentForm() {
   const currentSubtext = stepSubtext[currentStep as keyof typeof stepSubtext]
 
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-6 md:p-8">
-      {/* Progress Bar Only - No Step Numbers */}
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 md:p-8 shadow-[var(--shadow-lg)]">
+      {/* Progress Indicator */}
       <StepIndicator
         currentStep={currentStep}
         totalSteps={7}
       />
 
-      {/* Current Step Title - Bold & Visible */}
+      {/* Current Step Title - Smooth transition */}
       <motion.div
         key={`title-${currentStep}`}
         initial={{ opacity: 0, y: 10 }}
@@ -86,21 +94,22 @@ export function AssessmentForm() {
         transition={{ duration: 0.3 }}
         className="mb-8"
       >
-        <h2 className="text-2xl md:text-3xl font-bold text-white">
+        <h2 className="text-2xl md:text-3xl font-bold text-[var(--text-primary)]">
           {currentTitle}
         </h2>
-        <p className="mt-1 text-[var(--text-on-dark-muted)]">
+        <p className="mt-1 text-[var(--text-muted)]">
           {currentSubtext}
         </p>
       </motion.div>
 
+      {/* Step Content with Smooth Transitions */}
       <AnimatePresence mode="wait">
         <motion.div
           key={currentStep}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
         >
           <StepComponent
             formData={formData}
@@ -110,11 +119,19 @@ export function AssessmentForm() {
         </motion.div>
       </AnimatePresence>
 
-      {errors.submit && (
-        <div className="mt-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-red-400">
-          {errors.submit}
-        </div>
-      )}
+      {/* Error Messages */}
+      <AnimatePresence>
+        {errors.submit && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="mt-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-red-500 text-sm"
+          >
+            {errors.submit}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Navigation Buttons */}
       <div className="mt-8 flex justify-between gap-4 border-t border-[var(--border)] pt-6">
@@ -122,9 +139,9 @@ export function AssessmentForm() {
           type="button"
           onClick={prevStep}
           disabled={currentStep === 1}
-          className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-transparent px-6 py-3 text-sm font-semibold text-[var(--text-on-dark)] transition-all hover:bg-[var(--bg-card-hover)] disabled:opacity-40 disabled:cursor-not-allowed"
+          className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-transparent px-6 py-3 text-sm font-semibold text-[var(--text-primary)] transition-all hover:bg-[var(--bg-section)] hover:border-[var(--accent)]/30 disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <SvgIcon name="chevron-left" size={16} color="currentColor" />
+          <SvgIcon name="chevron-left" size={16} color="var(--text-primary)" />
           Previous
         </button>
 
@@ -133,7 +150,7 @@ export function AssessmentForm() {
             type="button"
             onClick={submitForm}
             disabled={isSubmitting || !isCurrentStepComplete()}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)] px-8 py-3 text-sm font-bold text-white transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[var(--accent-orange)]/20"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent-orange)] px-8 py-3 text-sm font-bold text-white transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-[var(--accent-orange)]/25 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>
@@ -152,7 +169,7 @@ export function AssessmentForm() {
             type="button"
             onClick={nextStep}
             disabled={!isCurrentStepComplete()}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)] px-8 py-3 text-sm font-bold text-white transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[var(--accent-orange)]/20"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent-orange)] px-8 py-3 text-sm font-bold text-white transition-all hover:scale-[1.02] hover:shadow-lg hover:shadow-[var(--accent-orange)]/25 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continue
             <SvgIcon name="chevron-right" size={16} color="white" />

@@ -1,3 +1,4 @@
+// src/components/growth-readiness/HowItWorks.tsx
 'use client'
 
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -77,9 +78,11 @@ export function HowItWorks() {
               transition={{ duration: 0.5, delay: index * 0.1 }}
               className="relative"
             >
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-page)] p-6 text-center">
+              <div className="rounded-2xl border border-[var(--border-dark)] bg-[var(--bg-navy)] p-6 text-center transition-all hover:border-[var(--accent-orange)] hover:shadow-lg hover:shadow-[var(--accent-orange)]/5">
                 <div className="mb-4 flex justify-center">
-                  <SvgIcon name={step.icon} size={36} color="var(--accent-orange)" />
+                  <div className="rounded-xl bg-[var(--accent-orange)]/10 p-3">
+                    <SvgIcon name={step.icon} size={32} color="var(--accent-orange)" />
+                  </div>
                 </div>
                 <div className="mb-2 text-sm font-bold" style={{ color: 'var(--accent-orange)' }}>
                   {step.number}

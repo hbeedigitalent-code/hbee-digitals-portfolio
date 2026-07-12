@@ -1,6 +1,8 @@
+// src/components/assessment/Step1BusinessProfile.tsx
 'use client'
 
 import { FormData } from '@/types/growth-readiness'
+import SvgIcon from '@/components/ui/SvgIcon'
 
 interface Step1BusinessProfileProps {
   formData: FormData
@@ -39,98 +41,123 @@ const countries = [
 export function Step1BusinessProfile({ formData, updateField, errors }: Step1BusinessProfileProps) {
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-5 sm:grid-cols-2">
+        {/* Business Name */}
         <div>
-          <label htmlFor="business_name" className="mb-1.5 block text-sm font-medium text-white">
-            Business Name *
+          <label htmlFor="business_name" className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
+            Business Name <span className="text-red-500">*</span>
           </label>
-          <input
-            id="business_name"
-            type="text"
-            value={formData.business_name}
-            onChange={(e) => updateField('business_name', e.target.value)}
-            className={`w-full rounded-lg border bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
-              errors.business_name ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
-            }`}
-            placeholder="Your business name"
-          />
+          <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
+              <SvgIcon name="business" size={18} color="var(--text-muted)" />
+            </div>
+            <input
+              id="business_name"
+              type="text"
+              value={formData.business_name}
+              onChange={(e) => updateField('business_name', e.target.value)}
+              className={`w-full rounded-lg border bg-[var(--bg-page)] pl-10 pr-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
+                errors.business_name ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
+              }`}
+              placeholder="Your business name"
+            />
+          </div>
           {errors.business_name && (
             <p className="mt-1 text-sm text-red-500">{errors.business_name}</p>
           )}
         </div>
 
+        {/* Website URL */}
         <div>
-          <label htmlFor="website" className="mb-1.5 block text-sm font-medium text-white">
-            Website URL *
+          <label htmlFor="website" className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
+            Website URL <span className="text-red-500">*</span>
           </label>
-          <input
-            id="website"
-            type="url"
-            value={formData.website}
-            onChange={(e) => updateField('website', e.target.value)}
-            className={`w-full rounded-lg border bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
-              errors.website ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
-            }`}
-            placeholder="https://yourstore.com"
-          />
+          <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
+              <SvgIcon name="link" size={18} color="var(--text-muted)" />
+            </div>
+            <input
+              id="website"
+              type="url"
+              value={formData.website}
+              onChange={(e) => updateField('website', e.target.value)}
+              className={`w-full rounded-lg border bg-[var(--bg-page)] pl-10 pr-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
+                errors.website ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
+              }`}
+              placeholder="https://yourstore.com"
+            />
+          </div>
           {errors.website && (
             <p className="mt-1 text-sm text-red-500">{errors.website}</p>
           )}
         </div>
 
+        {/* Contact Name */}
         <div>
-          <label htmlFor="contact_name" className="mb-1.5 block text-sm font-medium text-white">
-            Contact Name *
+          <label htmlFor="contact_name" className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
+            Contact Name <span className="text-red-500">*</span>
           </label>
-          <input
-            id="contact_name"
-            type="text"
-            value={formData.contact_name}
-            onChange={(e) => updateField('contact_name', e.target.value)}
-            className={`w-full rounded-lg border bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
-              errors.contact_name ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
-            }`}
-            placeholder="Your full name"
-          />
+          <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
+              <SvgIcon name="user" size={18} color="var(--text-muted)" />
+            </div>
+            <input
+              id="contact_name"
+              type="text"
+              value={formData.contact_name}
+              onChange={(e) => updateField('contact_name', e.target.value)}
+              className={`w-full rounded-lg border bg-[var(--bg-page)] pl-10 pr-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
+                errors.contact_name ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
+              }`}
+              placeholder="Your full name"
+            />
+          </div>
           {errors.contact_name && (
             <p className="mt-1 text-sm text-red-500">{errors.contact_name}</p>
           )}
         </div>
 
+        {/* Email */}
         <div>
-          <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-white">
-            Email Address *
+          <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
+            Email Address <span className="text-red-500">*</span>
           </label>
-          <input
-            id="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => updateField('email', e.target.value)}
-            className={`w-full rounded-lg border bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
-              errors.email ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
-            }`}
-            placeholder="you@email.com"
-          />
+          <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
+              <SvgIcon name="email" size={18} color="var(--text-muted)" />
+            </div>
+            <input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => updateField('email', e.target.value)}
+              className={`w-full rounded-lg border bg-[var(--bg-page)] pl-10 pr-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
+                errors.email ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
+              }`}
+              placeholder="you@email.com"
+            />
+          </div>
           {errors.email && (
             <p className="mt-1 text-sm text-red-500">{errors.email}</p>
           )}
         </div>
 
+        {/* Country */}
         <div>
-          <label htmlFor="country" className="mb-1.5 block text-sm font-medium text-white">
-            Country *
+          <label htmlFor="country" className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
+            Country <span className="text-red-500">*</span>
           </label>
           <select
             id="country"
             value={formData.country}
             onChange={(e) => updateField('country', e.target.value)}
-            className={`w-full rounded-lg border bg-[var(--bg-navy-mid)] px-4 py-3 text-white focus:outline-none focus:ring-2 ${
+            className={`w-full rounded-lg border bg-[var(--bg-page)] px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:ring-2 ${
               errors.country ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
             }`}
           >
-            <option value="" className="bg-[var(--bg-navy-mid)]">Select your country</option>
+            <option value="">Select your country</option>
             {countries.map((country) => (
-              <option key={country} value={country} className="bg-[var(--bg-navy-mid)]">{country}</option>
+              <option key={country} value={country}>{country}</option>
             ))}
           </select>
           {errors.country && (
@@ -138,21 +165,22 @@ export function Step1BusinessProfile({ formData, updateField, errors }: Step1Bus
           )}
         </div>
 
+        {/* Industry */}
         <div>
-          <label htmlFor="industry" className="mb-1.5 block text-sm font-medium text-white">
-            Industry *
+          <label htmlFor="industry" className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
+            Industry <span className="text-red-500">*</span>
           </label>
           <select
             id="industry"
             value={formData.industry}
             onChange={(e) => updateField('industry', e.target.value)}
-            className={`w-full rounded-lg border bg-[var(--bg-navy-mid)] px-4 py-3 text-white focus:outline-none focus:ring-2 ${
+            className={`w-full rounded-lg border bg-[var(--bg-page)] px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:ring-2 ${
               errors.industry ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
             }`}
           >
-            <option value="" className="bg-[var(--bg-navy-mid)]">Select your industry</option>
+            <option value="">Select your industry</option>
             {industries.map((industry) => (
-              <option key={industry} value={industry} className="bg-[var(--bg-navy-mid)]">{industry}</option>
+              <option key={industry} value={industry}>{industry}</option>
             ))}
           </select>
           {errors.industry && (

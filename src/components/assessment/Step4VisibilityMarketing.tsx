@@ -1,6 +1,8 @@
+// src/components/assessment/Step4VisibilityMarketing.tsx
 'use client'
 
 import { FormData } from '@/types/growth-readiness'
+import SvgIcon from '@/components/ui/SvgIcon'
 
 interface Step4VisibilityMarketingProps {
   formData: FormData
@@ -58,8 +60,8 @@ export function Step4VisibilityMarketing({ formData, updateField, errors }: Step
   return (
     <div className="space-y-6">
       <div>
-        <label className="mb-3 block text-sm font-medium text-white">
-          How do customers discover you? * (Select all that apply)
+        <label className="mb-3 block text-sm font-medium text-[var(--text-primary)]">
+          How do customers discover you? <span className="text-red-500">*</span> <span className="text-sm text-[var(--text-muted)]">(Select all that apply)</span>
         </label>
         <div className="grid gap-2 sm:grid-cols-2">
           {channels.map((channel) => {
@@ -73,13 +75,13 @@ export function Step4VisibilityMarketing({ formData, updateField, errors }: Step
                 className={`rounded-lg border p-3 text-left transition-all ${
                   isSelected
                     ? 'border-[var(--accent-orange)] bg-[var(--accent-orange)]/10 ring-2 ring-[var(--accent-orange)]'
-                    : 'border-[var(--border)] bg-[var(--bg-navy-mid)] hover:border-[var(--accent-orange)]'
+                    : 'border-[var(--border)] bg-[var(--bg-page)] hover:border-[var(--accent-orange)]'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-white">{channel}</span>
+                  <span className="text-sm text-[var(--text-primary)]">{channel}</span>
                   {isSelected && (
-                    <span className="text-[var(--accent-lime)]">✓</span>
+                    <span className="text-[var(--accent-lime)] font-bold">✓</span>
                   )}
                 </div>
               </button>
@@ -92,20 +94,20 @@ export function Step4VisibilityMarketing({ formData, updateField, errors }: Step
       </div>
 
       <div>
-        <label htmlFor="best_channel" className="mb-1.5 block text-sm font-medium text-white">
-          What's your best performing channel? *
+        <label htmlFor="best_channel" className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
+          What's your best performing channel? <span className="text-red-500">*</span>
         </label>
         <select
           id="best_channel"
           value={formData.best_channel}
           onChange={(e) => updateField('best_channel', e.target.value)}
-          className={`w-full rounded-lg border bg-[var(--bg-navy-mid)] px-4 py-3 text-white focus:outline-none focus:ring-2 ${
+          className={`w-full rounded-lg border bg-[var(--bg-page)] px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:ring-2 ${
             errors.best_channel ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
           }`}
         >
-          <option value="" className="bg-[var(--bg-navy-mid)]">Select your best channel</option>
+          <option value="">Select your best channel</option>
           {channels.map((channel) => (
-            <option key={channel} value={channel} className="bg-[var(--bg-navy-mid)]">{channel}</option>
+            <option key={channel} value={channel}>{channel}</option>
           ))}
         </select>
         {errors.best_channel && (
@@ -114,10 +116,10 @@ export function Step4VisibilityMarketing({ formData, updateField, errors }: Step
       </div>
 
       <div>
-        <label className="mb-3 block text-sm font-medium text-white">
-          Do you use paid advertising? *
+        <label className="mb-3 block text-sm font-medium text-[var(--text-primary)]">
+          Do you use paid advertising? <span className="text-red-500">*</span>
         </label>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-3">
           {paidAdsOptions.map((option) => (
             <button
               key={option.value}
@@ -126,10 +128,10 @@ export function Step4VisibilityMarketing({ formData, updateField, errors }: Step
               className={`rounded-lg border px-6 py-3 transition-all ${
                 formData.paid_ads_usage === option.value
                   ? 'border-[var(--accent-orange)] bg-[var(--accent-orange)]/10 ring-2 ring-[var(--accent-orange)]'
-                  : 'border-[var(--border)] bg-[var(--bg-navy-mid)] hover:border-[var(--accent-orange)]'
+                  : 'border-[var(--border)] bg-[var(--bg-page)] hover:border-[var(--accent-orange)]'
               }`}
             >
-              <span className="text-white">{option.label}</span>
+              <span className="text-[var(--text-primary)]">{option.label}</span>
             </button>
           ))}
         </div>
@@ -140,8 +142,8 @@ export function Step4VisibilityMarketing({ formData, updateField, errors }: Step
 
       {formData.paid_ads_usage === 'Yes' && (
         <div>
-          <label className="mb-3 block text-sm font-medium text-white">
-            Which platforms do you use? (Select all that apply)
+          <label className="mb-3 block text-sm font-medium text-[var(--text-primary)]">
+            Which platforms do you use? <span className="text-sm text-[var(--text-muted)]">(Select all that apply)</span>
           </label>
           <div className="grid gap-2 sm:grid-cols-2">
             {paidAdPlatforms.map((platform) => {
@@ -155,13 +157,13 @@ export function Step4VisibilityMarketing({ formData, updateField, errors }: Step
                   className={`rounded-lg border p-3 text-left transition-all ${
                     isSelected
                       ? 'border-[var(--accent-orange)] bg-[var(--accent-orange)]/10 ring-2 ring-[var(--accent-orange)]'
-                      : 'border-[var(--border)] bg-[var(--bg-navy-mid)] hover:border-[var(--accent-orange)]'
+                      : 'border-[var(--border)] bg-[var(--bg-page)] hover:border-[var(--accent-orange)]'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-white">{platform}</span>
+                    <span className="text-sm text-[var(--text-primary)]">{platform}</span>
                     {isSelected && (
-                      <span className="text-[var(--accent-lime)]">✓</span>
+                      <span className="text-[var(--accent-lime)] font-bold">✓</span>
                     )}
                   </div>
                 </button>
@@ -172,8 +174,8 @@ export function Step4VisibilityMarketing({ formData, updateField, errors }: Step
       )}
 
       <div>
-        <label className="mb-3 block text-sm font-medium text-white">
-          How confident are you in your current visibility? *
+        <label className="mb-3 block text-sm font-medium text-[var(--text-primary)]">
+          How confident are you in your current visibility? <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           <input
@@ -186,7 +188,7 @@ export function Step4VisibilityMarketing({ formData, updateField, errors }: Step
           />
           <div className="flex justify-between text-sm text-[var(--text-muted)]">
             <span>Not confident</span>
-            <span className="font-medium text-white">{formData.visibility_confidence}/10</span>
+            <span className="font-medium text-[var(--text-primary)]">{formData.visibility_confidence}/10</span>
             <span>Very confident</span>
           </div>
         </div>

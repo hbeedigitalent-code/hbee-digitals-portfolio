@@ -1,6 +1,8 @@
+// src/components/assessment/Step3GrowthObjectives.tsx
 'use client'
 
 import { FormData } from '@/types/growth-readiness'
+import SvgIcon from '@/components/ui/SvgIcon'
 
 interface Step3GrowthObjectivesProps {
   formData: FormData
@@ -34,8 +36,8 @@ export function Step3GrowthObjectives({ formData, updateField, errors }: Step3Gr
   return (
     <div className="space-y-6">
       <div>
-        <label className="mb-3 block text-sm font-medium text-white">
-          90-Day Goals * (Select up to 3)
+        <label className="mb-3 block text-sm font-medium text-[var(--text-primary)]">
+          90-Day Goals <span className="text-red-500">*</span> <span className="text-sm text-[var(--text-muted)]">(Select up to 3)</span>
         </label>
         <div className="grid gap-2 sm:grid-cols-2">
           {goals.map((goal) => {
@@ -51,13 +53,13 @@ export function Step3GrowthObjectives({ formData, updateField, errors }: Step3Gr
                 className={`rounded-lg border p-3 text-left transition-all ${
                   isSelected
                     ? 'border-[var(--accent-orange)] bg-[var(--accent-orange)]/10 ring-2 ring-[var(--accent-orange)]'
-                    : 'border-[var(--border)] bg-[var(--bg-navy-mid)] hover:border-[var(--accent-orange)]'
+                    : 'border-[var(--border)] bg-[var(--bg-page)] hover:border-[var(--accent-orange)]'
                 } ${isMaxed ? 'cursor-not-allowed opacity-50' : ''}`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-white">{goal}</span>
+                  <span className="text-sm text-[var(--text-primary)]">{goal}</span>
                   {isSelected && (
-                    <span className="text-[var(--accent-lime)]">✓</span>
+                    <span className="text-[var(--accent-lime)] font-bold">✓</span>
                   )}
                 </div>
               </button>
@@ -73,15 +75,15 @@ export function Step3GrowthObjectives({ formData, updateField, errors }: Step3Gr
       </div>
 
       <div>
-        <label htmlFor="success_vision" className="mb-1.5 block text-sm font-medium text-white">
-          What does success look like for you? *
+        <label htmlFor="success_vision" className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
+          What does success look like for you? <span className="text-red-500">*</span>
         </label>
         <textarea
           id="success_vision"
           value={formData.success_vision}
           onChange={(e) => updateField('success_vision', e.target.value)}
           rows={4}
-          className={`w-full rounded-lg border bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
+          className={`w-full rounded-lg border bg-[var(--bg-page)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 ${
             errors.success_vision ? 'border-red-500 focus:ring-red-500' : 'border-[var(--border)] focus:ring-[var(--accent-orange)]'
           }`}
           placeholder="Describe your vision for success..."

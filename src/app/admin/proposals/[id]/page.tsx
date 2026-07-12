@@ -1,50 +1,29 @@
+// src/app/admin/proposals/[id]/page.tsx
+
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@/lib/supabase-client'
-import { useParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { createClientComponentClient } from '@/lib/supabase-client'
+import { MerchantLifecycleService } from '@/lib/services/merchant-lifecycle'
+import StatusBadge from '@/components/ui/StatusBadge'
 import SvgIcon from '@/components/ui/SvgIcon'
-import { ProposalStatus } from '@/types/admin-crm'
+import Button from '@/components/ui/Button'
 
-interface Proposal {
-  id: string
-  proposal_number: string
-  lead_id: string | null
-  client_id: string | null
-  project_id: string | null
-  business_name: string
-  project_title: string
-  scope: string
-  deliverables: string[]
-  timeline: string
-  investment: number
-  payment_structure: string
-  terms: string
-  status: string
-  share_link: string | null
-  created_at: string
+interface PageProps {
+  params: {
+    id: string
+  }
 }
 
-const statusOptions: ProposalStatus[] = ['Draft', 'Sent', 'Viewed', 'Approved', 'Rejected', 'Expired']
-
-const statusColors: Record<ProposalStatus, string> = {
-  'Draft': 'bg-gray-500/20 text-gray-400',
-  'Sent': 'bg-blue-500/20 text-blue-400',
-  'Viewed': 'bg-yellow-500/20 text-yellow-400',
-  'Approved': 'bg-[var(--accent-lime)]/20 text-[var(--accent-lime)]',
-  'Rejected': 'bg-red-500/20 text-red-400',
-  'Expired': 'bg-gray-500/20 text-gray-400',
-}
-
-export default function AdminProposalDetailPage() {
-  const params = useParams()
+export default function AdminProposalDetailPage({ params }: PageProps) {
   const router = useRouter()
   const supabase = createClientComponentClient()
-  const [proposal, setProposal] = useState<Proposal | null>(null)
   const [loading, setLoading] = useState(true)
+  const [proposal, setProposal] = useState<any>(null)
+  const [merchant, setMerchant] = useState<any>(null)
   const [updating, setUpdating] = useState(false)
-  const [selectedStatus, setSelectedStatus] = useState('')
 
   useEffect(() => {
     fetchProposal()
@@ -52,168 +31,304 @@ export default function AdminProposalDetailPage() {
 
   async function fetchProposal() {
     setLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select(`
+          *,
+          merchant:merchants(*),
+          client:clients(*)
+        `)
+        .eq('id', params.id)
+        .single()
 
-    const { data, error } = await supabase
-      .from('proposals')
-      .select('*')
-      .eq('id', params.id)
-      .single()
+      if (error) {
+        console.error('Error fetching proposal:', error)
+        return
+      }
 
-    if (error || !data) {
-      router.push('/admin/proposals')
-      return
+      setProposal(data)
+      setMerchant(data.merchant)
+    } catch (error) {
+      console.error('Error:', error)
+    } finally {
+      setLoading(false)
     }
-
-    setProposal(data)
-    setSelectedStatus(data.status)
-    setLoading(false)
   }
 
-  async function updateProposal() {
-    if (!proposal || selectedStatus === proposal.status) return
+  async function updateStatus(status: string) {
+    if (!confirm(`Change proposal status to "${status}"?`)) return
 
     setUpdating(true)
+    try {
+      const updates: any = { status }
+      
+      if (status === 'sent') {
+        updates.sent_at = new Date().toISOString()
+      }
+      if (status === 'accepted') {
+        updates.accepted_at = new Date().toISOString()
+        // Update merchant status
+        await MerchantLifecycleService.updateStatus(proposal.merchant_id, 'proposal_accepted')
+      }
 
-    const { error } = await supabase
-      .from('proposals')
-      .update({ status: selectedStatus })
-      .eq('id', proposal.id)
+      const { error } = await supabase
+        .from('proposals')
+        .update(updates)
+        .eq('id', params.id)
 
-    if (!error) {
-      setProposal({ ...proposal, status: selectedStatus })
+      if (error) {
+        console.error('Error updating proposal:', error)
+        alert('Failed to update proposal status.')
+        return
+      }
+
+      await fetchProposal()
+      alert(`Proposal status updated to "${status}"`)
+    } catch (error) {
+      console.error('Error:', error)
+    } finally {
+      setUpdating(false)
     }
-
-    setUpdating(false)
   }
 
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
       </div>
     )
   }
 
   if (!proposal) {
     return (
-      <div className="text-center py-12">
-        <p className="text-[var(--text-muted)]">Proposal not found</p>
+      <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
+        <SvgIcon name="warning" size={48} color="var(--text-muted)" />
+        <h2 className="mt-4 text-xl font-semibold text-[var(--text-primary)]">Proposal Not Found</h2>
+        <p className="mt-2 text-[var(--text-secondary)]">The proposal you're looking for doesn't exist.</p>
+        <Link href="/admin/proposals">
+          <Button className="mt-6">Back to Proposals</Button>
+        </Link>
       </div>
     )
   }
 
+  const totalServices = proposal.services?.reduce((sum: number, s: any) => sum + (parseFloat(s.price) || 0), 0) || 0
+
+  const statusActions: Record<string, string[]> = {
+    'draft': ['sent'],
+    'sent': ['viewed'],
+    'viewed': ['accepted', 'rejected'],
+    'accepted': [],
+    'rejected': [],
+    'expired': [],
+    'converted': []
+  }
+
+  const availableActions = statusActions[proposal.status] || []
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <Link
-            href="/admin/proposals"
-            className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-white transition"
-          >
-            <SvgIcon name="chevron-left" size={16} color="currentColor" />
-            Back to Proposals
-          </Link>
-          <h1 className="text-2xl font-bold text-white mt-2">
-            {proposal.proposal_number}
-          </h1>
-          <p className="text-sm text-[var(--text-muted)]">{proposal.project_title}</p>
+          <div className="flex items-center gap-3">
+            <Link href="/admin/proposals" className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+              <SvgIcon name="chevron-left" size={20} />
+            </Link>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+              {proposal.title}
+            </h1>
+            <StatusBadge status={proposal.status} />
+          </div>
+          <p className="text-[var(--text-secondary)]">
+            #{proposal.proposal_number} • {merchant?.business_name || 'Unknown Merchant'}
+          </p>
         </div>
-        <span className={`rounded-full px-3 py-1 text-xs font-medium ${statusColors[proposal.status as ProposalStatus]}`}>
-          {proposal.status}
-        </span>
+        <div className="flex flex-wrap gap-2">
+          <Link href={`/admin/proposals/${proposal.id}/edit`}>
+            <Button variant="secondary" size="sm">
+              <SvgIcon name="edit" size={14} />
+              Edit
+            </Button>
+          </Link>
+          {availableActions.map((action) => (
+            <Button
+              key={action}
+              size="sm"
+              onClick={() => updateStatus(action)}
+              disabled={updating}
+            >
+              {action.charAt(0).toUpperCase() + action.slice(1)}
+            </Button>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Status Management */}
-        <div className="lg:col-span-1">
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-6">
-            <h3 className="text-sm font-semibold text-white mb-4">Proposal Management</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Status</label>
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
-                >
-                  {statusOptions.map((status) => (
-                    <option key={status} value={status}>{status}</option>
-                  ))}
-                </select>
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Services */}
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Services</h3>
+            <div className="space-y-3">
+              {proposal.services?.map((service: any, index: number) => (
+                <div key={index} className="flex items-start justify-between border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">
+                  <div>
+                    <p className="font-medium text-[var(--text-primary)]">{service.name}</p>
+                    {service.description && (
+                      <p className="text-sm text-[var(--text-muted)]">{service.description}</p>
+                    )}
+                  </div>
+                  <p className="font-semibold text-[var(--text-primary)]">
+                    ${parseFloat(service.price).toFixed(2)}
+                  </p>
+                </div>
+              ))}
+              <div className="flex items-center justify-between pt-3 border-t border-[var(--border)]">
+                <span className="font-semibold text-[var(--text-primary)]">Total</span>
+                <span className="text-lg font-bold text-[var(--text-primary)]">
+                  ${totalServices.toFixed(2)}
+                </span>
               </div>
-
-              <button
-                onClick={updateProposal}
-                disabled={updating || selectedStatus === proposal.status}
-                className="w-full rounded-full bg-[var(--accent-orange)] px-6 py-2 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] disabled:opacity-50"
-              >
-                {updating ? 'Updating...' : 'Update Status'}
-              </button>
-
-              {proposal.share_link && (
-                <a
-                  href={proposal.share_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex w-full items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-transparent px-6 py-2 text-sm font-semibold text-white transition hover:bg-[var(--bg-navy-mid)]"
-                >
-                  <SvgIcon name="external" size={14} color="currentColor" />
-                  View Share Link
-                </a>
-              )}
             </div>
           </div>
+
+          {/* Timeline & Terms */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">Timeline</h3>
+              <p className="text-[var(--text-secondary)]">{proposal.timeline || 'Not specified'}</p>
+            </div>
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">Payment Terms</h3>
+              <p className="text-[var(--text-secondary)]">{proposal.pricing?.payment_terms || 'Not specified'}</p>
+            </div>
+          </div>
+
+          {/* Notes */}
+          {proposal.notes && (
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">Internal Notes</h3>
+              <p className="text-[var(--text-secondary)]">{proposal.notes}</p>
+            </div>
+          )}
+
+          {/* Terms & Conditions */}
+          {proposal.terms && (
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">Terms & Conditions</h3>
+              <p className="text-sm text-[var(--text-secondary)] whitespace-pre-wrap">{proposal.terms}</p>
+            </div>
+          )}
         </div>
 
-        {/* Proposal Info */}
-        <div className="lg:col-span-2">
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-6">
-            <h3 className="text-sm font-semibold text-white mb-4">Proposal Details</h3>
-            
-            <div className="grid gap-4 sm:grid-cols-2">
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Merchant Info */}
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Merchant Information</h3>
+            <dl className="space-y-2 text-sm">
               <div>
-                <p className="text-xs text-[var(--text-muted)]">Proposal Number</p>
-                <p className="text-sm font-mono text-[var(--accent-orange)]">{proposal.proposal_number}</p>
-              </div>
-              <div>
-                <p className="text-xs text-[var(--text-muted)]">Business</p>
-                <p className="text-sm text-white">{proposal.business_name || 'N/A'}</p>
+                <dt className="text-[var(--text-muted)]">Business</dt>
+                <dd className="font-medium text-[var(--text-primary)]">{merchant?.business_name || 'N/A'}</dd>
               </div>
               <div>
-                <p className="text-xs text-[var(--text-muted)]">Project Title</p>
-                <p className="text-sm text-white">{proposal.project_title}</p>
+                <dt className="text-[var(--text-muted)]">Contact</dt>
+                <dd className="font-medium text-[var(--text-primary)]">{merchant?.contact_name || 'N/A'}</dd>
               </div>
               <div>
-                <p className="text-xs text-[var(--text-muted)]">Investment</p>
-                <p className="text-sm font-semibold text-white">${proposal.investment?.toLocaleString() || 'N/A'}</p>
+                <dt className="text-[var(--text-muted)]">Email</dt>
+                <dd className="font-medium text-[var(--text-primary)]">{merchant?.email || 'N/A'}</dd>
               </div>
-              <div>
-                <p className="text-xs text-[var(--text-muted)]">Timeline</p>
-                <p className="text-sm text-white">{proposal.timeline || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-[var(--text-muted)]">Payment Structure</p>
-                <p className="text-sm text-white">{proposal.payment_structure || 'N/A'}</p>
-              </div>
-              <div className="sm:col-span-2">
-                <p className="text-xs text-[var(--text-muted)]">Scope</p>
-                <p className="text-sm text-white">{proposal.scope || 'N/A'}</p>
-              </div>
-              <div className="sm:col-span-2">
-                <p className="text-xs text-[var(--text-muted)]">Deliverables</p>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {proposal.deliverables?.map((item, idx) => (
-                    <span key={idx} className="rounded-full bg-[var(--bg-navy-mid)] px-3 py-1 text-xs text-[var(--text-muted)]">
-                      {item}
-                    </span>
-                  ))}
+              {merchant?.website && (
+                <div>
+                  <dt className="text-[var(--text-muted)]">Website</dt>
+                  <dd>
+                    <a href={merchant.website} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline">
+                      {merchant.website}
+                    </a>
+                  </dd>
                 </div>
+              )}
+            </dl>
+          </div>
+
+          {/* Proposal Details */}
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Proposal Details</h3>
+            <dl className="space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <dt className="text-[var(--text-muted)]">Number</dt>
+                <dd className="font-medium text-[var(--text-primary)]">{proposal.proposal_number}</dd>
               </div>
-              <div className="sm:col-span-2">
-                <p className="text-xs text-[var(--text-muted)]">Terms</p>
-                <p className="text-sm text-white">{proposal.terms || 'N/A'}</p>
+              <div className="flex items-center justify-between">
+                <dt className="text-[var(--text-muted)]">Status</dt>
+                <dd><StatusBadge status={proposal.status} size="sm" /></dd>
               </div>
+              <div className="flex items-center justify-between">
+                <dt className="text-[var(--text-muted)]">Created</dt>
+                <dd className="text-[var(--text-secondary)]">{new Date(proposal.created_at).toLocaleDateString()}</dd>
+              </div>
+              {proposal.sent_at && (
+                <div className="flex items-center justify-between">
+                  <dt className="text-[var(--text-muted)]">Sent</dt>
+                  <dd className="text-[var(--text-secondary)]">{new Date(proposal.sent_at).toLocaleDateString()}</dd>
+                </div>
+              )}
+              {proposal.accepted_at && (
+                <div className="flex items-center justify-between">
+                  <dt className="text-[var(--text-muted)]">Accepted</dt>
+                  <dd className="text-[var(--text-secondary)]">{new Date(proposal.accepted_at).toLocaleDateString()}</dd>
+                </div>
+              )}
+              {proposal.expires_at && (
+                <div className="flex items-center justify-between">
+                  <dt className="text-[var(--text-muted)]">Expires</dt>
+                  <dd className="text-[var(--text-secondary)]">{new Date(proposal.expires_at).toLocaleDateString()}</dd>
+                </div>
+              )}
+            </dl>
+          </div>
+
+          {/* Actions */}
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Actions</h3>
+            <div className="space-y-2">
+              {proposal.status === 'accepted' && (
+                <Link href={`/admin/client-onboarding/new?proposal=${proposal.id}`}>
+                  <Button className="w-full">
+                    <SvgIcon name="users" size={16} color="white" />
+                    Start Onboarding
+                  </Button>
+                </Link>
+              )}
+              {proposal.pdf_url && (
+                <a
+                  href={proposal.pdf_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block"
+                >
+                  <Button variant="secondary" className="w-full">
+                    <SvgIcon name="download" size={16} />
+                    Download PDF
+                  </Button>
+                </a>
+              )}
+              <button
+                onClick={() => {
+                  const shareUrl = `${window.location.origin}/client-portal/proposals/${proposal.id}`
+                  navigator.clipboard.writeText(shareUrl)
+                  alert('Share link copied to clipboard!')
+                }}
+                className="w-full"
+              >
+                <Button variant="secondary" className="w-full">
+                  <SvgIcon name="link" size={16} />
+                  Copy Share Link
+                </Button>
+              </button>
             </div>
           </div>
         </div>

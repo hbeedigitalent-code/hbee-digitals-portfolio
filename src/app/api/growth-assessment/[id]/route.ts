@@ -35,7 +35,6 @@ export async function PATCH(
 ) {
   const supabase = getSupabaseAdmin()
   
-  // Check if Supabase is configured
   if (!supabase) {
     console.error('Supabase not configured - missing environment variables')
     return NextResponse.json(
@@ -47,50 +46,87 @@ export async function PATCH(
   try {
     const { id } = params
     const body = await request.json()
-    const { status } = body
+    const { status, review_status } = body
 
-    if (!status) {
+    if (!status && !review_status) {
       return NextResponse.json(
-        { error: 'Status is required' },
+        { error: 'Status or review_status is required' },
         { status: 400 }
       )
     }
 
-    // Validate status is in allowed list
-    const allowedStatuses = [
-      'New Submission',
-      'Under Review',
-      'Growth Profile Issued',
-      'Opportunity Review Candidate',
-      'Opportunity Review Sent',
-      'Growth Support Eligible',
-      'Growth Partner',
-      'Client',
-      'Archived'
-    ]
+    // Build update object
+    const updates: any = {
+      updated_at: new Date().toISOString()
+    }
+    
+    if (status) {
+      const allowedStatuses = [
+        'New Submission',
+        'Under Review',
+        'Growth Profile Issued',
+        'Opportunity Review Candidate',
+        'Opportunity Review Sent',
+        'Growth Support Eligible',
+        'Growth Partner',
+        'Client',
+        'Archived'
+      ]
 
-    if (!allowedStatuses.includes(status)) {
-      return NextResponse.json(
-        { error: 'Invalid status value' },
-        { status: 400 }
-      )
+      if (!allowedStatuses.includes(status)) {
+        return NextResponse.json(
+          { error: 'Invalid status value' },
+          { status: 400 }
+        )
+      }
+      updates.status = status
     }
 
-    // Update the assessment status
+    if (review_status) {
+      const allowedReviewStatuses = ['pending', 'in_review', 'reviewed', 'approved', 'rejected']
+      if (!allowedReviewStatuses.includes(review_status)) {
+        return NextResponse.json(
+          { error: 'Invalid review_status value' },
+          { status: 400 }
+        )
+      }
+      updates.review_status = review_status
+      
+      // If approved, update merchant status
+      if (review_status === 'approved') {
+        updates.reviewed_at = new Date().toISOString()
+        
+        // Get merchant_id to update status
+        const { data: assessment } = await supabase
+          .from('growth_assessments')
+          .select('merchant_id')
+          .eq('id', id)
+          .single()
+        
+        if (assessment) {
+          await supabase
+            .from('merchant_status')
+            .upsert({
+              merchant_id: assessment.merchant_id,
+              status: 'review_in_progress',
+              last_activity: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'merchant_id' })
+        }
+      }
+    }
+
     const { data, error } = await supabase
       .from('growth_assessments')
-      .update({ 
-        status,
-        updated_at: new Date().toISOString()
-      })
+      .update(updates)
       .eq('id', id)
       .select()
       .single()
 
     if (error) {
-      console.error('Error updating assessment status:', error)
+      console.error('Error updating assessment:', error)
       return NextResponse.json(
-        { error: 'Failed to update assessment status' },
+        { error: 'Failed to update assessment' },
         { status: 500 }
       )
     }
@@ -100,12 +136,13 @@ export async function PATCH(
       data: {
         id: data.id,
         status: data.status,
+        review_status: data.review_status,
         updated_at: data.updated_at
       }
     })
 
   } catch (error) {
-    console.error('Assessment status update error:', error)
+    console.error('Assessment update error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -119,7 +156,6 @@ export async function GET(
 ) {
   const supabase = getSupabaseAdmin()
   
-  // Check if Supabase is configured
   if (!supabase) {
     console.error('Supabase not configured - missing environment variables')
     return NextResponse.json(
@@ -135,7 +171,8 @@ export async function GET(
       .from('growth_assessments')
       .select(`
         *,
-        merchant:merchants(*)
+        merchant:merchants(*),
+        review:growth_reviews(*)
       `)
       .eq('id', id)
       .single()

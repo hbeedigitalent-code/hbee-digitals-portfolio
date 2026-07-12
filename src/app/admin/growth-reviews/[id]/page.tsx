@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClientComponentClient } from '@/lib/supabase-client'
 import { MerchantLifecycleService } from '@/lib/services/merchant-lifecycle'
-import { GrowthProfileService } from '@/lib/services/growth-profile-service'
 import StatusBadge from '@/components/ui/StatusBadge'
 import SvgIcon from '@/components/ui/SvgIcon'
 import Button from '@/components/ui/Button'
@@ -67,7 +66,7 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
       setMerchant(data.merchant)
       setAssessment(data.assessment)
 
-      // Populate form data
+      // Populate form data from review or assessment
       if (data) {
         setFormData({
           review_notes: data.review_notes || '',
@@ -75,11 +74,11 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
           growth_classification: data.growth_classification || data.assessment?.growth_classification || 'Growth Potential',
           strengths: data.strengths || [''],
           opportunities: data.opportunities || [''],
-          visibility_score: data.visibility_score || 0,
-          conversion_score: data.conversion_score || 0,
-          retention_score: data.retention_score || 0,
-          authority_score: data.authority_score || 0,
-          scalability_score: data.scalability_score || 0,
+          visibility_score: data.visibility_score || data.assessment?.visibility_score || 0,
+          conversion_score: data.conversion_score || data.assessment?.conversion_score || 0,
+          retention_score: data.retention_score || data.assessment?.retention_score || 0,
+          authority_score: data.authority_score || data.assessment?.authority_score || 0,
+          scalability_score: data.scalability_score || data.assessment?.scalability_score || 0,
           status: data.status || 'pending'
         })
       }
@@ -116,7 +115,7 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
         return
       }
 
-      alert('Review saved successfully!')
+      alert('✅ Review saved successfully!')
       await fetchReview()
     } catch (error) {
       console.error('Error:', error)
@@ -130,79 +129,43 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
     if (!confirm('Complete this review? This will generate the growth profile for the merchant.')) return
 
     setSaving(true)
+    setGenerating(true)
     try {
-      // Update review status
-      const { error: updateError } = await supabase
-        .from('growth_reviews')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-          review_notes: formData.review_notes,
-          hgri_score: formData.hgri_score,
-          growth_classification: formData.growth_classification,
-          strengths: formData.strengths.filter(s => s.trim()),
-          opportunities: formData.opportunities.filter(s => s.trim()),
-          visibility_score: formData.visibility_score,
-          conversion_score: formData.conversion_score,
-          retention_score: formData.retention_score,
-          authority_score: formData.authority_score,
-          scalability_score: formData.scalability_score,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', params.id)
+      // Use the MerchantLifecycleService to complete the review
+      const result = await MerchantLifecycleService.completeGrowthReview(params.id, {
+        review_notes: formData.review_notes,
+        hgri_score: formData.hgri_score,
+        growth_classification: formData.growth_classification,
+        strengths: formData.strengths.filter(s => s.trim()),
+        opportunities: formData.opportunities.filter(s => s.trim()),
+        recommendations: generateRecommendations(formData),
+        visibility_score: formData.visibility_score,
+        conversion_score: formData.conversion_score,
+        retention_score: formData.retention_score,
+        authority_score: formData.authority_score,
+        scalability_score: formData.scalability_score
+      })
 
-      if (updateError) {
-        console.error('Error completing review:', updateError)
-        alert('Failed to complete review. Please try again.')
-        return
-      }
-
-      // Update assessment
-      if (assessment) {
-        await supabase
-          .from('growth_assessments')
-          .update({
-            review_status: 'approved',
-            hgri_score: formData.hgri_score,
-            growth_classification: formData.growth_classification,
-            reviewed_at: new Date().toISOString()
-          })
-          .eq('id', assessment.id)
-      }
-
-      // Generate growth profile
-      setGenerating(true)
-      const profile = await GrowthProfileService.createFromAssessment(
-        assessment.id,
-        review.reviewer_id || '',
-        {
-          title: `${merchant?.business_name || 'Business'} - Growth Profile`,
-          summary: `Based on the Growth Readiness Assessment, ${merchant?.business_name || 'the business'} shows strong potential for growth with a focus on ${formData.growth_classification}.`,
-          hgri_score: formData.hgri_score,
-          growth_classification: formData.growth_classification,
-          profile_data: {
-            scores: {
-              pillars: {
-                visibility: formData.visibility_score,
-                conversion: formData.conversion_score,
-                retention: formData.retention_score,
-                authority: formData.authority_score,
-                scalability: formData.scalability_score
-              }
-            },
-            recommendations: generateRecommendations(formData)
-          }
-        }
-      )
-
-      if (profile) {
-        // Update merchant status
-        await MerchantLifecycleService.updateStatus(merchant.id, 'growth_profile_ready')
+      if (result) {
+        // Get the generated profile
+        const { data: profile } = await supabase
+          .from('growth_profiles')
+          .select('id')
+          .eq('merchant_id', merchant.id)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
 
         alert('🎉 Review completed! Growth profile has been generated.')
-        router.push(`/admin/growth-profiles/${profile.id}`)
+        
+        if (profile) {
+          router.push(`/admin/growth-profiles/${profile.id}`)
+        } else {
+          router.push('/admin/growth-profiles')
+        }
       } else {
-        alert('Review completed but profile generation failed. Please check the logs.')
+        alert('⚠️ Review completed but profile generation failed. Please check the logs.')
       }
     } catch (error) {
       console.error('Error:', error)
@@ -285,6 +248,7 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
   }
 
   const classifications = ['Foundation', 'Growth Potential', 'Growth Ready', 'Scale Ready']
+  const isCompleted = formData.status === 'completed'
 
   return (
     <div className="space-y-6">
@@ -300,15 +264,15 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
             </h1>
             <StatusBadge status={formData.status} />
           </div>
-          <p className="mt-1 text-[var(--text-secondary)]">
+          <p className="text-[var(--text-secondary)]">
             {merchant?.email} • Submitted {new Date(review.created_at).toLocaleDateString()}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={handleSave} disabled={saving}>
+          <Button variant="secondary" onClick={handleSave} disabled={saving || isCompleted}>
             {saving ? 'Saving...' : 'Save Notes'}
           </Button>
-          {formData.status !== 'completed' && (
+          {!isCompleted && (
             <Button onClick={handleCompleteReview} disabled={saving || generating}>
               {generating ? 'Generating Profile...' : 'Complete Review'}
             </Button>
@@ -316,7 +280,6 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left Column - Scores & Details */}
         <div className="lg:col-span-2 space-y-6">
@@ -331,7 +294,8 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
                   max="100"
                   value={formData.hgri_score}
                   onChange={(e) => setFormData({ ...formData, hgri_score: parseInt(e.target.value) })}
-                  className="w-full accent-[var(--accent)]"
+                  disabled={isCompleted}
+                  className="w-full accent-[var(--accent)] disabled:opacity-50"
                 />
               </div>
               <div className="text-3xl font-bold text-[var(--text-primary)] min-w-[60px] text-center">
@@ -343,7 +307,8 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
               <select
                 value={formData.growth_classification}
                 onChange={(e) => setFormData({ ...formData, growth_classification: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+                disabled={isCompleted}
+                className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none disabled:opacity-50"
               >
                 {classifications.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -357,12 +322,12 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
             <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Pillar Scores</h3>
             <div className="space-y-4">
               {[
-                { key: 'visibility_score', label: 'Visibility' },
-                { key: 'conversion_score', label: 'Conversion' },
-                { key: 'retention_score', label: 'Retention' },
-                { key: 'authority_score', label: 'Authority' },
-                { key: 'scalability_score', label: 'Scalability' }
-              ].map(({ key, label }) => (
+                { key: 'visibility_score', label: 'Visibility', color: 'bg-blue-500' },
+                { key: 'conversion_score', label: 'Conversion', color: 'bg-green-500' },
+                { key: 'retention_score', label: 'Retention', color: 'bg-purple-500' },
+                { key: 'authority_score', label: 'Authority', color: 'bg-yellow-500' },
+                { key: 'scalability_score', label: 'Scalability', color: 'bg-orange-500' }
+              ].map(({ key, label, color }) => (
                 <div key={key}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm text-[var(--text-secondary)]">{label}</span>
@@ -375,12 +340,13 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
                         ...formData, 
                         [key]: Math.min(100, Math.max(0, parseInt(e.target.value) || 0))
                       })}
-                      className="w-16 rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-2 py-1 text-sm text-[var(--text-primary)] text-center focus:border-[var(--accent)] focus:outline-none"
+                      disabled={isCompleted}
+                      className="w-16 rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-2 py-1 text-sm text-[var(--text-primary)] text-center focus:border-[var(--accent)] focus:outline-none disabled:opacity-50"
                     />
                   </div>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--bg-section)]">
                     <div
-                      className="h-full rounded-full bg-[var(--accent)] transition-all duration-300"
+                      className={`h-full rounded-full ${color} transition-all duration-300`}
                       style={{ width: `${Math.min(formData[key as keyof typeof formData] as number || 0, 100)}%` }}
                     />
                   </div>
@@ -395,12 +361,14 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-[var(--text-primary)]">Strengths</h3>
-                <button
-                  onClick={() => addArrayField('strengths')}
-                  className="text-xs text-[var(--accent)] hover:underline"
-                >
-                  + Add
-                </button>
+                {!isCompleted && (
+                  <button
+                    onClick={() => addArrayField('strengths')}
+                    className="text-xs text-[var(--accent)] hover:underline"
+                  >
+                    + Add
+                  </button>
+                )}
               </div>
               <div className="space-y-2">
                 {formData.strengths.map((strength, index) => (
@@ -410,14 +378,17 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
                       value={strength}
                       onChange={(e) => handleArrayField('strengths', index, e.target.value)}
                       placeholder="Enter a strength..."
-                      className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-3 py-1.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+                      disabled={isCompleted}
+                      className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-3 py-1.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none disabled:opacity-50"
                     />
-                    <button
-                      onClick={() => removeArrayField('strengths', index)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <SvgIcon name="x-close" size={16} />
-                    </button>
+                    {!isCompleted && (
+                      <button
+                        onClick={() => removeArrayField('strengths', index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <SvgIcon name="x-close" size={16} />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -427,12 +398,14 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-[var(--text-primary)]">Opportunities</h3>
-                <button
-                  onClick={() => addArrayField('opportunities')}
-                  className="text-xs text-[var(--accent)] hover:underline"
-                >
-                  + Add
-                </button>
+                {!isCompleted && (
+                  <button
+                    onClick={() => addArrayField('opportunities')}
+                    className="text-xs text-[var(--accent)] hover:underline"
+                  >
+                    + Add
+                  </button>
+                )}
               </div>
               <div className="space-y-2">
                 {formData.opportunities.map((opportunity, index) => (
@@ -442,14 +415,17 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
                       value={opportunity}
                       onChange={(e) => handleArrayField('opportunities', index, e.target.value)}
                       placeholder="Enter an opportunity..."
-                      className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-3 py-1.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+                      disabled={isCompleted}
+                      className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-3 py-1.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none disabled:opacity-50"
                     />
-                    <button
-                      onClick={() => removeArrayField('opportunities', index)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <SvgIcon name="x-close" size={16} />
-                    </button>
+                    {!isCompleted && (
+                      <button
+                        onClick={() => removeArrayField('opportunities', index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <SvgIcon name="x-close" size={16} />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -464,7 +440,8 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
               onChange={(e) => setFormData({ ...formData, review_notes: e.target.value })}
               rows={4}
               placeholder="Add your review notes here..."
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+              disabled={isCompleted}
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none disabled:opacity-50"
             />
           </div>
         </div>
@@ -504,6 +481,27 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
             </dl>
           </div>
 
+          {/* Assessment Summary */}
+          {assessment && (
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Assessment Summary</h3>
+              <dl className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <dt className="text-[var(--text-muted)]">Status</dt>
+                  <dd><StatusBadge status={assessment.status || 'New Submission'} /></dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt className="text-[var(--text-muted)]">Review Status</dt>
+                  <dd><StatusBadge status={assessment.review_status || 'pending'} /></dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt className="text-[var(--text-muted)]">Submitted</dt>
+                  <dd className="text-[var(--text-secondary)]">{new Date(assessment.created_at).toLocaleDateString()}</dd>
+                </div>
+              </dl>
+            </div>
+          )}
+
           {/* Activity */}
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
             <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Activity</h3>
@@ -526,6 +524,35 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
               )}
             </div>
           </div>
+
+          {/* Status Help */}
+          {!isCompleted && (
+            <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4">
+              <div className="flex items-start gap-3">
+                <SvgIcon name="info" size={20} color="#3B82F6" className="mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="text-sm font-semibold text-blue-600">Ready to Complete?</h4>
+                  <p className="text-xs text-blue-600/80 mt-1">
+                    Review the scores, add strengths and opportunities, then click "Complete Review" to generate the growth profile.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isCompleted && (
+            <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-4">
+              <div className="flex items-start gap-3">
+                <SvgIcon name="check" size={20} color="#22C55E" className="mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="text-sm font-semibold text-green-600">Review Completed</h4>
+                  <p className="text-xs text-green-600/80 mt-1">
+                    This review has been completed. The growth profile has been generated and is available for the merchant.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

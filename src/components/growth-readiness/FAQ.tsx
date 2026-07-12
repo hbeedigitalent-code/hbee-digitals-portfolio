@@ -1,3 +1,4 @@
+// src/components/growth-readiness/FAQ.tsx
 'use client'
 
 import { useState } from 'react'
@@ -68,7 +69,7 @@ export function FAQ() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
-              className="mb-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] overflow-hidden"
+              className="mb-4 rounded-2xl border border-[var(--border-dark)] bg-[var(--bg-card-dark)] overflow-hidden transition-all hover:border-[var(--accent-orange)]/30"
             >
               <button
                 onClick={() => setOpenIndex(openIndex === index ? null : index)}
@@ -76,11 +77,13 @@ export function FAQ() {
               >
                 <span className="font-semibold text-white">{faq.question}</span>
                 <span className="ml-4 flex-shrink-0">
-                  <SvgIcon 
-                    name={openIndex === index ? 'minus' : 'plus'} 
-                    size={20} 
-                    color="var(--accent-orange)" 
-                  />
+                  <div className="rounded-full bg-[var(--accent-orange)]/10 p-1.5 transition-colors group-hover:bg-[var(--accent-orange)]/20">
+                    <SvgIcon 
+                      name={openIndex === index ? 'minus' : 'plus'} 
+                      size={18} 
+                      color="var(--accent-orange)" 
+                    />
+                  </div>
                 </span>
               </button>
               
@@ -93,7 +96,7 @@ export function FAQ() {
                     transition={{ duration: 0.3 }}
                     className="overflow-hidden"
                   >
-                    <div className="border-t border-[var(--border)] p-6">
+                    <div className="border-t border-[var(--border-dark)] p-6">
                       <p className="text-[var(--text-on-dark-muted)]">{faq.answer}</p>
                     </div>
                   </motion.div>

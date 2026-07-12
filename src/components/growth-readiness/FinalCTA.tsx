@@ -1,3 +1,4 @@
+// src/components/growth-readiness/FinalCTA.tsx
 'use client'
 
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -52,10 +53,10 @@ export function FinalCTA() {
           >
             <Link
               href="/assessment"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent-orange)] px-8 py-3 text-sm font-medium text-white transition-all hover:bg-[var(--orange-600)] hover:transform hover:-translate-y-0.5"
+              className="group inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent-orange)] px-8 py-3.5 text-sm font-bold text-white transition-all hover:bg-[var(--orange-600)] hover:scale-[1.03] hover:shadow-lg hover:shadow-[var(--accent-orange)]/25"
             >
               Start Your Assessment
-              <SvgIcon name="arrow-right" size={20} />
+              <SvgIcon name="arrow-right" size={18} color="white" className="transition-transform group-hover:translate-x-1" />
             </Link>
           </motion.div>
         </div>

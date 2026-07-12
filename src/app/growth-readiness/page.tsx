@@ -26,7 +26,7 @@ export default function GrowthReadinessPage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-[var(--bg-navy)]">
+      <main className="min-h-screen bg-[var(--bg-page)]">
         <Hero />
         <WhyWeCreated />
         <WhatYouReceive />

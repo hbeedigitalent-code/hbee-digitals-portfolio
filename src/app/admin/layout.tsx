@@ -24,41 +24,48 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [adminName, setAdminName] = useState('')
   const [siteSettings, setSiteSettings] = useState<any>({})
 
-  const navItems = [
-    { name: 'Dashboard', href: '/admin/dashboard', icon: 'analytics' },
-    { name: 'Workspace', href: '/admin/workspace', icon: 'dashboard' },
-    { name: 'Growth Assessments', href: '/admin/growth-assessments', icon: 'growth-readiness' },
-    { name: 'Client Onboarding', href: '/admin/client-onboarding', icon: 'users' },
-    { name: 'CRM / Leads', href: '/admin/crm', icon: 'user' },
-    { name: 'Client Portal', href: '/admin/client-portal', icon: 'portfolio' },
-    { name: 'Projects', href: '/admin/projects', icon: 'projects' },
-    { name: 'Tasks', href: '/admin/tasks', icon: 'check' },
-    { name: 'Proposals', href: '/admin/proposals', icon: 'pricing' },
-    { name: 'Agreements', href: '/admin/agreements', icon: 'security' },
-    { name: 'Client Health', href: '/admin/client-health', icon: 'growth' },
-    { name: 'Growth Intelligence', href: '/admin/growth-intelligence', icon: 'analytics' },
-    { name: 'Audits', href: '/admin/growth-intelligence/audits', icon: 'search' },
-    { name: 'Opportunities', href: '/admin/growth-intelligence/opportunities', icon: 'growth' },
-    { name: 'Blog Posts', href: '/admin/blog', icon: 'blog' },
-    { name: 'Blog Categories', href: '/admin/blog/categories', icon: 'category' },
-    { name: 'Comments', href: '/admin/comments', icon: 'messages' },
-    { name: 'FAQs', href: '/admin/faqs', icon: 'faq' },
-    { name: 'Testimonials', href: '/admin/testimonials', icon: 'star' },
-    { name: 'Hero Section', href: '/admin/hero', icon: 'hero' },
-    { name: 'About Page', href: '/admin/about', icon: 'about' },
-    { name: 'Services', href: '/admin/services', icon: 'services' },
-    { name: 'Pricing', href: '/admin/pricing', icon: 'pricing' },
-    { name: 'Portfolio', href: '/admin/portfolio', icon: 'portfolio' },
-    { name: 'Team Members', href: '/admin/team', icon: 'team' },
-    { name: 'Before/After', href: '/admin/before-after', icon: 'image' },
-    { name: 'Inquiries', href: '/admin/inquiries', icon: 'email', badge: unreadInquiries },
-    { name: 'Newsletter', href: '/admin/newsletter', icon: 'newsletter' },
-    { name: 'Subscribers', href: '/admin/subscribers', icon: 'users' },
-    { name: 'Navigation Menu', href: '/admin/menu', icon: 'menu' },
-    { name: 'Merchants', href: '/admin/merchants', icon: 'users' },
-    { name: 'Profile', href: '/admin/profile', icon: 'profile' },
-    { name: 'Settings', href: '/admin/settings', icon: 'settings' },
-  ]
+  // Update the navItems array to include Growth Reviews and Proposals
+
+const navItems = [
+  { name: 'Dashboard', href: '/admin/dashboard', icon: 'analytics' },
+  { name: 'Workspace', href: '/admin/workspace', icon: 'dashboard' },
+  { name: 'Growth Assessments', href: '/admin/growth-assessments', icon: 'growth-readiness' },
+  // NEW - Growth Reviews
+  { name: 'Growth Reviews', href: '/admin/growth-reviews', icon: 'eye' },
+  // NEW - Growth Profiles
+  { name: 'Growth Profiles', href: '/admin/growth-profiles', icon: 'growth-profile' },
+  { name: 'Client Onboarding', href: '/admin/client-onboarding', icon: 'users' },
+  { name: 'CRM / Leads', href: '/admin/crm', icon: 'user' },
+  { name: 'Client Portal', href: '/admin/client-portal', icon: 'portfolio' },
+  { name: 'Projects', href: '/admin/projects', icon: 'projects' },
+  { name: 'Tasks', href: '/admin/tasks', icon: 'check' },
+  // Proposals already exists - keep it
+  { name: 'Proposals', href: '/admin/proposals', icon: 'pricing' },
+  { name: 'Agreements', href: '/admin/agreements', icon: 'security' },
+  { name: 'Client Health', href: '/admin/client-health', icon: 'growth' },
+  { name: 'Growth Intelligence', href: '/admin/growth-intelligence', icon: 'analytics' },
+  { name: 'Audits', href: '/admin/growth-intelligence/audits', icon: 'search' },
+  { name: 'Opportunities', href: '/admin/growth-intelligence/opportunities', icon: 'growth' },
+  { name: 'Blog Posts', href: '/admin/blog', icon: 'blog' },
+  { name: 'Blog Categories', href: '/admin/blog/categories', icon: 'category' },
+  { name: 'Comments', href: '/admin/comments', icon: 'messages' },
+  { name: 'FAQs', href: '/admin/faqs', icon: 'faq' },
+  { name: 'Testimonials', href: '/admin/testimonials', icon: 'star' },
+  { name: 'Hero Section', href: '/admin/hero', icon: 'hero' },
+  { name: 'About Page', href: '/admin/about', icon: 'about' },
+  { name: 'Services', href: '/admin/services', icon: 'services' },
+  { name: 'Pricing', href: '/admin/pricing', icon: 'pricing' },
+  { name: 'Portfolio', href: '/admin/portfolio', icon: 'portfolio' },
+  { name: 'Team Members', href: '/admin/team', icon: 'team' },
+  { name: 'Before/After', href: '/admin/before-after', icon: 'image' },
+  { name: 'Inquiries', href: '/admin/inquiries', icon: 'email', badge: unreadInquiries },
+  { name: 'Newsletter', href: '/admin/newsletter', icon: 'newsletter' },
+  { name: 'Subscribers', href: '/admin/subscribers', icon: 'users' },
+  { name: 'Navigation Menu', href: '/admin/menu', icon: 'menu' },
+  { name: 'Merchants', href: '/admin/merchants', icon: 'users' },
+  { name: 'Profile', href: '/admin/profile', icon: 'profile' },
+  { name: 'Settings', href: '/admin/settings', icon: 'settings' },
+]
 
   useEffect(() => {
     async function fetchData() {

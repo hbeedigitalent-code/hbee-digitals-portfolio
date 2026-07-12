@@ -117,35 +117,57 @@ export async function POST(request: NextRequest) {
     const { constraint: primaryConstraint, focus: recommendedFocus } = 
       detectPrimaryConstraint(scoringInput)
 
-    // 1. Create merchant
-    const { data: merchant, error: merchantError } = await supabase
+    // 1. Check if merchant exists
+    let merchantId: string
+    
+    const { data: existingMerchant, error: lookupError } = await supabase
       .from('merchants')
-      .insert({
-        business_name: body.business_name,
-        website: body.website,
-        contact_name: body.contact_name,
-        email: body.email,
-        country: body.country,
-        industry: body.industry,
-        business_stage: body.business_stage,
-        store_age: body.store_age
-      })
-      .select()
+      .select('id')
+      .eq('email', body.email)
       .single()
 
-    if (merchantError) {
-      console.error('Merchant creation error:', merchantError)
+    if (lookupError && lookupError.code !== 'PGRST116') {
+      console.error('Merchant lookup error:', lookupError)
       return NextResponse.json(
-        { error: 'Failed to create merchant record' },
+        { error: 'Failed to lookup merchant' },
         { status: 500 }
       )
+    }
+
+    if (existingMerchant) {
+      merchantId = existingMerchant.id
+    } else {
+      // Create merchant
+      const { data: merchant, error: merchantError } = await supabase
+        .from('merchants')
+        .insert({
+          business_name: body.business_name,
+          website: body.website,
+          contact_name: body.contact_name,
+          email: body.email,
+          country: body.country,
+          industry: body.industry,
+          business_stage: body.business_stage,
+          store_age: body.store_age
+        })
+        .select()
+        .single()
+
+      if (merchantError) {
+        console.error('Merchant creation error:', merchantError)
+        return NextResponse.json(
+          { error: 'Failed to create merchant record' },
+          { status: 500 }
+        )
+      }
+      merchantId = merchant.id
     }
 
     // 2. Create growth assessment
     const { data: assessment, error: assessmentError } = await supabase
       .from('growth_assessments')
       .insert({
-        merchant_id: merchant.id,
+        merchant_id: merchantId,
         primary_goals: body.primary_goals,
         success_vision: body.success_vision,
         marketing_channels: body.marketing_channels,
@@ -172,7 +194,8 @@ export async function POST(request: NextRequest) {
         primary_constraint: primaryConstraint,
         recommended_focus: recommendedFocus,
         raw_answers_json: body,
-        status: 'New Submission'
+        status: 'New Submission',
+        review_status: 'pending'
       })
       .select()
       .single()
@@ -185,16 +208,47 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Send confirmation email to merchant (optional - wrap in try/catch)
+    // 3. Create merchant status record
+    const { error: statusError } = await supabase
+      .from('merchant_status')
+      .upsert({
+        merchant_id: merchantId,
+        status: 'assessment_submitted',
+        last_activity: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'merchant_id' })
+
+    if (statusError) {
+      console.error('Merchant status creation error:', statusError)
+      // Don't fail the request, just log
+    }
+
+    // 4. Create growth review record
+    const { data: review, error: reviewError } = await supabase
+      .from('growth_reviews')
+      .insert({
+        merchant_id: merchantId,
+        assessment_id: assessment.id,
+        status: 'pending',
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single()
+
+    if (reviewError) {
+      console.error('Review creation error:', reviewError)
+      // Don't fail the request, just log
+    }
+
+    // 5. Send confirmation email to merchant (FIXED - only 2 arguments)
     try {
       const { sendGrowthAssessmentConfirmation } = await import('@/lib/emails/growth-assessment-confirmation')
       await sendGrowthAssessmentConfirmation(body.contact_name, body.email)
     } catch (emailError) {
       console.error('Merchant confirmation email error:', emailError)
-      // Don't fail the request if email fails
     }
 
-    // 4. Send admin notification (optional - wrap in try/catch)
+    // 6. Send admin notification (FIXED - check function signature)
     try {
       const { sendAdminGrowthAssessmentNotification } = await import('@/lib/emails/admin-growth-assessment-notification')
       await sendAdminGrowthAssessmentNotification(
@@ -204,14 +258,31 @@ export async function POST(request: NextRequest) {
       )
     } catch (emailError) {
       console.error('Admin notification email error:', emailError)
-      // Don't fail the request if email fails
+    }
+
+    // 7. Create admin notification in database
+    try {
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: 'admin',
+          user_type: 'admin',
+          type: 'assessment_submitted',
+          title: 'New Assessment Submitted',
+          message: `${body.business_name} has submitted a growth assessment.`,
+          link: `/admin/growth-reviews/${review?.id || assessment.id}`,
+          created_at: new Date().toISOString()
+        })
+    } catch (notifError) {
+      console.error('Notification creation error:', notifError)
     }
 
     return NextResponse.json({
       success: true,
       data: {
-        merchant_id: merchant.id,
+        merchant_id: merchantId,
         assessment_id: assessment.id,
+        review_id: review?.id || null,
         hgri_score: hgriScore,
         classification: classification,
         primary_constraint: primaryConstraint,

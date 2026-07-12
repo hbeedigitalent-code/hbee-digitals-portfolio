@@ -1,3 +1,4 @@
+// src/components/growth-readiness/WhatYouReceive.tsx
 'use client'
 
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -78,7 +79,7 @@ export function WhatYouReceive() {
           </motion.p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-12">
           {benefits.map((benefit, index) => (
             <motion.div
               key={index}
@@ -86,11 +87,12 @@ export function WhatYouReceive() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.05 }}
-              className="card card-dark hover:border-[var(--accent-orange)] hover:shadow-lg hover:shadow-[var(--accent-orange)]/5"
-              style={{ borderColor: 'var(--border)' }}
+              className="rounded-2xl border border-[var(--border-dark)] bg-[var(--bg-card-dark)] p-6 transition-all hover:border-[var(--accent-orange)] hover:shadow-lg hover:shadow-[var(--accent-orange)]/5"
             >
               <div className="mb-4">
-                <SvgIcon name={benefit.icon} size={32} color="var(--accent-orange)" />
+                <div className="inline-flex rounded-xl bg-[var(--accent-orange)]/10 p-3">
+                  <SvgIcon name={benefit.icon} size={28} color="var(--accent-orange)" />
+                </div>
               </div>
               <h3 className="mb-2 text-lg font-semibold text-white">{benefit.title}</h3>
               <p className="text-sm text-[var(--text-on-dark-muted)]">{benefit.description}</p>
