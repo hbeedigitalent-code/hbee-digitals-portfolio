@@ -1,4 +1,5 @@
 // src/components/growth-readiness/HowItWorks.tsx
+
 'use client'
 
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -33,7 +34,7 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="section" style={{ background: 'var(--bg-card-dark)' }}>
+    <section id="how-it-works" className="section bg-[var(--bg-page)]">
       <div className="container-custom">
         <div className="mx-auto max-w-3xl text-center">
           <motion.span
@@ -52,7 +53,7 @@ export function HowItWorks() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="section-heading section-heading-dark"
+            className="section-heading"
           >
             Simple 4-Step Process
           </motion.h2>
@@ -62,7 +63,7 @@ export function HowItWorks() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="section-description section-description-dark mx-auto"
+            className="section-description mx-auto"
           >
             From assessment to opportunity review in 4 simple steps
           </motion.p>
@@ -78,17 +79,17 @@ export function HowItWorks() {
               transition={{ duration: 0.5, delay: index * 0.1 }}
               className="relative"
             >
-              <div className="rounded-2xl border border-[var(--border-dark)] bg-[var(--bg-navy)] p-6 text-center transition-all hover:border-[var(--accent-orange)] hover:shadow-lg hover:shadow-[var(--accent-orange)]/5">
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 text-center transition-all hover:border-[var(--accent-orange)] hover:shadow-lg hover:shadow-[var(--accent-orange)]/5">
                 <div className="mb-4 flex justify-center">
                   <div className="rounded-xl bg-[var(--accent-orange)]/10 p-3">
                     <SvgIcon name={step.icon} size={32} color="var(--accent-orange)" />
                   </div>
                 </div>
-                <div className="mb-2 text-sm font-bold" style={{ color: 'var(--accent-orange)' }}>
+                <div className="mb-2 text-sm font-bold text-[var(--accent-orange)]">
                   {step.number}
                 </div>
-                <h3 className="mb-2 font-semibold text-white">{step.title}</h3>
-                <p className="text-sm text-[var(--text-on-dark-muted)]">{step.description}</p>
+                <h3 className="mb-2 font-semibold text-[var(--text-primary)]">{step.title}</h3>
+                <p className="text-sm text-[var(--text-secondary)]">{step.description}</p>
               </div>
               
               {/* Connector line */}

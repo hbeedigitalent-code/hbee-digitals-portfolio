@@ -1,4 +1,5 @@
 // src/components/growth-readiness/WhatYouReceive.tsx
+
 'use client'
 
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -44,7 +45,7 @@ const benefits = [
 
 export function WhatYouReceive() {
   return (
-    <section className="section section-dark">
+    <section className="section bg-[var(--bg-section)]">
       <div className="container-custom">
         <div className="mx-auto max-w-3xl text-center">
           <motion.span
@@ -63,7 +64,7 @@ export function WhatYouReceive() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="section-heading section-heading-dark"
+            className="section-heading"
           >
             Everything You Need To Understand Your Growth Readiness
           </motion.h2>
@@ -73,7 +74,7 @@ export function WhatYouReceive() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="section-description section-description-dark mx-auto"
+            className="section-description mx-auto"
           >
             Complete the assessment and receive a comprehensive growth profile
           </motion.p>
@@ -87,15 +88,15 @@ export function WhatYouReceive() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.05 }}
-              className="rounded-2xl border border-[var(--border-dark)] bg-[var(--bg-card-dark)] p-6 transition-all hover:border-[var(--accent-orange)] hover:shadow-lg hover:shadow-[var(--accent-orange)]/5"
+              className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-all hover:border-[var(--accent-orange)] hover:shadow-lg hover:shadow-[var(--accent-orange)]/5"
             >
               <div className="mb-4">
                 <div className="inline-flex rounded-xl bg-[var(--accent-orange)]/10 p-3">
                   <SvgIcon name={benefit.icon} size={28} color="var(--accent-orange)" />
                 </div>
               </div>
-              <h3 className="mb-2 text-lg font-semibold text-white">{benefit.title}</h3>
-              <p className="text-sm text-[var(--text-on-dark-muted)]">{benefit.description}</p>
+              <h3 className="mb-2 text-lg font-semibold text-[var(--text-primary)]">{benefit.title}</h3>
+              <p className="text-sm text-[var(--text-secondary)]">{benefit.description}</p>
             </motion.div>
           ))}
         </div>

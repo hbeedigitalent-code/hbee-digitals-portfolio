@@ -1,5 +1,4 @@
 // src/app/api/auth/confirm/route.ts
-// No 'use client' needed - API route
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
@@ -12,6 +11,7 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const token = searchParams.get('token')
   const type = searchParams.get('type')
+  const redirectTo = searchParams.get('redirect_to') || '/client-confirmation'
 
   if (!token) {
     return NextResponse.redirect(
@@ -34,9 +34,31 @@ export async function GET(request: NextRequest) {
     }
 
     if (data.user) {
-      // User is confirmed - redirect to confirmation page
+      // Check if client profile exists, create if not
+      try {
+        const { data: existingClient } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('user_id', data.user.id)
+          .maybeSingle()
+
+        if (!existingClient) {
+          await supabase.from('clients').insert({
+            user_id: data.user.id,
+            full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Client',
+            email: data.user.email,
+            business_name: data.user.user_metadata?.business_name || 'My Business',
+            status: 'active',
+          })
+        }
+      } catch (err) {
+        console.error('Client creation error:', err)
+        // Don't fail the confirmation, just log
+      }
+
+      // User is confirmed - redirect to confirmation page with success
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_SITE_URL}/client-confirmation?confirmed=true`
+        `${process.env.NEXT_PUBLIC_SITE_URL}${redirectTo}?confirmed=true`
       )
     }
 

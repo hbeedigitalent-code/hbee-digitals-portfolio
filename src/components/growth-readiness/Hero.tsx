@@ -1,4 +1,5 @@
 // src/components/growth-readiness/Hero.tsx
+
 'use client'
 
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -7,7 +8,7 @@ import { motion } from 'framer-motion'
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden bg-[var(--bg-navy)] py-20 md:py-28">
+    <section className="relative overflow-hidden bg-[var(--bg-page)] py-20 md:py-28">
       {/* Animated gradient border */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--accent-orange)] to-transparent" />
       
@@ -23,13 +24,13 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--border-dark)] bg-[var(--bg-card-dark)]/80 px-4 py-2 backdrop-blur-sm"
+            className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)]/80 px-4 py-2 backdrop-blur-sm"
           >
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent-lime)] opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--accent-lime)]" />
             </span>
-            <span className="text-sm font-semibold text-[var(--text-on-dark-muted)]">
+            <span className="text-sm font-semibold text-[var(--text-secondary)]">
               Q3 Growth Readiness Initiative
             </span>
           </motion.div>
@@ -38,7 +39,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight"
+            className="text-4xl md:text-5xl lg:text-6xl font-bold text-[var(--text-primary)] leading-[1.1] tracking-tight"
           >
             Is Your Business Ready For{' '}
             <span className="bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)] bg-clip-text text-transparent">
@@ -51,7 +52,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="mt-6 text-lg md:text-xl text-[var(--text-on-dark-muted)] max-w-3xl mx-auto leading-relaxed"
+            className="mt-6 text-lg md:text-xl text-[var(--text-secondary)] max-w-3xl mx-auto leading-relaxed"
           >
             The Hbee Growth Readiness Assessment™ helps ecommerce brands evaluate 
             visibility, conversion, retention, authority, and scalability before 
@@ -66,7 +67,7 @@ export function Hero() {
           >
             <Link
               href="/assessment"
-              className="group inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[var(--accent-orange)] to-[var(--accent-lime)] px-8 py-3.5 text-sm font-bold text-white transition-all hover:scale-[1.03] hover:shadow-lg hover:shadow-[var(--accent-orange)]/25"
+              className="group inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent-orange)] px-8 py-3.5 text-sm font-bold text-white transition-all hover:scale-[1.03] hover:shadow-lg hover:shadow-[var(--accent-orange)]/25"
             >
               Start Assessment
               <SvgIcon name="arrow-right" size={20} color="white" className="transition-transform group-hover:translate-x-1" />
@@ -74,10 +75,10 @@ export function Hero() {
             
             <Link
               href="#how-it-works"
-              className="group inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-transparent px-8 py-3.5 text-sm font-semibold text-white transition-all hover:bg-white/10 hover:border-white/40"
+              className="group inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-transparent px-8 py-3.5 text-sm font-semibold text-[var(--text-primary)] transition-all hover:bg-[var(--bg-section)] hover:border-[var(--accent-orange)]/30"
             >
               Learn More
-              <SvgIcon name="chevron-down" size={18} color="white" className="transition-transform group-hover:translate-y-1" />
+              <SvgIcon name="chevron-down" size={18} color="var(--text-primary)" className="transition-transform group-hover:translate-y-1" />
             </Link>
           </motion.div>
 
@@ -87,7 +88,7 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.4 }}
             className="mt-6 text-sm text-[var(--text-muted)]"
           >
-            ⏱️ Estimated completion time: <span className="text-white font-semibold">5–7 minutes</span>
+            ⏱️ Estimated completion time: <span className="text-[var(--text-primary)] font-semibold">5–7 minutes</span>
           </motion.p>
 
           <motion.div

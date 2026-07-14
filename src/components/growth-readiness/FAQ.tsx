@@ -1,4 +1,5 @@
 // src/components/growth-readiness/FAQ.tsx
+
 'use client'
 
 import { useState } from 'react'
@@ -36,7 +37,7 @@ export function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
 
   return (
-    <section className="section section-dark">
+    <section className="section bg-[var(--bg-page)]">
       <div className="container-custom">
         <div className="mx-auto max-w-3xl text-center">
           <motion.span
@@ -55,7 +56,7 @@ export function FAQ() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="section-heading section-heading-dark mb-12"
+            className="section-heading"
           >
             Frequently Asked Questions
           </motion.h2>
@@ -69,13 +70,13 @@ export function FAQ() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
-              className="mb-4 rounded-2xl border border-[var(--border-dark)] bg-[var(--bg-card-dark)] overflow-hidden transition-all hover:border-[var(--accent-orange)]/30"
+              className="mb-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden transition-all hover:border-[var(--accent-orange)]/30 shadow-[var(--shadow-sm)]"
             >
               <button
                 onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                className="flex w-full items-center justify-between p-6 text-left transition-colors hover:bg-[var(--bg-card-hover)]"
+                className="flex w-full items-center justify-between p-6 text-left transition-colors hover:bg-[var(--bg-section)]"
               >
-                <span className="font-semibold text-white">{faq.question}</span>
+                <span className="font-semibold text-[var(--text-primary)]">{faq.question}</span>
                 <span className="ml-4 flex-shrink-0">
                   <div className="rounded-full bg-[var(--accent-orange)]/10 p-1.5 transition-colors group-hover:bg-[var(--accent-orange)]/20">
                     <SvgIcon 
@@ -96,8 +97,8 @@ export function FAQ() {
                     transition={{ duration: 0.3 }}
                     className="overflow-hidden"
                   >
-                    <div className="border-t border-[var(--border-dark)] p-6">
-                      <p className="text-[var(--text-on-dark-muted)]">{faq.answer}</p>
+                    <div className="border-t border-[var(--border)] p-6">
+                      <p className="text-[var(--text-secondary)]">{faq.answer}</p>
                     </div>
                   </motion.div>
                 )}

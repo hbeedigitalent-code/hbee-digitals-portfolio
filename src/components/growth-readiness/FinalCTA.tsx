@@ -1,4 +1,5 @@
 // src/components/growth-readiness/FinalCTA.tsx
+
 'use client'
 
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -7,7 +8,7 @@ import { motion } from 'framer-motion'
 
 export function FinalCTA() {
   return (
-    <section className="section relative overflow-hidden" style={{ background: 'var(--bg-card-dark)' }}>
+    <section className="section relative overflow-hidden bg-[var(--bg-section)]">
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0 bg-gradient-to-r from-[var(--accent-orange)] via-transparent to-[var(--accent-lime)]" />
       </div>
@@ -30,7 +31,7 @@ export function FinalCTA() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="section-heading section-heading-dark"
+            className="section-heading"
           >
             Take The Assessment Today
           </motion.h2>
@@ -40,7 +41,7 @@ export function FinalCTA() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="section-description section-description-dark mx-auto"
+            className="section-description mx-auto"
           >
             Join hundreds of ecommerce brands that have discovered their growth potential
           </motion.p>

@@ -1,4 +1,5 @@
 // src/components/growth-readiness/WhoItsFor.tsx
+
 'use client'
 
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -34,7 +35,7 @@ const audiences = [
 
 export function WhoItsFor() {
   return (
-    <section className="section section-dark">
+    <section className="section bg-[var(--bg-page)]">
       <div className="container-custom">
         <div className="mx-auto max-w-3xl text-center">
           <motion.span
@@ -53,7 +54,7 @@ export function WhoItsFor() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="section-heading section-heading-dark"
+            className="section-heading"
           >
             Designed For Growth-Minded Businesses
           </motion.h2>
@@ -63,7 +64,7 @@ export function WhoItsFor() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="section-description section-description-dark mx-auto"
+            className="section-description mx-auto"
           >
             Whether you're just starting or scaling, this assessment is for you
           </motion.p>
@@ -77,7 +78,7 @@ export function WhoItsFor() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.05 }}
-              className="flex items-start gap-4 rounded-2xl border border-[var(--border-dark)] bg-[var(--bg-card-dark)] p-6 transition-all hover:border-[var(--accent-orange)]"
+              className="flex items-start gap-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-all hover:border-[var(--accent-orange)]"
             >
               <div className="flex-shrink-0">
                 <div className="rounded-xl bg-[var(--accent-orange)]/10 p-2.5">
@@ -85,8 +86,8 @@ export function WhoItsFor() {
                 </div>
               </div>
               <div>
-                <h3 className="font-semibold text-white">{audience.title}</h3>
-                <p className="text-sm text-[var(--text-on-dark-muted)]">{audience.description}</p>
+                <h3 className="font-semibold text-[var(--text-primary)]">{audience.title}</h3>
+                <p className="text-sm text-[var(--text-secondary)]">{audience.description}</p>
               </div>
             </motion.div>
           ))}

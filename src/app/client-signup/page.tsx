@@ -1,8 +1,11 @@
+// src/app/client-signup/page.tsx
+
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'  // ← Fixed: added 'from'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -40,6 +43,8 @@ export default function ClientSignupPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
+    // Clear error when user types
+    if (error) setError('')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,25 +99,50 @@ export default function ClientSignupPage() {
     return (
       <>
         <Navbar />
-        <main className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-[var(--bg-navy)] px-4 pt-28 pb-12">
-          <div className="w-full max-w-md text-center">
-            <div className="rounded-full bg-[var(--accent-lime)]/10 p-4 mx-auto w-20 h-20 flex items-center justify-center mb-6">
-              <SvgIcon name="check" size={40} color="var(--accent-lime)" />
-            </div>
-            <h1 className="text-2xl font-bold text-white">Account Created!</h1>
-            <p className="mt-2 text-[var(--text-muted)]">
+        <main className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-[var(--bg-page)] px-4 pt-28 pb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="w-full max-w-md text-center"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
+              className="rounded-full bg-[var(--accent-lime)]/10 p-4 mx-auto w-24 h-24 flex items-center justify-center mb-6"
+            >
+              <SvgIcon name="check" size={48} color="var(--accent-lime)" />
+            </motion.div>
+            <h1 className="text-3xl font-bold text-[var(--text-primary)]">Account Created! 🎉</h1>
+            <p className="mt-3 text-[var(--text-secondary)]">
               Your merchant account has been created. Please check your email to confirm your account.
             </p>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">
-              You'll be redirected to login shortly.
+            <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-4">
+              <p className="text-sm text-[var(--text-muted)]">
+                📧 We've sent a confirmation email to <strong className="text-[var(--text-primary)]">{formData.email}</strong>
+              </p>
+            </div>
+            <div className="mt-6 flex flex-col gap-3">
+              <Link
+                href="/client-login"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent-orange)] px-8 py-3 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] hover:scale-[1.02]"
+              >
+                <SvgIcon name="log-in" size={18} color="white" />
+                Go to Login
+              </Link>
+              <Link
+                href="/"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-transparent px-8 py-3 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-section)]"
+              >
+                <SvgIcon name="home" size={18} />
+                Return to Homepage
+              </Link>
+            </div>
+            <p className="mt-4 text-sm text-[var(--text-muted)]">
+              Redirecting to login in a few seconds...
             </p>
-            <Link
-              href="/client-login"
-              className="mt-6 inline-block rounded-full bg-[var(--accent-orange)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)]"
-            >
-              Go to Login
-            </Link>
-          </div>
+          </motion.div>
         </main>
         <Footer />
       </>
@@ -122,56 +152,73 @@ export default function ClientSignupPage() {
   return (
     <>
       <Navbar />
-      <main className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-[var(--bg-navy)] px-4 pt-28 pb-12">
-        <div className="w-full max-w-md">
+      <main className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-[var(--bg-page)] px-4 pt-28 pb-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md"
+        >
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-white">Create Merchant Account</h1>
-            <p className="mt-2 text-[var(--text-muted)]">Join Hbee Digitals as a merchant</p>
+            <h1 className="text-3xl font-bold text-[var(--text-primary)]">Create Account</h1>
+            <p className="mt-2 text-[var(--text-secondary)]">Join Hbee Digitals as a merchant</p>
           </div>
 
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-6">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-md)]">
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Business Name */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-white">Business Name *</label>
+                <label className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
+                  Business Name <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   name="business_name"
                   value={formData.business_name}
                   onChange={handleChange}
                   required
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)] transition"
                   placeholder="Your business name"
                 />
               </div>
 
+              {/* Contact Name */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-white">Contact Name *</label>
+                <label className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
+                  Contact Name <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   name="contact_name"
                   value={formData.contact_name}
                   onChange={handleChange}
                   required
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)] transition"
                   placeholder="Your full name"
                 />
               </div>
 
+              {/* Email */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-white">Email Address *</label>
+                <label className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
+                  Email Address <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)] transition"
                   placeholder="you@email.com"
                 />
               </div>
 
+              {/* Password */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-white">Password *</label>
+                <label className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
+                  Password <span className="text-red-500">*</span>
+                </label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -179,26 +226,29 @@ export default function ClientSignupPage() {
                     value={formData.password}
                     onChange={handleChange}
                     required
-                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)] pr-12"
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)] transition pr-12"
                     placeholder="Min 6 characters"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white transition"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
-                    {showPassword ? (
-                      <SvgIcon name="eye-off" size={20} color="var(--text-muted)" />
-                    ) : (
-                      <SvgIcon name="eye" size={20} color="var(--text-muted)" />
-                    )}
+                    <SvgIcon 
+                      name={showPassword ? 'eye-off' : 'eye'} 
+                      size={20} 
+                      color="var(--text-muted)" 
+                    />
                   </button>
                 </div>
               </div>
 
+              {/* Confirm Password */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-white">Confirm Password *</label>
+                <label className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
+                  Confirm Password <span className="text-red-500">*</span>
+                </label>
                 <div className="relative">
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
@@ -206,56 +256,65 @@ export default function ClientSignupPage() {
                     value={formData.confirm_password}
                     onChange={handleChange}
                     required
-                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)] pr-12"
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)] transition pr-12"
                     placeholder="Confirm your password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white transition"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
                     aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                   >
-                    {showConfirmPassword ? (
-                      <SvgIcon name="eye-off" size={20} color="var(--text-muted)" />
-                    ) : (
-                      <SvgIcon name="eye" size={20} color="var(--text-muted)" />
-                    )}
+                    <SvgIcon 
+                      name={showConfirmPassword ? 'eye-off' : 'eye'} 
+                      size={20} 
+                      color="var(--text-muted)" 
+                    />
                   </button>
                 </div>
               </div>
 
+              {/* WhatsApp */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-white">WhatsApp (Optional)</label>
+                <label className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
+                  WhatsApp <span className="text-sm text-[var(--text-muted)]">(Optional)</span>
+                </label>
                 <input
                   type="tel"
                   name="whatsapp"
                   value={formData.whatsapp}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)] transition"
                   placeholder="+1 234 567 8900"
                 />
               </div>
 
+              {/* Website URL */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-white">Website URL</label>
+                <label className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
+                  Website URL <span className="text-sm text-[var(--text-muted)]">(Optional)</span>
+                </label>
                 <input
                   type="url"
                   name="website_url"
                   value={formData.website_url}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)] transition"
                   placeholder="https://yourstore.com"
                 />
               </div>
 
+              {/* Country & Industry */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-white">Country</label>
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
+                    Country
+                  </label>
                   <select
                     name="country"
                     value={formData.country}
                     onChange={handleChange}
-                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)] transition"
                   >
                     <option value="">Select country</option>
                     {countries.map((c) => (
@@ -265,12 +324,14 @@ export default function ClientSignupPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-white">Industry</label>
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">
+                    Industry
+                  </label>
                   <select
                     name="industry"
                     value={formData.industry}
                     onChange={handleChange}
-                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)] transition"
                   >
                     <option value="">Select industry</option>
                     {industries.map((i) => (
@@ -280,31 +341,73 @@ export default function ClientSignupPage() {
                 </div>
               </div>
 
-              {error && (
-                <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400">
-                  {error}
-                </div>
-              )}
+              {/* Error Message */}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-500"
+                  >
+                    {error}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
+              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-full bg-[var(--accent-orange)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] disabled:opacity-50"
+                className="w-full rounded-full bg-[var(--accent-orange)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Creating Account...' : 'Create Account'}
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Creating Account...
+                  </span>
+                ) : (
+                  'Create Account'
+                )}
               </button>
             </form>
 
             <div className="mt-6 text-center">
               <p className="text-sm text-[var(--text-muted)]">
                 Already have an account?{' '}
-                <Link href="/client-login" className="text-[var(--accent-orange)] hover:underline">
+                <Link href="/client-login" className="text-[var(--accent-orange)] hover:underline font-medium">
                   Login
+                </Link>
+              </p>
+              <p className="mt-2 text-xs text-[var(--text-muted)]">
+                By creating an account, you agree to our{' '}
+                <Link href="/terms" className="text-[var(--accent-orange)] hover:underline">
+                  Terms of Service
+                </Link>{' '}
+                and{' '}
+                <Link href="/privacy" className="text-[var(--accent-orange)] hover:underline">
+                  Privacy Policy
                 </Link>
               </p>
             </div>
           </div>
-        </div>
+
+          {/* Trust Badges */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs text-[var(--text-muted)]">
+            <span className="flex items-center gap-1.5">
+              <SvgIcon name="verified" size={14} color="var(--accent-lime)" />
+              Secure & Private
+            </span>
+            <span className="flex items-center gap-1.5">
+              <SvgIcon name="shield" size={14} color="var(--accent-orange)" />
+              Data Protected
+            </span>
+            <span className="flex items-center gap-1.5">
+              <SvgIcon name="support" size={14} color="var(--blue-500)" />
+              24/7 Support
+            </span>
+          </div>
+        </motion.div>
       </main>
       <Footer />
     </>

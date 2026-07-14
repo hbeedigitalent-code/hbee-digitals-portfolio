@@ -1,4 +1,5 @@
 // src/components/growth-readiness/FrameworkPillars.tsx
+
 'use client'
 
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -44,7 +45,7 @@ const pillars = [
 
 export function FrameworkPillars() {
   return (
-    <section className="section" style={{ background: 'var(--bg-card-dark)' }}>
+    <section className="section bg-[var(--bg-section)]">
       <div className="container-custom">
         <div className="mx-auto max-w-3xl text-center">
           <motion.span
@@ -63,7 +64,7 @@ export function FrameworkPillars() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="section-heading section-heading-dark"
+            className="section-heading"
           >
             Five Pillars of Growth Readiness
           </motion.h2>
@@ -73,7 +74,7 @@ export function FrameworkPillars() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="section-description section-description-dark mx-auto"
+            className="section-description mx-auto"
           >
             Our comprehensive framework evaluates your business across five critical dimensions
           </motion.p>
@@ -87,7 +88,7 @@ export function FrameworkPillars() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="group relative overflow-hidden rounded-2xl border border-[var(--border-dark)] bg-[var(--bg-navy)] p-6 text-center transition-all hover:border-[var(--accent-orange)]"
+              className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 text-center transition-all hover:border-[var(--accent-orange)] hover:shadow-lg"
             >
               <div className="relative z-10">
                 <div className="mb-3 flex justify-center">
@@ -95,11 +96,11 @@ export function FrameworkPillars() {
                     <SvgIcon name={pillar.icon} size={32} color={pillar.color} />
                   </div>
                 </div>
-                <h3 className="mb-1 text-lg font-semibold text-white">{pillar.name}</h3>
-                <div className="mb-2 text-3xl font-bold" style={{ color: 'var(--accent-orange)' }}>
+                <h3 className="mb-1 text-lg font-semibold text-[var(--text-primary)]">{pillar.name}</h3>
+                <div className="mb-2 text-3xl font-bold text-[var(--accent-orange)]">
                   {pillar.points}
                 </div>
-                <div className="text-xs text-[var(--text-on-dark-muted)]">Max Points</div>
+                <div className="text-xs text-[var(--text-muted)]">Max Points</div>
                 <p className="mt-2 text-xs text-[var(--text-muted)]">{pillar.description}</p>
               </div>
               
@@ -120,28 +121,28 @@ export function FrameworkPillars() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.5 }}
-          className="mt-12 rounded-2xl border border-[var(--border-dark)] bg-[var(--bg-navy)] p-8 text-center"
+          className="mt-12 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-8 text-center shadow-[var(--shadow-md)]"
         >
-          <div className="text-sm text-[var(--text-on-dark-muted)]">Total Possible Score</div>
-          <div className="text-5xl font-bold text-white">100</div>
+          <div className="text-sm text-[var(--text-muted)]">Total Possible Score</div>
+          <div className="text-5xl font-bold text-[var(--text-primary)]">100</div>
           <div className="mt-2 flex flex-wrap items-center justify-center gap-2 text-sm text-[var(--text-muted)]">
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full" style={{ background: 'var(--accent-lime)' }} />
+              <span className="h-2 w-2 rounded-full bg-[var(--accent-lime)]" />
               Scale Ready: 80–100
             </span>
-            <span className="hidden sm:inline text-[var(--border-dark)]">|</span>
+            <span className="hidden sm:inline text-[var(--border)]">|</span>
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full" style={{ background: 'var(--accent-orange)' }} />
+              <span className="h-2 w-2 rounded-full bg-[var(--accent-orange)]" />
               Growth Ready: 60–79
             </span>
-            <span className="hidden sm:inline text-[var(--border-dark)]">|</span>
+            <span className="hidden sm:inline text-[var(--border)]">|</span>
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full" style={{ background: '#FBBF24' }} />
+              <span className="h-2 w-2 rounded-full bg-[#FBBF24]" />
               Growth Potential: 40–59
             </span>
-            <span className="hidden sm:inline text-[var(--border-dark)]">|</span>
+            <span className="hidden sm:inline text-[var(--border)]">|</span>
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full" style={{ background: 'var(--text-muted)' }} />
+              <span className="h-2 w-2 rounded-full bg-[var(--text-muted)]" />
               Foundation: 0–39
             </span>
           </div>
