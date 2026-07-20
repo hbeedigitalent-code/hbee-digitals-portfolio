@@ -32,27 +32,99 @@ export default function GrowthProfilePage() {
           return
         }
 
-        // Get client profile
+        // ============================================================
+        // FIX: Robust client profile lookup with fallback
+        // ============================================================
+        let merchantId = null
+        let clientId = null
+
+        // First try to get client by user_id
         const { data: client, error: clientError } = await supabase
           .from('clients')
           .select('merchant_id, id')
           .eq('user_id', user.id)
           .single()
 
-        if (clientError || !client) {
+        if (clientError && clientError.code !== 'PGRST116') {
           console.error('Error fetching client:', clientError)
           setError('Could not find your client profile. Please contact support.')
           setLoading(false)
           return
         }
 
-        setMerchantId(client.merchant_id)
+        if (client) {
+          merchantId = client.merchant_id
+          clientId = client.id
+          console.log('✅ Client found:', client)
+        } else {
+          // If no client found, try to find merchant by email
+          console.log('⚠️ No client found, looking up merchant by email...')
+          
+          const { data: merchant, error: merchantError } = await supabase
+            .from('merchants')
+            .select('id, business_name')
+            .eq('email', user.email)
+            .single()
+
+          if (merchantError && merchantError.code !== 'PGRST116') {
+            console.error('Error fetching merchant:', merchantError)
+          }
+
+          if (merchant) {
+            merchantId = merchant.id
+            console.log('✅ Merchant found by email:', merchant)
+
+            // Create client record if it doesn't exist
+            const { data: newClient, error: createError } = await supabase
+              .from('clients')
+              .insert({
+                user_id: user.id,
+                merchant_id: merchant.id,
+                full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Client',
+                email: user.email,
+                business_name: merchant.business_name || 'My Business',
+                status: 'active'
+              })
+              .select()
+              .single()
+
+            if (createError) {
+              console.error('Error creating client:', createError)
+            } else {
+              clientId = newClient.id
+              console.log('✅ Client created:', newClient)
+            }
+          } else {
+            // No merchant found by email either - try checking merchant_accounts
+            console.log('⚠️ No merchant found by email, checking merchant_accounts...')
+            
+            const { data: merchantAccount } = await supabase
+              .from('merchant_accounts')
+              .select('id')
+              .eq('email', user.email)
+              .single()
+
+            if (merchantAccount) {
+              merchantId = merchantAccount.id
+              console.log('✅ Merchant found in merchant_accounts:', merchantAccount)
+            }
+          }
+        }
+
+        if (!merchantId) {
+          console.error('❌ Could not find merchant_id for user:', user.email)
+          setError('Could not find your merchant profile. Please contact support.')
+          setLoading(false)
+          return
+        }
+
+        setMerchantId(merchantId)
 
         // Check if merchant has an assessment
         const { data: assessment, error: assessmentError } = await supabase
           .from('growth_assessments')
           .select('id, status')
-          .eq('merchant_id', client.merchant_id)
+          .eq('merchant_id', merchantId)
           .order('created_at', { ascending: false })
           .limit(1)
           .single()
@@ -66,7 +138,7 @@ export default function GrowthProfilePage() {
         }
 
         // Get growth profile
-        const profileData = await GrowthProfileService.getProfileByMerchant(client.merchant_id)
+        const profileData = await GrowthProfileService.getProfileByMerchant(merchantId)
 
         if (profileData) {
           setProfile(profileData)
