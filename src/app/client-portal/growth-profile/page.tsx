@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClientComponentClient } from '@/lib/supabase-client'
 import { GrowthProfileService } from '@/lib/services/growth-profile-service'
-import { MerchantLifecycleService } from '@/lib/services/merchant-lifecycle'
 import SvgIcon from '@/components/ui/SvgIcon'
 import Button from '@/components/ui/Button'
 
@@ -16,10 +15,10 @@ export default function GrowthProfilePage() {
   const supabase = createClientComponentClient()
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
-  const [merchantId, setMerchantId] = useState<string | null>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [hasAssessment, setHasAssessment] = useState(false)
+  const [merchantId, setMerchantId] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchData() {
@@ -32,124 +31,115 @@ export default function GrowthProfilePage() {
           return
         }
 
-        // ============================================================
-        // FIX: Robust client profile lookup with fallback
-        // ============================================================
-        let merchantId = null
-        let clientId = null
+        console.log('👤 User:', user.email)
 
-        // First try to get client by user_id
-        const { data: client, error: clientError } = await supabase
-          .from('clients')
-          .select('merchant_id, id')
-          .eq('user_id', user.id)
+        // ============================================================
+        // METHOD 1: Try to find merchant by email (most reliable)
+        // ============================================================
+        let foundMerchantId = null
+
+        // Try merchants table first
+        const { data: merchant, error: merchantError } = await supabase
+          .from('merchants')
+          .select('id, business_name')
+          .eq('email', user.email)
           .single()
 
-        if (clientError && clientError.code !== 'PGRST116') {
-          console.error('Error fetching client:', clientError)
-          setError('Could not find your client profile. Please contact support.')
-          setLoading(false)
-          return
+        if (merchantError && merchantError.code !== 'PGRST116') {
+          console.error('❌ Merchant lookup error:', merchantError)
         }
 
-        if (client) {
-          merchantId = client.merchant_id
-          clientId = client.id
-          console.log('✅ Client found:', client)
-        } else {
-          // If no client found, try to find merchant by email
-          console.log('⚠️ No client found, looking up merchant by email...')
-          
-          const { data: merchant, error: merchantError } = await supabase
-            .from('merchants')
-            .select('id, business_name')
+        if (merchant) {
+          foundMerchantId = merchant.id
+          console.log('✅ Merchant found by email:', merchant.business_name)
+        }
+
+        // If not found in merchants, try merchant_accounts
+        if (!foundMerchantId) {
+          const { data: merchantAccount } = await supabase
+            .from('merchant_accounts')
+            .select('id')
             .eq('email', user.email)
             .single()
 
-          if (merchantError && merchantError.code !== 'PGRST116') {
-            console.error('Error fetching merchant:', merchantError)
-          }
-
-          if (merchant) {
-            merchantId = merchant.id
-            console.log('✅ Merchant found by email:', merchant)
-
-            // Create client record if it doesn't exist
-            const { data: newClient, error: createError } = await supabase
-              .from('clients')
-              .insert({
-                user_id: user.id,
-                merchant_id: merchant.id,
-                full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Client',
-                email: user.email,
-                business_name: merchant.business_name || 'My Business',
-                status: 'active'
-              })
-              .select()
-              .single()
-
-            if (createError) {
-              console.error('Error creating client:', createError)
-            } else {
-              clientId = newClient.id
-              console.log('✅ Client created:', newClient)
-            }
-          } else {
-            // No merchant found by email either - try checking merchant_accounts
-            console.log('⚠️ No merchant found by email, checking merchant_accounts...')
-            
-            const { data: merchantAccount } = await supabase
-              .from('merchant_accounts')
-              .select('id')
-              .eq('email', user.email)
-              .single()
-
-            if (merchantAccount) {
-              merchantId = merchantAccount.id
-              console.log('✅ Merchant found in merchant_accounts:', merchantAccount)
-            }
+          if (merchantAccount) {
+            foundMerchantId = merchantAccount.id
+            console.log('✅ Merchant found in merchant_accounts')
           }
         }
 
-        if (!merchantId) {
-          console.error('❌ Could not find merchant_id for user:', user.email)
+        // If still not found, try clients table with user_id
+        if (!foundMerchantId) {
+          const { data: client, error: clientError } = await supabase
+            .from('clients')
+            .select('merchant_id, id')
+            .eq('user_id', user.id)
+            .single()
+
+          if (clientError && clientError.code !== 'PGRST116') {
+            console.error('❌ Client lookup error:', clientError)
+          }
+
+          if (client && client.merchant_id) {
+            foundMerchantId = client.merchant_id
+            console.log('✅ Merchant found via clients table')
+          }
+        }
+
+        // If still no merchant found, try to find by user metadata
+        if (!foundMerchantId && user.user_metadata?.merchant_id) {
+          foundMerchantId = user.user_metadata.merchant_id
+          console.log('✅ Merchant found via user metadata')
+        }
+
+        if (!foundMerchantId) {
+          console.error('❌ Could not find merchant for user:', user.email)
           setError('Could not find your merchant profile. Please contact support.')
           setLoading(false)
           return
         }
 
-        setMerchantId(merchantId)
+        setMerchantId(foundMerchantId)
 
+        // ============================================================
         // Check if merchant has an assessment
+        // ============================================================
         const { data: assessment, error: assessmentError } = await supabase
           .from('growth_assessments')
           .select('id, status')
-          .eq('merchant_id', merchantId)
+          .eq('merchant_id', foundMerchantId)
           .order('created_at', { ascending: false })
           .limit(1)
           .single()
 
         if (assessmentError && assessmentError.code !== 'PGRST116') {
-          console.error('Error checking assessment:', assessmentError)
+          console.error('❌ Assessment check error:', assessmentError)
         }
 
         if (assessment) {
           setHasAssessment(true)
+          console.log('✅ Assessment found:', assessment.id)
         }
 
+        // ============================================================
         // Get growth profile
-        const profileData = await GrowthProfileService.getProfileByMerchant(merchantId)
+        // ============================================================
+        const profileData = await GrowthProfileService.getProfileByMerchant(foundMerchantId)
 
         if (profileData) {
           setProfile(profileData)
+          console.log('✅ Profile found:', profileData.id)
+          
           // Get PDF URL if exists
           const pdf = await GrowthProfileService.getProfilePDFUrl(profileData.id)
           if (pdf) setPdfUrl(pdf)
+        } else {
+          console.log('ℹ️ No profile found yet')
         }
 
         setLoading(false)
       } catch (err) {
-        console.error('Error fetching growth profile:', err)
+        console.error('❌ Error fetching growth profile:', err)
         setError('An error occurred while loading your profile.')
         setLoading(false)
       }
@@ -172,6 +162,7 @@ export default function GrowthProfilePage() {
         <SvgIcon name="warning" size={48} color="var(--text-muted)" />
         <h2 className="mt-4 text-xl font-semibold text-[var(--text-primary)]">Something went wrong</h2>
         <p className="mt-2 text-[var(--text-secondary)]">{error}</p>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">Please contact support at hello@hbeedigitals.com</p>
         <Link href="/client-portal">
           <Button className="mt-6">Return to Dashboard</Button>
         </Link>
