@@ -1,12 +1,9 @@
-// src/app/admin/growth-reviews/[id]/page.tsx
-
 'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClientComponentClient } from '@/lib/supabase-client'
-import { MerchantLifecycleService } from '@/lib/services/merchant-lifecycle'
 import StatusBadge from '@/components/ui/StatusBadge'
 import SvgIcon from '@/components/ui/SvgIcon'
 import Button from '@/components/ui/Button'
@@ -66,7 +63,6 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
       setMerchant(data.merchant)
       setAssessment(data.assessment)
 
-      // Populate form data from review or assessment
       if (data) {
         setFormData({
           review_notes: data.review_notes || '',
@@ -131,99 +127,42 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
     setSaving(true)
     setGenerating(true)
     try {
-      // Use the MerchantLifecycleService to complete the review
-      const result = await MerchantLifecycleService.completeGrowthReview(params.id, {
-        review_notes: formData.review_notes,
-        hgri_score: formData.hgri_score,
-        growth_classification: formData.growth_classification,
-        strengths: formData.strengths.filter(s => s.trim()),
-        opportunities: formData.opportunities.filter(s => s.trim()),
-        recommendations: generateRecommendations(formData),
-        visibility_score: formData.visibility_score,
-        conversion_score: formData.conversion_score,
-        retention_score: formData.retention_score,
-        authority_score: formData.authority_score,
-        scalability_score: formData.scalability_score
+      const response = await fetch(`/api/growth-reviews/${params.id}/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          review_notes: formData.review_notes,
+          hgri_score: formData.hgri_score,
+          growth_classification: formData.growth_classification,
+          strengths: formData.strengths.filter(s => s.trim()),
+          opportunities: formData.opportunities.filter(s => s.trim()),
+          visibility_score: formData.visibility_score,
+          conversion_score: formData.conversion_score,
+          retention_score: formData.retention_score,
+          authority_score: formData.authority_score,
+          scalability_score: formData.scalability_score,
+          merchant_id: merchant?.id,
+          assessment_id: assessment?.id
+        })
       })
 
-      if (result) {
-        // Get the generated profile
-        const { data: profile } = await supabase
-          .from('growth_profiles')
-          .select('id')
-          .eq('merchant_id', merchant.id)
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single()
+      const result = await response.json()
 
-        alert('🎉 Review completed! Growth profile has been generated.')
-        
-        if (profile) {
-          router.push(`/admin/growth-profiles/${profile.id}`)
-        } else {
-          router.push('/admin/growth-profiles')
-        }
-      } else {
-        alert('⚠️ Review completed but profile generation failed. Please check the logs.')
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to complete review')
       }
-    } catch (error) {
+
+      alert('🎉 Review completed! Growth profile has been generated.')
+      router.push(`/admin/growth-profiles/${result.profile_id}`)
+    } catch (error: any) {
       console.error('Error:', error)
-      alert('An error occurred while completing the review.')
+      alert(error.message || 'An error occurred while completing the review.')
     } finally {
       setSaving(false)
       setGenerating(false)
     }
-  }
-
-  function generateRecommendations(data: any): string[] {
-    const recommendations = []
-    
-    if (data.visibility_score < 50) {
-      recommendations.push('Improve SEO and content strategy to increase visibility')
-    }
-    if (data.conversion_score < 50) {
-      recommendations.push('Optimize conversion funnel and user experience')
-    }
-    if (data.retention_score < 50) {
-      recommendations.push('Implement email marketing and customer retention strategies')
-    }
-    if (data.authority_score < 50) {
-      recommendations.push('Build brand authority through content and social proof')
-    }
-    if (data.scalability_score < 50) {
-      recommendations.push('Develop scalable systems and processes')
-    }
-    
-    if (recommendations.length === 0) {
-      recommendations.push('Continue optimizing your current growth strategies')
-      recommendations.push('Explore new channels for customer acquisition')
-    }
-    
-    return recommendations
-  }
-
-  function handleArrayField(
-    field: 'strengths' | 'opportunities',
-    index: number,
-    value: string
-  ) {
-    const newArray = [...formData[field]]
-    newArray[index] = value
-    setFormData({ ...formData, [field]: newArray })
-  }
-
-  function addArrayField(field: 'strengths' | 'opportunities') {
-    setFormData({
-      ...formData,
-      [field]: [...formData[field], '']
-    })
-  }
-
-  function removeArrayField(field: 'strengths' | 'opportunities', index: number) {
-    const newArray = formData[field].filter((_, i) => i !== index)
-    if (newArray.length === 0) newArray.push('')
-    setFormData({ ...formData, [field]: newArray })
   }
 
   if (loading) {
@@ -252,7 +191,6 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
@@ -281,7 +219,6 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left Column - Scores & Details */}
         <div className="lg:col-span-2 space-y-6">
           {/* Score Card */}
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
@@ -357,13 +294,14 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
 
           {/* Strengths & Opportunities */}
           <div className="grid gap-6 md:grid-cols-2">
-            {/* Strengths */}
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-[var(--text-primary)]">Strengths</h3>
                 {!isCompleted && (
                   <button
-                    onClick={() => addArrayField('strengths')}
+                    onClick={() => {
+                      setFormData({ ...formData, strengths: [...formData.strengths, ''] })
+                    }}
                     className="text-xs text-[var(--accent)] hover:underline"
                   >
                     + Add
@@ -376,14 +314,21 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
                     <input
                       type="text"
                       value={strength}
-                      onChange={(e) => handleArrayField('strengths', index, e.target.value)}
+                      onChange={(e) => {
+                        const newStrengths = [...formData.strengths]
+                        newStrengths[index] = e.target.value
+                        setFormData({ ...formData, strengths: newStrengths })
+                      }}
                       placeholder="Enter a strength..."
                       disabled={isCompleted}
                       className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-3 py-1.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none disabled:opacity-50"
                     />
-                    {!isCompleted && (
+                    {!isCompleted && formData.strengths.length > 1 && (
                       <button
-                        onClick={() => removeArrayField('strengths', index)}
+                        onClick={() => {
+                          const newStrengths = formData.strengths.filter((_, i) => i !== index)
+                          setFormData({ ...formData, strengths: newStrengths })
+                        }}
                         className="text-red-500 hover:text-red-700"
                       >
                         <SvgIcon name="x-close" size={16} />
@@ -394,13 +339,14 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* Opportunities */}
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-[var(--text-primary)]">Opportunities</h3>
                 {!isCompleted && (
                   <button
-                    onClick={() => addArrayField('opportunities')}
+                    onClick={() => {
+                      setFormData({ ...formData, opportunities: [...formData.opportunities, ''] })
+                    }}
                     className="text-xs text-[var(--accent)] hover:underline"
                   >
                     + Add
@@ -413,14 +359,21 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
                     <input
                       type="text"
                       value={opportunity}
-                      onChange={(e) => handleArrayField('opportunities', index, e.target.value)}
+                      onChange={(e) => {
+                        const newOpportunities = [...formData.opportunities]
+                        newOpportunities[index] = e.target.value
+                        setFormData({ ...formData, opportunities: newOpportunities })
+                      }}
                       placeholder="Enter an opportunity..."
                       disabled={isCompleted}
                       className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-3 py-1.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none disabled:opacity-50"
                     />
-                    {!isCompleted && (
+                    {!isCompleted && formData.opportunities.length > 1 && (
                       <button
-                        onClick={() => removeArrayField('opportunities', index)}
+                        onClick={() => {
+                          const newOpportunities = formData.opportunities.filter((_, i) => i !== index)
+                          setFormData({ ...formData, opportunities: newOpportunities })
+                        }}
                         className="text-red-500 hover:text-red-700"
                       >
                         <SvgIcon name="x-close" size={16} />
@@ -446,9 +399,8 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Right Column - Business Info & Activity */}
+        {/* Right Column */}
         <div className="space-y-6">
-          {/* Business Info */}
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
             <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Business Information</h3>
             <dl className="space-y-2 text-sm">
@@ -481,28 +433,6 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
             </dl>
           </div>
 
-          {/* Assessment Summary */}
-          {assessment && (
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-              <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Assessment Summary</h3>
-              <dl className="space-y-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <dt className="text-[var(--text-muted)]">Status</dt>
-                  <dd><StatusBadge status={assessment.status || 'New Submission'} /></dd>
-                </div>
-                <div className="flex items-center justify-between">
-                  <dt className="text-[var(--text-muted)]">Review Status</dt>
-                  <dd><StatusBadge status={assessment.review_status || 'pending'} /></dd>
-                </div>
-                <div className="flex items-center justify-between">
-                  <dt className="text-[var(--text-muted)]">Submitted</dt>
-                  <dd className="text-[var(--text-secondary)]">{new Date(assessment.created_at).toLocaleDateString()}</dd>
-                </div>
-              </dl>
-            </div>
-          )}
-
-          {/* Activity */}
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
             <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Activity</h3>
             <div className="space-y-3 text-sm">
@@ -525,7 +455,6 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Status Help */}
           {!isCompleted && (
             <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4">
               <div className="flex items-start gap-3">
