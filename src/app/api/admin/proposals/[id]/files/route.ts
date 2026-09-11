@@ -1,33 +1,33 @@
 // src/app/api/admin/proposals/[id]/files/route.ts
 //
-// POST — upload one proposal attachment. GET — list a proposal's attachments.
+// GET — list one proposal's attachments (metadata only).
 //
-// Phase P2. Files live in the PRIVATE `proposal-files` bucket and are reachable
-// only through short-lived signed URLs; no public URL is ever produced and
-// object_path never leaves the server.
+// UPLOAD MOVED. This route used to accept a multipart POST that streamed the
+// whole file through the function. Two problems with that: it was a second
+// upload transport with no progress, no resume and no cancellation; and Vercel
+// documents a 4.5 MB request-body limit for Functions, so a file above that is
+// EXPECTED to fail with 413 FUNCTION_PAYLOAD_TOO_LARGE against a 25 MB declared
+// maximum. That size limitation is INFERRED from the documented platform limit
+// and has not been reproduced in production here.
+//
+// Proposal uploads now use the single signed-TUS transport, via
+// POST /api/uploads/initiate and POST /api/uploads/finalize with
+// context = "proposal". The permissions are unchanged and are enforced by
+// authorizeUploadTarget() in src/lib/uploads/upload-session.ts: session ->
+// user-bound 2FA -> active admin row -> the proposal must exist, with client_id
+// copied from the STORED proposal. The 25 MB cap and the PDF/DOC/DOCX/PPT/PPTX/
+// XLS/XLSX/CSV allow-list are preserved unchanged in upload-config.ts.
 //
 // Not covered by middleware.ts (its matcher is /admin/:path*,
 // /admin-2fa-challenge and /client-portal/:path*, not /api/admin/:path*), so
 // session, 2FA and active-admin are re-verified here independently.
 //
-// Nothing about identity or placement is taken from the request body:
-// proposal_id comes from the URL, client_id is copied from the server-fetched
-// proposal, uploaded_by is the session user, object_path is generated here, and
-// file_type / file_size are derived from the real File object. Any
-// uploaded_by / client_id / object_path / proposal_id form field is ignored.
-//
-// No notification and no email are emitted by this route.
+// object_path never leaves the server: it is excluded from the select() itself.
 
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { randomUUID } from 'crypto'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { ADMIN_2FA_COOKIE_NAME, verifyAdmin2FACookie } from '@/lib/admin-2fa-cookie'
-import {
-  PROPOSAL_FILES_BUCKET,
-  buildProposalObjectPath,
-} from '@/lib/proposal-storage-path'
-import { validateProposalFile } from '@/lib/proposal-file-validation'
 
 // Lazy, non-throwing service-role client — the same defensive pattern used by
 // the other /api/admin routes. Deliberately NOT the shared
@@ -150,100 +150,5 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   } catch (error) {
     console.error('❌ Proposal file list error:', error)
     return NextResponse.json({ error: 'Failed to load files' }, { status: 500 })
-  }
-}
-
-export async function POST(request: Request, { params }: { params: { id: string } }) {
-  try {
-    const auth = await requireActiveAdmin()
-    if (!auth.ok) return auth.response
-    const { adminClient, userId } = auth
-
-    const proposalId = typeof params?.id === 'string' ? params.id.trim() : ''
-    if (!UUID_RE.test(proposalId)) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
-
-    // The proposal must exist. client_id is read from the STORED row and is the
-    // only source for the denormalised column below — never a form field.
-    const { data: proposalRow } = await adminClient
-      .from('proposals')
-      .select('id, client_id')
-      .eq('id', proposalId)
-      .maybeSingle()
-
-    if (!proposalRow) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
-
-    let formData: FormData
-    try {
-      formData = await request.formData()
-    } catch {
-      return NextResponse.json({ error: 'Expected a file upload.' }, { status: 400 })
-    }
-
-    // One file per request. The admin UI uploads sequentially, which keeps the
-    // failure mode per-file and the cleanup below unambiguous.
-    const candidate = formData.get('file')
-    if (!candidate || typeof candidate === 'string') {
-      return NextResponse.json({ error: 'No file was provided.' }, { status: 400 })
-    }
-
-    const validation = validateProposalFile(candidate as File)
-    if (!validation.ok) {
-      return NextResponse.json({ error: validation.error }, { status: 400 })
-    }
-
-    const { fileName, fileType, fileSize } = validation.file
-    const objectPath = buildProposalObjectPath(proposalId, randomUUID(), fileName)
-
-    const { error: uploadError } = await adminClient.storage
-      .from(PROPOSAL_FILES_BUCKET)
-      .upload(objectPath, candidate as File, {
-        contentType: fileType,
-        cacheControl: '3600',
-        upsert: false,
-      })
-
-    if (uploadError) {
-      console.error('❌ Proposal file upload failed:', uploadError)
-      return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 })
-    }
-
-    const { data: fileRow, error: insertError } = await adminClient
-      .from('proposal_files')
-      .insert({
-        proposal_id: proposalId,
-        client_id: proposalRow.client_id ?? null,
-        file_name: fileName,
-        object_path: objectPath,
-        file_type: fileType,
-        file_size: fileSize,
-        uploaded_by: userId,
-      })
-      .select(FILE_METADATA_COLUMNS)
-      .single()
-
-    if (insertError || !fileRow) {
-      // Metadata is the source of truth. An object with no row is unreachable
-      // and unmanageable, so roll the storage write back rather than orphan it.
-      console.error('❌ Proposal file metadata insert failed, removing object:', insertError)
-      const { error: cleanupError } = await adminClient.storage
-        .from(PROPOSAL_FILES_BUCKET)
-        .remove([objectPath])
-
-      if (cleanupError) {
-        console.error('⚠️ Failed to clean up orphaned proposal object:', cleanupError)
-      }
-
-      return NextResponse.json({ error: 'Failed to save file' }, { status: 500 })
-    }
-
-    // Metadata only — object_path is never returned.
-    return NextResponse.json({ success: true, file: fileRow })
-  } catch (error) {
-    console.error('❌ Proposal file upload error:', error)
-    return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 })
   }
 }

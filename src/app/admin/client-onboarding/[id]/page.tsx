@@ -96,6 +96,43 @@ export default function AdminOnboardingDetailPage() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState('')
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
+
+  /**
+   * onboarding-files is a PRIVATE bucket (M10), so the stored file_url is an
+   * object path, not a link. A 60-second signed URL is minted per click by an
+   * admin+2FA-gated route and is never persisted anywhere.
+   */
+  async function handleDownload(fileId: string) {
+    setDownloadError(null)
+    setDownloadingId(fileId)
+
+    // Opened synchronously, inside the click handler, before any await — a tab
+    // opened after an awaited fetch resolves is treated as an unrequested popup.
+    const newTab = window.open('', '_blank')
+
+    try {
+      const response = await fetch(`/api/admin/onboarding-files/${fileId}/signed-url`)
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok || !result.url) {
+        throw new Error(result.error || 'Failed to generate download link')
+      }
+
+      if (newTab) {
+        newTab.location.href = result.url
+      } else {
+        window.location.href = result.url
+      }
+    } catch (error) {
+      console.error('Download error:', error)
+      if (newTab) newTab.close()
+      setDownloadError('Failed to prepare that download. Please try again.')
+    } finally {
+      setDownloadingId(null)
+    }
+  }
 
   useEffect(() => {
     fetchSubmission()
@@ -315,7 +352,11 @@ export default function AdminOnboardingDetailPage() {
       {(submission.files && submission.files.length > 0) && (
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
           <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Uploaded Files</h3>
-          
+
+          {downloadError && (
+            <p role="alert" className="mb-3 text-sm text-[var(--error)]">{downloadError}</p>
+          )}
+
           <div className="grid gap-3">
             {submission.files.map((file) => (
               <div key={file.id} className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3">
@@ -328,14 +369,14 @@ export default function AdminOnboardingDetailPage() {
                     </p>
                   </div>
                 </div>
-                <a
-                  href={file.file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-[var(--accent)] hover:underline"
+                <button
+                  type="button"
+                  onClick={() => handleDownload(file.id)}
+                  disabled={downloadingId === file.id}
+                  className="text-sm text-[var(--accent)] hover:underline disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] rounded"
                 >
-                  Download
-                </a>
+                  {downloadingId === file.id ? 'Preparing…' : 'Download'}
+                </button>
               </div>
             ))}
           </div>

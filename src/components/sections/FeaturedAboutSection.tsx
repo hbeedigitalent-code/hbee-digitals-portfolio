@@ -317,10 +317,12 @@ export default function FeaturedAboutSection() {
 
                 {/* Logo/Brand Mark inside overlay */}
                 <div className="absolute bottom-6 left-6 z-10 flex items-center gap-2 rounded-xl bg-[var(--bg-navy)]/80 backdrop-blur-md p-3 border border-white/10">
+                  {/* This overlay sits on --bg-navy in BOTH themes, so the
+                      plate is ungated rather than dark-mode-only. */}
                   <img
                     src={data.logo_url || '/svgs/logo.svg'}
                     alt="Hbee Digitals"
-                    className="h-8 w-8 object-contain"
+                    className="brand-logo-on-dark h-8 w-8 object-contain"
                   />
                   <span className="text-xs font-bold text-white">Hbee Digitals</span>
                 </div>

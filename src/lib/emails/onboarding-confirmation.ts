@@ -1,6 +1,25 @@
 // src/lib/emails/onboarding-confirmation.ts
-import { Resend } from 'resend'
+//
+// Sent from POST /api/onboarding to the client who completed the onboarding
+// form. Trigger, signature and the "skip quietly when Resend is unconfigured"
+// behaviour are unchanged.
+//
+// Rebuilt on the shared branded layout. This is the ORDINARY CLIENT ONBOARDING
+// path and is deliberately independent of the growth programme: nothing here
+// mentions assessments, approval or a Growth Profile.
 
+import { Resend } from 'resend'
+import {
+  renderEmail,
+  deliver,
+  emailFrom,
+  emailReplyTo,
+  supportEmail,
+  type EmailBlock,
+  type EmailSendResult,
+} from '@/lib/emails/layout'
+
+// Only initialize Resend if API key exists
 const resendApiKey = process.env.RESEND_API_KEY
 const resend = resendApiKey ? new Resend(resendApiKey) : null
 
@@ -8,298 +27,76 @@ export async function sendOnboardingConfirmation(
   fullName: string,
   email: string,
   projectId: string
-) {
+): Promise<EmailSendResult> {
   if (!resend) {
     console.warn('Resend API key not configured - skipping email send')
-    return
+    return { ok: false, outcome: 'skipped', reason: 'resend_not_configured' }
   }
 
-  // These colors will be replaced with your CSS variables
-  // Once you send your CSS file, I'll update these
-  const brandColors = {
-    navy: '#0B1628',
-    navyMid: '#1A2B47',
-    orange: '#F97316',
-    orangeDark: '#EA580C',
-    lime: '#39D97A',
-    gray: '#94A3B8',
-    border: '#1E314A',
-  }
+  const blocks: EmailBlock[] = [
+    { type: 'paragraph', text: `Hi ${fullName},` },
+    {
+      type: 'paragraph',
+      text:
+        'Thank you for completing your onboarding with Hbee Digitals. Your project ' +
+        'details, files and requirements have been received.',
+    },
+    {
+      type: 'reference',
+      label: 'Your project reference',
+      value: projectId,
+    },
+    { type: 'heading', text: 'What happens next' },
+    {
+      type: 'list',
+      items: [
+        'Our team reviews everything you submitted.',
+        'We come back to you with any clarifying questions.',
+        'You can track progress and share files in your client portal.',
+      ],
+    },
+    {
+      type: 'paragraph',
+      text: 'Keep your project reference to hand when you get in touch about this project.',
+      muted: true,
+    },
+  ]
 
-  const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Project Details Received — ${projectId}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #f4f6f9;
-      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Arial, sans-serif;
-      line-height: 1.6;
-    }
-    .email-wrapper {
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 40px 20px;
-    }
-    .email-container {
-      background: #ffffff;
-      border-radius: 24px;
-      padding: 48px 40px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-      border: 1px solid #e8ecf1;
-    }
-    .email-header { text-align: center; margin-bottom: 32px; }
-    .email-logo {
-      display: inline-block;
-      font-size: 28px;
-      font-weight: 800;
-      color: ${brandColors.navy};
-      text-decoration: none;
-    }
-    .email-logo span { color: ${brandColors.orange}; }
-    .badge {
-      display: inline-block;
-      background: ${brandColors.orange};
-      color: #ffffff;
-      padding: 6px 18px;
-      border-radius: 9999px;
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-top: 12px;
-    }
-    .email-content h1 {
-      font-size: 26px;
-      font-weight: 700;
-      color: ${brandColors.navy};
-      margin-bottom: 8px;
-    }
-    .email-content p {
-      font-size: 16px;
-      color: #475569;
-      margin: 12px 0;
-      line-height: 1.7;
-    }
-    .email-content p strong { color: ${brandColors.navy}; }
-    .project-id-box {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 16px;
-      padding: 24px;
-      text-align: center;
-      margin: 24px 0;
-    }
-    .project-id-box .label {
-      font-size: 13px;
-      color: #64748b;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .project-id-box .id {
-      font-size: 28px;
-      font-weight: 700;
-      color: ${brandColors.orange};
-      letter-spacing: 0.05em;
-      margin-top: 4px;
-      display: block;
-    }
-    .btn-primary {
-      display: inline-block;
-      background: ${brandColors.orange};
-      color: #ffffff;
-      padding: 14px 40px;
-      border-radius: 9999px;
-      text-decoration: none;
-      font-weight: 700;
-      font-size: 16px;
-      transition: all 0.3s ease;
-      margin: 8px 0;
-    }
-    .btn-primary:hover {
-      background: ${brandColors.orangeDark};
-      transform: translateY(-2px);
-      box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
-    }
-    .steps {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin: 20px 0;
-      padding: 0;
-      list-style: none;
-    }
-    .steps li {
-      background: #f8fafc;
-      padding: 12px 16px;
-      border-radius: 12px;
-      font-size: 13px;
-      color: #475569;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      border: 1px solid #e2e8f0;
-    }
-    .steps li .step-num {
-      display: inline-block;
-      width: 24px;
-      height: 24px;
-      background: ${brandColors.orange};
-      color: #ffffff;
-      border-radius: 50%;
-      text-align: center;
-      font-weight: 700;
-      font-size: 12px;
-      line-height: 24px;
-      flex-shrink: 0;
-    }
-    .divider {
-      border: none;
-      border-top: 1px solid #e2e8f0;
-      margin: 28px 0;
-    }
-    .email-footer {
-      margin-top: 32px;
-      padding-top: 24px;
-      border-top: 1px solid #e2e8f0;
-      text-align: center;
-      color: #94a3b8;
-      font-size: 14px;
-    }
-    .email-footer a { color: ${brandColors.orange}; text-decoration: none; }
-    .email-footer a:hover { text-decoration: underline; }
-    .social-links {
-      margin: 16px 0 8px;
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-    }
-    .social-links a {
-      color: #94a3b8;
-      font-size: 14px;
-      text-decoration: none;
-    }
-    .social-links a:hover { color: ${brandColors.orange}; }
-
-    /* Dark Mode Support */
-    @media (prefers-color-scheme: dark) {
-      body { background-color: ${brandColors.navy}; }
-      .email-container {
-        background: ${brandColors.navyMid};
-        border-color: ${brandColors.border};
-      }
-      .email-content h1 { color: #ffffff; }
-      .email-content p { color: ${brandColors.gray}; }
-      .email-content p strong { color: #ffffff; }
-      .email-logo { color: #ffffff; }
-      .project-id-box {
-        background: ${brandColors.navy};
-        border-color: ${brandColors.border};
-      }
-      .project-id-box .label { color: #64748b; }
-      .steps li {
-        background: ${brandColors.navy};
-        border-color: ${brandColors.border};
-        color: ${brandColors.gray};
-      }
-      .divider { border-color: ${brandColors.border}; }
-      .email-footer { border-color: ${brandColors.border}; color: #64748b; }
-      .email-footer a { color: ${brandColors.orange}; }
-      .social-links a { color: #64748b; }
-      .social-links a:hover { color: ${brandColors.orange}; }
-    }
-
-    @media (max-width: 480px) {
-      .email-container { padding: 28px 20px; border-radius: 16px; }
-      .email-wrapper { padding: 20px 12px; }
-      .email-content h1 { font-size: 22px; }
-      .steps { grid-template-columns: 1fr; }
-      .project-id-box .id { font-size: 22px; }
-      .btn-primary { display: block; text-align: center; padding: 14px 24px; }
-    }
-  </style>
-</head>
-<body>
-  <div class="email-wrapper">
-    <div class="email-container">
-      <div class="email-header">
-        <a href="https://www.hbeedigitals.com" class="email-logo">
-          Hbee <span>Digitals</span>
-        </a>
-        <div class="badge">Onboarding Received</div>
-      </div>
-
-      <div class="email-content">
-        <h1>Project Details Received</h1>
-        <p>Hi <strong>${fullName}</strong>,</p>
-        <p>Thank you for completing your onboarding with <strong>Hbee Digitals</strong>.</p>
-        <p>Your project details, files, and requirements have been received and are now under review.</p>
-
-        <div class="project-id-box">
-          <span class="label">Your Project ID</span>
-          <span class="id">${projectId}</span>
-        </div>
-
-        <p>Here's what happens next:</p>
-        <ul class="steps">
-          <li><span class="step-num">1</span> Review by project team</li>
-          <li><span class="step-num">2</span> Project kickoff planning</li>
-          <li><span class="step-num">3</span> Team assignment</li>
-          <li><span class="step-num">4</span> Kickoff meeting</li>
-        </ul>
-
-        <p style="text-align: center; margin: 28px 0 8px;">
-          <a href="https://www.hbeedigitals.com/client-portal" class="btn-primary">
-            View Your Project
-          </a>
-        </p>
-        <p style="font-size: 14px; color: #94a3b8; text-align: center; margin-top: 8px;">
-          You'll receive updates as your project progresses.
-        </p>
-      </div>
-
-      <div class="email-footer">
-        <p style="margin-bottom: 4px;">
-          <strong style="color: ${brandColors.navy};">Hbee Digitals</strong>
-        </p>
-        <p style="font-size: 13px;">
-          Premium websites, ecommerce systems, and conversion-focused digital experiences.
-        </p>
-        <div class="social-links">
-          <a href="https://www.hbeedigitals.com">🌐 Website</a>
-          <a href="mailto:hello@hbeedigitals.com">✉️ Email</a>
-        </div>
-        <p style="font-size: 12px; margin-top: 8px; color: #94a3b8;">
-          © ${new Date().getFullYear()} Hbee Digitals. All rights reserved.
-        </p>
-        <p style="font-size: 11px; color: #94a3b8;">
-          <a href="https://www.hbeedigitals.com/privacy">Privacy Policy</a>
-          &nbsp;·&nbsp;
-          <a href="https://www.hbeedigitals.com/terms">Terms of Service</a>
-        </p>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
-  `
-
-  try {
-    await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'Hbee Digitals <noreply@send.hbeedigitals.com>',
-      to: email,
-      subject: `Project Details Received — ${projectId}`,
-      html,
+  return deliver('onboarding-confirmation', async () => {
+    const { html, text } = renderEmail({
+      preheader: `We have your project details. Reference ${projectId}.`,
+      eyebrow: 'Onboarding received',
+      heading: 'Your project details have been received',
+      blocks,
+      cta: { label: 'Open your client portal', url: '/client-portal' },
+      signoff: { name: 'The Hbee Digitals Team', title: 'Hbee Digitals' },
+      reason:
+        'You are receiving this because you completed the onboarding form at hbeedigitals.com.',
+      supportEmail: supportEmail(),
     })
-    console.log('✅ Onboarding confirmation email sent to:', email)
-  } catch (error) {
-    console.error('Error sending onboarding confirmation email:', error)
-  }
+
+    // Returned, not awaited-and-discarded: deliver() inspects the provider
+    // envelope, because the Resend SDK RESOLVES with { error } on rejection.
+    return resend.emails.send(
+      {
+        from: emailFrom(),
+        ...emailReplyTo(),
+        to: email,
+        subject: `Project details received — ${projectId}`,
+        html,
+        text,
+      },
+      // Provider-side idempotency. Resend de-duplicates on this key, so a
+      // retry of the same logical send cannot deliver a second copy. Its
+      // window is the provider's, not ours (Resend documents 24 hours), so
+      // it protects against a retry storm — NOT against a resend days later.
+      { idempotencyKey: `onboarding-confirmation:${projectId}` },
+    )
+  }, {
+    templateSlug: 'onboarding-confirmation',
+    recipientEmail: email,
+    recipientName: fullName,
+    subject: `Project details received — ${projectId}`,
+  },
+  )
 }

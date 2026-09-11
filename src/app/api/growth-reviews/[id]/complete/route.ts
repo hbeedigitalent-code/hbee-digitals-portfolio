@@ -67,7 +67,7 @@ function getPrivilegedClient() {
   return privilegedClient
 }
 
-type AuthResult = { ok: true } | { ok: false; response: NextResponse }
+type AuthResult = { ok: true; userId: string } | { ok: false; response: NextResponse }
 
 /**
  * Session + user-bound 2FA attestation + active admin_users membership.
@@ -133,7 +133,8 @@ async function requireActiveAdmin(): Promise<AuthResult> {
     }
   }
 
-  return { ok: true }
+  // The acting admin, carried through so the completion can be attributed.
+  return { ok: true, userId: user.id }
 }
 
 export async function POST(
@@ -220,6 +221,15 @@ export async function POST(
     const claimedMerchantId = (body as { merchant_id?: unknown }).merchant_id
     const claimedAssessmentId = (body as { assessment_id?: unknown }).assessment_id
 
+    // THE EXPLICIT AUTHORIZED UPDATE. Completing a review upserts the profile
+    // for (merchant, assessment), which means a second completion would have
+    // silently replaced content a merchant had already been shown under an
+    // approval. complete_growth_review() refuses that unless this flag is set,
+    // and it records who set it. It must be a literal `true` — anything else,
+    // including a truthy string, is treated as absent.
+    const allowReleasedUpdate =
+      (body as { allow_released_update?: unknown }).allow_released_update === true
+
     if (
       (typeof claimedMerchantId === 'string' && claimedMerchantId !== merchant_id) ||
       (typeof claimedAssessmentId === 'string' && claimedAssessmentId !== assessment_id)
@@ -233,46 +243,30 @@ export async function POST(
       )
     }
 
-    // 1. Update the review status to completed
-    const { error: reviewError } = await supabase
-      .from('growth_reviews')
-      .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        review_notes,
-        hgri_score,
-        growth_classification,
-        strengths: strengths || [],
-        opportunities: opportunities || [],
-        visibility_score: visibility_score || 0,
-        conversion_score: conversion_score || 0,
-        retention_score: retention_score || 0,
-        authority_score: authority_score || 0,
-        scalability_score: scalability_score || 0,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-
-    if (reviewError) {
-      console.error('Review update error:', reviewError)
-      return NextResponse.json(
-        { error: 'Failed to update review' },
-        { status: 500 }
-      )
-    }
-
-    // 2. Update the assessment
-    await supabase
-      .from('growth_assessments')
-      .update({
-        review_status: 'approved',
-        hgri_score: hgri_score || 0,
-        growth_classification: growth_classification || 'Growth Potential',
-        reviewed_at: new Date().toISOString()
-      })
-      .eq('id', assessment_id)
-
-    // 3. Generate the growth profile
+    // ------------------------------------------------------------------
+    // ONE TRANSACTION: complete_growth_review().
+    //
+    // TWO DEFECTS THIS REPLACES, both of which were live until now:
+    //
+    //   1. This route wrote growth_assessments.review_status = 'approved' on
+    //      EVERY completion. Completing a review is not approving a merchant
+    //      for the program, and that write is one of the two sources of the
+    //      four rows whose approval provenance cannot be established. It now
+    //      writes 'reviewed', and it records NO decision — program approval is
+    //      a separate deliberate act via /api/admin/growth-assessments/[id]/decision.
+    //
+    //   2. It INSERTed a new growth_profiles row with is_active = true every
+    //      time, so completing the same review twice produced TWO active
+    //      profiles for one merchant, and the client-portal reader had to guess.
+    //      Completion is now an upsert keyed on (merchant_id, assessment_id),
+    //      older profiles are retired rather than deleted, and a partial unique
+    //      index makes two active profiles impossible even if some other writer
+    //      tried.
+    //
+    // The review row, the assessment status, the profile and the merchant
+    // lifecycle all commit together, so a crash cannot leave a completed review
+    // with no profile.
+    // ------------------------------------------------------------------
     const profileData = {
       scores: {
         pillars: {
@@ -280,69 +274,127 @@ export async function POST(
           conversion: conversion_score || 0,
           retention: retention_score || 0,
           authority: authority_score || 0,
-          scalability: scalability_score || 0
+          scalability: scalability_score || 0,
         },
-        hgri: hgri_score || 0
+        hgri: hgri_score || 0,
       },
       recommendations: generateRecommendations({
         visibility_score: visibility_score || 0,
         conversion_score: conversion_score || 0,
         retention_score: retention_score || 0,
         authority_score: authority_score || 0,
-        scalability_score: scalability_score || 0
-      })
+        scalability_score: scalability_score || 0,
+      }),
     }
 
-    // Get merchant name
     const { data: merchant } = await supabase
       .from('merchants')
       .select('business_name')
       .eq('id', merchant_id)
-      .single()
+      .maybeSingle()
 
     const merchantName = merchant?.business_name || 'Business'
+    const classification = growth_classification || 'Growth Potential'
 
-    // Create the growth profile
-    const { data: profile, error: profileError } = await supabase
-      .from('growth_profiles')
-      .insert({
-        merchant_id,
-        assessment_id,
-        title: `${merchantName} - Growth Profile`,
-        summary: generateSummary(merchantName, growth_classification || 'Growth Potential'),
-        hgri_score: hgri_score || 0,
-        growth_classification: growth_classification || 'Growth Potential',
-        profile_data: profileData,
+    const { data: completion, error: completeError } = await supabase.rpc(
+      'complete_growth_review',
+      {
+        p_review_id: id,
+        p_assessment_id: assessment_id,
+        p_merchant_id: merchant_id,
+        p_actor: auth.userId,
+        p_review: {
+          hgri_score: hgri_score || 0,
+          growth_classification: classification,
+        },
+        p_profile: {
+          title: `${merchantName} - Growth Profile`,
+          summary: generateSummary(merchantName, classification),
+          hgri_score: hgri_score || 0,
+          growth_classification: classification,
+          profile_data: profileData,
+          strengths: strengths || [],
+          opportunities: opportunities || [],
+        },
+        p_allow_released_update: allowReleasedUpdate,
+      },
+    )
+
+    if (completeError) {
+      console.error(
+        `[growth-reviews/complete] failed (code=${
+          (completeError as { code?: string }).code ?? 'n/a'
+        })`,
+      )
+      return NextResponse.json({ error: 'Failed to complete review' }, { status: 500 })
+    }
+
+    if (!completion?.ok) {
+      const reason = String(completion?.reason ?? 'unknown')
+      // The RPC validates the review, assessment and merchant TOGETHER. Either
+      // mismatch means the stored relationships disagree with what was asked
+      // for, and nothing was written.
+      if (
+        reason === 'assessment_merchant_mismatch' ||
+        reason === 'review_relationship_mismatch'
+      ) {
+        return NextResponse.json({ error: 'Review relationship mismatch' }, { status: 409 })
+      }
+      if (reason === 'review_not_found' || reason === 'merchant_not_found') {
+        return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      }
+      if (reason === 'profile_already_released') {
+        // Nothing was written. The caller may repeat the request with
+        // allow_released_update: true, which is the deliberate authorized
+        // update and is recorded against the acting admin on the profile row.
+        return NextResponse.json(
+          {
+            error:
+              'This merchant has already been approved and shown this Growth Profile. ' +
+              'Completing the review again would replace content they have seen. ' +
+              'Confirm the update to proceed.',
+            code: 'profile_already_released',
+          },
+          { status: 409 },
+        )
+      }
+      console.error(`[growth-reviews/complete] refused: ${reason}`)
+      return NextResponse.json({ error: 'Failed to complete review' }, { status: 500 })
+    }
+
+    const profileId: string = completion.profile_id
+
+    // The remaining details the RPC does not own: review notes and per-pillar
+    // scores on the review row itself. Reported separately if they fail — the
+    // completion above is already committed and is the authoritative part.
+    const { error: detailError } = await supabase
+      .from('growth_reviews')
+      .update({
+        completed_at: new Date().toISOString(),
+        review_notes,
+        hgri_score,
+        growth_classification: classification,
         strengths: strengths || [],
         opportunities: opportunities || [],
-        is_active: true,
-        created_at: new Date().toISOString()
+        visibility_score: visibility_score || 0,
+        conversion_score: conversion_score || 0,
+        retention_score: retention_score || 0,
+        authority_score: authority_score || 0,
+        scalability_score: scalability_score || 0,
+        updated_at: new Date().toISOString(),
       })
-      .select()
-      .single()
+      .eq('id', id)
 
-    if (profileError) {
-      console.error('Profile creation error:', profileError)
-      return NextResponse.json(
-        { error: 'Failed to create growth profile' },
-        { status: 500 }
+    if (detailError) {
+      console.error(
+        `[growth-reviews/${id}/complete] review completed but its notes/scores were not saved ` +
+          `(code=${(detailError as { code?: string }).code ?? 'n/a'})`,
       )
     }
 
-    // 4. Update merchant status
-    await supabase
-      .from('merchant_status')
-      .upsert({
-        merchant_id,
-        status: 'growth_profile_ready',
-        last_activity: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'merchant_id' })
-
-    // 5. Create the client notification via the trusted server-side helper.
-    //    Resolve the authoritative clients.id from the legacy merchant_id; if
-    //    no client row exists, skip the in-app notification (no fabricated
-    //    UUID) and preserve the rest of the completion flow.
+    // The client notification. NOTE the wording: the profile has been PREPARED.
+    // It is not released to the client until a deliberate program decision is
+    // recorded AND the release flag is on, so this must not announce access.
     const resolvedClientId = await resolveClientIdByMerchantId(merchant_id)
     if (resolvedClientId) {
       await createNotification({
@@ -350,10 +402,11 @@ export async function POST(
         recipientId: resolvedClientId,
         legacyMerchantId: merchant_id,
         type: 'growth_profile_ready',
-        title: 'Growth Profile Ready',
-        message: `Your Growth Profile is ready! You have been classified as ${growth_classification || 'Growth Potential'}.`,
+        title: 'Your Growth Profile has been prepared',
+        message:
+          'Our team has finished reviewing your assessment. We will be in touch about next steps.',
         entityType: 'growth_profile',
-        entityId: profile.id,
+        entityId: profileId,
         link: '/client-portal/growth-profile',
       })
     } else {
@@ -362,20 +415,28 @@ export async function POST(
       )
     }
 
-    // 6. Update client record
+    // Mirror the headline numbers onto the client record for the portal lists.
+    // This grants nothing: it is display data, not authorization.
     await supabase
       .from('clients')
       .update({
-        growth_profile_id: profile.id,
+        growth_profile_id: profileId,
         hgri_score: hgri_score || 0,
-        growth_classification: growth_classification || 'Growth Potential'
+        growth_classification: classification,
       })
       .eq('merchant_id', merchant_id)
 
     return NextResponse.json({
       success: true,
-      profile_id: profile.id,
-      message: 'Review completed and profile generated'
+      profile_id: profileId,
+      profile_created: completion.profile_created === true,
+      // True only when an already-released profile's content was deliberately
+      // replaced. The acting admin is recorded on the profile row.
+      released_content_updated: completion.released_content_updated === true,
+      review_status: completion.review_status,
+      // Said explicitly so no caller mistakes completion for approval.
+      released: false,
+      message: 'Review completed and profile prepared. Program approval is a separate decision.',
     })
 
   } catch (error) {

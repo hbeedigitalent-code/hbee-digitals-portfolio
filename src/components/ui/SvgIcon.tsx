@@ -172,6 +172,15 @@ const getIconPath = (name: string): string => {
 }
 
 // Helper to get the appropriate CSS filter for colors
+/**
+ * Icon names that render the Hbee brand mark rather than a single-colour UI
+ * glyph. These are two-colour artwork and must never be run through the
+ * flattening colour filter below.
+ *
+ * `home` is included because the icon map points it at the same logo file.
+ */
+const BRAND_MARK_ICONS = new Set(['logo', 'home'])
+
 const getColorFilter = (color: string): string => {
   if (!color || color === 'currentColor' || color === 'white' || color === '#ffffff') {
     return 'none'
@@ -234,13 +243,26 @@ function SvgIcon({ name, size = 20, color = 'currentColor', className = '' }: Sv
 
   // Determine the filter to apply
   const filter = getColorFilter(color)
-  
+
   // Determine if we should use CSS variable color directly
-  const useDirectColor = color === 'var(--accent)' || 
-                         color === 'var(--accent-orange)' || 
+  const useDirectColor = color === 'var(--accent)' ||
+                         color === 'var(--accent-orange)' ||
                          color === 'var(--accent-lime)' ||
                          color === 'var(--blue-500)' ||
                          color === 'var(--blue-600)'
+
+  // The brand logo is NEVER tinted.
+  //
+  // getColorFilter() returns a `brightness(0) saturate(100%) …` chain, which
+  // flattens the image to one flat colour. That is right for the single-colour
+  // UI glyphs, and wrong for the Hbee mark: several call sites pass
+  // var(--accent) or var(--accent-orange), which would have erased the orange
+  // middle and rendered the whole logo in one colour.
+  //
+  // Only the brand mark is excluded. Every other icon keeps its existing
+  // tinting behaviour exactly.
+  const isBrandMark = BRAND_MARK_ICONS.has(name.toLowerCase().trim())
+  const applyTint = useDirectColor && !isBrandMark
 
   return (
     <img
@@ -248,11 +270,14 @@ function SvgIcon({ name, size = 20, color = 'currentColor', className = '' }: Sv
       alt={name}
       width={size}
       height={size}
-      className={`object-contain ${className}`}
-      style={{ 
-        filter: useDirectColor ? filter : 'none',
+      // `brand-logo` gives the two-colour mark a light plate in dark mode only.
+      // It sets background-color and radius and nothing else, so no icon
+      // changes size or position. Unrelated icons never receive it.
+      className={`object-contain ${isBrandMark ? 'brand-logo ' : ''}${className}`}
+      style={{
+        filter: applyTint ? filter : 'none',
         // If it's a CSS variable, also apply the color as a fallback
-        color: useDirectColor ? color : 'inherit'
+        color: applyTint ? color : 'inherit'
       }}
       onError={() => setImgError(true)}
     />

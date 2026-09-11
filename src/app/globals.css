@@ -541,6 +541,41 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ─────────────────────────────────────────────
+   BRAND LOGO PLATE
+
+   The approved Hbee mark is blue with an orange middle. Measured against the
+   real dark surfaces, its blue sits at 1.36–1.84:1 contrast — close to
+   invisible. No dark variant of the artwork exists, and the artwork must not be
+   recoloured, so dark mode places it on a light plate instead.
+
+   Zero layout impact by design: background-color and radius only. No padding,
+   no border, no size change, so header and sidebar dimensions are unaffected.
+   The artwork carries ~13% internal margin on every side, so a plate flush to
+   the image bounds still leaves the mark breathing room.
+
+   --text-on-inverse is the existing token for content shown against an inverse
+   (dark) background, which is exactly this role. No token is added or changed.
+
+   Applies ONLY to the brand mark. Unrelated icons are untouched.
+   ───────────────────────────────────────────── */
+.brand-logo {
+  border-radius: 10px;
+}
+
+.dark .brand-logo,
+[data-theme='dark'] .brand-logo {
+  background-color: var(--text-on-inverse);
+}
+
+/* For the handful of placements that sit on a FIXED dark surface in both
+   themes (e.g. an overlay panel on --bg-navy). There the plate must not be
+   theme-gated, or the mark stays unreadable in light mode. */
+.brand-logo-on-dark {
+  border-radius: 10px;
+  background-color: var(--text-on-inverse);
+}
+
+/* ─────────────────────────────────────────────
    SECTION SYSTEM
    ───────────────────────────────────────────── */
 .section {

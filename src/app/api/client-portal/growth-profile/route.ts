@@ -27,16 +27,6 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
-// Assessment review_status values that mean "Hbee has approved this merchant".
-// Taken from the values that actually exist in the table
-// (pending, in_review, reviewed, approved, rejected).
-//
-// `reviewed` is deliberately NOT included: a completed review is not the same
-// decision as program approval, and treating it as approval would grant access
-// to merchants who were reviewed but never approved. `growth_profiles.is_active`
-// is likewise NOT treated as approval on its own — it marks which profile row is
-// current, not whether the merchant was accepted.
-const APPROVED_REVIEW_STATUSES = ['approved']
 
 // ---------------------------------------------------------------------------
 // HISTORICAL APPROVAL GATE — OFF BY DEFAULT. DO NOT REMOVE WITHOUT REVIEW.
@@ -166,76 +156,115 @@ export async function GET() {
       return NextResponse.json({ state: 'not_connected' })
     }
 
-    // Latest assessment for the linked merchant. `review_status` is the only
-    // field used for a decision; nothing from growth_reviews is read here.
-    const { data: assessmentRows } = await adminClient
+    // Has this merchant submitted anything at all? Existence only — no status
+    // is read from here, and nothing about the review is disclosed.
+    const { data: anyAssessment } = await adminClient
       .from('growth_assessments')
-      .select('id, review_status, created_at')
+      .select('id')
       .eq('merchant_id', merchantId)
-      .order('created_at', { ascending: false })
       .limit(1)
 
-    const assessment = assessmentRows?.[0] ?? null
-
-    if (!assessment) {
+    if (!anyAssessment || anyAssessment.length === 0) {
       return NextResponse.json({ state: 'no_assessment' })
     }
 
-    if (assessment.review_status === 'rejected') {
-      // Not "under review" — say nothing further, and do not leak review notes.
+    // ---- THE PROGRAM DECISION ------------------------------------------
+    //
+    // Release is authorized by growth_program_decisions and by NOTHING else.
+    //
+    // review_status is not consulted at all any more — not even to withhold.
+    // An earlier version short-circuited on the LATEST assessment being
+    // 'rejected', which was wrong in a specific and damaging way: a merchant who
+    // had been deliberately approved, and who later submitted a reassessment
+    // that was rejected, would have silently lost access to the profile they
+    // were granted. Withdrawal has to be a deliberate decision, so a rejected
+    // reassessment now changes nothing until an admin records one.
+    //
+    // The decision is read at MERCHANT level and ordered by decision_seq, a
+    // monotonic sequence. Ordering by a timestamp alone could tie.
+    const { data: decisionRows, error: decisionError } = await adminClient
+      .from('growth_program_decisions')
+      .select('decision, decision_seq, profile_id, assessment_id')
+      .eq('merchant_id', merchantId)
+      .order('decision_seq', { ascending: false })
+      .limit(1)
+
+    if (decisionError) {
+      // A gate that cannot answer "yes" is never read as "yes".
+      console.error(
+        '[growth-profile] decision lookup failed (code=' +
+          ((decisionError as { code?: string }).code ?? 'n/a') +
+          ') — withholding',
+      )
+      return NextResponse.json({ state: 'under_review' })
+    }
+
+    const effective = decisionRows?.[0] ?? null
+    const decision = effective?.decision ?? null
+
+    if (decision === 'declined') {
+      // Say nothing further, and never leak review notes.
       return NextResponse.json({ state: 'not_available' })
     }
 
-    const approved = APPROVED_REVIEW_STATUSES.includes(String(assessment.review_status))
-
-    if (!approved) {
-      // pending / in_review / reviewed — submitted, decision not yet issued.
+    if (decision !== 'approved') {
+      // No decision recorded, or a release that was deliberately withdrawn.
+      // Includes every historical 'approved' review_status that has no
+      // decision behind it. Withheld, never rewritten.
       return NextResponse.json({ state: 'under_review' })
     }
 
-    // Historical approvals are not trusted until the gate is opened. Withheld,
-    // never rewritten.
+    // A recorded approval still passes through the release flag, which stays
+    // OFF until the whole approval/release flow has been tested end to end.
     if (!isProfileReleaseEnabled()) {
       return NextResponse.json({ state: 'under_review' })
     }
-
-    // Current profile for the merchant. is_active marks WHICH profile is
-    // current; approval above is what grants access. A merchant approved
-    // without a paid project reaches this point normally — no payment,
-    // invoice or project state is consulted anywhere in this route.
+    // ---- THE PROFILE THE DECISION AUTHORIZED ---------------------------
     //
-    // limit(2): more than one active profile for a merchant is an inconsistent
-    // record, and the route must not pick one arbitrarily.
-    const { data: profileRows } = await adminClient
-      .from('growth_profiles')
-      .select(
-        'id, merchant_id, assessment_id, title, summary, hgri_score, growth_classification, profile_data, strengths, opportunities, created_at',
-      )
-      .eq('merchant_id', merchantId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(2)
-
-    if (profileRows && profileRows.length > 1) {
+    // Release is bound to `profile_id` ON THE DECISION — the profile an admin
+    // actually looked at and approved — and NOT to whichever profile happens to
+    // be active now. Those two are not the same thing: a reassessment creates a
+    // newer active profile, and serving that one would publish content nobody
+    // ever approved.
+    //
+    // The database guarantees an approval always names a profile (a CHECK
+    // constraint on growth_program_decisions), so a missing id here means the
+    // row was written by something other than the decision endpoint.
+    if (!effective.profile_id) {
       console.error(
-        `[client-portal/growth-profile] multiple active profiles for merchant ${merchantId}`,
+        `[client-portal/growth-profile] approval for merchant ${merchantId} names no profile`,
       )
       return NextResponse.json({ state: 'inconsistent' }, { status: 409 })
     }
 
-    const profile = profileRows?.[0] ?? null
+    const { data: profile, error: profileError } = await adminClient
+      .from('growth_profiles')
+      .select(
+        'id, merchant_id, assessment_id, title, summary, hgri_score, growth_classification, profile_data, strengths, opportunities, created_at',
+      )
+      .eq('id', effective.profile_id)
+      .maybeSingle()
 
-    if (!profile) {
-      return NextResponse.json({ state: 'under_review' })
+    if (profileError) {
+      console.error(
+        `[client-portal/growth-profile] profile read failed (code=${
+          (profileError as { code?: string }).code ?? 'n/a'
+        })`,
+      )
+      return NextResponse.json({ error: 'Failed to load your profile' }, { status: 500 })
     }
 
-    // THREE-WAY BINDING. The profile must belong to the resolved merchant AND
-    // to the very assessment that authorised access. Checking approval on one
-    // assessment and then serving whatever active profile exists would let an
-    // unrelated approved assessment expose a different profile — for example
-    // after a reassessment, or if a profile row were ever written with a
-    // mismatched merchant_id. Both are verified explicitly rather than assumed
-    // from the query filters.
+    if (!profile) {
+      // The approved profile no longer exists. Withhold rather than substitute.
+      console.error(
+        `[client-portal/growth-profile] approved profile ${effective.profile_id} is missing`,
+      )
+      return NextResponse.json({ state: 'inconsistent' }, { status: 409 })
+    }
+
+    // DEFENCE IN DEPTH. The decision was validated when it was recorded, but the
+    // rows can drift afterwards, so the ownership chain is re-checked here
+    // rather than assumed from the decision.
     if (String(profile.merchant_id) !== String(merchantId)) {
       console.error(
         `[client-portal/growth-profile] profile ${profile.id} merchant mismatch`,
@@ -243,11 +272,26 @@ export async function GET() {
       return NextResponse.json({ state: 'inconsistent' }, { status: 409 })
     }
 
-    if (!profile.assessment_id || String(profile.assessment_id) !== String(assessment.id)) {
-      // The current profile was generated from a different assessment than the
-      // one carrying the approval. No content is returned.
+    if (!profile.assessment_id) {
       console.error(
-        `[client-portal/growth-profile] profile ${profile.id} is not bound to approving assessment ${assessment.id}`,
+        `[client-portal/growth-profile] profile ${profile.id} has no assessment binding`,
+      )
+      return NextResponse.json({ state: 'inconsistent' }, { status: 409 })
+    }
+
+    const { data: boundAssessment, error: boundError } = await adminClient
+      .from('growth_assessments')
+      .select('id, merchant_id')
+      .eq('id', profile.assessment_id)
+      .maybeSingle()
+
+    if (
+      boundError ||
+      !boundAssessment ||
+      String(boundAssessment.merchant_id) !== String(merchantId)
+    ) {
+      console.error(
+        `[client-portal/growth-profile] profile ${profile.id} is bound to an assessment that is not this merchant's`,
       )
       return NextResponse.json({ state: 'inconsistent' }, { status: 409 })
     }

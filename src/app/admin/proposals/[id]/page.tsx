@@ -2,19 +2,16 @@
 
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClientComponentClient } from '@/lib/supabase-client'
 import { proposalStatusLabel, proposalStatusTransitions } from '@/lib/proposal-status'
-import {
-  MAX_PROPOSAL_FILE_LABEL,
-  PROPOSAL_FILE_ACCEPT_ATTRIBUTE,
-  formatFileSize,
-} from '@/lib/proposal-file-validation'
+import { formatFileSize } from '@/lib/proposal-file-validation'
 import StatusBadge from '@/components/ui/StatusBadge'
 import SvgIcon from '@/components/ui/SvgIcon'
 import Button from '@/components/ui/Button'
+import FileUploader from '@/components/uploads/FileUploader'
 
 interface PageProps {
   params: {
@@ -50,10 +47,8 @@ export default function AdminProposalDetailPage({ params }: PageProps) {
 
   // Attachments. All reads/writes go through the authenticated admin API —
   // never a direct browser query against proposal_files or Storage.
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const [files, setFiles] = useState<ProposalFile[]>([])
   const [filesLoading, setFilesLoading] = useState(true)
-  const [uploadingFile, setUploadingFile] = useState(false)
   const [fileError, setFileError] = useState<string | null>(null)
   const [busyFileId, setBusyFileId] = useState<string | null>(null)
 
@@ -89,42 +84,6 @@ export default function AdminProposalDetailPage({ params }: PageProps) {
   useEffect(() => {
     fetchFiles()
   }, [fetchFiles])
-
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setFileError(null)
-    setUploadingFile(true)
-
-    try {
-      const body = new FormData()
-      body.append('file', file)
-
-      // Only the file is sent. proposal_id comes from the URL, and client_id,
-      // uploaded_by and object_path are all derived server-side.
-      const response = await fetch(`/api/admin/proposals/${params.id}/files`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        body,
-      })
-
-      const payload = await response.json().catch(() => null)
-
-      if (!response.ok || !payload?.file) {
-        setFileError(payload?.error || 'Failed to upload file. Please try again.')
-        return
-      }
-
-      await fetchFiles()
-    } catch (error) {
-      console.error('Error:', error)
-      setFileError('Failed to upload file. Please try again.')
-    } finally {
-      setUploadingFile(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }
 
   async function handleDownload(file: ProposalFile) {
     setFileError(null)
@@ -460,37 +419,22 @@ export default function AdminProposalDetailPage({ params }: PageProps) {
           )}
 
           {/* Attachments — private proposal-files bucket, download-only.
-              Uploads and downloads go through the authenticated admin API;
-              storage paths are never exposed to the browser. */}
+              Uploads use the single signed-TUS transport (context "proposal"):
+              the browser receives a server-issued token for a server-selected
+              path, and finalization happens by upload ID. Downloads stay on the
+              authenticated admin API. Storage paths are never chosen here. */}
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <div>
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">Attachments</h3>
-                <p className="text-xs text-[var(--text-muted)]">
-                  PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, CSV · max {MAX_PROPOSAL_FILE_LABEL}
-                </p>
-              </div>
-              <div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  id="proposal-file-upload"
-                  accept={PROPOSAL_FILE_ACCEPT_ATTRIBUTE}
-                  onChange={handleFileUpload}
-                  className="hidden"
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">Attachments</h3>
+              <div className="mt-3">
+                <FileUploader
+                  context="proposal"
+                  proposalId={params.id}
+                  label="Upload files"
+                  onComplete={() => { void fetchFiles() }}
                 />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingFile}
-                  className={`inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 ${FOCUS_RING}`}
-                >
-                  <SvgIcon name="upload" size={14} color="white" />
-                  {uploadingFile ? 'Uploading...' : 'Upload File'}
-                </button>
               </div>
             </div>
-
             {fileError && (
               <p role="alert" className="mb-3 text-sm text-red-500">
                 {fileError}

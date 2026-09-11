@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { generateProjectId } from '@/lib/services/project-id-generator'
 import { sendOnboardingConfirmation } from '@/lib/emails/onboarding-confirmation'
 import { sendAdminOnboardingNotification } from '@/lib/emails/admin-onboarding-notification'
+import { buildOnboardingObjectPath } from '@/lib/onboarding-storage-path'
 
 export async function POST(req: Request) {
   console.log('📝 Onboarding API called')
@@ -93,9 +94,8 @@ export async function POST(req: Request) {
       
       for (const file of uploadedFiles) {
         try {
-          const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
-          const fileName = `${Date.now()}-${safeFileName}`
-          const filePath = `${projectId}/${fileName}`
+          // Same key shape as before; only what gets STORED below changes.
+          const filePath = buildOnboardingObjectPath(projectId, Date.now(), file.name)
 
           console.log(`📎 Uploading: ${file.name} (${file.size} bytes)`)
 
@@ -111,17 +111,18 @@ export async function POST(req: Request) {
             continue
           }
 
-          const { data: urlData } = supabase.storage
-            .from('onboarding-files')
-            .getPublicUrl(filePath)
-
+          // The CANONICAL reference is the bucket-relative object path, not a
+          // URL. onboarding-files is private (M10), so a public URL would
+          // resolve to nothing, and a signed URL expires — storing either as a
+          // permanent reference produces a broken link. Downloads are minted
+          // per request by /api/admin/onboarding-files/[fileId]/signed-url.
           const { data: fileRecord, error: fileError } = await supabase
             .from('client_onboarding_files')
             .insert({
               submission_id: submission.id,
               project_id: projectId,
               file_name: file.name,
-              file_url: urlData.publicUrl,
+              file_url: filePath,
               file_type: file.type || 'application/octet-stream',
               file_size: file.size,
               category: 'Onboarding Files',

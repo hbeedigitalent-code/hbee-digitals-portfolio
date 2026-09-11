@@ -34,8 +34,11 @@ const audiences = [
 ]
 
 export function WhoItsFor() {
+  // `id` added so the midpoint CTA's "Check if you qualify" link has a real
+  // anchor, matching the existing #how-it-works pattern. Nothing else about
+  // this section changes.
   return (
-    <section className="section bg-[var(--bg-page)]">
+    <section id="who-its-for" className="section bg-[var(--bg-page)]">
       <div className="container-custom">
         <div className="mx-auto max-w-3xl text-center">
           <motion.span

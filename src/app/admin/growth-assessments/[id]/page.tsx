@@ -139,32 +139,51 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
       // verifies session, admin 2FA and active membership, and derives the
       // merchant and assessment from the stored review row.
       setGenerating(true)
-      const response = await fetch(`/api/growth-reviews/${params.id}/complete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({
-          review_notes: formData.review_notes,
-          hgri_score: formData.hgri_score,
-          growth_classification: formData.growth_classification,
-          strengths: formData.strengths.filter(s => s.trim()),
-          opportunities: formData.opportunities.filter(s => s.trim()),
-          visibility_score: formData.visibility_score,
-          conversion_score: formData.conversion_score,
-          retention_score: formData.retention_score,
-          authority_score: formData.authority_score,
-          scalability_score: formData.scalability_score,
-        }),
-      })
 
-      const result = await response.json().catch(() => null)
+      // The server refuses to overwrite a profile the merchant has already been
+      // shown under an approval. This retries ONCE, only after an explicit
+      // second confirmation, and the override is recorded against the admin.
+      const send = (allowReleasedUpdate: boolean) =>
+        fetch(`/api/growth-reviews/${params.id}/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            review_notes: formData.review_notes,
+            hgri_score: formData.hgri_score,
+            growth_classification: formData.growth_classification,
+            strengths: formData.strengths.filter(s => s.trim()),
+            opportunities: formData.opportunities.filter(s => s.trim()),
+            visibility_score: formData.visibility_score,
+            conversion_score: formData.conversion_score,
+            retention_score: formData.retention_score,
+            authority_score: formData.authority_score,
+            scalability_score: formData.scalability_score,
+            ...(allowReleasedUpdate ? { allow_released_update: true } : {}),
+          }),
+        })
+
+      let response = await send(false)
+      let result = await response.json().catch(() => null)
+
+      if (response.status === 409 && result?.code === 'profile_already_released') {
+        if (!confirm(`${result.error}\n\nReplace the released Growth Profile content? This will be recorded against your account.`)) {
+          return
+        }
+        response = await send(true)
+        result = await response.json().catch(() => null)
+      }
 
       if (!response.ok) {
         alert(result?.error || 'Failed to complete review. Please try again.')
         return
       }
 
-      alert('🎉 Review completed! Growth profile has been generated.')
+      alert(
+        result?.released_content_updated
+          ? 'Review completed. The released Growth Profile content was replaced, and the change was recorded.'
+          : 'Review completed and the Growth Profile prepared. Program approval is a separate decision.'
+      )
       router.push(`/admin/growth-profiles/${result.profile_id}`)
     } catch (error) {
       console.error('Error:', error)

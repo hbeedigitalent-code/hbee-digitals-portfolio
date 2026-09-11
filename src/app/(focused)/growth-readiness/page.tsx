@@ -3,6 +3,7 @@
 import { Hero } from '@/components/growth-readiness/Hero'
 import { WhyWeCreated } from '@/components/growth-readiness/WhyWeCreated'
 import { WhatYouReceive } from '@/components/growth-readiness/WhatYouReceive'
+import { MidpointCTA } from '@/components/growth-readiness/MidpointCTA'
 import { FrameworkPillars } from '@/components/growth-readiness/FrameworkPillars'
 import { WhoItsFor } from '@/components/growth-readiness/WhoItsFor'
 import { HowItWorks } from '@/components/growth-readiness/HowItWorks'
@@ -26,6 +27,9 @@ export default function GrowthReadinessPage() {
         <Hero />
         <WhyWeCreated />
         <WhatYouReceive />
+        {/* Midpoint CTA — after the benefits/support explanation, before the
+            framework detail. Hero and FinalCTA are unchanged. */}
+        <MidpointCTA />
         <FrameworkPillars />
         <WhoItsFor />
         <HowItWorks />

@@ -6,6 +6,7 @@ import { createClientComponentClient } from '@/lib/supabase-client'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
+import FileUploader from '@/components/uploads/FileUploader'
 
 interface Client {
   id: string
@@ -264,12 +265,37 @@ export default function AdminClientDetailPage() {
         </div>
       </div>
 
-      {/* Client Files (Phase 1) — every file this client has uploaded, across
-          all their projects plus General (project_id = NULL) uploads. */}
+      {/* Client Files — every file in this client's workspace, across all their
+          projects plus General (project_id = NULL) uploads, in BOTH directions:
+          what the client uploaded and what an admin sent them. */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
         <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">
           Files {!filesLoading && `(${files.length})`}
         </h3>
+
+        {/* THE ADMIN UPLOAD ENTRY POINT.
+            Same signed-TUS transport as everywhere else. `onBehalfOfClientId`
+            selects the ADMIN gate on the server (session + user-bound 2FA +
+            active admin) and binds the upload to this client's workspace; the
+            path, bucket and attribution are all chosen server-side, and the
+            metadata row records uploaded_by = 'admin'. */}
+        <div className="mb-5 rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+            Send files to this client
+          </p>
+          <FileUploader
+            context="client_file"
+            // useParams() types a dynamic segment as string | string[]; this
+            // route has exactly one, and the server validates it as a UUID.
+            onBehalfOfClientId={
+              Array.isArray(params.client_id) ? params.client_id[0] : params.client_id
+            }
+            label="Upload files"
+            onComplete={() => {
+              void fetchClientFiles()
+            }}
+          />
+        </div>
 
         {filesError && (
           <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm font-semibold text-red-500">

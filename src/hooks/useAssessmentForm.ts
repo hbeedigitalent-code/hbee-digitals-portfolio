@@ -1,8 +1,25 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { FormData, FormStep } from '@/types/growth-readiness'
 import { validateStep, isStepComplete } from '@/lib/validators/assessment-validation'
+
+/**
+ * Identity for ONE submission attempt-and-its-retries. The server treats two
+ * requests carrying the same key as the same submission, so a retry can never
+ * create a second assessment. crypto.randomUUID() is available in every browser
+ * this app supports; the fallback keeps a non-secure context from throwing.
+ */
+function newSubmissionKey(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (ch) => {
+    const r = (Math.random() * 16) | 0
+    const v = ch === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
 
 const initialFormData: FormData = {
   // Step 1: Business Profile
@@ -48,6 +65,9 @@ const initialFormData: FormData = {
 export function useAssessmentForm() {
   const [currentStep, setCurrentStep] = useState<FormStep>(1)
   const [formData, setFormData] = useState<FormData>(initialFormData)
+  // Held in a ref, not state: changing it must not re-render, and it must
+  // survive every failed submit until the submission actually succeeds.
+  const submissionKeyRef = useRef<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -156,6 +176,8 @@ export function useAssessmentForm() {
     setFormData(initialFormData)
     setCurrentStep(1)
     setErrors({})
+    // Starting over is a new submission, not a retry of the old one.
+    submissionKeyRef.current = null
     localStorage.removeItem('growth_assessment_draft')
   }, [])
 
@@ -180,6 +202,16 @@ export function useAssessmentForm() {
       return false
     }
 
+    // ONE key per completed submission, reused by every retry of it.
+    // A failed submit keeps the same key, so pressing submit again — or a
+    // double-click, or a flaky connection — updates nothing and duplicates
+    // nothing. A genuinely new assessment starts a new key (see clearDraft).
+    let submissionKey = submissionKeyRef.current
+    if (!submissionKey) {
+      submissionKey = newSubmissionKey()
+      submissionKeyRef.current = submissionKey
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -190,7 +222,11 @@ export function useAssessmentForm() {
         },
         // The token travels alongside the answers but is not part of formData,
         // so it is never written to the localStorage draft.
-        body: JSON.stringify({ ...formData, turnstile_token: turnstileToken }),
+        body: JSON.stringify({
+          ...formData,
+          turnstile_token: turnstileToken,
+          submission_key: submissionKey,
+        }),
       })
 
       const result = await response.json().catch(() => null)
@@ -206,6 +242,10 @@ export function useAssessmentForm() {
       }
 
       setIsSubmitted(true)
+      // This submission is done. A later assessment is a NEW submission and
+      // must not reuse this key, or the server would treat it as a retry and
+      // return the old assessment instead of recording the new one.
+      submissionKeyRef.current = null
       localStorage.removeItem('growth_assessment_draft')
       return true
     } catch (error) {

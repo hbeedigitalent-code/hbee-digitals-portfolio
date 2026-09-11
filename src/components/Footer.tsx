@@ -39,7 +39,9 @@ function LogoMark({ logoUrl, brandName }: { logoUrl: string; brandName: string }
       <img
         src={logoUrl}
         alt={`${brandName} logo`}
-        className="h-8 w-8 object-contain"
+        /* brand-logo: light plate in dark mode only. Background + radius, so
+           the h-8/w-8 box and the surrounding chip are unchanged. */
+        className="brand-logo h-8 w-8 object-contain"
       />
     </span>
   )

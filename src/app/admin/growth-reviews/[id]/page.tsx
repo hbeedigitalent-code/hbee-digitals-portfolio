@@ -127,39 +127,57 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
   }
 
   async function handleCompleteReview() {
-    if (!confirm('Complete this review? This will generate the growth profile for the merchant.')) return
+    if (!confirm('Complete this review? This prepares the growth profile. It does NOT approve the merchant for the program — approval is a separate decision.')) return
 
     setSaving(true)
     setGenerating(true)
     try {
-      const response = await fetch(`/api/growth-reviews/${params.id}/complete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          review_notes: formData.review_notes,
-          hgri_score: formData.hgri_score,
-          growth_classification: formData.growth_classification,
-          strengths: formData.strengths.filter(s => s.trim()),
-          opportunities: formData.opportunities.filter(s => s.trim()),
-          visibility_score: formData.visibility_score,
-          conversion_score: formData.conversion_score,
-          retention_score: formData.retention_score,
-          authority_score: formData.authority_score,
-          scalability_score: formData.scalability_score,
-          merchant_id: merchant?.id,
-          assessment_id: assessment?.id
+      // `allowReleasedUpdate` starts false. The server refuses to overwrite a
+      // profile the merchant has already been shown under an approval, and this
+      // retries ONCE with the explicit authorization after a second confirm.
+      const send = (allowReleasedUpdate: boolean) =>
+        fetch(`/api/growth-reviews/${params.id}/complete`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            review_notes: formData.review_notes,
+            hgri_score: formData.hgri_score,
+            growth_classification: formData.growth_classification,
+            strengths: formData.strengths.filter(s => s.trim()),
+            opportunities: formData.opportunities.filter(s => s.trim()),
+            visibility_score: formData.visibility_score,
+            conversion_score: formData.conversion_score,
+            retention_score: formData.retention_score,
+            authority_score: formData.authority_score,
+            scalability_score: formData.scalability_score,
+            merchant_id: merchant?.id,
+            assessment_id: assessment?.id,
+            ...(allowReleasedUpdate ? { allow_released_update: true } : {}),
+          })
         })
-      })
 
-      const result = await response.json()
+      let response = await send(false)
+      let result = await response.json()
+
+      if (response.status === 409 && result?.code === 'profile_already_released') {
+        if (!confirm(`${result.error}\n\nReplace the released Growth Profile content? This will be recorded against your account.`)) {
+          return
+        }
+        response = await send(true)
+        result = await response.json()
+      }
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to complete review')
       }
 
-      alert('🎉 Review completed! Growth profile has been generated.')
+      alert(
+        result.released_content_updated
+          ? 'Review completed. The released Growth Profile content was replaced, and the change was recorded.'
+          : 'Review completed and the Growth Profile prepared. Program approval is a separate decision.'
+      )
       router.push(`/admin/growth-profiles/${result.profile_id}`)
     } catch (error: any) {
       console.error('Error:', error)

@@ -186,10 +186,14 @@ function LogoMark({
         size === 'large' ? 'h-12 w-12' : 'h-11 w-11'
       }`}
     >
+      {/* brand-logo adds a light plate in dark mode only. It is background +
+          radius, so the fixed h-8/h-7 box is unchanged and nothing shifts.
+          Applied here too because this img renders the CONFIGURED logo_url,
+          which may be the same two-colour mark. */}
       <img
         src={logoUrl}
         alt={`${siteName} logo`}
-        className={`object-contain ${
+        className={`brand-logo object-contain ${
           size === 'large' ? 'h-8 w-8' : 'h-7 w-7'
         }`}
         onError={onError}

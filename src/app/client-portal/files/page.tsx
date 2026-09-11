@@ -1,10 +1,11 @@
 // src/app/client-portal/files/page.tsx
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { createClientComponentClient } from '@/lib/supabase-client'
 import SvgIcon from '@/components/ui/SvgIcon'
 import EmptyState from '@/components/client-portal/EmptyState'
+import FileUploader from '@/components/uploads/FileUploader'
 
 interface ClientFile {
   id: string
@@ -23,23 +24,6 @@ interface ClientProject {
   status: string | null
 }
 
-// Reasonable business-file allow-list — images, common documents, and
-// archives. Anything outside this list is rejected before upload.
-const ALLOWED_FILE_TYPES = [
-  'image/png',
-  'image/jpeg',
-  'image/webp',
-  'image/gif',
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'text/plain',
-  'text/csv',
-  'application/zip',
-]
-const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024 // 25 MB
 
 // A project is "active" (and therefore the sensible auto-selection when the
 // client has exactly one) unless it is finished or archived.
@@ -54,11 +38,9 @@ export default function ClientFilesPage() {
   const [projects, setProjects] = useState<ClientProject[]>([])
   const [selectedProjectId, setSelectedProjectId] = useState<string>(GENERAL_VALUE)
   const [loading, setLoading] = useState(true)
-  const [uploading, setUploading] = useState(false)
   const [clientId, setClientId] = useState<string | null>(null)
   const [pageError, setPageError] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetchData()
@@ -111,84 +93,6 @@ export default function ClientFilesPage() {
     if (!projectId) return 'General'
     const match = projects.find((p) => p.id === projectId)
     return match?.project_name || match?.project_id || 'Project'
-  }
-
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file || !clientId) return
-
-    setPageError(null)
-
-    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-      setPageError('That file type is not supported. Allowed: images, PDF, Word, Excel, text, CSV, or ZIP.')
-      if (fileInputRef.current) fileInputRef.current.value = ''
-      return
-    }
-
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      setPageError('File is too large. Maximum size is 25MB.')
-      if (fileInputRef.current) fileInputRef.current.value = ''
-      return
-    }
-
-    // Never trust the selected project id from the form. When a specific
-    // project is chosen, re-confirm it belongs to THIS client (the query is
-    // scoped to the client's own id, itself derived from the authenticated
-    // user) before anything is uploaded or inserted. A General upload
-    // (project_id = null) needs no such check.
-    let projectIdToWrite: string | null = null
-    if (selectedProjectId !== GENERAL_VALUE) {
-      const { data: ownedProject } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('id', selectedProjectId)
-        .eq('client_id', clientId)
-        .maybeSingle()
-
-      if (!ownedProject) {
-        setPageError('That project could not be verified for your account. Please refresh and try again.')
-        if (fileInputRef.current) fileInputRef.current.value = ''
-        return
-      }
-      projectIdToWrite = ownedProject.id
-    }
-
-    setUploading(true)
-
-    try {
-      const fileName = `${Date.now()}-${file.name}`
-      const filePath = `client-files/${clientId}/${fileName}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('project-files')
-        .upload(filePath, file)
-
-      if (uploadError) throw uploadError
-
-      // Store the bare object path, not a permanent public URL — downloads
-      // go exclusively through the signed-url API routes. project_id is
-      // written only for a verified, client-owned project; a General upload
-      // stays NULL and is surfaced to the admin under a "General" label.
-      const { error: dbError } = await supabase.from('project_files').insert({
-        client_id: clientId,
-        project_id: projectIdToWrite,
-        file_name: file.name,
-        file_url: filePath,
-        file_type: file.type || 'application/octet-stream',
-        file_size: file.size,
-        uploaded_by: 'client',
-      })
-
-      if (dbError) throw dbError
-
-      await fetchData()
-    } catch (error) {
-      console.error('Upload error:', error)
-      alert('Failed to upload file. Please try again.')
-    } finally {
-      setUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
   }
 
   async function handleDownload(file: ClientFile) {
@@ -251,8 +155,7 @@ export default function ClientFilesPage() {
             id="file-project"
             value={selectedProjectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
-            disabled={uploading}
-            className="rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50"
+            className="rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-medium text-[var(--text-primary)]"
           >
             <option value={GENERAL_VALUE}>General / No specific project</option>
             {projects.map((project) => (
@@ -261,25 +164,23 @@ export default function ClientFilesPage() {
               </option>
             ))}
           </select>
-          <input
-            ref={fileInputRef}
-            type="file"
-            onChange={handleFileUpload}
-            className="hidden"
-            id="file-upload"
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="inline-flex items-center gap-2 rounded-full bg-[var(--accent-orange)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-page)]"
-          >
-            <SvgIcon name="upload" size={16} color="white" />
-            {uploading ? 'Uploading...' : 'Upload File'}
-          </button>
         </div>
       </div>
 
+      {/* Uploads use the single signed-TUS transport (context "client_file").
+          The browser no longer writes to Storage or to project_files: it asks
+          the server to authorize a batch, sends bytes to a server-selected path
+          with a scoped token, and finalizes by upload ID. The selected project
+          is re-verified against this client account server-side, so a project id
+          belonging to another client cannot be attached. */}
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+        <FileUploader
+          context="client_file"
+          projectId={selectedProjectId || null}
+          label="Upload files"
+          onComplete={() => { void fetchData() }}
+        />
+      </div>
       {pageError && (
         <div role="alert" className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm font-semibold text-red-500">
           {pageError}
@@ -291,8 +192,6 @@ export default function ClientFilesPage() {
           title="No files uploaded"
           description="Upload your project files, documents, and assets here."
           icon="file"
-          actionText="Upload File"
-          onAction={() => fileInputRef.current?.click()}
         />
       ) : (
         <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">

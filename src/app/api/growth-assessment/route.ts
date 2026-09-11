@@ -2,6 +2,7 @@
 // No 'use client' needed - API route
 
 import { NextRequest, NextResponse } from 'next/server'
+import { createHash, randomUUID } from 'crypto'
 import { 
   calculateVisibilityScore,
   calculateConversionScore,
@@ -14,6 +15,10 @@ import {
 import { createNotification } from '@/lib/notifications/createNotification'
 import { verifyTurnstileToken, turnstileFailureMessage } from '@/lib/turnstile'
 import { validateAssessmentPayload } from '@/lib/validators/assessment-payload'
+
+/** Submission keys are browser-generated UUIDs. Anything else is ignored. */
+const SUBMISSION_KEY_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 // Lazy initialize Supabase client
 let supabaseAdmin: any = null
@@ -128,30 +133,55 @@ export async function POST(request: NextRequest) {
     const { constraint: primaryConstraint, focus: recommendedFocus } = 
       detectPrimaryConstraint(scoringInput)
 
-    // 1. Check if merchant exists
-    let merchantId: string
-    
-    const { data: existingMerchant, error: lookupError } = await supabase
-      .from('merchants')
-      .select('id')
-      .eq('email', body.email)
-      .single()
+    // ------------------------------------------------------------------
+    // 2. ONE TRANSACTION, VIA submit_growth_assessment().
+    //
+    // This endpoint used to perform five separate writes — merchant, assessment,
+    // merchant_status, growth_review, then the emails — each of which could
+    // fail independently. A crash between them left a submission with no review
+    // and no receipt, and a retry could not repair it: a unique submission_key
+    // stops a second ASSESSMENT row and nothing else.
+    //
+    // All of it now commits together. A retry with the same key either finds the
+    // whole thing done, or completes the parts that are missing.
+    //
+    // The email events are enqueued INSIDE that transaction too, so the receipt
+    // is durably owed the moment the assessment exists. The inline send below is
+    // a latency optimisation on top of a queue that is already authoritative.
+    // ------------------------------------------------------------------
+    const submissionKey =
+      typeof (rawBody as Record<string, unknown>).submission_key === 'string' &&
+      SUBMISSION_KEY_RE.test(((rawBody as Record<string, string>).submission_key).trim())
+        ? ((rawBody as Record<string, string>).submission_key).trim()
+        : randomUUID()
 
-    if (lookupError && lookupError.code !== 'PGRST116') {
-      console.error('Merchant lookup error:', lookupError)
-      return NextResponse.json(
-        { error: 'Failed to lookup merchant' },
-        { status: 500 }
-      )
-    }
+    // The key is bound to the CONTENT it was first used with. Reusing it for
+    // different answers is refused rather than silently overwriting or silently
+    // returning someone else's result.
+    const fingerprint = createHash('sha256')
+      .update(JSON.stringify(body))
+      .digest('hex')
 
-    if (existingMerchant) {
-      merchantId = existingMerchant.id
-    } else {
-      // Create merchant
-      const { data: merchant, error: merchantError } = await supabase
-        .from('merchants')
-        .insert({
+    const { data: submission, error: submitError } = await supabase.rpc(
+      'submit_growth_assessment',
+      {
+        p_submission_key: submissionKey,
+        p_fingerprint: fingerprint,
+        p_email: body.email,
+        p_assessment: {
+          hgri_score: hgriScore,
+          classification,
+          primary_constraint: primaryConstraint,
+          recommended_focus: recommendedFocus,
+          visibility_score: visibilityScore,
+          conversion_score: conversionScore,
+          retention_score: retentionScore,
+          authority_score: authorityScore,
+          scalability_score: scalabilityScore,
+          // The VALIDATED payload, never the raw request object.
+          raw_answers_json: body,
+        },
+        p_merchant: {
           business_name: body.business_name,
           website: body.website,
           contact_name: body.contact_name,
@@ -159,130 +189,109 @@ export async function POST(request: NextRequest) {
           country: body.country,
           industry: body.industry,
           business_stage: body.business_stage,
-          store_age: body.store_age
-        })
-        .select()
-        .single()
+          store_age: body.store_age,
+        },
+        p_email_events: [
+          {
+            event_key: `assessment_received:${submissionKey}`,
+            template_slug: 'assessment-received',
+            recipient_email: body.email,
+            recipient_name: body.contact_name,
+            payload: {
+              firstName: body.contact_name.split(' ')[0] || body.contact_name,
+              email: body.email,
+              portalUrl: '/client-signup',
+            },
+          },
+          {
+            event_key: `admin_growth_assessment:${submissionKey}`,
+            template_slug: 'admin-growth-assessment',
+            recipient_email: process.env.ADMIN_NOTIFICATION_EMAIL || 'hello@hbeedigitals.com',
+            recipient_name: 'Hbee Digitals admin',
+            payload: {
+              contactName: body.contact_name,
+              businessName: body.business_name,
+              email: body.email,
+            },
+          },
+        ],
+      },
+    )
 
-      if (merchantError) {
-        console.error('Merchant creation error:', merchantError)
+    if (submitError) {
+      console.error(
+        `[assessment] submit failed (code=${
+          (submitError as { code?: string }).code ?? 'n/a'
+        })`,
+      )
+      return NextResponse.json({ error: 'Failed to save assessment' }, { status: 500 })
+    }
+
+    if (!submission?.ok) {
+      if (submission?.reason === 'submission_key_conflict') {
+        // Deliberately says nothing about the earlier submission — not its id,
+        // not its owner, not its content.
         return NextResponse.json(
-          { error: 'Failed to create merchant record' },
-          { status: 500 }
+          { error: 'That submission reference has already been used. Please start a new assessment.' },
+          { status: 409 },
         )
       }
-      merchantId = merchant.id
+      console.error(`[assessment] submit refused: ${submission?.reason ?? 'unknown'}`)
+      return NextResponse.json({ error: 'Failed to save assessment' }, { status: 500 })
     }
 
-    // 2. Create growth assessment
-    const { data: assessment, error: assessmentError } = await supabase
-      .from('growth_assessments')
-      .insert({
-        merchant_id: merchantId,
-        primary_goals: body.primary_goals,
-        success_vision: body.success_vision,
-        marketing_channels: body.marketing_channels,
-        best_channel: body.best_channel,
-        paid_ads_usage: body.paid_ads_usage,
-        paid_ad_platforms: body.paid_ad_platforms || [],
-        visibility_confidence: body.visibility_confidence,
-        email_capture: body.email_capture,
-        email_automations: body.email_automations,
-        customer_reviews: body.customer_reviews,
-        content_publishing: body.content_publishing,
-        upsells_crosssells: body.upsells_crosssells,
-        biggest_challenge: body.biggest_challenge,
-        main_obstacle: body.main_obstacle,
-        support_type: body.support_type,
-        improvement_timeline: body.improvement_timeline,
-        visibility_score: visibilityScore,
-        conversion_score: conversionScore,
-        retention_score: retentionScore,
-        authority_score: authorityScore,
-        scalability_score: scalabilityScore,
-        hgri_score: hgriScore,
-        classification: classification,
-        primary_constraint: primaryConstraint,
-        recommended_focus: recommendedFocus,
-        // The VALIDATED payload, never the raw request object. `body` is
-        // rebuilt by validateAssessmentPayload from an explicit allow-list, so
-        // the Turnstile token and any unrecognised field the caller invented
-        // cannot be persisted here.
-        raw_answers_json: body,
-        status: 'New Submission',
-        review_status: 'pending'
-      })
-      .select()
-      .single()
+    const assessmentId: string = submission.assessment_id
+    const merchantId: string | null = submission.merchant_id ?? null
+    const reviewId: string | null = submission.review_id ?? null
+    const isRetry: boolean = submission.duplicate === true
 
-    if (assessmentError) {
-      console.error('Assessment creation error:', assessmentError)
-      return NextResponse.json(
-        { error: 'Failed to create assessment record' },
-        { status: 500 }
+    // An address shared by several merchant records is NOT resolved by guessing.
+    // The submission is stored and flagged; an admin decides which merchant it
+    // belongs to. Nothing is merged and nothing is lost.
+    if (submission.merchant_resolution === 'ambiguous') {
+      console.warn(
+        `[assessment ${assessmentId}] merchant identity is ambiguous — stored for explicit admin resolution`,
       )
     }
 
-    // 3. Create merchant status record
-    const { error: statusError } = await supabase
-      .from('merchant_status')
-      .upsert({
-        merchant_id: merchantId,
-        status: 'assessment_submitted',
-        last_activity: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'merchant_id' })
+    // ------------------------------------------------------------------
+    // 3. Emails.
+    //
+    // THE ASSESSMENT IS ALREADY STORED, and its receipts are already QUEUED, in
+    // the same transaction. Nothing below may fail the request or tell the
+    // merchant to resubmit. The inline attempt just makes the ordinary case
+    // instant; if it fails, the scheduled worker retries from the queue.
+    // ------------------------------------------------------------------
+    const emailOutcomes: Record<string, string> = {}
 
-    if (statusError) {
-      console.error('Merchant status creation error:', statusError)
-      // Don't fail the request, just log
+    if (!isRetry) {
+      try {
+        const { deliverQueuedEvent } = await import('@/lib/emails/outbox')
+        emailOutcomes.merchant_receipt = (
+          await deliverQueuedEvent(`assessment_received:${submissionKey}`)
+        ).outcome
+        emailOutcomes.admin_notification = (
+          await deliverQueuedEvent(`admin_growth_assessment:${submissionKey}`)
+        ).outcome
+      } catch (emailError) {
+        emailOutcomes.inline_send = 'failed'
+        console.error('Inline email send error:', emailError)
+      }
     }
 
-    // 4. Create growth review record
-    const { data: review, error: reviewError } = await supabase
-      .from('growth_reviews')
-      .insert({
-        merchant_id: merchantId,
-        assessment_id: assessment.id,
-        status: 'pending',
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single()
+    // One summary line per submission, for the server log. This is OPERATIONAL
+    // VISIBILITY, NOT DELIVERY TRACKING — that lives in email_events and
+    // email_logs, both of which are durable and queryable.
+    console.info(
+      `[assessment ${assessmentId}] retry=${isRetry} ` +
+        `merchant=${submission.merchant_resolution ?? 'n/a'} ` +
+        `inline: ${Object.entries(emailOutcomes).map(([k, v]) => k + '=' + v).join(', ') || 'skipped'}`,
+    )
 
-    if (reviewError) {
-      console.error('Review creation error:', reviewError)
-      // Don't fail the request, just log
-    }
-
-    // 5. Send confirmation email to merchant using HOS template
-    try {
-      const { sendAssessmentReceivedEmail } = await import('@/lib/emails/hos/assessment-received')
-      await sendAssessmentReceivedEmail({
-        firstName: body.contact_name.split(' ')[0] || body.contact_name,
-        email: body.email,
-        assessmentId: assessment.id,
-        portalUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hbeedigitals.com'}/client-signup`
-      })
-      console.log('✅ HOS assessment received email sent to:', body.email)
-    } catch (emailError) {
-      console.error('Merchant confirmation email error:', emailError)
-    }
-
-    // 6. Send admin notification
-    try {
-      const { sendAdminGrowthAssessmentNotification } = await import('@/lib/emails/admin-growth-assessment-notification')
-      await sendAdminGrowthAssessmentNotification(
-        body.contact_name,
-        body.business_name,
-        body.email
-      )
-    } catch (emailError) {
-      console.error('Admin notification email error:', emailError)
-    }
-
-    // 7. Create the admin notification via the trusted server-side helper.
-    //    createNotification never throws; any failure is logged inside it.
+    // ------------------------------------------------------------------
+    // 4. The in-app admin notification. Idempotent on its own key, so a retry
+    //    cannot produce a second one.
+    // ------------------------------------------------------------------
     await createNotification({
       scope: 'admin',
       recipientId: null,
@@ -290,30 +299,28 @@ export async function POST(request: NextRequest) {
       title: 'New Assessment Submitted',
       message: `${body.business_name} has submitted a growth assessment.`,
       entityType: 'assessment',
-      entityId: assessment.id,
-      // The review row is created in step 4 and is not fatal if it fails. When
-      // it does fail there is no review to open, so the link must point at the
-      // assessment's own admin destination rather than putting an assessment id
-      // under /admin/growth-reviews/, where it would resolve to nothing.
-      link: review?.id
-        ? `/admin/growth-reviews/${review.id}`
-        : `/admin/growth-assessments/${assessment.id}`,
+      entityId: assessmentId,
+      link: reviewId
+        ? `/admin/growth-reviews/${reviewId}`
+        : `/admin/growth-assessments/${assessmentId}`,
     })
-
-    // The "review started" email that used to be sent here has been removed.
-    // It fired in the same request as the "assessment received" email above —
-    // two messages to the same address milliseconds apart, pointing at
-    // different destinations (/client-signup and /client-portal). Only the
-    // received confirmation is sent at submission. A review-started message
-    // needs a real trigger at the point the review actually begins; none is
-    // invented here.
 
     return NextResponse.json({
       success: true,
       data: {
         merchant_id: merchantId,
-        assessment_id: assessment.id,
-        review_id: review?.id || null,
+        assessment_id: assessmentId,
+        review_id: reviewId,
+        // NOTE: email outcomes are deliberately NOT returned here.
+        //
+        // This endpoint is PUBLIC. Telling an anonymous caller whether an
+        // internal admin notification was sent, or that a server
+        // configuration value is missing, discloses internal state to someone
+        // with no business knowing it. Outcomes go to the server log instead
+        // (see the email block above), and will move to the durable
+        // event/delivery record plus an authorized admin view when that batch
+        // lands. Neither a log line nor a response field is durable delivery
+        // tracking.
         hgri_score: hgriScore,
         classification: classification,
         primary_constraint: primaryConstraint,
