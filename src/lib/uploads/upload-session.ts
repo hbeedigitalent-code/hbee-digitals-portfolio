@@ -491,11 +491,19 @@ export async function createSignedUploadToken(
   return { ok: true, token: data.token }
 }
 
-/** The TUS endpoint the browser PATCHes bytes to. */
+/**
+ * The TUS endpoint the browser PATCHes bytes to.
+ *
+ * The `/sign` suffix is required. `/upload/resumable` authenticates with a user
+ * JWT in `Authorization`; `/upload/resumable/sign` is the variant that accepts
+ * the signed upload token from createSignedUploadUrl() in `x-signature`. The
+ * browser holds no JWT here, so it must be the signed variant — the unsigned
+ * path is what produced the production 403 "Invalid Compact JWS".
+ */
 export function resumableEndpoint(): string | null {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL
   if (!base) return null
-  return `${base.replace(/\/+$/, '')}/storage/v1/upload/resumable`
+  return `${base.replace(/\/+$/, '')}/storage/v1/upload/resumable/sign`
 }
 
 export function newUploadId(): string {
