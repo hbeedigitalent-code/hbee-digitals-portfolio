@@ -144,7 +144,12 @@ export default function AdminProjectDetailPage() {
       setSelectedStatus(result.project.status)
       setProgressValue(result.project.progress ?? 0)
       setExpectedCompletion(toDateInputValue(result.project.expected_completion_date))
-      setUpdateNotice('Project updated.')
+      // Says what was STORED, not what was typed. A bare "Project updated."
+      // read as confirmation that the selected status had been saved even on
+      // an update where the status sent was the one already on the row.
+      setUpdateNotice(
+        `Saved. Status is now "${result.project.status}" and progress ${result.project.progress ?? 0}%.`,
+      )
     } catch (error) {
       console.error('Project update error:', error)
       setUpdateError(
@@ -170,6 +175,18 @@ export default function AdminProjectDetailPage() {
       </div>
     )
   }
+
+  // A project in a pre-management state — 'Pending Review' from the client
+  // request form, or a portfolio value — holds a status the operational
+  // selector does not offer. A controlled <select> whose value matches no
+  // <option> is left at selectedIndex = -1: it renders BLANK while
+  // `selectedStatus` silently keeps the stored value, so the control and the
+  // state disagree and the form can submit a status the admin never saw.
+  // Listing the current status as a disabled option keeps them in agreement —
+  // what is shown is what will be sent — while still making leaving that state
+  // an explicit, one-way choice.
+  const currentStatus = project.status ?? ''
+  const showCurrentStatusOption = currentStatus !== '' && !statusOptions.includes(currentStatus)
 
   return (
     <div className="space-y-6">
@@ -206,6 +223,11 @@ export default function AdminProjectDetailPage() {
                   onChange={(e) => setSelectedStatus(e.target.value)}
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                 >
+                  {showCurrentStatusOption && (
+                    <option value={currentStatus} disabled>
+                      {currentStatus} (current)
+                    </option>
+                  )}
                   {statusOptions.map((status) => (
                     <option key={status} value={status}>{status}</option>
                   ))}
