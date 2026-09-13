@@ -2,7 +2,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@/lib/supabase-client'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -20,12 +19,16 @@ interface Project {
   expected_completion_date: string
   description: string
   created_at: string
-  // PostgREST returns an embedded row under the RELATION name used in the
-  // select — here `clients` — not under a singular alias. The previous
-  // interface declared `client`, which is never present in the response, so
-  // Client and Business rendered "N/A" for EVERY project, including correctly
-  // linked ones. That was a rendering defect, not missing data.
-  clients?: { full_name: string | null; business_name: string | null; email: string | null } | null
+  // Supplied by GET /api/admin/projects/[project_id], which aliases the embed
+  // as `client:clients(...)`. The alias is what makes the runtime shape
+  // unambiguous: relying on PostgREST's default relation naming is what the
+  // earlier `client` vs `clients` confusion turned on.
+  client?: {
+    id: string
+    full_name: string | null
+    business_name: string | null
+    email: string | null
+  } | null
 }
 
 const statusOptions = [
@@ -53,7 +56,6 @@ const statusColors: Record<string, string> = {
 export default function AdminProjectDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const supabase = createClientComponentClient()
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
@@ -67,23 +69,30 @@ export default function AdminProjectDetailPage() {
     fetchProjectData()
   }, [params.project_id])
 
+  /**
+   * Read through the admin API, not the browser.
+   *
+   * The previous version embedded `clients` in a session-client query. RLS
+   * leaves `clients` readable only by its own owner, and PostgREST returns a
+   * forbidden to-one embed as `null` instead of an error — so the request
+   * succeeded, the client came back missing, and the page rendered "N/A" for
+   * every project. The server route reads it under the service role behind the
+   * admin + 2FA gate, and names the embed `client` explicitly.
+   */
   async function fetchProjectData() {
     setLoading(true)
 
-    const { data, error } = await supabase
-      .from('projects')
-      .select(`
-        *,
-        clients (full_name, business_name, email)
-      `)
-      .eq('id', params.project_id)
-      .single()
+    const response = await fetch(`/api/admin/projects/${params.project_id}`, {
+      credentials: 'same-origin',
+    })
+    const payload = await response.json().catch(() => null)
 
-    if (error || !data) {
+    if (!response.ok || !payload?.project) {
       router.push('/admin/projects')
       return
     }
 
+    const data = payload.project
     setProject(data)
     setSelectedStatus(data.status)
     setProgressValue(data.progress || 0)
@@ -279,12 +288,12 @@ export default function AdminProjectDetailPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <p className="text-xs text-[var(--text-muted)]">Client</p>
-                <p className="text-sm text-[var(--text-primary)]">{project.clients?.full_name || 'N/A'}</p>
-                <p className="text-xs text-[var(--text-muted)]">{project.clients?.email || ''}</p>
+                <p className="text-sm text-[var(--text-primary)]">{project.client?.full_name || 'N/A'}</p>
+                <p className="text-xs text-[var(--text-muted)]">{project.client?.email || ''}</p>
               </div>
               <div>
                 <p className="text-xs text-[var(--text-muted)]">Business</p>
-                <p className="text-sm text-[var(--text-primary)]">{project.clients?.business_name || 'N/A'}</p>
+                <p className="text-sm text-[var(--text-primary)]">{project.client?.business_name || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-xs text-[var(--text-muted)]">Service</p>

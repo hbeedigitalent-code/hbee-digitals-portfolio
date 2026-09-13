@@ -42,6 +42,63 @@ import {
 
 export const dynamic = 'force-dynamic'
 
+/**
+ * The project, WITH its client, read under the service role.
+ *
+ * WHY THE READ MOVED OFF THE BROWSER. Both detail pages used to fetch this
+ * with the session Supabase client:
+ *
+ *     supabase.from('projects').select('*, clients (full_name, business_name, email)')
+ *
+ * The `projects` half of that works, because projects_admin_all is still in
+ * place — which is why the page renders the name, reference, status, progress
+ * and dates perfectly well. The `clients` half does NOT. The lockdown migration
+ * left `clients` with an OWN-ROW SELECT policy only, and deliberately no admin
+ * policy, because an RLS policy cannot see the application's admin 2FA cookie.
+ *
+ * PostgREST applies RLS to embedded resources too, and a to-one embed the
+ * caller may not read comes back as `null` rather than an error. So an admin
+ * viewing someone else's project got a perfectly successful response in which
+ * the client was silently absent — and the page rendered "N/A". No error, no
+ * warning, nothing to notice.
+ *
+ * Reading it here instead is the same route every other admin surface already
+ * takes: /admin/client-portal/[client_id] fetches /api/admin/clients/[id] for
+ * exactly this reason.
+ *
+ * The embed is ALIASED to `client` so the runtime shape is stated by this
+ * route rather than inferred from PostgREST's default relation naming, which
+ * is what the previous property-name confusion turned on.
+ */
+export async function GET(
+  _request: Request,
+  { params }: { params: { project_id: string } },
+) {
+  const auth = await requireActiveAdmin()
+  if (!auth.ok) return auth.response
+  const { db } = auth
+
+  const projectId = typeof params?.project_id === 'string' ? params.project_id.trim() : ''
+  if (!ADMIN_UUID_RE.test(projectId)) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
+  try {
+    const { data: project, error } = await db
+      .from('projects')
+      .select('*, client:clients(id, full_name, business_name, email)')
+      .eq('id', projectId)
+      .maybeSingle()
+
+    if (error) return queryFailure('project read', error)
+    if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    return NextResponse.json({ project })
+  } catch (error) {
+    return queryFailure('project read', error)
+  }
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: { project_id: string } },

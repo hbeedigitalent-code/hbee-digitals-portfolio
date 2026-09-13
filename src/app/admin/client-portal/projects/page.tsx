@@ -2,7 +2,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@/lib/supabase-client'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
 
@@ -14,7 +13,11 @@ interface Project {
   progress: number
   service_selected: string
   created_at: string
-  client: { full_name: string; business_name: string }
+  // Supplied by GET /api/admin/projects, which aliases the embed as
+  // `client:clients(...)`. Previously this interface declared `client` while
+  // the query selected `clients`, so the key was never present — and the embed
+  // was RLS-filtered to null anyway.
+  client?: { full_name: string | null; business_name: string | null } | null
 }
 
 const statusColors: Record<string, string> = {
@@ -29,7 +32,6 @@ const statusColors: Record<string, string> = {
 }
 
 export default function AdminProjectsPage() {
-  const supabase = createClientComponentClient()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ total: 0, active: 0, completed: 0 })
@@ -38,24 +40,36 @@ export default function AdminProjectsPage() {
     fetchProjects()
   }, [])
 
+  /**
+   * Read through the admin API, not the browser.
+   *
+   * The previous version embedded `clients` in a session-client query. RLS
+   * leaves `clients` readable only by its own owner, and PostgREST returns a
+   * forbidden to-one embed as `null` rather than an error — so the request
+   * succeeded, the client came back missing, and the Client column rendered
+   * "N/A" for every project. The route reads it under the service role behind
+   * the admin + 2FA gate.
+   *
+   * `scope=all` preserves this page's existing behaviour: unlike
+   * /admin/projects it does NOT filter on client_id, so every project row is
+   * listed and the counts are unchanged.
+   */
   async function fetchProjects() {
     setLoading(true)
 
-    const { data, error } = await supabase
-      .from('projects')
-      .select(`
-        *,
-        clients (full_name, business_name)
-      `)
-      .order('created_at', { ascending: false })
+    const response = await fetch('/api/admin/projects?scope=all', {
+      credentials: 'same-origin',
+    })
+    const payload = await response.json().catch(() => null)
 
-    if (!error && data) {
+    if (response.ok && Array.isArray(payload?.projects)) {
+      const data = payload.projects as Project[]
       setProjects(data)
-      
+
       const total = data.length
       const active = data.filter((p: any) => p.status !== 'Completed' && p.status !== 'Archived').length
       const completed = data.filter((p: any) => p.status === 'Completed').length
-      
+
       setStats({ total, active, completed })
     }
 

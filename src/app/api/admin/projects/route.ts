@@ -28,6 +28,7 @@ import { cookies } from 'next/headers'
 import { randomInt } from 'crypto'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { ADMIN_2FA_COOKIE_NAME, verifyAdmin2FACookie } from '@/lib/admin-2fa-cookie'
+import { requireActiveAdmin, queryFailure } from '@/lib/admin-api-auth'
 import { toCalendarDate, isOnOrAfter } from '@/lib/projects/project-date'
 
 /** Today as a CALENDAR date in the server's local zone — no UTC round-trip. */
@@ -69,6 +70,71 @@ const MAX_PROJECT_ID_ATTEMPTS = 5
 // millisecond would otherwise collide. Uniqueness is still pre-checked below.
 function buildProjectReference(): string {
   return `PROJ-${String(randomInt(0, 1_000_000)).padStart(6, '0')}`
+}
+
+/**
+ * GET — the admin project list, WITH each project's client.
+ *
+ * WHY IT EXISTS. Both admin list pages read projects with the session Supabase
+ * client and embedded `clients`:
+ *
+ *     supabase.from('projects').select('*, clients (business_name, full_name)')
+ *
+ * The `projects` half works, because projects_admin_all is still in place. The
+ * `clients` half does not: the lockdown left `clients` with an OWN-ROW SELECT
+ * policy only, deliberately without an admin policy, because RLS cannot see the
+ * application's admin 2FA cookie. PostgREST applies RLS to embedded resources
+ * and returns a forbidden to-one embed as `null` rather than an error — so the
+ * request succeeded with the client silently missing and the Business column
+ * rendered "N/A" for every project, however correct client_id was.
+ *
+ * Reading it here under the service role, behind the same gate as the detail
+ * GET, is the same correction already applied to the two detail pages.
+ *
+ * `scope` PRESERVES THE TWO PAGES' EXISTING, DIFFERENT QUERIES — it is an enum,
+ * not a filter expression, so the caller cannot name a column or a predicate:
+ *
+ *   'client'  only rows with a client_id. /admin/projects uses this, because
+ *             `projects` also holds public portfolio rows (published/draft,
+ *             no client) which must not appear in client-project management or
+ *             inflate its counts.
+ *   'all'     every row, which is what /admin/client-portal/projects shows.
+ *
+ * Ordering (created_at desc) is unchanged, no pagination is introduced, and the
+ * search/status filtering both pages do client-side is left exactly where it is.
+ */
+export async function GET(request: Request) {
+  const auth = await requireActiveAdmin()
+  if (!auth.ok) return auth.response
+  const { db } = auth
+
+  try {
+    const scope = new URL(request.url).searchParams.get('scope') === 'client' ? 'client' : 'all'
+
+    // Only the columns the two lists actually render. The client embed is
+    // ALIASED so the runtime key is stated by this route rather than inferred
+    // from PostgREST's default relation naming, and carries only the two fields
+    // the lists display — no email, no status, no id.
+    let query = db
+      .from('projects')
+      .select(
+        'id, project_id, project_name, status, progress, service_selected, client_id, created_at,' +
+          ' client:clients(full_name, business_name)',
+      )
+      .order('created_at', { ascending: false })
+
+    if (scope === 'client') {
+      query = query.not('client_id', 'is', null)
+    }
+
+    const { data: projects, error } = await query
+
+    if (error) return queryFailure('project list', error)
+
+    return NextResponse.json({ projects: projects || [] })
+  } catch (error) {
+    return queryFailure('project list', error)
+  }
 }
 
 export async function POST(request: Request) {

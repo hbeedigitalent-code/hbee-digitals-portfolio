@@ -2,7 +2,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@/lib/supabase-client'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
 
@@ -13,7 +12,11 @@ interface Project {
   status: string
   progress: number
   client_id: string
-  clients?: { business_name: string; full_name: string }
+  // Supplied by GET /api/admin/projects, which aliases the embed as
+  // `client:clients(...)`. The alias is what makes the runtime key
+  // unambiguous — relying on PostgREST's default relation naming is what the
+  // earlier `client` vs `clients` confusion turned on.
+  client?: { full_name: string | null; business_name: string | null } | null
   created_at: string
 }
 
@@ -27,7 +30,6 @@ const statusColors: Record<string, string> = {
 }
 
 export default function AdminProjectsPage() {
-  const supabase = createClientComponentClient()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -38,23 +40,32 @@ export default function AdminProjectsPage() {
     fetchProjects()
   }, [])
 
+  /**
+   * Read through the admin API, not the browser.
+   *
+   * The previous version embedded `clients` in a session-client query. RLS
+   * leaves `clients` readable only by its own owner, and PostgREST returns a
+   * forbidden to-one embed as `null` rather than an error — so the request
+   * succeeded, the client came back missing, and the Business column rendered
+   * "N/A" for every project. The route reads it under the service role behind
+   * the admin + 2FA gate.
+   *
+   * `scope=client` preserves this page's existing filter exactly: `projects`
+   * is a shared table that also holds public portfolio/showcase rows (status
+   * published/draft, no client_id), which must not appear here or inflate the
+   * metrics below.
+   */
   async function fetchProjects() {
     setLoading(true)
 
-    // Client-project management only. `projects` is a shared table that also
-    // holds public portfolio/showcase rows (status published/draft, no
-    // client_id); those must not appear here or inflate the metrics below.
-    const { data, error } = await supabase
-      .from('projects')
-      .select(`
-        *,
-        clients (business_name, full_name)
-      `)
-      .not('client_id', 'is', null)
-      .order('created_at', { ascending: false })
+    const response = await fetch('/api/admin/projects?scope=client', {
+      credentials: 'same-origin',
+    })
+    const payload = await response.json().catch(() => null)
 
-    if (!error && data) {
-      setProjects(data as Project[])
+    if (response.ok && Array.isArray(payload?.projects)) {
+      const data = payload.projects as Project[]
+      setProjects(data)
       const total = data.length
       const active = data.filter((p: any) => p.status !== 'Completed' && p.status !== 'Archived').length
       const completed = data.filter((p: any) => p.status === 'Completed').length
@@ -70,7 +81,7 @@ export default function AdminProjectsPage() {
       q === '' ||
       (project.project_name?.toLowerCase().includes(q) ?? false) ||
       (project.project_id?.toLowerCase().includes(q) ?? false) ||
-      (project.clients?.business_name?.toLowerCase().includes(q) ?? false)
+      (project.client?.business_name?.toLowerCase().includes(q) ?? false)
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -165,7 +176,7 @@ export default function AdminProjectsPage() {
                       <p className="text-xs text-[var(--text-muted)]">{project.project_id}</p>
                     </td>
                     <td className="py-3 text-[var(--text-muted)]">
-                      {project.clients?.business_name || 'N/A'}
+                      {project.client?.business_name || 'N/A'}
                     </td>
                     <td className="py-3">
                       <div className="flex items-center gap-2">
