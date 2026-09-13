@@ -7,6 +7,7 @@ import { createClientComponentClient } from '@/lib/supabase-client'
 import SvgIcon from '@/components/ui/SvgIcon'
 import StatusPill from '@/components/ui/StatusPill'
 import Link from 'next/link'
+import { formatCalendarDate } from '@/lib/projects/project-date'
 
 interface Project {
   id: string
@@ -126,13 +127,13 @@ export default function ClientProjectDetailPage() {
           <div>
             <p className="text-sm text-[var(--text-muted)]">Start Date</p>
             <p className="font-medium text-[var(--text-primary)]">
-              {project.start_date ? new Date(project.start_date).toLocaleDateString() : 'Not set'}
+              {formatCalendarDate(project.start_date, 'Not set')}
             </p>
           </div>
           <div>
             <p className="text-sm text-[var(--text-muted)]">Expected Completion</p>
             <p className="font-medium text-[var(--text-primary)]">
-              {project.expected_completion_date ? new Date(project.expected_completion_date).toLocaleDateString() : 'Not set'}
+              {formatCalendarDate(project.expected_completion_date, 'To be confirmed')}
             </p>
           </div>
           <div>

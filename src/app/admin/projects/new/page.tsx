@@ -69,6 +69,7 @@ export default function AdminNewProjectPage() {
     description: '',
     service_selected: '',
     start_date: '',
+    expected_completion_date: '',
   })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
@@ -156,7 +157,10 @@ export default function AdminNewProjectPage() {
           title: formData.title.trim() || formData.project_name,
           description: formData.description,
           service_selected: formData.service_selected,
+          // Both are CALENDAR dates, sent exactly as the date picker produced
+          // them. Blank means "not agreed yet" and is stored as NULL.
           start_date: formData.start_date || null,
+          expected_completion_date: formData.expected_completion_date || null,
         }),
       })
 
@@ -328,6 +332,28 @@ export default function AdminNewProjectPage() {
                 className={`${FIELD_CLASS} border-[var(--border)]`}
               />
               <p className="mt-1 text-xs text-[var(--text-muted)]">Defaults to today.</p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="project-expected-completion"
+                className="text-sm font-medium text-[var(--text-secondary)]"
+              >
+                Expected Completion Date
+              </label>
+              <input
+                id="project-expected-completion"
+                type="date"
+                value={formData.expected_completion_date}
+                onChange={(e) =>
+                  setFormData({ ...formData, expected_completion_date: e.target.value })
+                }
+                className={`${FIELD_CLASS} border-[var(--border)]`}
+              />
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
+                Optional. Leave blank while the timeline is unconfirmed — the client portal shows
+                &ldquo;To be confirmed&rdquo;.
+              </p>
             </div>
 
             <div>

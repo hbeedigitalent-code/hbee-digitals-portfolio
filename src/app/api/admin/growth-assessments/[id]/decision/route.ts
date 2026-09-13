@@ -31,6 +31,7 @@
 
 import { NextResponse } from 'next/server'
 import { requireActiveAdmin, queryFailure, ADMIN_UUID_RE } from '@/lib/admin-api-auth'
+import { enqueueEmail, outboxKey, deliverQueuedEvent } from '@/lib/emails/outbox'
 
 export const dynamic = 'force-dynamic'
 
@@ -131,6 +132,34 @@ export async function GET(_request: Request, { params }: { params: { id: string 
 
     const history = decisions || []
 
+    // ---- LINKAGE STATE, so the admin UI can show WHY a decision is or is
+    // not currently able to release anything. Read-only: nothing here links,
+    // creates or repairs any relationship.
+    const merchantId: string | null = (assessment as any).merchant_id ?? null
+
+    let linkedClients: Array<{ id: string; full_name: string | null; email: string | null }> = []
+    let profileForThisAssessment: { id: string; title: string | null; is_active: boolean } | null =
+      null
+
+    if (merchantId) {
+      const { data: clientRows } = await db
+        .from('clients')
+        .select('id, full_name, email')
+        .eq('merchant_id', merchantId)
+        .limit(3)
+      linkedClients = clientRows || []
+
+      // The profile an approval of THIS assessment would authorize. Bound to
+      // the assessment, not to whichever profile happens to be active.
+      const { data: profileRow } = await db
+        .from('growth_profiles')
+        .select('id, title, is_active')
+        .eq('merchant_id', merchantId)
+        .eq('assessment_id', assessmentId)
+        .maybeSingle()
+      profileForThisAssessment = profileRow || null
+    }
+
     return NextResponse.json({
       assessment: {
         id: assessment.id,
@@ -144,6 +173,29 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       },
       decisions: history,
       current: history[0] || null,
+      // Everything the decision UI needs to explain the current state without
+      // guessing. `canReleaseOnApproval` mirrors exactly what the client Growth
+      // Profile endpoint requires, so the admin is never told an approval will
+      // publish something when it will not.
+      linkage: {
+        merchant_id: merchantId,
+        linked_clients: linkedClients,
+        client_link_state:
+          !merchantId
+            ? 'no_merchant'
+            : linkedClients.length === 0
+              ? 'no_client'
+              : linkedClients.length > 1
+                ? 'ambiguous'
+                : 'linked',
+        profile: profileForThisAssessment,
+        releaseEnabled: process.env.GROWTH_PROFILE_RELEASE_ENABLED === 'true',
+        canReleaseOnApproval:
+          Boolean(merchantId) &&
+          linkedClients.length === 1 &&
+          Boolean(profileForThisAssessment) &&
+          process.env.GROWTH_PROFILE_RELEASE_ENABLED === 'true',
+      },
       // The whole point of the separate table: say plainly when a stored
       // 'approved' has no decision behind it.
       provenance:
@@ -155,6 +207,131 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     })
   } catch (error) {
     return queryFailure('decision read', error)
+  }
+}
+
+type OutcomeEmailReport =
+  | { queued: true; templateSlug: string; eventKey: string; duplicate: boolean; profileReleased: boolean }
+  | { queued: false; reason: string }
+
+/**
+ * Queues the merchant-facing outcome email for a decision that has ALREADY
+ * committed.
+ *
+ * WHAT IT WILL NOT DO:
+ *   * It never runs before record_program_decision() succeeds.
+ *   * It never claims a profile is available. `profileReleased` is computed
+ *     from the same four conditions the client Growth Profile endpoint
+ *     enforces — approved decision, profile bound to it, a linked client, and
+ *     the release gate — so the email cannot advertise a page that will
+ *     withhold. While GROWTH_PROFILE_RELEASE_ENABLED is off this is always
+ *     false, and the approved template drops its portal CTA accordingly.
+ *   * It never emails on 'withdrawn'. Quietly revoking access is an internal
+ *     action; telling a merchant their profile has been taken away is a
+ *     decision for a person to make in their own words.
+ *   * It never puts the decision's private `notes` into a payload.
+ *
+ * A failure to queue is REPORTED, never thrown: the decision is already
+ * committed and must not be reported as failed because an email could not be
+ * recorded.
+ */
+async function queueDecisionOutcomeEmail(input: {
+  db: any
+  decision: Decision
+  outcome: any
+  merchantId: string | null
+  sharedMessage: string | null
+}): Promise<OutcomeEmailReport> {
+  const { db, decision, outcome, merchantId, sharedMessage } = input
+
+  if (decision === 'withdrawn') {
+    return { queued: false, reason: 'withdrawal_is_not_announced_automatically' }
+  }
+  if (!merchantId) {
+    return { queued: false, reason: 'no_merchant' }
+  }
+
+  const { data: merchant, error: merchantError } = await db
+    .from('merchants')
+    .select('id, business_name, contact_name, email')
+    .eq('id', merchantId)
+    .maybeSingle()
+
+  if (merchantError || !merchant?.email) {
+    console.error(
+      `[decision] outcome email not queued: merchant ${merchantId} has no readable email`,
+    )
+    return { queued: false, reason: 'merchant_email_unavailable' }
+  }
+
+  const contactName =
+    typeof merchant.contact_name === 'string' && merchant.contact_name.trim()
+      ? merchant.contact_name.trim()
+      : null
+  const firstName = contactName ? contactName.split(/\s+/)[0] : 'there'
+  const businessName =
+    typeof merchant.business_name === 'string' && merchant.business_name.trim()
+      ? merchant.business_name.trim()
+      : 'your business'
+
+  // The profile is only genuinely retrievable when EVERY condition the client
+  // endpoint checks is already true.
+  const profileReleased =
+    decision === 'approved' &&
+    process.env.GROWTH_PROFILE_RELEASE_ENABLED === 'true' &&
+    Boolean(outcome.profile_id) &&
+    Boolean(outcome.client_id)
+
+  const templateSlug =
+    decision === 'approved' ? 'growth-program-approved' : 'growth-program-declined'
+
+  // Tied to the decision SEQUENCE, not to the assessment: a later, deliberate
+  // re-decision is a different event and is allowed its own email, while every
+  // retry of THIS decision collapses onto one row.
+  const eventKey = outboxKey([
+    templateSlug,
+    String(outcome.decision_seq ?? ''),
+    String(outcome.id ?? ''),
+    merchant.email.trim().toLowerCase(),
+  ])
+
+  const result = await enqueueEmail({
+    eventKey,
+    templateSlug,
+    recipientEmail: merchant.email,
+    recipientName: contactName,
+    payload: {
+      firstName,
+      email: merchant.email,
+      businessName,
+      decisionId: String(outcome.id ?? ''),
+      ...(decision === 'approved'
+        ? { profileReleased }
+        : sharedMessage
+          ? { sharedMessage }
+          : {}),
+    },
+  })
+
+  if (!result.ok) {
+    console.error(`[decision] outcome email could not be queued: ${result.reason}`)
+    return { queued: false, reason: result.reason || 'enqueue_failed' }
+  }
+
+  // Best-effort immediate send of THIS event only. The row is already durable,
+  // so a failure here just means the scheduled worker picks it up instead. The
+  // send is claim-protected, so it cannot collide with that worker, and a
+  // duplicate enqueue is never re-sent.
+  if (!result.duplicate) {
+    await deliverQueuedEvent(eventKey).catch(() => undefined)
+  }
+
+  return {
+    queued: true,
+    templateSlug,
+    eventKey,
+    duplicate: result.duplicate === true,
+    profileReleased,
   }
 }
 
@@ -184,6 +361,17 @@ export async function POST(request: Request, { params }: { params: { id: string 
     const notes =
       typeof body?.notes === 'string' && body.notes.trim()
         ? body.notes.trim().slice(0, MAX_NOTES)
+        : null
+
+    // A SEPARATE, EXPLICITLY CLIENT-FACING note. `notes` above is the private
+    // audit field on the decision row and is NEVER emailed. This one is only
+    // used when the admin deliberately ticks "share this with the merchant",
+    // and only on a declined decision.
+    const sharedMessage =
+      body?.shareMessageWithMerchant === true &&
+      typeof body?.sharedMessage === 'string' &&
+      body.sharedMessage.trim()
+        ? body.sharedMessage.trim().slice(0, MAX_NOTES)
         : null
 
     // ---- ONE TRANSACTION: record_program_decision() --------------------
@@ -260,6 +448,27 @@ export async function POST(request: Request, { params }: { params: { id: string 
       }
     }
 
+    // ---- THE OUTCOME EMAIL --------------------------------------------
+    //
+    // Queued ONLY here, only after the decision transaction has committed, and
+    // only for a decision an admin just made. Nothing scans historical rows, so
+    // deploying this code cannot email anyone about a past approval.
+    //
+    // IDEMPOTENT BY CONSTRUCTION. The event key is derived from the decision's
+    // own monotonic decision_seq plus the recipient, and email_events has a
+    // unique index on event_key — so a double-clicked button, a browser retry
+    // and a worker retry all collapse onto one row. A genuinely new decision
+    // gets a new decision_seq and therefore a new email, which is correct.
+    const emailOutcome = await queueDecisionOutcomeEmail({
+      db,
+      decision: decision as Decision,
+      outcome,
+      merchantId: outcome.merchant_id,
+      sharedMessage,
+    })
+
+    const releaseEnabled = process.env.GROWTH_PROFILE_RELEASE_ENABLED === 'true'
+
     return NextResponse.json({
       success: true,
       decision: {
@@ -275,7 +484,14 @@ export async function POST(request: Request, { params }: { params: { id: string 
       reviewStatus,
       // Release stays behind GROWTH_PROFILE_RELEASE_ENABLED as well. Recording
       // an approval does not by itself publish anything.
-      releaseEnabled: process.env.GROWTH_PROFILE_RELEASE_ENABLED === 'true',
+      releaseEnabled,
+      // TRUTHFUL, not aspirational: `released` is whether the client can
+      // actually retrieve the profile right now, under exactly the conditions
+      // the client endpoint enforces.
+      released: decision === 'approved' && releaseEnabled && Boolean(outcome.profile_id),
+      // What was queued, and — when nothing was — why. Provider acceptance is
+      // NOT delivery; this only reports that the intent was recorded.
+      outcomeEmail: emailOutcome,
     })
   } catch (error) {
     return queryFailure('decision write', error)

@@ -592,10 +592,45 @@ export async function deliver(
 // because an unverified or unmonitored reply address is worse than none. No
 // address is hard-coded here.
 // ---------------------------------------------------------------------------
-export const DEFAULT_FROM = 'Hbee Digitals <noreply@send.hbeedigitals.com>'
+/** The display name every automated Hbee email is sent under. */
+export const SENDER_DISPLAY_NAME = 'Hbee Digitals'
 
+export const DEFAULT_FROM = `${SENDER_DISPLAY_NAME} <noreply@send.hbeedigitals.com>`
+
+/**
+ * The canonical `From` header for every automated email.
+ *
+ * THE MAILBOX IS NEVER SUBSTITUTED. Whatever RESEND_FROM_EMAIL configures is
+ * the address that goes out, because that is the address verified with the
+ * provider. This only ensures a DISPLAY NAME is attached to it.
+ *
+ * The defect this fixes: RESEND_FROM_EMAIL is configured as a bare mailbox
+ * (`forms@send.hbeedigitals.com`), and the previous implementation returned it
+ * verbatim. Gmail has no display name to show in that case, so it falls back to
+ * printing the raw address in the inbox list. Wrapping the bare address in
+ * `Hbee Digitals <...>` is what makes the friendly name appear.
+ *
+ * Three shapes are handled:
+ *   `Name <addr@host>`  already has a display name -> returned UNCHANGED, so
+ *                       nothing can ever nest into `Hbee Digitals <Hbee ...>`.
+ *   `addr@host`         bare mailbox -> display name added.
+ *   `<addr@host>`       angle-only -> unwrapped, then display name added.
+ * Anything that does not contain an `@` is not an address at all; the
+ * configured value is ignored and DEFAULT_FROM is used rather than sending
+ * something the provider will reject.
+ */
 export function emailFrom(): string {
-  return process.env.RESEND_FROM_EMAIL || DEFAULT_FROM
+  const configured = process.env.RESEND_FROM_EMAIL?.trim()
+  if (!configured) return DEFAULT_FROM
+
+  // Already `Something <addr@host>` — leave it exactly as the operator set it.
+  if (/^[^<>]+<[^<>@\s]+@[^<>@\s]+>$/.test(configured)) return configured
+
+  // `<addr@host>` or `addr@host`.
+  const bare = configured.replace(/^<|>$/g, '').trim()
+  if (!/^[^<>@\s]+@[^<>@\s]+$/.test(bare)) return DEFAULT_FROM
+
+  return `${SENDER_DISPLAY_NAME} <${bare}>`
 }
 
 /** Spread into the Resend payload; contributes nothing when unconfigured. */

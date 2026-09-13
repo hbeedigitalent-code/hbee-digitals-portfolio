@@ -28,6 +28,15 @@ import { cookies } from 'next/headers'
 import { randomInt } from 'crypto'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { ADMIN_2FA_COOKIE_NAME, verifyAdmin2FACookie } from '@/lib/admin-2fa-cookie'
+import { toCalendarDate, isOnOrAfter } from '@/lib/projects/project-date'
+
+/** Today as a CALENDAR date in the server's local zone — no UTC round-trip. */
+function todayCalendarDate(): string {
+  const now = new Date()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${now.getFullYear()}-${month}-${day}`
+}
 
 // Lazy, non-throwing service-role client — the same defensive pattern used by
 // the other /api/admin routes. Deliberately NOT the shared
@@ -131,6 +140,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
+    // 5b. Both project dates are CALENDAR dates and are validated as such —
+    //     never parsed into a Date, never converted through UTC.
+    const startDate = toCalendarDate(body.start_date)
+    if (!startDate.ok) {
+      return NextResponse.json(
+        { error: 'Start date must be a real calendar date (YYYY-MM-DD).' },
+        { status: 400 },
+      )
+    }
+
+    const expectedCompletion = toCalendarDate(body.expected_completion_date)
+    if (!expectedCompletion.ok) {
+      return NextResponse.json(
+        { error: 'Expected completion date must be a real calendar date (YYYY-MM-DD).' },
+        { status: 400 },
+      )
+    }
+
+    // A timeline that has not been agreed is legitimately blank. Only an
+    // ORDERING that is impossible is refused.
+    if (
+      startDate.value &&
+      expectedCompletion.value &&
+      !isOnOrAfter(expectedCompletion.value, startDate.value)
+    ) {
+      return NextResponse.json(
+        { error: 'The expected completion date cannot be before the start date.' },
+        { status: 400 },
+      )
+    }
+
     // 6. Only columns evidenced by the existing schema are written. `created_by`
     //    appears on no Project interface in the repo, so no creator column is
     //    set and no migration is implied.
@@ -143,9 +183,15 @@ export async function POST(request: Request) {
       description: typeof body.description === 'string' ? body.description.trim() : '',
       service_selected:
         typeof body.service_selected === 'string' ? body.service_selected.trim() : '',
-      start_date: body.start_date
-        ? new Date(body.start_date).toISOString()
-        : new Date().toISOString(),
+      // CALENDAR DATE, STORED AS WRITTEN. This previously ran the picked date
+      // through `new Date(...).toISOString()`, converting "the 6th of
+      // September" into a UTC instant before storing it — which is how a
+      // project date comes to be off by a day. The string from
+      // <input type="date"> is now passed through unchanged.
+      start_date: startDate.value ?? todayCalendarDate(),
+      ...(expectedCompletion.value !== null
+        ? { expected_completion_date: expectedCompletion.value }
+        : {}),
     }
 
     // 7. Insert with a server-generated project reference. The reference is

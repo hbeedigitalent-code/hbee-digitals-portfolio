@@ -6,6 +6,7 @@ import { createClientComponentClient } from '@/lib/supabase-client'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
+import { formatCalendarDate, toDateInputValue } from '@/lib/projects/project-date'
 
 interface Project {
   id: string
@@ -19,7 +20,12 @@ interface Project {
   expected_completion_date: string
   description: string
   created_at: string
-  client?: { full_name: string; business_name: string; email: string }
+  // PostgREST returns an embedded row under the RELATION name used in the
+  // select — here `clients` — not under a singular alias. The previous
+  // interface declared `client`, which is never present in the response, so
+  // Client and Business rendered "N/A" for EVERY project, including correctly
+  // linked ones. That was a rendering defect, not missing data.
+  clients?: { full_name: string | null; business_name: string | null; email: string | null } | null
 }
 
 interface ProjectFile {
@@ -65,6 +71,9 @@ export default function AdminProjectDetailPage() {
   const [updating, setUpdating] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState('')
   const [progressValue, setProgressValue] = useState(0)
+  const [updateError, setUpdateError] = useState<string | null>(null)
+  const [updateNotice, setUpdateNotice] = useState<string | null>(null)
+  const [expectedCompletion, setExpectedCompletion] = useState('')
 
   // Project Files (Batch 1C Stage 2) — project_files has RLS enabled with no
   // policies at all, so unlike `project` above this can't be fetched with a
@@ -103,27 +112,63 @@ export default function AdminProjectDetailPage() {
     setProject(data)
     setSelectedStatus(data.status)
     setProgressValue(data.progress || 0)
+    // Seeded as a plain calendar date, so <input type="date"> shows the day
+    // that is stored rather than a UTC-shifted neighbour.
+    setExpectedCompletion(toDateInputValue(data.expected_completion_date))
     setLoading(false)
   }
 
+  /**
+   * Goes through the admin API, which applies session + 2FA + active-admin
+   * before writing. The previous version updated `projects` straight from the
+   * browser and discarded the result — `if (!error)` with no else — so an RLS
+   * refusal or a CHECK violation looked exactly like success and the badge
+   * silently kept its old value.
+   */
   async function updateProject() {
     if (!project) return
 
     setUpdating(true)
+    setUpdateError(null)
+    setUpdateNotice(null)
 
-    const { error } = await supabase
-      .from('projects')
-      .update({
-        status: selectedStatus,
-        progress: progressValue,
+    try {
+      const response = await fetch(`/api/admin/projects/${project.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          status: selectedStatus,
+          progress: progressValue,
+          // Sent as a calendar date. An empty string is a deliberate "clear
+          // the timeline", which the route distinguishes from omitting it.
+          expected_completion_date: expectedCompletion,
+        }),
       })
-      .eq('id', project.id)
+      const result = await response.json().catch(() => ({}))
 
-    if (!error) {
-      setProject({ ...project, status: selectedStatus, progress: progressValue })
+      if (!response.ok) {
+        throw new Error(result.error || 'The project could not be updated.')
+      }
+
+      // Render what the DATABASE returned, not what was typed into the form.
+      setProject({
+        ...project,
+        status: result.project.status,
+        progress: result.project.progress,
+      })
+      setSelectedStatus(result.project.status)
+      setProgressValue(result.project.progress ?? 0)
+      setExpectedCompletion(toDateInputValue(result.project.expected_completion_date))
+      setUpdateNotice('Project updated.')
+    } catch (error) {
+      console.error('Project update error:', error)
+      setUpdateError(
+        error instanceof Error ? error.message : 'The project could not be updated.',
+      )
+    } finally {
+      setUpdating(false)
     }
-
-    setUpdating(false)
   }
 
   async function fetchProjectFiles() {
@@ -260,6 +305,39 @@ export default function AdminProjectDetailPage() {
                 />
               </div>
 
+              <div>
+
+
+                <label htmlFor="project-expected-completion" className="mb-1.5 block text-xs font-medium text-[var(--text-muted)]">Expected completion date</label>
+
+
+                <input
+
+
+                  id="project-expected-completion"
+
+
+                  type="date"
+
+
+                  value={expectedCompletion}
+
+
+                  onChange={(e) => setExpectedCompletion(e.target.value)}
+
+
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+
+
+                />
+
+
+                <p className="mt-1 text-xs text-[var(--text-muted)]">Leave blank while the timeline is unconfirmed.</p>
+
+
+              </div>
+
+
               <button
                 onClick={updateProject}
                 disabled={updating}
@@ -267,6 +345,18 @@ export default function AdminProjectDetailPage() {
               >
                 {updating ? 'Updating...' : 'Update Project'}
               </button>
+
+              {updateError && (
+                <p role="alert" className="text-sm font-semibold text-[var(--error)]">
+                  {updateError}
+                </p>
+              )}
+
+              {updateNotice && (
+                <p role="status" className="text-sm font-semibold text-[var(--success)]">
+                  {updateNotice}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -279,12 +369,12 @@ export default function AdminProjectDetailPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <p className="text-xs text-[var(--text-muted)]">Client</p>
-                <p className="text-sm text-[var(--text-primary)]">{project.client?.full_name || 'N/A'}</p>
-                <p className="text-xs text-[var(--text-muted)]">{project.client?.email || ''}</p>
+                <p className="text-sm text-[var(--text-primary)]">{project.clients?.full_name || 'N/A'}</p>
+                <p className="text-xs text-[var(--text-muted)]">{project.clients?.email || ''}</p>
               </div>
               <div>
                 <p className="text-xs text-[var(--text-muted)]">Business</p>
-                <p className="text-sm text-[var(--text-primary)]">{project.client?.business_name || 'N/A'}</p>
+                <p className="text-sm text-[var(--text-primary)]">{project.clients?.business_name || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-xs text-[var(--text-muted)]">Service</p>
@@ -292,11 +382,11 @@ export default function AdminProjectDetailPage() {
               </div>
               <div>
                 <p className="text-xs text-[var(--text-muted)]">Start Date</p>
-                <p className="text-sm text-[var(--text-primary)]">{project.start_date ? new Date(project.start_date).toLocaleDateString() : 'N/A'}</p>
+                <p className="text-sm text-[var(--text-primary)]">{formatCalendarDate(project.start_date, 'N/A')}</p>
               </div>
               <div>
                 <p className="text-xs text-[var(--text-muted)]">Expected Completion</p>
-                <p className="text-sm text-[var(--text-primary)]">{project.expected_completion_date ? new Date(project.expected_completion_date).toLocaleDateString() : 'N/A'}</p>
+                <p className="text-sm text-[var(--text-primary)]">{formatCalendarDate(project.expected_completion_date, 'To be confirmed')}</p>
               </div>
               <div>
                 <p className="text-xs text-[var(--text-muted)]">Created</p>

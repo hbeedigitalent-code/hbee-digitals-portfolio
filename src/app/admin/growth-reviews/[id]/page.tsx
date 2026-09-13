@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import StatusBadge from '@/components/ui/StatusBadge'
 import SvgIcon from '@/components/ui/SvgIcon'
+import ProgramDecisionPanel from '@/components/admin/ProgramDecisionPanel'
 import Button from '@/components/ui/Button'
 
 interface PageProps {
@@ -512,17 +513,31 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
           )}
 
           {isCompleted && (
-            <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-4">
-              <div className="flex items-start gap-3">
-                <SvgIcon name="check" size={20} color="#22C55E" className="mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="text-sm font-semibold text-green-600">Review Completed</h4>
-                  <p className="text-xs text-green-600/80 mt-1">
-                    This review has been completed. The growth profile has been generated and is available for the merchant.
-                  </p>
+            <>
+              <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-4">
+                <div className="flex items-start gap-3">
+                  <SvgIcon name="check" size={20} color="#22C55E" className="mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-sm font-semibold text-green-600">Review completed</h4>
+                    {/* Corrected. This previously read "available for the
+                        merchant", which was not true: completion prepares the
+                        profile and grants nothing. Release needs a deliberate
+                        approval AND the release gate. */}
+                    <p className="text-xs text-green-600/80 mt-1">
+                      The Growth Profile has been prepared. It is <strong>not</strong> released to
+                      the merchant — that needs a programme decision below.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+
+              {assessment?.id && (
+                <ProgramDecisionPanel
+                  assessmentId={assessment.id}
+                  onRecorded={() => { void fetchReview() }}
+                />
+              )}
+            </>
           )}
         </div>
       </div>

@@ -41,6 +41,54 @@ export default function ClientFilesPage() {
   const [clientId, setClientId] = useState<string | null>(null)
   const [pageError, setPageError] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [pageNotice, setPageNotice] = useState<string | null>(null)
+
+  /**
+   * Deletion is SERVER-SIDE. The browser sends only the file id; the route
+   * proves ownership from the session, derives the object path from the stored
+   * row, and removes the object and the metadata row under the service role.
+   * Nothing here touches Storage or project_files directly.
+   */
+  async function handleDelete(file: ClientFile) {
+    if (
+      !confirm(
+        `Delete "${file.file_name}"?\n\nThis removes the file permanently and cannot be undone.`,
+      )
+    ) {
+      return
+    }
+
+    setPageError(null)
+    setPageNotice(null)
+    setDeletingId(file.id)
+
+    try {
+      const response = await fetch(`/api/client-portal/files/${file.id}`, {
+        method: 'DELETE',
+      })
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(result.error || 'The file could not be deleted.')
+      }
+
+      // Drop it from the table without refetching the whole page.
+      setFiles((current) => current.filter((f) => f.id !== file.id))
+      setPageNotice(
+        result.storageMissing
+          ? `"${file.file_name}" was removed from your list. The stored file was already gone.`
+          : `"${file.file_name}" was deleted.`,
+      )
+    } catch (error) {
+      console.error('Delete error:', error)
+      setPageError(
+        error instanceof Error ? error.message : 'The file could not be deleted.',
+      )
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   useEffect(() => {
     fetchData()
@@ -187,6 +235,15 @@ export default function ClientFilesPage() {
         </div>
       )}
 
+      {pageNotice && (
+        <div
+          role="status"
+          className="rounded-xl border border-[var(--success)]/30 bg-[var(--success-subtle)] p-3 text-sm font-semibold text-[var(--success)]"
+        >
+          {pageNotice}
+        </div>
+      )}
+
       {files.length === 0 ? (
         <EmptyState
           title="No files uploaded"
@@ -232,15 +289,26 @@ export default function ClientFilesPage() {
                     {new Date(file.uploaded_at).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      onClick={() => handleDownload(file)}
-                      disabled={downloadingId === file.id}
-                      className="inline-flex items-center gap-1 text-sm text-[var(--accent-orange)] hover:underline disabled:cursor-wait disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-page)]"
-                    >
-                      {downloadingId === file.id ? 'Preparing...' : 'Download'}
-                      <SvgIcon name="download" size={14} color="var(--accent-orange)" />
-                    </button>
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(file)}
+                        disabled={downloadingId === file.id || deletingId === file.id}
+                        className="inline-flex items-center gap-1 text-sm text-[var(--accent-orange)] hover:underline disabled:cursor-wait disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-page)]"
+                      >
+                        {downloadingId === file.id ? 'Preparing...' : 'Download'}
+                        <SvgIcon name="download" size={14} color="var(--accent-orange)" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(file)}
+                        disabled={deletingId === file.id || downloadingId === file.id}
+                        aria-label={`Delete ${file.file_name}`}
+                        className="inline-flex items-center gap-1 text-sm text-[var(--error)] hover:underline disabled:cursor-wait disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-page)]"
+                      >
+                        {deletingId === file.id ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

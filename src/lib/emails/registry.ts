@@ -60,6 +60,54 @@ const REGISTRY: Record<string, SendFromPayload> = {
     )
   },
 
+  // Outcome of a deliberate program decision. Queued by the decision endpoint
+  // only after record_program_decision() has committed — never by review
+  // completion, and never by scanning historical review_status values.
+  'growth-program-approved': async (payload) => {
+    const firstName = str(payload, 'firstName')
+    const email = str(payload, 'email')
+    const businessName = str(payload, 'businessName')
+    const decisionId = str(payload, 'decisionId')
+    if (!firstName || !email || !businessName || !decisionId) {
+      return { ok: false, outcome: 'failed', reason: 'payload_incomplete' }
+    }
+    const { sendGrowthProgramApprovedEmail } = await import(
+      '@/lib/emails/hos/growth-program-approved'
+    )
+    return sendGrowthProgramApprovedEmail({
+      firstName,
+      email,
+      businessName,
+      decisionId,
+      // Absent or non-true means NOT released. The claim has to be made
+      // explicitly at enqueue time; it is never inferred here.
+      profileReleased: payload.profileReleased === true,
+    })
+  },
+
+  'growth-program-declined': async (payload) => {
+    const firstName = str(payload, 'firstName')
+    const email = str(payload, 'email')
+    const businessName = str(payload, 'businessName')
+    const decisionId = str(payload, 'decisionId')
+    if (!firstName || !email || !businessName || !decisionId) {
+      return { ok: false, outcome: 'failed', reason: 'payload_incomplete' }
+    }
+    const { sendGrowthProgramDeclinedEmail } = await import(
+      '@/lib/emails/hos/growth-program-declined'
+    )
+    return sendGrowthProgramDeclinedEmail({
+      firstName,
+      email,
+      businessName,
+      decisionId,
+      // Only a note the admin explicitly marked shareable ever reaches here.
+      // The decision's private `notes` column is a different field and is not
+      // put into the payload by the decision endpoint.
+      sharedMessage: str(payload, 'sharedMessage'),
+    })
+  },
+
   'onboarding-confirmation': async (payload) => {
     const fullName = str(payload, 'fullName')
     const email = str(payload, 'email')

@@ -1,5 +1,6 @@
 // src/lib/emails/hos/growth-profile-ready.ts
 import { Resend } from 'resend'
+import { emailFrom } from '@/lib/emails/layout'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -141,7 +142,7 @@ export async function sendGrowthProfileReadyEmail(data: EmailData) {
 
   try {
     await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'Hbee Digitals <noreply@send.hbeedigitals.com>',
+      from: emailFrom(),
       to: data.email,
       subject: 'Your Growth Profile Is Ready',
       html,
