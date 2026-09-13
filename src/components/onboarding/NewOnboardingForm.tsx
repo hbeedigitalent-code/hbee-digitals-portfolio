@@ -11,6 +11,7 @@ import { Step3BrandAssets } from './NewStep3BrandAssets'
 import { Step4Contact } from './NewStep4Contact'
 import { Step5ReviewSubmit } from './NewStep5ReviewSubmit'
 import SvgIcon from '@/components/ui/SvgIcon'
+import TurnstileWidget from '@/components/ui/TurnstileWidget'
 
 const stepComponents = {
   1: Step1ProjectDetails,
@@ -49,7 +50,11 @@ export function NewOnboardingForm() {
     nextStep,
     prevStep,
     isCurrentStepComplete,
-    submitForm
+    submitForm,
+    turnstileToken,
+    setTurnstileToken,
+    turnstileReset,
+    resetTurnstile
   } = useNewOnboardingForm()
 
   if (isSubmitted) {
@@ -102,6 +107,23 @@ export function NewOnboardingForm() {
         </div>
       )}
 
+      {/* Security check — rendered only on the final step, immediately above the
+          submit button. The server verifies the token before any database write,
+          file upload or email. */}
+      {currentStep === 5 && (
+        <div className="mt-6 flex flex-col items-center gap-2">
+          <TurnstileWidget
+            onVerify={setTurnstileToken}
+            onExpire={resetTurnstile}
+            onError={resetTurnstile}
+            reset={turnstileReset}
+          />
+          <p className="text-xs text-[var(--text-muted)]">
+            This quick check helps us keep automated submissions out.
+          </p>
+        </div>
+      )}
+
       <div className="mt-8 flex justify-between gap-4 border-t border-[var(--border)] pt-6">
         <button
           type="button"
@@ -117,7 +139,7 @@ export function NewOnboardingForm() {
           <button
             type="button"
             onClick={submitForm}
-            disabled={isSubmitting || !isCurrentStepComplete()}
+            disabled={isSubmitting || !isCurrentStepComplete() || !turnstileToken}
             className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-8 py-3 text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (

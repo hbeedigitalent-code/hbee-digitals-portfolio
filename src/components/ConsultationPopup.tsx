@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import SvgIcon from '@/components/ui/SvgIcon'
+import TurnstileWidget from '@/components/ui/TurnstileWidget'
 
 interface ConsultationPopupProps {
   isOpen: boolean
@@ -42,6 +43,16 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
+
+  // A challenge token is short-lived and single-use. `turnstileReset` is a
+  // toggle the widget watches so a failed submission can force a fresh one.
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const [turnstileReset, setTurnstileReset] = useState(false)
+
+  const resetTurnstile = useCallback(() => {
+    setTurnstileToken(null)
+    setTurnstileReset((v) => !v)
+  }, [])
 
   const handleEscKey = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape' && isOpen) onClose()
@@ -83,6 +94,12 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!turnstileToken) {
+      setError('Please complete the security check before submitting.')
+      return
+    }
+
     setLoading(true)
     setError('')
 
@@ -99,6 +116,7 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
         current_challenge: formData.current_challenge,
         message: formData.current_challenge,
         preferred_contact: formData.contact_method,
+        turnstile_token: turnstileToken,
       }
 
       const response = await fetch('/api/contact', {
@@ -113,10 +131,14 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
         setSubmitted(true)
         setTimeout(() => onClose(), 4000)
       } else {
+        // A used or expired token can never be replayed, so any failed attempt
+        // discards it and asks the widget for a fresh challenge.
+        resetTurnstile()
         setError(data.error || 'Something went wrong. Please try again.')
       }
     } catch (err) {
       console.error('Submission error:', err)
+      resetTurnstile()
       setError('Network error. Please try again.')
     } finally {
       setLoading(false)
@@ -282,9 +304,24 @@ export default function ConsultationPopup({ isOpen, onClose }: ConsultationPopup
                       </div>
                     )}
 
+                    {/* Security check. The server verifies this token before any
+                        database write or email. */}
+                    <div className="flex flex-col items-center gap-2">
+                      <TurnstileWidget
+                        onVerify={setTurnstileToken}
+                        onExpire={resetTurnstile}
+                        onError={resetTurnstile}
+                        reset={turnstileReset}
+                        size="compact"
+                      />
+                      <p className="text-xs text-[var(--text-muted)]">
+                        This quick check helps us keep automated submissions out.
+                      </p>
+                    </div>
+
                     <button
                       type="submit"
-                      disabled={loading}
+                      disabled={loading || !turnstileToken}
                       className="btn-primary w-full justify-center py-3 text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loading ? 'Submitting...' : 'Request Free Consultation'}

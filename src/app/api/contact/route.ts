@@ -1,102 +1,119 @@
 // src/app/api/contact/route.ts
-import { NextResponse } from 'next/server'
-import { Resend } from 'resend'
-import { createClient } from '@supabase/supabase-js'
+//
+// PUBLIC, UNAUTHENTICATED endpoint reached by two forms:
+//   - ContactSection.tsx        (form_type 'contact')
+//   - ConsultationPopup.tsx     (form_type 'free_consultation')
+//
+// It writes with the SERVICE-ROLE key, which bypasses RLS. That combination —
+// no authentication plus an RLS-bypassing credential — is why every guard below
+// exists.
+//
+// ORDER OF CHECKS IS DELIBERATE, cheapest rejection first:
+//   1. Rate limit   — a Redis round trip, no third party.
+//   2. Turnstile    — a network call to Cloudflare, so it runs only for callers
+//                     that are already within their rate limit. A flood cannot
+//                     be used to burn siteverify calls.
+//   3. Validation   — pure CPU, but there is no point validating a payload that
+//                     has already been rejected.
+//   4. Database write, then email.
+// A failed check must cost nothing beyond the check itself: no row, no email to
+// the supplied address.
+//
+// EMAIL IS NOT BUILT HERE ANY MORE. This route used to interpolate submitted
+// values into hand-written HTML, which put unescaped visitor input into a staff
+// inbox. Both messages now render through src/lib/emails/layout.ts, which
+// escapes every dynamic value and produces a plain-text alternative.
 
-function wrapEmail(content: string) {
-  return `
-    <div style="background:#07111F;padding:40px;font-family:Arial,sans-serif;color:#ffffff;">
-      <div style="max-width:680px;margin:0 auto;background:#0E1B2D;border:1px solid #1E314A;border-radius:22px;padding:28px;">
-        <p style="color:#39D97A;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:20px;">
-          Hbee Digitals
-        </p>
-        ${content}
-      </div>
-    </div>
-  `
-}
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { verifyTurnstileToken, turnstileFailureMessage } from '@/lib/turnstile'
+import { validateContactPayload } from '@/lib/validators/contact-payload'
+import { checkRateLimit, getClientIp, rateLimitMessage } from '@/lib/rate-limit'
+import { sendContactConfirmation } from '@/lib/emails/contact-confirmation'
+import { sendAdminContactNotification } from '@/lib/emails/admin-contact-notification'
 
 export async function POST(req: Request) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    const resendApiKey = process.env.RESEND_API_KEY
 
     if (!supabaseUrl || !serviceRoleKey) {
+      console.error('[contact] Supabase environment variables are not set')
       return NextResponse.json(
         { error: 'Database configuration error. Please try again later.' },
-        { status: 500 }
+        { status: 500 },
       )
     }
 
-    const body = await req.json()
-    console.log('📥 Received form submission:', { formType: body.form_type, source: body.source })
-
-    const supabase = createClient(supabaseUrl, serviceRoleKey)
-    let resend = null
-    if (resendApiKey) {
-      resend = new Resend(resendApiKey)
+    const rawBody = await req.json().catch(() => null)
+    if (!rawBody || typeof rawBody !== 'object' || Array.isArray(rawBody)) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
+    const body = rawBody as Record<string, unknown>
 
-    const formType = body.form_type || 'contact'
-    const source = body.source || 'website_contact_form'
-
-    // Extract fields
-    let fullName = ''
-    let email = ''
-    let company = ''
-    let phone = ''
-    let service = ''
-    let message = ''
-    let businessName = ''
-    let websiteUrl = ''
-    let serviceInterest = ''
-    let preferredContact = ''
-    let currentChallenge = ''
-
-    if (formType === 'free_consultation') {
-      fullName = body.full_name || ''
-      email = body.email || ''
-      phone = body.phone || ''
-      businessName = body.business_name || ''
-      websiteUrl = body.website_url || ''
-      serviceInterest = body.service_interest || ''
-      currentChallenge = body.message || body.current_challenge || ''
-      preferredContact = body.preferred_contact || body.contact_method || ''
-      message = currentChallenge
-      company = businessName
-      service = serviceInterest
-    } else {
-      fullName = body.fullName || body.name || ''
-      email = body.email || ''
-      company = body.company || ''
-      phone = body.phone || ''
-      service = body.service || ''
-      message = body.message || ''
-      websiteUrl = body.website || ''
-    }
-
-    if (!fullName || !email || !message) {
+    // ------------------------------------------------------------------
+    // 1. Rate limit
+    // ------------------------------------------------------------------
+    const clientIp = getClientIp(req)
+    const limit = await checkRateLimit('contact', clientIp)
+    if (!limit.ok) {
       return NextResponse.json(
-        { error: 'Please fill in your name, email, and message.' },
-        { status: 400 }
+        { error: rateLimitMessage(limit.retryAfterSeconds) },
+        {
+          status: 429,
+          headers: limit.retryAfterSeconds
+            ? { 'Retry-After': String(limit.retryAfterSeconds) }
+            : undefined,
+        },
       )
     }
 
-    // Insert into database
+    // ------------------------------------------------------------------
+    // 2. Turnstile — verified BEFORE any validation, database write or email.
+    // ------------------------------------------------------------------
+    const turnstile = await verifyTurnstileToken(body.turnstile_token, clientIp)
+    if (!turnstile.ok) {
+      return NextResponse.json(
+        {
+          error: turnstileFailureMessage(turnstile.reason),
+          // Lets the browser reset the widget for a retryable failure without
+          // exposing Cloudflare's error vocabulary.
+          retryable: turnstile.reason === 'expired' || turnstile.reason === 'unreachable',
+        },
+        { status: turnstile.reason === 'not-configured' ? 500 : 400 },
+      )
+    }
+
+    // ------------------------------------------------------------------
+    // 3. Validation. Reconciles both form shapes and rebuilds the payload from
+    //    an allow-list, so turnstile_token cannot reach a column.
+    // ------------------------------------------------------------------
+    const validation = validateContactPayload(body)
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
+    }
+    const contact = validation.value
+
+    // ------------------------------------------------------------------
+    // 4. Persist. Same columns as before.
+    // ------------------------------------------------------------------
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+
     const { data: inquiry, error: dbError } = await supabase
       .from('contact_submissions')
       .insert([
         {
-          full_name: fullName,
-          email,
-          company: company || businessName || null,
-          phone: phone || null,
-          website: websiteUrl || null,
-          service: service || serviceInterest || null,
-          message,
-          form_type: formType,
-          source: source,
+          full_name: contact.full_name,
+          email: contact.email,
+          company: contact.company,
+          phone: contact.phone,
+          website: contact.website,
+          service: contact.service,
+          message: contact.message,
+          form_type: contact.form_type,
+          source: contact.source,
           status: 'new',
           is_read: false,
           created_at: new Date().toISOString(),
@@ -106,64 +123,63 @@ export async function POST(req: Request) {
       .single()
 
     if (dbError) {
-      console.error('Database error:', dbError)
+      console.error('[contact] database error:', dbError.message)
       return NextResponse.json(
         { error: 'Unable to save your inquiry. Please try again.' },
-        { status: 500 }
+        { status: 500 },
       )
     }
 
-    // Send confirmation email
-    if (resend) {
-      try {
-        const customerHtml = `
-          <h2 style="color:#ffffff;font-size:24px;font-weight:700;">Thank You for Reaching Out!</h2>
-          <p style="color:#94A3B8;">Hi ${fullName},</p>
-          <p style="color:#94A3B8;">Thank you for contacting Hbee Digitals. We have received your ${formType === 'free_consultation' ? 'consultation request' : 'inquiry'}.</p>
-          <p style="color:#94A3B8;">Our team will review your details and get back to you within 24 hours.</p>
-          <div style="margin-top:24px;padding-top:24px;border-top:1px solid #1E314A;">
-            <p style="color:#64748B;">— The Hbee Digitals Team</p>
-          </div>
-        `
+    // ------------------------------------------------------------------
+    // 5. Email. Best-effort: the submission is already saved, so a delivery
+    //    problem must not fail the request or ask the visitor to resubmit.
+    //    deliver() records every attempt in email_logs and never throws.
+    // ------------------------------------------------------------------
+    const isConsultation = contact.form_type === 'free_consultation'
+    const submissionId: string | null = inquiry?.id ? String(inquiry.id) : null
 
-        await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'Hbee Digitals <noreply@send.hbeedigitals.com>',
-          to: email,
-          subject: formType === 'free_consultation' ? 'Your Free Consultation Request' : 'We received your inquiry',
-          html: wrapEmail(customerHtml),
-        })
+    const [confirmation, notification] = await Promise.all([
+      sendContactConfirmation(
+        contact.full_name,
+        contact.email,
+        isConsultation,
+        submissionId,
+      ),
+      sendAdminContactNotification({
+        fullName: contact.full_name,
+        email: contact.email,
+        phone: contact.phone,
+        company: contact.company,
+        website: contact.website,
+        service: contact.service,
+        message: contact.message,
+        isConsultation,
+        submissionId,
+      }),
+    ])
 
-        const adminHtml = `
-          <h2 style="color:#ffffff;font-size:24px;font-weight:700;">New ${formType === 'free_consultation' ? 'Consultation' : 'Inquiry'}</h2>
-          <p style="color:#94A3B8;"><strong style="color:#ffffff;">Name:</strong> ${fullName}</p>
-          <p style="color:#94A3B8;"><strong style="color:#ffffff;">Email:</strong> ${email}</p>
-          <p style="color:#94A3B8;"><strong style="color:#ffffff;">Phone:</strong> ${phone || 'Not provided'}</p>
-          <p style="color:#94A3B8;"><strong style="color:#ffffff;">Business:</strong> ${businessName || company || 'Not provided'}</p>
-          <p style="color:#94A3B8;"><strong style="color:#ffffff;">Message:</strong> ${message}</p>
-        `
-
-        await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'Hbee Digitals <forms@send.hbeedigitals.com>',
-          to: process.env.ADMIN_NOTIFICATION_EMAIL || 'hello@hbeedigitals.com',
-          subject: `New ${formType === 'free_consultation' ? 'Consultation' : 'Inquiry'} from ${fullName}`,
-          html: wrapEmail(adminHtml),
-        })
-      } catch (emailError) {
-        console.error('Email sending error:', emailError)
-      }
+    if (!confirmation.ok) {
+      console.warn(`[contact] confirmation email not sent: ${confirmation.outcome}`)
+    }
+    if (!notification.ok) {
+      console.warn(`[contact] admin notification not sent: ${notification.outcome}`)
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      form_type: formType,
-      message: 'Form submitted successfully!'
+    return NextResponse.json({
+      success: true,
+      form_type: contact.form_type,
+      message: 'Form submitted successfully!',
     })
-    
-  } catch (error: any) {
-    console.error('Contact API error:', error)
+  } catch (error) {
+    // The message is logged, never returned: it can carry internal detail, and
+    // the previous version echoed error.message straight to the caller.
+    console.error(
+      '[contact] unexpected error:',
+      error instanceof Error ? error.message : 'unknown error',
+    )
     return NextResponse.json(
-      { error: error.message || 'Unable to submit inquiry right now.' },
-      { status: 500 }
+      { error: 'Unable to submit inquiry right now.' },
+      { status: 500 },
     )
   }
 }

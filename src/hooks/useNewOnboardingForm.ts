@@ -31,6 +31,19 @@ export function useNewOnboardingForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
 
+  // Turnstile state is kept OUT of formData on purpose. formData is persisted
+  // to localStorage as a draft, and a challenge token is short-lived and
+  // single-use — restoring a stale one from storage would fail verification and
+  // look like a broken form. `turnstileReset` is a toggle the widget watches so
+  // a failed submission can force a fresh challenge.
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const [turnstileReset, setTurnstileReset] = useState(false)
+
+  const resetTurnstile = useCallback(() => {
+    setTurnstileToken(null)
+    setTurnstileReset((v) => !v)
+  }, [])
+
   useEffect(() => {
     const saved = localStorage.getItem('new_onboarding_draft')
     if (saved) {
@@ -146,15 +159,23 @@ export function useNewOnboardingForm() {
       return false
     }
 
+    if (!turnstileToken) {
+      setErrors({ submit: 'Please complete the security check before submitting.' })
+      return false
+    }
+
     setIsSubmitting(true)
     setErrors({})
 
     try {
       const formDataToSend = new FormData()
-      
+
       const { uploaded_files, ...dataWithoutFiles } = formData
       formDataToSend.append('data', JSON.stringify(dataWithoutFiles))
-      
+      // Travels alongside the data part, never inside it, so it is not written
+      // to the localStorage draft.
+      formDataToSend.append('turnstile_token', turnstileToken)
+
       if (uploaded_files && uploaded_files.length > 0) {
         for (const file of uploaded_files) {
           formDataToSend.append('files', file)
@@ -180,12 +201,15 @@ export function useNewOnboardingForm() {
       return true
     } catch (error) {
       console.error('❌ Submission error:', error)
+      // A used or expired token can never be replayed, so any failed attempt
+      // discards it and asks the widget for a fresh challenge.
+      resetTurnstile()
       setErrors({ submit: error instanceof Error ? error.message : 'Failed to submit onboarding' })
       return false
     } finally {
       setIsSubmitting(false)
     }
-  }, [formData, validateStep, supabase])
+  }, [formData, validateStep, supabase, turnstileToken, resetTurnstile])
 
   return {
     currentStep,
@@ -198,6 +222,10 @@ export function useNewOnboardingForm() {
     nextStep,
     prevStep,
     isCurrentStepComplete,
-    submitForm
+    submitForm,
+    turnstileToken,
+    setTurnstileToken,
+    turnstileReset,
+    resetTurnstile
   }
 }

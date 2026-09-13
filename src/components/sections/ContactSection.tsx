@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import SvgIcon from '@/components/ui/SvgIcon'
 import GradientHeading from '@/components/ui/GradientHeading'
+import TurnstileWidget from '@/components/ui/TurnstileWidget'
 
 export default function ContactSection() {
   const reducedMotion = useReducedMotion()
@@ -11,8 +12,25 @@ export default function ContactSection() {
   const [errorMessage, setErrorMessage] = useState('')
   const [showSuccessModal, setShowSuccessModal] = useState(false)
 
+  // A challenge token is short-lived and single-use. `turnstileReset` is a
+  // toggle the widget watches so a failed submission can force a fresh one.
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const [turnstileReset, setTurnstileReset] = useState(false)
+
+  const resetTurnstile = useCallback(() => {
+    setTurnstileToken(null)
+    setTurnstileReset((v) => !v)
+  }, [])
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+
+    if (!turnstileToken) {
+      setStatus('error')
+      setErrorMessage('Please complete the security check before submitting.')
+      return
+    }
+
     setStatus('loading')
     setErrorMessage('')
 
@@ -29,6 +47,7 @@ export default function ContactSection() {
       timeline: String(formData.get('timeline') || ''),
       website: String(formData.get('website') || ''),
       message: String(formData.get('message') || ''),
+      turnstile_token: turnstileToken,
     }
 
     try {
@@ -41,6 +60,9 @@ export default function ContactSection() {
       const data = await res.json()
 
       if (!res.ok) {
+        // A used or expired token can never be replayed, so any failed attempt
+        // discards it and asks the widget for a fresh challenge.
+        resetTurnstile()
         setStatus('error')
         setErrorMessage(data.error || 'Something went wrong. Please try again.')
         return
@@ -48,8 +70,10 @@ export default function ContactSection() {
 
       setStatus('success')
       form.reset()
+      resetTurnstile()
       setShowSuccessModal(true)
     } catch {
+      resetTurnstile()
       setStatus('error')
       setErrorMessage('Network error. Please check your connection and try again.')
     }
@@ -220,8 +244,23 @@ export default function ContactSection() {
                   required
                 />
 
+                {/* Security check. The server verifies this token before any
+                    database write or email, so it is the visible half of a real
+                    control rather than decoration. */}
+                <div className="flex flex-col items-center gap-2">
+                  <TurnstileWidget
+                    onVerify={setTurnstileToken}
+                    onExpire={resetTurnstile}
+                    onError={resetTurnstile}
+                    reset={turnstileReset}
+                  />
+                  <p className="text-xs text-[var(--text-muted)]">
+                    This quick check helps us keep automated submissions out.
+                  </p>
+                </div>
+
                 <button
-                  disabled={status === 'loading'}
+                  disabled={status === 'loading' || !turnstileToken}
                   className="group inline-flex min-h-[56px] items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-7 py-3 text-sm font-black text-[var(--btn-primary-text)] shadow-[0_0_36px_rgba(57,217,122,0.25)] transition hover:scale-[1.02] hover:bg-[var(--accent-lime)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {status === 'loading' ? 'Submitting Inquiry...' : 'Submit Project Inquiry'}
