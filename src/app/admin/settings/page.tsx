@@ -27,6 +27,10 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
+  // The canonical record exactly as loaded. Saving is only allowed once it has
+  // loaded, so the UI defaults below can never be written over real settings.
+  const [loadedRow, setLoadedRow] = useState<Record<string, unknown> | null>(null)
+  const [loadError, setLoadError] = useState('')
   const [settings, setSettings] = useState<SiteSettings>({
     site_name: 'Hbee Digitals',
     logo_url: '/svgs/logo.svg',
@@ -49,24 +53,32 @@ export default function AdminSettingsPage() {
   }, [])
 
   async function fetchSettings() {
-    const { data } = await fetchSiteSettings()
-    if (data) setSettings(rowToForm(data, settings))
+    const { data, error } = await fetchSiteSettings()
+    if (data) {
+      setLoadedRow(data)
+      setSettings(rowToForm(data, settings))
+    } else {
+      setLoadError(error ? `Could not load settings: ${error.message}` : 'No canonical settings record found.')
+    }
     setLoading(false)
   }
 
   async function saveSettings() {
+    if (!loadedRow) return
     setSaving(true)
     setMessage('')
 
     // Always the single canonical record: conflict on settings_key updates it
     // in place instead of inserting another row.
+    const payload = formToRow(settings, loadedRow)
     const { error } = await supabase
       .from('site_settings')
-      .upsert(formToRow(settings), { onConflict: 'settings_key' })
+      .upsert(payload, { onConflict: 'settings_key' })
 
     if (error) {
       setMessage(`Error: ${error.message}`)
     } else {
+      setLoadedRow({ ...loadedRow, ...payload })
       setMessage('Settings saved successfully!')
     }
     setSaving(false)
@@ -181,7 +193,12 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
-      <button onClick={saveSettings} disabled={saving} className="w-full rounded-full bg-[var(--accent)] py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] disabled:opacity-50">
+      {loadError && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-bold text-red-400">
+          {loadError} Saving is disabled so the defaults shown cannot overwrite the stored settings.
+        </div>
+      )}
+      <button onClick={saveSettings} disabled={saving || !loadedRow} className="w-full rounded-full bg-[var(--accent)] py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] disabled:opacity-50">
         {saving ? 'Saving...' : 'Save All Settings'}
       </button>
     </div>

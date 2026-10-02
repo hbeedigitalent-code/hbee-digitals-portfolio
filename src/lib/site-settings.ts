@@ -61,25 +61,34 @@ function columnFor(field: keyof SiteSettingsForm) {
   return FORM_TO_COLUMN[field] ?? field
 }
 
-/** Overlay a database row onto form defaults; NULL columns keep the default. */
+/**
+ * Show a loaded record in the form exactly as stored. A NULL column becomes an
+ * empty input — never a UI default — so saving an untouched form cannot
+ * persist values the record does not hold. `defaults` apply only when there is
+ * no record at all.
+ */
 export function rowToForm(row: Record<string, unknown> | null, defaults: SiteSettingsForm): SiteSettingsForm {
+  if (!row) return { ...defaults }
   const form = { ...defaults }
-  if (!row) return form
   for (const field of FORM_FIELDS) {
     const value = row[columnFor(field)]
-    if (typeof value === 'string') form[field] = value
+    form[field] = typeof value === 'string' ? value : ''
   }
   return form
 }
 
 /**
  * The payload for upserting the canonical record: only real columns, never an
- * `id`, always the fixed key.
+ * `id`, always the fixed key. A field left empty that was NULL in `loaded` is
+ * written back as NULL, so an unchanged form round-trips without turning NULL
+ * into ''.
  */
-export function formToRow(form: SiteSettingsForm) {
-  const row: Record<string, string> = {}
+export function formToRow(form: SiteSettingsForm, loaded: Record<string, unknown> | null = null) {
+  const row: Record<string, string | null> = {}
   for (const field of FORM_FIELDS) {
-    row[columnFor(field)] = form[field]
+    const column = columnFor(field)
+    const wasNull = loaded !== null && (loaded[column] === null || loaded[column] === undefined)
+    row[column] = form[field] === '' && wasNull ? null : form[field]
   }
   return { ...row, settings_key: SITE_SETTINGS_KEY, updated_at: new Date().toISOString() }
 }
