@@ -41,6 +41,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Campaign not found.' }, { status: 404 })
     }
 
+    // FAIL CLOSED ON EMPTY CONTENT.
+    //
+    // The body is read from `content`, the real NOT NULL column. This used to
+    // read a non-existent `content_html` and fall back to '' further down, so a
+    // schema drift or a bad row would have sent every subscriber a branded
+    // email with an empty body — silently, and counted as a success.
+    //
+    // The column is NOT NULL, so an empty body here means something is wrong
+    // upstream. Refusing costs one failed send; proceeding costs the whole
+    // list. The campaign is returned to 'draft' so it is not stranded in
+    // 'sending', matching how the no-subscribers branch below behaves.
+    const campaignContent =
+      typeof campaign.content === 'string' ? campaign.content.trim() : ''
+
+    if (!campaignContent) {
+      console.error(
+        `[send-newsletter] campaign ${campaignId} has empty content — refusing to send`,
+      )
+
+      await supabase
+        .from('newsletter_campaigns')
+        .update({ status: 'draft' })
+        .eq('id', campaignId)
+
+      return NextResponse.json(
+        { error: 'This campaign has no content. Nothing was sent.' },
+        { status: 400 },
+      )
+    }
+
     let subscribersQuery = supabase
       .from('newsletter_subscribers')
       .select('*')
@@ -88,6 +118,7 @@ export async function POST(request: NextRequest) {
 
       const html = buildEmailHtml({
         campaign,
+        content: campaignContent,
         openUrl,
         clickUrl,
         unsubscribeUrl,
@@ -156,11 +187,16 @@ export async function POST(request: NextRequest) {
 
 function buildEmailHtml({
   campaign,
+  // Passed in rather than read off `campaign` so the body reaching the inbox is
+  // the same validated, non-empty string the caller checked. This function
+  // cannot silently fall back to an empty body.
+  content,
   openUrl,
   clickUrl,
   unsubscribeUrl,
 }: {
   campaign: any
+  content: string
   openUrl: string
   clickUrl: string
   unsubscribeUrl: string
@@ -211,7 +247,7 @@ function buildEmailHtml({
         }
 
         <div style="color:#3A4A62;font-size:16px;line-height:1.75;">
-          ${campaign.content_html || ''}
+          ${content}
         </div>
 
         <div style="text-align:center;margin:34px 0 8px;">

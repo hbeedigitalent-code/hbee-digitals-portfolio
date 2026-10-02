@@ -4,10 +4,13 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
+// Mirrors the real columns of public.newsletter_campaigns.
+// `title` was declared here but no such column exists, so it always arrived
+// undefined; it has been removed rather than added to the database.
 type Campaign = {
   id: string
-  title: string
   subject: string
+  preview_text: string | null
   campaign_type: string | null
   audience_type: string | null
   status: string | null
@@ -163,11 +166,15 @@ export default function NewsletterDashboardPage() {
                 {campaigns.map((campaign) => (
                   <tr key={campaign.id} className="border-t border-[var(--border)]">
                     <td className="px-5 py-4">
+                      {/* `campaign.title` was read here, but the table has no
+                          title column, so this line always rendered empty. The
+                          subject is the campaign's real identity in the schema;
+                          preview_text is its subtitle. Both are real columns. */}
                       <p className="font-bold text-[var(--text-primary)]">
-                        {campaign.title}
+                        {campaign.subject}
                       </p>
                       <p className="mt-1 max-w-[320px] truncate text-sm text-[var(--text-muted)]">
-                        {campaign.subject}
+                        {campaign.preview_text}
                       </p>
                     </td>
 

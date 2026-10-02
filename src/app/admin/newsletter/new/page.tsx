@@ -12,7 +12,6 @@ export default function NewNewsletterPage() {
   const [sending, setSending] = useState(false)
   const [subscribersCount, setSubscribersCount] = useState(0)
 
-  const [title, setTitle] = useState('Q3 Growth Readiness Insight')
   const [subject, setSubject] = useState('Is Your Store Actually Ready For Q3 Growth?')
   const [previewText, setPreviewText] = useState(
     'Many stores focus on getting more traffic. Few prepare their store to convert it.'
@@ -108,8 +107,8 @@ export default function NewNewsletterPage() {
   }, [campaignType, featuredImage, subject, contentHtml, ctaUrl, ctaText, footerNote])
 
   async function saveCampaign(sendNow = false) {
-    if (!title.trim() || !subject.trim() || !contentHtml.trim()) {
-      alert('Title, subject, and content are required.')
+    if (!subject.trim() || !contentHtml.trim()) {
+      alert('Subject and content are required.')
       return
     }
 
@@ -129,9 +128,17 @@ export default function NewNewsletterPage() {
 
     const { data, error } = await supabase
       .from('newsletter_campaigns')
+      // Every key below is a real column of public.newsletter_campaigns.
+      //
+      // `content` (NOT NULL) is the campaign body. It was previously sent as
+      // `content_html`, which does not exist in the table, so PostgREST
+      // rejected the whole INSERT and both Save Draft and Send Now failed.
+      //
+      // The subject line is the campaign's persisted identifier; the table has
+      // no title column.
       .insert({
-        title,
         subject,
+        content: contentHtml,
         preview_text: previewText,
         sender_name: senderName,
         sender_email: senderEmail,
@@ -139,7 +146,6 @@ export default function NewNewsletterPage() {
         campaign_type: campaignType,
         audience_type: audienceType,
         featured_image: featuredImage || null,
-        content_html: contentHtml,
         cta_text: ctaText,
         cta_url: ctaUrl,
         footer_note: footerNote,
@@ -208,7 +214,6 @@ export default function NewNewsletterPage() {
             </h2>
 
             <div className="grid gap-4">
-              <Input label="Campaign Title" value={title} setValue={setTitle} />
               <Input label="Subject Line" value={subject} setValue={setSubject} />
               <Input label="Preview Text" value={previewText} setValue={setPreviewText} />
 
