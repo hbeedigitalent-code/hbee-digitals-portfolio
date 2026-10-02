@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
+import { fetchSiteSettings } from '@/lib/site-settings'
 import ThemeToggle from '@/components/ThemeToggle'
 import SvgIcon from '@/components/ui/SvgIcon'
 import ConsultationPopup from '@/components/ConsultationPopup'
@@ -351,7 +352,7 @@ export default function Navbar() {
             .map((item) => ({ label: item.label, href: cleanHref(item.href) }))
         )
       }
-      const { data: settings } = await supabase.from('site_settings').select('*').single()
+      const { data: settings } = await fetchSiteSettings()
       if (settings) {
         if (settings.site_name) setSiteName(settings.site_name)
         if (settings.logo_url?.trim()) setLogoUrl(settings.logo_url.trim())

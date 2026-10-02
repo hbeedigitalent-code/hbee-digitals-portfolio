@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
+import { fetchSiteSettings } from '@/lib/site-settings'
 import SvgIcon from '@/components/ui/SvgIcon'
 
 interface FooterLink {
@@ -109,7 +110,7 @@ export default function Footer() {
   useEffect(() => {
     async function fetchData() {
       const { data: footer } = await supabase.from('footer_settings').select('*').single()
-      const { data: site } = await supabase.from('site_settings').select('*').single()
+      const { data: site } = await fetchSiteSettings()
       if (footer) setFooterData(footer)
       if (site) setSiteSettings(site)
     }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { fetchSiteSettings, formToRow, rowToForm } from '@/lib/site-settings'
 import SvgIcon from '@/components/ui/SvgIcon'
 
 interface SiteSettings {
@@ -48,8 +49,8 @@ export default function AdminSettingsPage() {
   }, [])
 
   async function fetchSettings() {
-    const { data } = await supabase.from('site_settings').select('*').single()
-    if (data) setSettings({ ...settings, ...data })
+    const { data } = await fetchSiteSettings()
+    if (data) setSettings(rowToForm(data, settings))
     setLoading(false)
   }
 
@@ -57,10 +58,11 @@ export default function AdminSettingsPage() {
     setSaving(true)
     setMessage('')
 
-    const { error } = await supabase.from('site_settings').upsert({
-      ...settings,
-      updated_at: new Date().toISOString(),
-    })
+    // Always the single canonical record: conflict on settings_key updates it
+    // in place instead of inserting another row.
+    const { error } = await supabase
+      .from('site_settings')
+      .upsert(formToRow(settings), { onConflict: 'settings_key' })
 
     if (error) {
       setMessage(`Error: ${error.message}`)

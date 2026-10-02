@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { fetchSiteSettings } from '@/lib/site-settings'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -66,13 +67,18 @@ const navItems = [
   { name: 'Settings', href: '/admin/settings', icon: 'settings' },
 ]
 
+  // Load site settings once. This must stay out of the effect below: that
+  // effect depends on `siteSettings`, so setting it from there would re-run the
+  // effect (and this fetch) forever once the canonical row exists.
   useEffect(() => {
     async function fetchData() {
-      const { data: site } = await supabase.from('site_settings').select('*').single()
+      const { data: site } = await fetchSiteSettings()
       if (site) setSiteSettings(site)
     }
     fetchData()
+  }, [])
 
+  useEffect(() => {
     async function checkAuth() {
       const { data } = await supabase.auth.getUser()
       
