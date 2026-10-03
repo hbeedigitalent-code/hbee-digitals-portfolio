@@ -1,25 +1,52 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { Resend } from 'resend'
+// src/app/api/send-newsletter/route.ts
+//
+// POST — send a newsletter campaign to its audience.
+//
+// AUTHORIZATION. This route previously had NONE: any unauthenticated caller who
+// knew (or guessed) a campaign UUID could trigger a real send to every active
+// subscriber. It now uses requireActiveAdmin(), the single admin gate shared by
+// the other /api/admin/* routes, which enforces in order:
+//   1. a valid Supabase session            -> 401 (generic)
+//   2. a user-bound admin 2FA cookie       -> 401 (the SAME generic message,
+//                                              checked BEFORE any privileged
+//                                              lookup)
+//   3. a service-role client being available -> 500
+//   4. an active admin_users row           -> 403
+// The gate runs FIRST — before the body is parsed, before any campaign or
+// subscriber read, before any Resend call and before any database mutation.
+//
+// SERVICE-ROLE KEY IS REQUIRED, NOT OPTIONAL. The anon-key fallback that used to
+// back this client is gone. requireActiveAdmin() returns the privileged client
+// or a 500; it never substitutes the public anon key on a server route.
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseServiceKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+import { NextRequest, NextResponse } from 'next/server'
+import { Resend } from 'resend'
+import { requireActiveAdmin } from '@/lib/admin-api-auth'
+
 const resendApiKey = process.env.RESEND_API_KEY
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hbeedigitals.com'
 
-const supabase =
-  supabaseUrl && supabaseServiceKey
-    ? createClient(supabaseUrl, supabaseServiceKey)
-    : null
-
 const resend = resendApiKey ? new Resend(resendApiKey) : null
+
+/** The only audience values this route will act on. Anything else is rejected. */
+const SUPPORTED_AUDIENCES = [
+  'all_subscribers',
+  'all_leads',
+  'existing_clients',
+  'shopify_leads',
+  'ecommerce_merchants',
+] as const
+
+type SupportedAudience = (typeof SUPPORTED_AUDIENCES)[number]
 
 export async function POST(request: NextRequest) {
   try {
-    if (!supabase) {
-      return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 500 })
-    }
+    // ------------------------------------------------------------------
+    // 1. AUTHORIZATION — before anything else.
+    // ------------------------------------------------------------------
+    const auth = await requireActiveAdmin()
+    if (!auth.ok) return auth.response
+    const { db: supabase } = auth
 
     if (!resend) {
       return NextResponse.json({ error: 'RESEND_API_KEY is missing.' }, { status: 500 })
@@ -71,25 +98,65 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // ------------------------------------------------------------------
+    // AUDIENCE SELECTION — FAILS CLOSED.
+    //
+    // This was four independent `if` statements with no else and no default. An
+    // audience_type that matched none of them — NULL, blank, a typo, or a value
+    // added to the enum later — left the query as a bare status='active', which
+    // means EVERY ACTIVE SUBSCRIBER. A mistake failed open, to the whole list.
+    //
+    // Unrecognised values are now rejected with a 400 before the subscriber
+    // query runs, so a typo can never become "send to everyone".
+    // 'all_subscribers' remains the one value that deliberately adds no filter.
+    // ------------------------------------------------------------------
+    const audienceType = campaign.audience_type
+
+    if (
+      typeof audienceType !== 'string' ||
+      !SUPPORTED_AUDIENCES.includes(audienceType as SupportedAudience)
+    ) {
+      console.error(
+        `[send-newsletter] campaign ${campaignId} has unsupported audience_type ` +
+          `${JSON.stringify(audienceType)} — refusing to send`,
+      )
+
+      await supabase
+        .from('newsletter_campaigns')
+        .update({ status: 'draft' })
+        .eq('id', campaignId)
+
+      return NextResponse.json(
+        {
+          error:
+            'This campaign has an unrecognised audience. Nothing was sent. ' +
+            'Choose a supported audience and try again.',
+        },
+        { status: 400 },
+      )
+    }
+
     let subscribersQuery = supabase
       .from('newsletter_subscribers')
       .select('*')
       .eq('status', 'active')
 
-    if (campaign.audience_type === 'all_leads') {
-      subscribersQuery = subscribersQuery.eq('segment', 'lead')
-    }
-
-    if (campaign.audience_type === 'existing_clients') {
-      subscribersQuery = subscribersQuery.eq('segment', 'client')
-    }
-
-    if (campaign.audience_type === 'shopify_leads') {
-      subscribersQuery = subscribersQuery.contains('tags', ['shopify'])
-    }
-
-    if (campaign.audience_type === 'ecommerce_merchants') {
-      subscribersQuery = subscribersQuery.contains('tags', ['ecommerce'])
+    switch (audienceType as SupportedAudience) {
+      case 'all_subscribers':
+        // Intentionally unfiltered beyond status='active'.
+        break
+      case 'all_leads':
+        subscribersQuery = subscribersQuery.eq('segment', 'lead')
+        break
+      case 'existing_clients':
+        subscribersQuery = subscribersQuery.eq('segment', 'client')
+        break
+      case 'shopify_leads':
+        subscribersQuery = subscribersQuery.contains('tags', ['shopify'])
+        break
+      case 'ecommerce_merchants':
+        subscribersQuery = subscribersQuery.contains('tags', ['ecommerce'])
+        break
     }
 
     const { data: subscribers, error: subscribersError } = await subscribersQuery
@@ -108,6 +175,8 @@ export async function POST(request: NextRequest) {
 
     let successCount = 0
     let failCount = 0
+    /** newsletter_sends rows that could not be written. Telemetry only. */
+    let loggingFailures = 0
 
     for (const subscriber of subscribers) {
       const email = subscriber.email
@@ -137,7 +206,15 @@ export async function POST(request: NextRequest) {
             'habeeb@hbeedigitals.com',
         })
 
-        await supabase.from('newsletter_sends').insert({
+        // DELIVERY OUTCOME AND LOGGING OUTCOME ARE KEPT SEPARATE.
+        //
+        // The email is already accepted by Resend at this point. If the
+        // telemetry insert fails, the send still counts as a success: treating
+        // a delivered email as failed would invite a duplicate resend to a real
+        // subscriber. The logging failure is counted and logged instead.
+        //
+        // Subscriber IDs are logged, never email addresses.
+        const { error: logError } = await supabase.from('newsletter_sends').insert({
           campaign_id: campaignId,
           subscriber_id: subscriber.id,
           email,
@@ -145,9 +222,18 @@ export async function POST(request: NextRequest) {
           sent_at: new Date().toISOString(),
         })
 
+        if (logError) {
+          loggingFailures++
+          console.error(
+            `[send-newsletter] campaign ${campaignId}: email ACCEPTED for subscriber ` +
+              `${subscriber.id} but newsletter_sends insert failed (${logError.message}). ` +
+              `Delivery stands; telemetry for this recipient is missing.`,
+          )
+        }
+
         successCount++
       } catch (error: any) {
-        await supabase.from('newsletter_sends').insert({
+        const { error: logError } = await supabase.from('newsletter_sends').insert({
           campaign_id: campaignId,
           subscriber_id: subscriber.id,
           email,
@@ -156,8 +242,53 @@ export async function POST(request: NextRequest) {
           sent_at: new Date().toISOString(),
         })
 
+        if (logError) {
+          loggingFailures++
+          console.error(
+            `[send-newsletter] campaign ${campaignId}: send FAILED for subscriber ` +
+              `${subscriber.id} and the newsletter_sends failure insert also failed ` +
+              `(${logError.message}).`,
+          )
+        }
+
         failCount++
       }
+    }
+
+    // ------------------------------------------------------------------
+    // ZERO-SUCCESS CAMPAIGNS ARE NOT 'sent'.
+    //
+    // This used to mark the campaign 'sent' with a sent_at timestamp even when
+    // every single delivery failed, leaving a campaign that looks dispatched,
+    // reports 0 recipients, and cannot be distinguished from a real send.
+    //
+    // No new status value is introduced: the campaign goes back to 'draft',
+    // exactly as the no-content and no-subscriber branches above do, so it can
+    // be corrected and retried. sent_at is deliberately NOT written.
+    // ------------------------------------------------------------------
+    if (successCount === 0) {
+      console.error(
+        `[send-newsletter] campaign ${campaignId}: 0 of ${subscribers.length} ` +
+          `deliveries accepted (${failCount} failed, ${loggingFailures} telemetry ` +
+          `write failures) — returning campaign to draft`,
+      )
+
+      await supabase
+        .from('newsletter_campaigns')
+        .update({ status: 'draft', total_recipients: 0 })
+        .eq('id', campaignId)
+
+      return NextResponse.json(
+        {
+          error:
+            'No emails could be delivered. The campaign was returned to draft ' +
+            'and has not been marked as sent.',
+          sent: 0,
+          failed: failCount,
+          loggingFailures,
+        },
+        { status: 502 },
+      )
     }
 
     await supabase
@@ -169,10 +300,20 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', campaignId)
 
+    if (loggingFailures > 0) {
+      console.error(
+        `[send-newsletter] campaign ${campaignId}: ${loggingFailures} newsletter_sends ` +
+          `rows could not be written. Open/click tracking will be incomplete for ` +
+          `those recipients; delivery itself was unaffected.`,
+      )
+    }
+
     return NextResponse.json({
       success: true,
       sent: successCount,
       failed: failCount,
+      // Aggregate only — never a subscriber address.
+      loggingFailures,
       message: `Campaign sent to ${successCount} contacts. ${failCount} failed.`,
     })
   } catch (error: any) {

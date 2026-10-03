@@ -1,12 +1,24 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+// SERVICE-ROLE KEY REQUIRED — NO ANON FALLBACK.
+//
+// This used to fall back to NEXT_PUBLIC_SUPABASE_ANON_KEY. After
+// remediation-03a, anon holds no privilege at all on newsletter_sends or
+// newsletter_clicks, so that fallback would not degrade gracefully — every read
+// and write would return nothing while the route still answered 200, and open
+// tracking would stop with no error anywhere.
+//
+// The key is now required. When it is absent the misconfiguration is logged at
+// error level and the recipient still receives a normal tracking pixel, so
+// emails never show a broken image. No database call is attempted.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 const supabase =
-  supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null
+  supabaseUrl && supabaseServiceKey
+    ? createClient(supabaseUrl, supabaseServiceKey)
+    : null
 
 const transparentPixel = Buffer.from(
   'R0lGODlhAQABAPAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==',
@@ -16,6 +28,11 @@ const transparentPixel = Buffer.from(
 export async function GET(request: NextRequest) {
   try {
     if (!supabase) {
+      // Loud about the cause, silent to the recipient: the pixel still renders.
+      console.error(
+        '[track-open] SUPABASE_SERVICE_ROLE_KEY is not configured — open tracking ' +
+          'is DISABLED. Returning the pixel without recording anything.',
+      )
       return pixelResponse()
     }
 

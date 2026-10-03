@@ -1,12 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+// PUBLIC ROUTE — deliberately NOT admin-gated. Recipients follow the
+// unsubscribe link from an email with no session, and that must keep working.
+//
+// SERVICE-ROLE KEY REQUIRED — NO ANON FALLBACK. The anon fallback is removed
+// for the same reason as the tracking routes, but the consequence here is
+// different and worse: this page previously rendered "You Have Been
+// Unsubscribed" unconditionally, without checking whether the update succeeded.
+// A failed write therefore told the recipient they were removed when they were
+// not — the one outcome a compliance-sensitive flow must never produce.
+//
+// The update result is now inspected, and an explicit failure page is rendered
+// if the unsubscribe did not persist.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 const supabase =
-  supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null
+  supabaseUrl && supabaseServiceKey
+    ? createClient(supabaseUrl, supabaseServiceKey)
+    : null
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,13 +31,23 @@ export async function GET(request: NextRequest) {
     }
 
     if (!supabase) {
-      return htmlResponse('Configuration Error', 'Unsubscribe is temporarily unavailable. Please contact Hbee Digitals.')
+      console.error(
+        '[unsubscribe] SUPABASE_SERVICE_ROLE_KEY is not configured — cannot process ' +
+          'the unsubscribe request. Reporting failure rather than claiming success.',
+      )
+      return htmlResponse(
+        'Unsubscribe Temporarily Unavailable',
+        'We could not process your request because of a server configuration problem. ' +
+          'You have NOT been unsubscribed. Please email hello@hbeedigitals.com and we ' +
+          'will remove you manually.',
+      )
     }
 
     const cleanEmail = email.toLowerCase().trim()
     const now = new Date().toISOString()
 
-    await supabase
+    // The result IS inspected. A failure here must not render a success page.
+    const { error: unsubscribeError } = await supabase
       .from('newsletter_subscribers')
       .update({
         status: 'unsubscribed',
@@ -32,8 +55,21 @@ export async function GET(request: NextRequest) {
       })
       .eq('email', cleanEmail)
 
+    if (unsubscribeError) {
+      console.error(
+        `[unsubscribe] failed to unsubscribe a recipient: ${unsubscribeError.message}`,
+      )
+      return htmlResponse(
+        'We Could Not Complete Your Request',
+        'Something went wrong and you have NOT been unsubscribed. Please email ' +
+          'hello@hbeedigitals.com and we will remove you manually.',
+      )
+    }
+
+    // Best-effort telemetry. The unsubscribe itself has already persisted, so a
+    // failure here is logged but must not tell the recipient it did not work.
     if (campaignId) {
-      await supabase
+      const { error: sendsError } = await supabase
         .from('newsletter_sends')
         .update({
           status: 'unsubscribed',
@@ -41,6 +77,13 @@ export async function GET(request: NextRequest) {
         })
         .eq('campaign_id', campaignId)
         .eq('email', cleanEmail)
+
+      if (sendsError) {
+        console.error(
+          `[unsubscribe] recipient was unsubscribed, but the newsletter_sends ` +
+            `telemetry update failed for campaign ${campaignId}: ${sendsError.message}`,
+        )
+      }
     }
 
     return htmlResponse(

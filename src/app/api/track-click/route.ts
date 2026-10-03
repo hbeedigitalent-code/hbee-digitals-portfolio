@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+// SERVICE-ROLE KEY REQUIRED — NO ANON FALLBACK. Same reasoning as track-open:
+// after remediation-03a anon has no privilege on newsletter_clicks or
+// newsletter_sends, so an anon fallback would silently record nothing.
+//
+// When the key is absent the misconfiguration is logged at error level and the
+// recipient is still redirected to the validated destination, so email links
+// never break. No database call is attempted.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 const supabase =
-  supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null
+  supabaseUrl && supabaseServiceKey
+    ? createClient(supabaseUrl, supabaseServiceKey)
+    : null
 
 const defaultRedirect = 'https://www.hbeedigitals.com'
 
@@ -18,7 +26,16 @@ export async function GET(request: NextRequest) {
 
     const redirectUrl = safeRedirectUrl(url)
 
-    if (supabase && campaignId && email && redirectUrl) {
+    if (!supabase) {
+      // Loud about the cause, transparent to the recipient: the redirect stands.
+      console.error(
+        '[track-click] SUPABASE_SERVICE_ROLE_KEY is not configured — click tracking ' +
+          'is DISABLED. Redirecting without recording anything.',
+      )
+      return NextResponse.redirect(redirectUrl)
+    }
+
+    if (campaignId && email && redirectUrl) {
       const now = new Date().toISOString()
       const cleanEmail = email.toLowerCase().trim()
 
