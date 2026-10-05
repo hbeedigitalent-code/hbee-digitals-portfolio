@@ -1,0 +1,409 @@
+/* ═════════════════════════════════════════════════════════════════
+   Services / Capabilities page details that are awkward as utilities.
+   Colours come from the --hb-* tones, so each detail adapts to the section
+   it sits in. Geometry comes from the mark (near-square corners, one
+   larger sweep corner). No continuous animation anywhere.
+   ═════════════════════════════════════════════════════════════════ */
+
+/* In-page targets (hero CTA, menu anchors). globals.css already gives html
+   scroll-padding-top: 80px (the header height); scroll margins ADD to it,
+   so this is only the breathing room below the header. */
+.anchor {
+  scroll-margin-top: 1rem;
+}
+
+.heroVisual {
+  position: relative;
+}
+
+/* ── 02 Capability system: the group is the structure ─────────────── */
+.groups {
+  display: grid;
+  gap: var(--hb-grid-gap);
+  list-style: none;
+}
+.group {
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  border: 1px solid var(--hb-border);
+  border-radius: var(--hb-radius-md) var(--hb-radius-md) 28px var(--hb-radius-md);
+  background: linear-gradient(180deg, rgba(13, 35, 64, 0.8), rgba(7, 26, 50, 0.55));
+}
+/* Three system columns. Subgrid aligns the group heads (and so the first
+   capability of each group) across columns whatever the statement length. */
+@media (min-width: 1024px) {
+  .groups {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto auto;
+    row-gap: 0;
+  }
+  .group {
+    display: grid;
+    grid-row: span 2;
+    grid-template-rows: subgrid;
+    row-gap: 0;
+  }
+}
+
+.groupHead {
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--hb-border);
+}
+.groupLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+/* The group number sits in a small module-shaped tile. */
+.groupNumber {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  place-items: center;
+  border: 1.5px solid var(--hb-structure);
+  border-radius: 6px 6px 12px 6px;
+  font-family: var(--hb-font-display);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--hb-ice);
+}
+.groupName {
+  font-family: var(--hb-font-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hb-fg);
+}
+/* Growth is the destination of the system: the one orange Signal here. */
+.groupSignal {
+  display: block;
+  width: 1.25rem;
+  height: 0.625rem;
+  margin-left: auto;
+  border-radius: 2px 999px 999px 2px;
+  background: var(--hb-orange);
+  box-shadow: 0 0 14px rgba(252, 93, 28, 0.45);
+}
+
+/* The capabilities are SUBSECTIONS of their group, not cards: no surface,
+   border or radius of their own — they sit on the shared group background,
+   separated by one hairline that the group's structural connector crosses. */
+.capList {
+  display: grid;
+  align-content: start;
+  list-style: none;
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .capList { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.5rem; }
+}
+@media (max-width: 767px) {
+  .group { padding: 1.25rem; }
+}
+/* Icon + name on one row; the purpose runs the full group width beneath. */
+.cap {
+  --cap-gap: 1.25rem;
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.875rem;
+  row-gap: 0.75rem;
+  padding-block: var(--cap-gap);
+}
+.cap:first-child { padding-top: 0; }
+.cap:last-child { padding-bottom: 0; }
+.cap + .cap { border-top: 1px solid var(--hb-border); }
+.capPurpose { grid-column: 1 / -1; }
+/* One structural connector joins the two capabilities: it runs down through
+   the hairline into the second icon, with a single node on the divider
+   (stacked layouts only). 1.25rem = icon centre. */
+.cap + .cap::before,
+.cap + .cap::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+.cap + .cap::before {
+  left: calc(1.25rem - 1px);
+  top: calc(var(--cap-gap) * -0.6);
+  height: calc(var(--cap-gap) * 1.6);
+  width: 2px;
+  border-radius: 1px;
+  background: var(--hb-structure);
+}
+.cap + .cap::after {
+  z-index: 1;
+  left: calc(1.25rem - 4px);
+  top: -4.5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 1px 1px 4px 1px;
+  background: var(--hb-ice);
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .cap:first-child { padding-bottom: 0; }
+  .cap + .cap { padding-top: 0; padding-left: 1.5rem; border-top: 0; border-left: 1px solid var(--hb-border); }
+  .cap + .cap::before,
+  .cap + .cap::after { display: none; }
+}
+/* Capability icon: a small extruded Hbee module face (blue, one sweep corner). */
+.capIcon {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: none;
+  padding: 0.6rem;
+  border-radius: 6px 6px 14px 6px;
+  background: linear-gradient(160deg, #3b82ff, var(--hb-blue) 58%, var(--hb-deep-blue));
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 3px 0 #052a75,
+    0 10px 18px -8px rgba(29, 110, 255, 0.6);
+}
+
+/* ── 03 Method: "not a bundle" + the five-stage track ─────────────── */
+.notBundle {
+  position: relative;
+  display: grid;
+  gap: 0.625rem;
+  margin-top: 3.5rem;
+  padding: 1.5rem 1.5rem 1.5rem 2.25rem;
+  border: 1px solid var(--hb-border);
+  border-radius: var(--hb-radius-sm) var(--hb-radius-sm) 28px var(--hb-radius-sm);
+  background: var(--hb-white);
+  box-shadow: var(--hb-shadow-2);
+}
+@media (min-width: 768px) {
+  .notBundle {
+    grid-template-columns: minmax(0, 17rem) minmax(0, 1fr);
+    align-items: center;
+    gap: 2rem;
+    padding: 1.75rem 2rem 1.75rem 2.75rem;
+  }
+}
+/* The mark's stem, broken by its Connection Gap. */
+.notBundle::before,
+.notBundle::after {
+  content: '';
+  position: absolute;
+  left: 1rem;
+  width: 4px;
+  border-radius: 1px;
+  background: var(--hb-structure);
+}
+.notBundle::before { top: 1.5rem; height: 0.875rem; }
+.notBundle::after { top: 2.875rem; bottom: 1.5rem; }
+@media (min-width: 768px) {
+  .notBundle::before,
+  .notBundle::after { left: 1.25rem; }
+  .notBundle::before { top: 1.75rem; }
+  .notBundle::after { top: 3.125rem; bottom: 1.75rem; }
+}
+
+.method {
+  position: relative;
+  --stage-gap: 1.5rem;
+  --node: 3rem;
+}
+.methodList {
+  position: relative;
+  display: grid;
+  gap: 2.25rem;
+  list-style: none;
+}
+.methodStage {
+  position: relative;
+  display: flex;
+  gap: 1.25rem;
+}
+.methodNode {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: var(--node);
+  height: var(--node);
+  flex: none;
+  place-items: center;
+  border: 1.5px solid var(--hb-structure);
+  border-radius: 10px 10px 18px 10px;
+  background: var(--hb-surface);
+  box-shadow: var(--hb-shadow-2);
+  font-family: var(--hb-font-display);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--hb-blue);
+}
+/* It starts with a diagnosis: the first stage is the filled one. */
+.methodNode[data-first] {
+  border-color: var(--hb-blue);
+  background: var(--hb-blue);
+  color: #ffffff;
+}
+/* Vertical rail (<1024): node to node. */
+.methodStage:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--node) / 2 - 1px);
+  top: var(--node);
+  bottom: -2.25rem;
+  width: 2px;
+  background: var(--hb-structure-soft);
+}
+.methodLine,
+.methodSignal { display: none; }
+
+@media (min-width: 1024px) {
+  .methodList {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: var(--stage-gap);
+  }
+  .methodStage { flex-direction: column; }
+  .methodStage:not(:last-child)::before { display: none; }
+
+  /* One track from the first node's centre to the last node's centre.
+     Column width = (100% - 4 gaps) / 5. */
+  .methodLine {
+    position: absolute;
+    display: block;
+    top: calc(var(--node) / 2 - 1.5px);
+    left: calc(var(--node) / 2);
+    right: calc((100% - 4 * var(--stage-gap)) / 5 - var(--node) / 2);
+    height: 3px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--hb-structure) 0%, var(--hb-structure) 85%, var(--hb-structure-soft) 100%);
+  }
+  /* The Signal travels once along the track when revealed, then rests just
+     before the last node. Reduced motion / no JS: it simply rests there. */
+  .methodSignal {
+    position: absolute;
+    z-index: 2;
+    display: block;
+    top: calc(var(--node) / 2 - 8px);
+    left: calc(100% - (100% - 4 * var(--stage-gap)) / 5 - 40px);
+    width: 30px;
+    height: 16px;
+    border-radius: 3px 999px 999px 3px;
+    background: var(--hb-orange);
+    box-shadow: 0 0 0 4px var(--hb-bg), 0 0 20px rgba(252, 93, 28, 0.5);
+    transition: left 1700ms var(--hb-ease-in-out) 400ms;
+  }
+  :global([data-surface='site'][data-motion-ready]) :global([data-revealed='false']) .methodSignal {
+    left: calc(var(--node) + 10px);
+  }
+}
+
+/* ── 04 Real work card (dark) ──────────────────────────────────────── */
+.workCard {
+  overflow: hidden;
+  border: 1px solid var(--hb-border);
+  border-radius: var(--hb-radius-md) var(--hb-radius-md) 28px var(--hb-radius-md);
+  background: var(--hb-surface);
+  transition: border-color var(--hb-dur-base) var(--hb-ease);
+}
+.workCard:hover,
+.workCard:focus-within { border-color: var(--hb-structure-soft); }
+.workCard > :first-child { border-radius: 0; }
+
+/* ── 05 Growth Review CTA: a Mist plane over a restrained system field ─ */
+.ctaPlane {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(2rem, 1rem + 4vw, 4rem);
+  border: 1px solid var(--hb-border);
+  border-radius: var(--hb-radius-md) var(--hb-radius-md) var(--hb-radius-sweep) var(--hb-radius-md);
+  background: linear-gradient(115deg, var(--hb-white) 35%, var(--hb-mist));
+}
+.ctaField {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.ctaGrid {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 60%;
+  height: 100%;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 45%);
+  mask-image: linear-gradient(90deg, transparent, #000 45%);
+}
+/* Three stacked module outlines, offset in depth — the system, at rest. */
+.ctaGlyph {
+  position: absolute;
+  right: 4%;
+  bottom: -18%;
+  width: clamp(10rem, 18vw, 17rem);
+  height: auto;
+  opacity: 0.16;
+}
+.ctaGlyph2 { right: calc(4% + 1.25rem); bottom: calc(-18% + 1.25rem); opacity: 0.1; }
+.ctaGlyph3 { right: calc(4% + 2.5rem); bottom: calc(-18% + 2.5rem); opacity: 0.05; }
+@media (max-width: 1023px) {
+  .ctaGlyph { right: -12%; bottom: -12%; opacity: 0.1; }
+  .ctaGlyph2 { right: calc(-12% + 1rem); bottom: calc(-12% + 1rem); opacity: 0.06; }
+  .ctaGlyph3 { display: none; }
+}
+
+/* ── 06 FAQ: native disclosure ─────────────────────────────────────── */
+.faq {
+  border: 1px solid var(--hb-border);
+  border-radius: var(--hb-radius-md);
+  background: var(--hb-surface);
+  transition: border-color var(--hb-dur-base) var(--hb-ease), background-color var(--hb-dur-base) var(--hb-ease);
+}
+.faq[open] {
+  border-color: var(--hb-structure-soft);
+  background: var(--hb-white);
+}
+.faqSummary {
+  display: flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 1rem 0.875rem 1.25rem;
+  border-radius: inherit;
+  cursor: pointer;
+  list-style: none;
+}
+.faqSummary::-webkit-details-marker { display: none; }
+.faqSummary:hover h3 { color: var(--hb-link); }
+.faqIcon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  place-items: center;
+  border-radius: 6px 6px 10px 6px;
+  background: var(--hb-plane);
+  color: var(--hb-link);
+  transition: transform var(--hb-dur-base) var(--hb-ease);
+}
+.faq[open] .faqIcon { transform: rotate(180deg); }
+.faqAnswer {
+  padding: 0 1.25rem 1.25rem;
+}
+.faq[open] .faqAnswer {
+  animation: faqOpen var(--hb-dur-base) var(--hb-ease);
+}
+@keyframes faqOpen {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .methodSignal,
+  .faq,
+  .faqIcon,
+  .workCard { transition: none; }
+  .faq[open] .faqAnswer { animation: none; }
+}

@@ -553,3 +553,62 @@
   }
   .heroMotion .travelLayer { display: none !important; }
 }
+
+/* ═════════════════════════════════════════════════════════════════
+   SETTLE MOTION — the quieter variant for secondary pages (motion="settle")
+
+   Same gate and fill-mode rules as the hero: nothing is hidden without
+   data-motion-ready, the rest state is the untouched composition, and
+   nothing runs afterwards. Modules settle from a small offset (40% of the
+   hero's), connectors and nodes fade in (no drawing), Growth's insert
+   glows once. Ends by ~1.1s on desktop, ~0.8s on phones.
+   ═════════════════════════════════════════════════════════════════ */
+
+.settleMotion .viewport { --hbm-amp: 0.4; }
+
+:global([data-surface='site'][data-motion-ready]) .settleMotion .slot {
+  animation: hbmAssemble 540ms var(--hb-ease) backwards;
+  animation-delay: calc(60ms + var(--hb-motion-index, 0) * 40ms);
+}
+:global([data-surface='site'][data-motion-ready]) .settleMotion .glassPanel,
+:global([data-surface='site'][data-motion-ready]) .settleMotion .floor {
+  animation: hbmFadeIn 420ms var(--hb-ease) backwards;
+}
+/* fill BOTH, as for the hero connectors (end values = base values). */
+:global([data-surface='site'][data-motion-ready]) .settleMotion .connectors,
+:global([data-surface='site'][data-motion-ready]) .settleMotion .connectorsMobile {
+  animation: hbmFadeIn 380ms var(--hb-ease) both;
+  animation-delay: 340ms;
+}
+:global([data-surface='site'][data-motion-ready]) .settleMotion .signal::after {
+  content: '';
+  position: absolute;
+  inset: -0.5em;
+  border-radius: 999px;
+  background: radial-gradient(closest-side, rgba(252, 93, 28, 0.6), rgba(252, 93, 28, 0));
+  opacity: 0;
+  pointer-events: none;
+  animation: hbmPulse 480ms var(--hb-ease) backwards;
+  animation-delay: 620ms;
+}
+
+@container (max-width: 400px) {
+  .settleMotion .viewport { --hbm-amp: 0.3; }
+  :global([data-surface='site'][data-motion-ready]) .settleMotion .slot {
+    animation-duration: 440ms;
+    animation-delay: calc(30ms + var(--hb-motion-index, 0) * 30ms);
+  }
+  :global([data-surface='site'][data-motion-ready]) .settleMotion .connectorsMobile { animation-delay: 300ms; }
+  :global([data-surface='site'][data-motion-ready]) .settleMotion .signal::after { animation-delay: 420ms; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settleMotion .slot,
+  .settleMotion .glassPanel,
+  .settleMotion .floor,
+  .settleMotion .connectors,
+  .settleMotion .connectorsMobile,
+  .settleMotion .signal::after {
+    animation: none !important;
+  }
+}

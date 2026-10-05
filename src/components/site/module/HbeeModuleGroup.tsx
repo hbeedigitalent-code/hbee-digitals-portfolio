@@ -163,8 +163,11 @@ interface HbeeModuleGroupProps {
    * `hero`: visible from first paint; plays ASSEMBLE → CONNECT → SIGNAL →
    * SETTLE once, CSS/SMIL only (no JS, no rAF). Gated on the pre-paint
    * data-motion-ready flag, so reduced motion renders the final state.
+   * `settle`: visible from first paint; the quieter variant for secondary
+   * pages — modules settle from a small offset and the connectors fade in.
+   * No drawing, no travelling signal. Same gate as `hero`.
    */
-  motion?: 'reveal' | 'hero'
+  motion?: 'reveal' | 'hero' | 'settle'
   className?: string
 }
 
@@ -302,6 +305,10 @@ export function HbeeModuleGroup({
 
   if (hero) {
     return <figure className={cn(styles.figure, styles.heroMotion, className)}>{content}</figure>
+  }
+
+  if (motion === 'settle') {
+    return <figure className={cn(styles.figure, styles.settleMotion, className)}>{content}</figure>
   }
 
   return (
