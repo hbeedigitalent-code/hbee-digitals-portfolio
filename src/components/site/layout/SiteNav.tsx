@@ -2,11 +2,15 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import { Menu, X } from 'lucide-react'
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties } from 'react'
 import { cn } from '@/lib/cn'
 import { PRIMARY_CTA, PRIMARY_NAV, UTILITY_NAV } from '../navigation'
 import { SiteButton } from '../primitives/SiteButton'
+import { useReducedMotion } from '../motion/useReducedMotion'
+import styles from './site-nav.module.css'
+
+/** How long the panel stays mounted while its exit plays (see site-nav.module.css). */
+const CLOSE_MS = 260
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`)
@@ -17,22 +21,69 @@ function isActive(pathname: string, href: string) {
  * Below 1024px: CTA stays visible from ≥640px; everything else moves into a
  * full-height disclosure panel. Escape closes and returns focus to the toggle;
  * the panel closes on navigation; page scroll is locked while open.
+ *
+ * Motion (REVEAL → SHIFT → FOCUS) is CSS-only, driven by data-state. The
+ * panel stays mounted for CLOSE_MS after closing so its exit can play;
+ * `open` is the logical state (aria-expanded, focus, scroll lock) and
+ * `rendered` / `entered` only stage the animation.
  */
 export function SiteNav() {
   const pathname = usePathname() ?? '/'
   const [open, setOpen] = useState(false)
+  const [rendered, setRendered] = useState(false)
+  const [entered, setEntered] = useState(false)
+  const reducedMotion = useReducedMotion()
   const panelId = useId()
   const toggleRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const exitTimer = useRef<number | null>(null)
 
-  const close = useCallback((restoreFocus = true) => {
-    setOpen(false)
-    if (restoreFocus) toggleRef.current?.focus()
+  const clearExit = () => {
+    if (exitTimer.current !== null) {
+      window.clearTimeout(exitTimer.current)
+      exitTimer.current = null
+    }
+  }
+
+  const openMenu = useCallback(() => {
+    clearExit()
+    setRendered(true)
+    setOpen(true)
   }, [])
 
+  const close = useCallback(
+    (restoreFocus = true) => {
+      setOpen(false)
+      setEntered(false)
+      clearExit()
+      exitTimer.current = window.setTimeout(() => setRendered(false), reducedMotion ? 0 : CLOSE_MS)
+      if (restoreFocus) toggleRef.current?.focus()
+    },
+    [reducedMotion],
+  )
+
+  // Navigating away closes immediately — no exit to watch.
   useEffect(() => {
+    clearExit()
     setOpen(false)
+    setEntered(false)
+    setRendered(false)
   }, [pathname])
+
+  // Two frames after mounting, flip to the open state so the entry transitions run.
+  useEffect(() => {
+    if (!open || !rendered) return
+    let second = 0
+    const first = window.requestAnimationFrame(() => {
+      second = window.requestAnimationFrame(() => setEntered(true))
+    })
+    return () => {
+      window.cancelAnimationFrame(first)
+      window.cancelAnimationFrame(second)
+    }
+  }, [open, rendered])
+
+  useEffect(() => () => clearExit(), [])
 
   useEffect(() => {
     if (!open) return
@@ -96,25 +147,41 @@ export function SiteNav() {
           aria-expanded={open}
           aria-controls={panelId}
           aria-label={open ? 'Close menu' : 'Open menu'}
-          onClick={() => (open ? close() : setOpen(true))}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-[var(--hb-radius-md)] text-hb-fg transition-colors hover:bg-hb-plane lg:hidden"
+          onClick={() => (open ? close() : openMenu())}
+          className={cn(
+            styles.toggle,
+            'inline-flex h-11 w-11 items-center justify-center rounded-[var(--hb-radius-md)] text-hb-fg transition-colors hover:bg-hb-plane lg:hidden',
+          )}
         >
-          {open ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
+          <span aria-hidden="true" className={styles.icon}>
+            <span className={cn(styles.bar, styles.barTop)} />
+            <span className={cn(styles.bar, styles.barMid)} />
+            <span className={cn(styles.bar, styles.barBottom)} />
+          </span>
         </button>
       </div>
 
-      {open && (
+      {rendered && (
+        <div aria-hidden="true" data-state={entered ? 'open' : 'closed'} className={cn(styles.overlay, 'lg:hidden')} />
+      )}
+
+      {rendered && (
         <div
           id={panelId}
           ref={panelRef}
-          className="fixed inset-x-0 bottom-0 top-[var(--hb-header-height)] z-40 overflow-y-auto border-t border-hb-border bg-hb-cloud lg:hidden"
+          data-state={entered ? 'open' : 'closed'}
+          aria-hidden={open ? undefined : true}
+          className={cn(
+            styles.panel,
+            'fixed inset-x-0 bottom-0 top-[var(--hb-header-height)] z-40 overflow-y-auto border-t border-hb-border bg-hb-cloud lg:hidden',
+          )}
         >
           <nav aria-label="Primary" className="hb-container flex min-h-full flex-col py-8">
             <ul className="flex flex-col">
-              {PRIMARY_NAV.map((item) => {
+              {PRIMARY_NAV.map((item, index) => {
                 const active = isActive(pathname, item.href)
                 return (
-                  <li key={item.href} className="border-b border-hb-border">
+                  <li key={item.href} className={cn(styles.item, 'border-b border-hb-border')} style={{ '--i': index } as CSSProperties}>
                     <Link
                       href={item.href}
                       aria-current={active ? 'page' : undefined}
@@ -131,12 +198,17 @@ export function SiteNav() {
               })}
             </ul>
             <div className="mt-auto flex flex-col gap-3 pt-10">
-              <SiteButton href={PRIMARY_CTA.href} variant="conversion" size="lg" arrow className="w-full">
-                {PRIMARY_CTA.label}
-              </SiteButton>
-              <SiteButton href={UTILITY_NAV.href} variant="secondary" size="lg" className="w-full">
-                {UTILITY_NAV.label}
-              </SiteButton>
+              {/* FOCUS: the conversion CTA lands after the links; Client Portal follows. */}
+              <div className={cn(styles.item, styles.focus)} style={{ '--i': PRIMARY_NAV.length + 1 } as CSSProperties}>
+                <SiteButton href={PRIMARY_CTA.href} variant="conversion" size="lg" arrow className="w-full">
+                  {PRIMARY_CTA.label}
+                </SiteButton>
+              </div>
+              <div className={styles.item} style={{ '--i': PRIMARY_NAV.length + 2 } as CSSProperties}>
+                <SiteButton href={UTILITY_NAV.href} variant="secondary" size="lg" className="w-full">
+                  {UTILITY_NAV.label}
+                </SiteButton>
+              </div>
             </div>
           </nav>
         </div>

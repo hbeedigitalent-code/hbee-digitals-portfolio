@@ -48,7 +48,7 @@ export function SiteFooter({ columns = FOOTER_COLUMNS, social = [], contactEmail
       <div className="hb-container pb-10 pt-[var(--hb-space-section-compact)]">
         <div className="hb-grid gap-y-12">
           <div className="col-span-4 md:col-span-8 lg:col-span-4">
-            <HbeeLogo onDark size={34} />
+            <HbeeLogo onDark />
             <p className="mt-6 max-w-[22rem] text-[0.9375rem] leading-relaxed text-hb-fg-body">
               Digital growth studio. Brand, experience, technology and growth — connected.
             </p>

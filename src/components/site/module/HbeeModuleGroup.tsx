@@ -1,176 +1,187 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
+import { BarChart3, Lightbulb, Search, Settings, Tag, UserRound } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { SiteReveal } from '../motion/SiteReveal'
-import { HbeeModule, type ModuleSignal } from './HbeeModule'
+import { HbeeModule, HbeeSpine, type ModuleSweep } from './HbeeModule'
+import styles from './hbee-module.module.css'
 
 /**
- * HBEE MODULE GROUP — six connected modules, static (Phase 1).
+ * HBEE MODULE GROUP — the connected system, static 2.5D (CSS 3D, no WebGL).
  *
- * SAME SYSTEM, LESS COMPLEXITY: desktop is a staggered 3 × 2 constellation
- * with jogged connectors; mobile is a 2 × 3 column with short straight
- * connectors. Both are fixed-aspect compositions, so tiles (HTML, real text)
- * and connectors (one SVG per layout) share one coordinate space and never
- * drift apart. A later phase can swap this for the dimensional scene; the
- * content contract (items, which one carries the signal) stays the same.
+ * Composition (stage = 100 × 104 units, viewed at a shallow 3/4 angle):
+ *   upper plane   Brand · Experience
+ *   middle plane  Technology · Creative
+ *   lower plane   Discovery · Growth
+ *   behind        the structural spine (module geometry extruded at scale),
+ *                 two rear glass panels, translucent connectors and nodes
  *
- * Motion: ASSEMBLE (tiles drift in toward their slots) then CONNECT
- * (connectors draw), both CSS-only and skipped under reduced motion.
+ * Orange appears exactly twice: the spine's activation capsule and the
+ * Signal Insert on Growth, the destination.
+ *
+ * Phase 3 can replace the renderer (Spline/WebGL) while keeping this
+ * content contract: six labelled modules, one spine, Growth as the signal.
+ *
+ * Motion: the figure REVEALs (opacity on a flat ancestor), and each module
+ * ASSEMBLEs into its slot by transform only. Reduced motion: static.
  */
 
 export interface ModuleGroupItem {
   label: string
-  signal?: ModuleSignal
+  icon?: ReactNode
 }
+
+const ICON_PROPS = { strokeWidth: 1.75, width: '100%', height: '100%' } as const
 
 export const DEFAULT_MODULE_ITEMS: ModuleGroupItem[] = [
-  { label: 'Brand' },
-  { label: 'Experience' },
-  { label: 'Technology' },
-  { label: 'Creative' },
-  { label: 'Discovery' },
-  { label: 'Growth', signal: 'signal' },
+  { label: 'Brand', icon: <Tag {...ICON_PROPS} /> },
+  { label: 'Experience', icon: <UserRound {...ICON_PROPS} /> },
+  { label: 'Technology', icon: <Settings {...ICON_PROPS} /> },
+  { label: 'Creative', icon: <Lightbulb {...ICON_PROPS} /> },
+  { label: 'Discovery', icon: <Search {...ICON_PROPS} /> },
+  { label: 'Growth', icon: <BarChart3 {...ICON_PROPS} /> },
 ]
 
-interface Layout {
-  height: number // viewBox height for a width of 100
-  tile: number
-  slots: [number, number][] // top-left of each tile, in viewBox units
-  connectors: { d: string; signal?: boolean }[]
-  nodes: [number, number][]
-  stroke: number
+interface Slot {
+  x: number
+  y: number
+  w: number
+  /** Mobile (container ≤ 480px): larger modules in a taller 2 × 3 stagger. */
+  m: { x: number; y: number; w: number }
+  z: number // cqw
+  ax: number // assemble start offset, cqw
+  ay: number
+  sweep: ModuleSweep
+  glass?: boolean
+  signal?: boolean
 }
 
-const DESKTOP: Layout = {
-  height: 66,
-  tile: 17,
-  slots: [
-    [6, 8], [41.5, 8], [77, 8],
-    [10, 41], [45.5, 41], [81, 41],
-  ],
-  connectors: [
-    { d: 'M23 16.5H41.5' },
-    { d: 'M58.5 16.5H77' },
-    { d: 'M14.5 25V33H18.5V41' },
-    { d: 'M50 25V33H54V41' },
-    { d: 'M85.5 25V33H89.5V41' },
-    { d: 'M27 49.5H45.5' },
-    { d: 'M62.5 49.5H81', signal: true },
-  ],
-  nodes: [[18.5, 33], [54, 33], [89.5, 33]],
-  stroke: 0.35,
-}
+/* Index-aligned with DEFAULT_MODULE_ITEMS. */
+const SLOTS: Slot[] = [
+  { x: 16, y: 3, w: 30, m: { x: 4, y: 1, w: 42 }, z: 7, ax: -3, ay: -3, sweep: 'tr', glass: true },  // Brand
+  { x: 55, y: 10, w: 28, m: { x: 54, y: 7, w: 42 }, z: 5, ax: 3, ay: -3, sweep: 'br' },              // Experience
+  { x: 3, y: 36, w: 31, m: { x: 4, y: 35, w: 42 }, z: 2, ax: -4, ay: 0, sweep: 'br' },               // Technology
+  { x: 65, y: 39, w: 27, m: { x: 54, y: 41, w: 42 }, z: 0, ax: 4, ay: 0, sweep: 'tr', glass: true }, // Creative
+  { x: 19, y: 68, w: 28, m: { x: 4, y: 69, w: 42 }, z: -1, ax: -3, ay: 3, sweep: 'bl' },             // Discovery
+  { x: 54, y: 64, w: 32, m: { x: 54, y: 75, w: 42 }, z: 4, ax: 3, ay: 3, sweep: 'br', signal: true }, // Growth
+]
 
-const MOBILE: Layout = {
-  height: 138,
-  tile: 36,
-  slots: [
-    [8, 4], [56, 12],
-    [8, 48], [56, 56],
-    [8, 92], [56, 100],
-  ],
-  connectors: [
-    { d: 'M44 28H56' },
-    { d: 'M26 40V48' },
-    { d: 'M74 48V56' },
-    { d: 'M44 72H56' },
-    { d: 'M26 84V92' },
-    { d: 'M74 92V100' },
-    { d: 'M44 116H56', signal: true },
-  ],
-  nodes: [],
-  stroke: 0.6,
-}
+/* On mobile the spine narrows into the column gap so its signal stays visible. */
+const SPINE = { x: 28, y: 22, w: 44, m: { x: 35, y: 38, w: 30 }, z: -5 }
 
-function pct(value: number, of: number) {
-  return `${(value / of) * 100}%`
-}
+const GLASS_PANELS = [
+  { x: 10, y: 0, w: 78, h: 34, z: -8 },
+  { x: 50, y: 35, w: 48, h: 62, z: -9 },
+]
 
-function Connectors({ layout, className }: { layout: Layout; className?: string }) {
-  return (
-    <svg
-      viewBox={`0 0 100 ${layout.height}`}
-      aria-hidden="true"
-      focusable="false"
-      className={cn('pointer-events-none absolute inset-0 h-full w-full', className)}
-    >
-      {layout.connectors.map((c, i) => (
-        <path
-          key={c.d}
-          d={c.d}
-          pathLength={1}
-          data-connect=""
-          fill="none"
-          stroke={c.signal ? 'var(--hb-signal)' : 'var(--hb-structure)'}
-          strokeOpacity={c.signal ? 1 : 0.45}
-          strokeWidth={layout.stroke}
-          strokeLinejoin="round"
-          style={{ '--hb-motion-index': i } as CSSProperties}
-        />
-      ))}
-      {layout.nodes.map(([x, y]) => {
-        const s = layout.stroke * 4
-        return <rect key={`${x}-${y}`} x={x - s / 2} y={y - s / 2} width={s} height={s} fill="var(--hb-structure)" />
-      })}
-    </svg>
-  )
+const CONNECTORS = [
+  'M16 11H9.5Q6 11 6 14.5V36',     // Brand → Technology
+  'M83 19H89.5Q93 19 93 22.5V39',  // Experience → Creative
+  'M24 61V68',                     // Technology → Discovery
+  'M78 61V64',                     // Creative → Growth
+  'M47 84H54',                     // Discovery → Growth
+]
+
+const NODES: { x: number; y: number; tone: 'light' | 'energy' }[] = [
+  { x: 16, y: 11, tone: 'light' },
+  { x: 6, y: 25, tone: 'energy' },
+  { x: 93, y: 39, tone: 'energy' },
+  { x: 47, y: 84, tone: 'light' },
+]
+
+function slotStyle(
+  s: { x: number; y: number; w: number; m: { x: number; y: number; w: number }; z: number; ax?: number; ay?: number },
+  index: number,
+) {
+  return {
+    '--dx': s.x,
+    '--dy': s.y,
+    '--dw': s.w,
+    '--mx': s.m.x,
+    '--my': s.m.y,
+    '--mw': s.m.w,
+    '--z': s.z,
+    '--ax': s.ax ?? 0,
+    '--ay': s.ay ?? 0,
+    '--hb-motion-index': index,
+  } as CSSProperties
 }
 
 interface HbeeModuleGroupProps {
   items?: ModuleGroupItem[]
   /** Accessible description of the whole composition. */
   label?: string
+  /** Unique per page when the group is rendered more than once. */
+  idPrefix?: string
   className?: string
 }
 
 export function HbeeModuleGroup({
   items = DEFAULT_MODULE_ITEMS,
   label = 'Connected capabilities',
+  idPrefix = 'system',
   className,
 }: HbeeModuleGroupProps) {
-  const six = items.slice(0, 6)
-  const rotations: (0 | 90 | 180 | 270)[] = [0, 90, 0, 270, 0, 0]
+  const six = items.slice(0, SLOTS.length)
 
   return (
-    <SiteReveal motion="none" as="figure" className={cn('relative w-full', className)}>
+    <SiteReveal motion="reveal" as="figure" className={cn(styles.figure, className)}>
       <figcaption className="sr-only">{label}</figcaption>
-      <div className="relative aspect-[100/138] w-full md:aspect-[100/66]">
-        <Connectors layout={MOBILE} className="md:hidden" />
-        <Connectors layout={DESKTOP} className="hidden md:block" />
+      <div className={styles.viewport}>
+        <span aria-hidden="true" className={styles.floor} />
+        <div className={styles.stage}>
+          {GLASS_PANELS.map((g, i) => (
+            <span
+              key={i}
+              aria-hidden="true"
+              className={styles.glassPanel}
+              style={{ '--x': g.x, '--y': g.y, '--gw': g.w, '--gh': g.h, '--z': g.z } as CSSProperties}
+            />
+          ))}
 
-        <ul className="absolute inset-0 m-0 list-none p-0">
-          {six.map((item, i) => {
-            const [mx, my] = MOBILE.slots[i]
-            const [dx, dy] = DESKTOP.slots[i]
-            const centreX = dx + DESKTOP.tile / 2
-            const style = {
-              '--m-x': pct(mx, 100),
-              '--m-y': pct(my, MOBILE.height),
-              '--d-x': pct(dx, 100),
-              '--d-y': pct(dy, DESKTOP.height),
-              '--hb-assemble-x': `${centreX < 40 ? -14 : centreX > 60 ? 14 : 0}px`,
-              '--hb-assemble-y': `${dy < 30 ? -12 : 12}px`,
-              '--hb-motion-index': i,
-            } as CSSProperties
+          <svg viewBox="0 0 100 104" aria-hidden="true" focusable="false" className={styles.connectors}>
+            {CONNECTORS.map((d, i) => (
+              <path
+                key={d}
+                d={d}
+                pathLength={1}
+                data-connect=""
+                fill="none"
+                stroke="var(--hb-electric)"
+                strokeOpacity={0.4}
+                strokeWidth={0.35}
+                strokeLinecap="round"
+                style={{ '--hb-motion-index': i } as CSSProperties}
+              />
+            ))}
+            {NODES.map((n) => (
+              <circle
+                key={`${n.x}-${n.y}`}
+                cx={n.x}
+                cy={n.y}
+                r={n.tone === 'energy' ? 1 : 1.25}
+                fill={n.tone === 'energy' ? 'var(--hb-electric)' : '#ffffff'}
+                stroke="var(--hb-electric)"
+                strokeOpacity={0.55}
+                strokeWidth={0.3}
+              />
+            ))}
+          </svg>
 
-            return (
-              <li
-                key={item.label}
-                data-motion="assemble"
-                style={style}
-                className={cn(
-                  'absolute left-[var(--m-x)] top-[var(--m-y)] aspect-square w-[36%] md:left-[var(--d-x)] md:top-[var(--d-y)] md:w-[17%]',
-                  'flex flex-col justify-between rounded-[var(--hb-radius-xs)] rounded-br-[30%] border border-hb-border bg-hb-surface p-[9%]',
-                  'shadow-[var(--hb-shadow-1)]',
-                )}
-              >
-                <HbeeModule signal={item.signal ?? 'quiet'} rotate={rotations[i]} className="w-[42%]" />
-                <span className="font-hb-display text-[clamp(0.75rem,0.68rem+0.3vw,0.9375rem)] font-semibold leading-tight tracking-[-0.01em] text-hb-fg">
-                  {item.label}
-                </span>
-              </li>
-            )
-          })}
-        </ul>
+          <div className={styles.slot} style={slotStyle(SPINE, 0)} aria-hidden="true">
+            <HbeeSpine idPrefix={idPrefix} />
+          </div>
+
+          <ul className={styles.stageList}>
+            {six.map((item, i) => {
+              const s = SLOTS[i]
+              return (
+                <li key={item.label} className={styles.slot} style={slotStyle(s, i + 1)}>
+                  <HbeeModule label={item.label} icon={item.icon} sweep={s.sweep} glass={s.glass} signal={s.signal} />
+                </li>
+              )
+            })}
+          </ul>
+        </div>
       </div>
     </SiteReveal>
   )

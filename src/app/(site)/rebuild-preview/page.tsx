@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { notFound } from 'next/navigation'
 
 import { HbeeLogo } from '@/components/site/brand/HbeeLogo'
-import { HbeeModule, MODULE_GEOMETRY } from '@/components/site/module/HbeeModule'
+import { HbeeModuleGlyph, HbeeModuleStandalone } from '@/components/site/module/HbeeModule'
 import { HbeeModuleGroup } from '@/components/site/module/HbeeModuleGroup'
 import { SiteReveal } from '@/components/site/motion/SiteReveal'
 import { SiteButton, SiteLinkArrow } from '@/components/site/primitives/SiteButton'
@@ -12,6 +12,7 @@ import { SiteGrid } from '@/components/site/primitives/SiteContainer'
 import { SiteSection } from '@/components/site/primitives/SiteSection'
 import { SiteDisplayHeading, SiteEyebrow, SiteLede } from '@/components/site/primitives/SiteTypography'
 import { CAPABILITIES } from '@/components/site/navigation'
+import { BarChart3, Tag } from 'lucide-react'
 
 /**
  * /rebuild-preview — LOCAL DESIGN-SYSTEM SHOWCASE (rebuild Phase 1).
@@ -54,57 +55,17 @@ function PreviewLabel({ children }: { children: ReactNode }) {
   return <SiteEyebrow className="mb-8">{children}</SiteEyebrow>
 }
 
-function ModuleAnatomy() {
-  const g = MODULE_GEOMETRY
-  const markers: [number, number, number][] = [
-    [1, 36, 8.5],
-    [2, 14.5, 13.5],
-    [3, 25.5, 27],
-    [4, 6.5, 19],
-    [5, 14, 38],
-    [6, 46, 50],
-    [7, 66, 26],
-  ]
-  return (
-    <svg viewBox="0 0 74 58" role="img" aria-labelledby="anatomy-title" className="w-full max-w-[520px]">
-      <title id="anatomy-title">Hbee Module anatomy</title>
-      <path d="M2 2H54V40A14 14 0 0 1 40 54H2Z" fill="var(--hb-plane)" stroke="var(--hb-border)" strokeWidth="0.35" />
-      <g transform="translate(4 4)">
-        <path d={g.shell} fill="none" stroke="var(--hb-structure)" strokeWidth={g.stroke} />
-        <path d={g.stem} fill="none" stroke="var(--hb-structure)" strokeWidth={g.stroke} />
-        <rect x={g.node.x} y={g.node.y} width={g.node.size} height={g.node.size} rx="0.6" fill="var(--hb-structure)" />
-        <path d={g.signal} fill="var(--hb-signal)" />
-      </g>
-      <path d="M54 30H69" stroke="var(--hb-structure)" strokeOpacity="0.5" strokeWidth="0.6" />
-      <rect x="68" y="29" width="2.4" height="2.4" fill="var(--hb-structure)" />
-      {markers.map(([n, x, y]) => (
-        <g key={n} transform={`translate(${x} ${y})`}>
-          <circle r="2.6" fill="var(--hb-night)" />
-          <text
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontSize="3"
-            fontWeight="700"
-            fill="#fff"
-            style={{ fontFamily: 'var(--hb-font-body)' }}
-          >
-            {n}
-          </text>
-        </g>
-      ))}
-    </svg>
-  )
-}
-
 const ANATOMY = [
-  ['Structural Shell', 'Straight top edge into a controlled sweep — from the mark’s D.'],
-  ['Open Channel', 'The intentional opening between stem and shell.'],
-  ['Signal Insert', 'One compact capsule. Orange only when it signals action.'],
-  ['Node', 'A separated unit with one swept corner. Optional.'],
-  ['Connection Gap', 'The break between stem and base. Space is intentional.'],
-  ['Content Plane', 'The surface a module sits on and carries content.'],
-  ['Connector', 'Links modules. Connection is meaningful, never decorative noise.'],
+  ['Structural Shell', 'The Royal Blue face. Substantial, never white.'],
+  ['Depth Plane', 'Stacked Deep Blue → Navy layers give shallow, real depth.'],
+  ['Sweep', 'One large-radius corner — the controlled sweep of the mark’s D.'],
+  ['Open Channel', 'A recessed slot broken by a Connection Gap, after the mark’s separated stem.'],
+  ['Edge Energy', 'A restrained Electric Blue rim, strongest where light enters.'],
+  ['Glass Plane', 'Thin translucent support behind selected modules only.'],
+  ['Signal Insert', 'A raised orange capsule. Activation — one or two per composition.'],
 ]
+
+const ICON = { strokeWidth: 1.75, width: '100%', height: '100%' } as const
 
 export default function RebuildPreviewPage() {
   if (process.env.VERCEL_ENV === 'production') notFound()
@@ -116,7 +77,7 @@ export default function RebuildPreviewPage() {
         <SiteGrid className="items-center gap-y-14">
           <div className="col-span-4 md:col-span-8 lg:col-span-6">
             <SiteReveal>
-              <SiteEyebrow signal>Rebuild preview · Phase 1 foundation</SiteEyebrow>
+              <SiteEyebrow signal>Rebuild preview · Phase 1.1</SiteEyebrow>
             </SiteReveal>
             <SiteReveal index={1}>
               <SiteDisplayHeading as="h1" size="display" id="preview-title" className="mt-6">
@@ -139,7 +100,7 @@ export default function RebuildPreviewPage() {
             </SiteReveal>
           </div>
           <div className="col-span-4 md:col-span-8 lg:col-span-6">
-            <HbeeModuleGroup label="Six connected capabilities: Brand, Experience, Technology, Creative, Discovery, Growth" />
+            <HbeeModuleGroup idPrefix="light" label="Six connected capabilities: Brand, Experience, Technology, Creative, Discovery, Growth" />
           </div>
         </SiteGrid>
       </SiteSection>
@@ -150,10 +111,10 @@ export default function RebuildPreviewPage() {
         <SiteDisplayHeading id="brand-title" size="h2">The existing mark, used as supplied</SiteDisplayHeading>
         <SiteGrid className="mt-10 gap-y-6">
           <SiteCard className="col-span-4 md:col-span-4 lg:col-span-6 flex min-h-[200px] items-center justify-center">
-            <HbeeLogo href={null} size={48} />
+            <HbeeLogo href={null} size="lg" />
           </SiteCard>
           <div data-tone="night" className="col-span-4 flex min-h-[200px] items-center justify-center rounded-[var(--hb-radius-md)] md:col-span-4 lg:col-span-6">
-            <HbeeLogo href={null} size={48} onDark />
+            <HbeeLogo href={null} size="lg" onDark />
           </div>
         </SiteGrid>
         <p className="mt-6 max-w-[46rem] text-[length:var(--hb-text-small)] text-hb-fg-body">
@@ -306,7 +267,7 @@ export default function RebuildPreviewPage() {
             <SiteDisplayHeading as="h3" size="h3" className="mt-5">
               Growth review
             </SiteDisplayHeading>
-            <p className="mt-3">One Sweep Radius corner, a blue structural edge and a single signal. Use sparingly.</p>
+            <p className="mt-3">A structural stem broken by a Connection Gap, one Sweep corner and a single signal. Use sparingly.</p>
           </SiteCard>
         </SiteGrid>
         <div className="mt-8 flex flex-wrap gap-2">
@@ -322,7 +283,7 @@ export default function RebuildPreviewPage() {
         <SiteDisplayHeading id="module-title" size="h2">Structure is blue. Action is orange. Space is intentional.</SiteDisplayHeading>
         <SiteGrid className="mt-10 items-center gap-y-10">
           <div className="col-span-4 md:col-span-8 lg:col-span-7">
-            <ModuleAnatomy />
+            <HbeeModuleStandalone label="Growth" icon={<BarChart3 {...ICON} />} signal glass width={62} />
           </div>
           <ol className="col-span-4 flex flex-col gap-4 md:col-span-8 lg:col-span-5">
             {ANATOMY.map(([name, text], i) => (
@@ -337,21 +298,28 @@ export default function RebuildPreviewPage() {
             ))}
           </ol>
         </SiteGrid>
-        <div className="mt-14 grid grid-cols-3 gap-4 sm:grid-cols-6">
-          {(
-            [
-              { signal: 'signal' },
-              { signal: 'quiet' },
-              { signal: 'none' },
-              { signal: 'signal', node: true },
-              { signal: 'quiet', rotate: 90 },
-              { signal: 'quiet', rotate: 270 },
-            ] as const
-          ).map((v, i) => (
-            <SiteCard key={i} variant="plane" className="flex aspect-square items-center justify-center !p-4">
-              <HbeeModule {...v} className="w-1/2" />
-            </SiteCard>
-          ))}
+
+        <SiteGrid className="mt-14 gap-y-6">
+          <SiteCard variant="plane" className="col-span-2 md:col-span-4 lg:col-span-4 !p-3">
+            <HbeeModuleStandalone label="Brand" icon={<Tag {...ICON} />} sweep="tr" width={60} />
+            <p className="px-3 pb-2 text-[length:var(--hb-text-small)]">Default — shell, depth, sweep, channel, edge.</p>
+          </SiteCard>
+          <SiteCard variant="plane" className="col-span-2 md:col-span-4 lg:col-span-4 !p-3">
+            <HbeeModuleStandalone label="Glass" glass sweep="bl" width={60} />
+            <p className="px-3 pb-2 text-[length:var(--hb-text-small)]">With a rear glass plane — selected modules only.</p>
+          </SiteCard>
+          <div data-tone="night" className="col-span-4 rounded-[var(--hb-radius-md)] p-3 md:col-span-8 lg:col-span-4">
+            <HbeeModuleStandalone label="Growth" icon={<BarChart3 {...ICON} />} signal width={60} />
+            <p className="px-3 pb-2 text-[length:var(--hb-text-small)]">Same module on Night — slightly deeper, more edge energy.</p>
+          </div>
+        </SiteGrid>
+
+        <div className="mt-12 flex items-center gap-6 border-t border-hb-border pt-8">
+          <HbeeModuleGlyph size={40} />
+          <p className="max-w-[40rem] text-[length:var(--hb-text-small)]">
+            Flat glyph of the same geometry, for small and decorative uses (footer accent, icons). The dimensional
+            module is the branded default.
+          </p>
         </div>
       </SiteSection>
 
@@ -383,7 +351,7 @@ export default function RebuildPreviewPage() {
             </SiteReveal>
           </div>
           <div className="col-span-4 md:col-span-8 lg:col-span-6 lg:col-start-7">
-            <HbeeModuleGroup />
+            <HbeeModuleGroup idPrefix="night" />
           </div>
         </SiteGrid>
       </SiteSection>

@@ -1,34 +1,49 @@
+import type { ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { cn } from '@/lib/cn'
 
 /**
- * The existing Hbee Digitals mark, used as-is.
+ * Hbee Digitals logo for the public site.
  *
- * Source: public/svgs/logo.png — the 512×512 mark already shipped by the
- * production site (it is the Navbar/Footer fallback when site_settings has no
- * logo_url). It is not redrawn, recoloured or cropped here.
+ * CANONICAL LOCKUP — NOT YET IN THE REPOSITORY.
+ * When the owner-approved full lockup (mark + "Hbee Digitals" wordmark +
+ * "Digital Growth Studio") is supplied, place it in public/brand/ and set
+ * BRAND_LOCKUP below. Nothing else changes: the lockup renders inside the same
+ * fixed-height slot, so header height and alignment stay identical.
  *
- * The name beside it is live text, which is how the production Navbar renders
- * it today. No wordmark or "Digital Growth Studio" lockup file exists in the
- * repository; when the owner supplies them they replace `BRAND_MARK_SRC` /
- * the text label here and nowhere else.
+ * TEMPORARY (until then): the existing 512 × 512 mark from
+ * public/svgs/logo.png — the production fallback asset, unmodified — beside
+ * the name as live text, which is how the current site renders it. The mark
+ * is shown at ≤ 44 px (well under its native size), so it stays sharp on 2×
+ * screens. No wordmark or descriptor artwork is imitated here.
  *
- * On dark tones the mark sits on a white plate — the same treatment
- * production uses (`.brand-logo` in globals.css) — because Royal Blue on Night
- * does not have enough contrast to read.
+ * On dark tones the mark sits on a white plate, as production does
+ * (`.brand-logo`), because Royal Blue on Night does not read.
  */
+
+interface LockupAsset {
+  src: string
+  /** Intrinsic pixel size of the supplied file — used for the aspect ratio. */
+  width: number
+  height: number
+  /** Optional separate artwork for dark backgrounds. */
+  srcOnDark?: string
+}
+
+const BRAND_LOCKUP: LockupAsset | null = null
+
 const BRAND_MARK_SRC = '/svgs/logo.png'
 const BRAND_NAME = 'Hbee Digitals'
 
+/** Slot heights in px — the lockup and the temporary logo both fill these. */
+const SLOT_HEIGHT = { md: 44, lg: 52 } as const
+
 interface HbeeLogoProps {
-  /** Render the name next to the mark. */
+  /** Render the name next to the mark (temporary logo only). */
   withName?: boolean
-  /** Mark edge length in px. */
-  size?: number
-  /** Light (default) or dark background behind the logo. */
+  size?: keyof typeof SLOT_HEIGHT
   onDark?: boolean
-  /** Wrap in a link to the homepage. */
   href?: string | null
   className?: string
   priority?: boolean
@@ -36,37 +51,62 @@ interface HbeeLogoProps {
 
 export function HbeeLogo({
   withName = true,
-  size = 36,
+  size = 'md',
   onDark = false,
   href = '/',
   className,
   priority = false,
 }: HbeeLogoProps) {
-  const content = (
-    <span className={cn('inline-flex items-center gap-2.5', className)}>
-      <span
-        className={cn(
-          'inline-flex shrink-0 items-center justify-center',
-          onDark && 'rounded-[var(--hb-radius-sm)] bg-hb-white p-1',
-        )}
-      >
+  const slot = SLOT_HEIGHT[size]
+  let content: ReactNode
+
+  if (BRAND_LOCKUP) {
+    const src = onDark && BRAND_LOCKUP.srcOnDark ? BRAND_LOCKUP.srcOnDark : BRAND_LOCKUP.src
+    content = (
+      <span className={cn('inline-flex items-center', className)} style={{ height: slot }}>
         <Image
-          src={BRAND_MARK_SRC}
-          alt={withName ? '' : BRAND_NAME}
-          width={size}
-          height={size}
+          src={src}
+          alt={BRAND_NAME}
+          width={BRAND_LOCKUP.width}
+          height={BRAND_LOCKUP.height}
           priority={priority}
-          className="block h-auto"
-          style={{ width: size, height: size }}
+          className="block h-full w-auto"
         />
       </span>
-      {withName && (
-        <span className="font-hb-body text-[1.0625rem] font-semibold tracking-[-0.02em] text-hb-fg">
-          {BRAND_NAME}
+    )
+  } else {
+    const mark = slot - (onDark ? 12 : 4)
+    content = (
+      <span className={cn('inline-flex items-center gap-3', className)} style={{ height: slot }}>
+        <span
+          className={cn(
+            'inline-flex shrink-0 items-center justify-center',
+            onDark && 'rounded-[var(--hb-radius-sm)] bg-hb-white p-1.5',
+          )}
+        >
+          <Image
+            src={BRAND_MARK_SRC}
+            alt={withName ? '' : BRAND_NAME}
+            width={mark}
+            height={mark}
+            priority={priority}
+            className="block"
+            style={{ width: mark, height: mark }}
+          />
         </span>
-      )}
-    </span>
-  )
+        {withName && (
+          <span
+            className={cn(
+              'font-hb-body font-bold leading-none tracking-[-0.03em] text-hb-fg',
+              size === 'lg' ? 'text-[1.5rem]' : 'text-[1.3125rem]',
+            )}
+          >
+            {BRAND_NAME}
+          </span>
+        )}
+      </span>
+    )
+  }
 
   if (!href) return content
 

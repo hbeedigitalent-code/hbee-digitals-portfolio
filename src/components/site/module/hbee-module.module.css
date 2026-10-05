@@ -1,0 +1,387 @@
+/* ═════════════════════════════════════════════════════════════════
+   HBEE MODULE — dimensional (2.5D) styles. CSS/SVG only, no WebGL.
+
+   Depth is real CSS 3D: each module is a stack of depth layers pushed back
+   along Z under transform-style: preserve-3d, viewed through a perspective
+   set by the group (or by HbeeModuleStandalone). Nothing animates
+   continuously; the composition is designed to read when completely static.
+
+   Sizing: a module's font-size is 1/10 of its own width (via the container
+   query units of the nearest flat container), so radii, depth, padding and
+   type are all expressed in em and scale together.
+
+   IMPORTANT for anyone editing: never put opacity < 1, filter, overflow,
+   clip-path or isolation on .stage, .slot or .module — those flatten
+   preserve-3d and collapse the depth layers into the face.
+   ═════════════════════════════════════════════════════════════════ */
+
+/* ── Module ─────────────────────────────────────────────────── */
+
+.module {
+  --hbm-step: 0.22em;              /* layer spacing → ~2em total depth */
+  --hbm-r: 1.35em;                 /* standard corner */
+  --hbm-sweep: 3.9em;              /* the mark's large controlled sweep */
+  --hbm-radius: var(--hbm-r) var(--hbm-r) var(--hbm-sweep) var(--hbm-r);
+  --hbm-face-a: #2c6df3;
+  --hbm-face-b: #0d4fd0;
+  --hbm-face-c: var(--hb-blue);
+  --hbm-face-d: #06379a;
+  --hbm-depth-front: var(--hb-deep-blue);
+  --hbm-depth-back: #04122e;
+  --hbm-glow: 0 0 0 transparent;
+
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 0.86;
+  font-size: calc(var(--w-num, 100) * 0.1cqw);
+  transform-style: preserve-3d;
+}
+
+.sweepBR { --hbm-radius: var(--hbm-r) var(--hbm-r) var(--hbm-sweep) var(--hbm-r); }
+.sweepTR { --hbm-radius: var(--hbm-r) var(--hbm-sweep) var(--hbm-r) var(--hbm-r); }
+.sweepBL { --hbm-radius: var(--hbm-r) var(--hbm-r) var(--hbm-r) var(--hbm-sweep); }
+.sweepTL { --hbm-radius: var(--hbm-sweep) var(--hbm-r) var(--hbm-r) var(--hbm-r); }
+
+/* 2 · DEPTH PLANE — stacked layers, Deep Blue fading into Navy */
+.layer {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--hbm-radius);
+  /* Fallback: per-layer hex precomputed in HbeeModule.tsx (Deep Blue → Navy). */
+  background: var(--hbm-layer-fallback, #062a74);
+  transform: translateZ(calc(var(--i) * var(--hbm-step) * -1));
+}
+/* color-mix() is guarded rather than declared after the fallback: a
+   declaration containing var() is not validated at parse time, so in a
+   browser without color-mix() it would compute to transparent instead of
+   falling back to the line before it. */
+@supports (background: color-mix(in srgb, red, blue)) {
+  .layer {
+    background: color-mix(in srgb, var(--hbm-depth-front), var(--hbm-depth-back) calc(var(--i) * 10%));
+  }
+}
+.layerLast {
+  box-shadow: 0 1.8em 2.6em -1.2em rgba(6, 20, 38, 0.42);
+}
+
+/* 1 · STRUCTURAL SHELL — the Royal Blue face (3 · SWEEP via --hbm-radius) */
+.face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.15em 1.2em 1.05em 2.05em;
+  overflow: hidden;
+  border-radius: var(--hbm-radius);
+  background:
+    radial-gradient(120% 90% at 16% 6%, rgba(255, 255, 255, 0.2), transparent 46%),
+    linear-gradient(150deg, var(--hbm-face-a) 0%, var(--hbm-face-b) 30%, var(--hbm-face-c) 62%, var(--hbm-face-d) 100%);
+  box-shadow:
+    inset 0 0.08em 0 rgba(255, 255, 255, 0.32),
+    inset 0 -0.9em 1.6em rgba(3, 22, 74, 0.36),
+    var(--hbm-glow);
+  color: #fff;
+  transform: translateZ(0.02em);
+}
+
+/* 5 · EDGE ENERGY — a restrained Electric Blue rim, strongest top-left */
+.face::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 0.09em;
+  border-radius: inherit;
+  background: linear-gradient(
+    140deg,
+    rgba(150, 190, 255, 0.95),
+    rgba(29, 110, 255, 0.6) 20%,
+    rgba(29, 110, 255, 0) 46%,
+    rgba(29, 110, 255, 0) 72%,
+    rgba(29, 110, 255, 0.4)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* 4 · OPEN CHANNEL — a recessed slot, with a Connection Gap below it */
+.channel {
+  position: absolute;
+  left: 0.8em;
+  top: 1.15em;
+  bottom: 3em;
+  width: 0.5em;
+  border-radius: 0.28em;
+  background: linear-gradient(180deg, #032a78, #06338f);
+  box-shadow:
+    inset 0.12em 0.12em 0.22em rgba(1, 10, 40, 0.7),
+    inset -0.05em -0.05em 0.08em rgba(140, 185, 255, 0.28);
+}
+.channel::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1.95em;
+  width: 100%;
+  height: 1.15em;
+  border-radius: inherit;
+  background: inherit;
+  box-shadow: inherit;
+}
+
+/* 7 · SIGNAL INSERT — a raised orange capsule (square left, round right) */
+.signal {
+  position: absolute;
+  top: 1.2em;
+  right: 1.25em;
+  width: 1.75em;
+  height: 0.82em;
+  border-radius: 0.12em 0.5em 0.5em 0.12em;
+  background: linear-gradient(180deg, #ff7a45, var(--hb-orange) 55%, #e5490f);
+  box-shadow:
+    -0.1em 0.14em 0 #b8380a,
+    0 0 1.1em rgba(252, 93, 28, 0.5);
+}
+
+.icon {
+  display: block;
+  width: 1.55em;
+  height: 1.55em;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.label {
+  font-family: var(--hb-font-display);
+  font-size: max(1.2em, 13px);
+  font-weight: 650;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  color: #fff;
+  text-shadow: 0 0.06em 0.2em rgba(3, 22, 74, 0.45);
+}
+
+/* 6 · GLASS PLANE — thin translucent support behind selected modules */
+.glass {
+  position: absolute;
+  inset: -9% -9% -9% -9%;
+  border-radius: var(--hbm-radius);
+  border: 1px solid rgba(29, 110, 255, 0.28);
+  background: linear-gradient(150deg, rgba(234, 242, 255, 0.75), rgba(207, 224, 255, 0.28));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transform: translate3d(0.9em, -0.9em, -3.4em);
+}
+
+/* ── Dark surface: same system, slightly more depth and energy ── */
+:global([data-tone='night']) .module,
+:global([data-tone='deep']) .module {
+  --hbm-step: 0.25em;
+  --hbm-depth-back: #020a1a;
+  --hbm-glow: 0 0 2.2em -0.5em rgba(29, 110, 255, 0.55);
+}
+:global([data-tone='night']) .layerLast,
+:global([data-tone='deep']) .layerLast {
+  box-shadow: 0 2em 3em -1em rgba(0, 0, 0, 0.6);
+}
+:global([data-tone='night']) .glass,
+:global([data-tone='deep']) .glass {
+  border-color: rgba(207, 224, 255, 0.2);
+  background: linear-gradient(150deg, rgba(29, 110, 255, 0.16), rgba(13, 35, 64, 0.35));
+  box-shadow: inset 0 1px 0 rgba(207, 224, 255, 0.18);
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   GROUP — staggered, overlapping, three Z planes
+   ═════════════════════════════════════════════════════════════════ */
+
+.figure {
+  position: relative;
+  width: 100%;
+  margin: 0;
+  container-type: inline-size;
+}
+
+/* Ambient field behind the system (flat, outside the 3D context) */
+.figure::before {
+  content: '';
+  position: absolute;
+  inset: -6% -10% -2% -10%;
+  z-index: -1;
+  background: radial-gradient(closest-side, rgba(207, 224, 255, 0.95), rgba(234, 242, 255, 0.5) 55%, rgba(234, 242, 255, 0));
+  pointer-events: none;
+}
+:global([data-tone='night']) .figure::before,
+:global([data-tone='deep']) .figure::before {
+  background: radial-gradient(closest-side, rgba(29, 110, 255, 0.2), rgba(13, 35, 64, 0.2) 60%, rgba(6, 20, 38, 0));
+}
+
+.viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 100 / 104;
+  perspective: 190cqw;
+  perspective-origin: 50% 32%;
+}
+
+.floor {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: -1%;
+  height: 12%;
+  background: radial-gradient(closest-side, rgba(7, 51, 143, 0.24), rgba(7, 51, 143, 0));
+  pointer-events: none;
+}
+:global([data-tone='night']) .floor,
+:global([data-tone='deep']) .floor {
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0));
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(15deg) rotateY(24deg) rotateZ(-3deg);
+}
+
+/* The labelled modules' list shares the stage's 3D context. */
+.stageList {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  transform-style: preserve-3d;
+}
+
+.slot {
+  --x: var(--dx);
+  --y: var(--dy);
+  --w-num: var(--dw);
+  position: absolute;
+  left: calc(var(--x) * 1%);
+  top: calc(var(--y) * 1%);
+  width: calc(var(--w-num) * 1%);
+  transform-style: preserve-3d;
+  transform: translate3d(0, 0, calc(var(--z) * 1cqw));
+  transition: transform var(--hb-dur-assemble) var(--hb-ease);
+  transition-delay: calc(var(--hb-motion-index, 0) * var(--hb-stagger));
+}
+
+/* ASSEMBLE — transform only (opacity would flatten the 3D stack) */
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='false']) .slot {
+  transform: translate3d(calc(var(--ax) * 1cqw), calc(var(--ay) * 1cqw), calc((var(--z) - 5) * 1cqw));
+}
+
+/* Larger structural module behind the labelled ones — the mark's sweep */
+.spineLayer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: translateZ(calc(var(--i) * var(--hbm-step, 0.22em) * -1));
+}
+/* Spine depth strokes — same fallback pattern as .layer */
+.spineStroke {
+  stroke: var(--hbm-layer-fallback, #062a74);
+}
+@supports (stroke: color-mix(in srgb, red, blue)) {
+  .spineStroke {
+    stroke: color-mix(in srgb, #07338f, #04122e calc(var(--i) * 9%));
+  }
+}
+
+.spine {
+  --hbm-step: 0.16em;
+  font-size: calc(var(--w-num) * 0.1cqw);
+  aspect-ratio: 1;
+  transform-style: preserve-3d;
+  position: relative;
+}
+:global([data-tone='night']) .spine,
+:global([data-tone='deep']) .spine {
+  --hbm-step: 0.18em;
+}
+
+.glassPanel {
+  position: absolute;
+  left: calc(var(--x) * 1%);
+  top: calc(var(--y) * 1%);
+  width: calc(var(--gw) * 1%);
+  height: calc(var(--gh) * 1%);
+  border-radius: 3cqw 3cqw 9cqw 3cqw;
+  border: 1px solid rgba(29, 110, 255, 0.22);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.55), rgba(207, 224, 255, 0.18));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  transform: translateZ(calc(var(--z) * 1cqw));
+}
+:global([data-tone='night']) .glassPanel,
+:global([data-tone='deep']) .glassPanel {
+  border-color: rgba(207, 224, 255, 0.16);
+  background: linear-gradient(160deg, rgba(29, 110, 255, 0.1), rgba(13, 35, 64, 0.25));
+  box-shadow: inset 0 1px 0 rgba(207, 224, 255, 0.14);
+}
+
+.connectors {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: translateZ(-3cqw);
+}
+
+/* ── Mobile: same system, less complexity ───────────────────── */
+@container (max-width: 480px) {
+  /* Larger modules in a taller 2 × 3 stagger so labels stay ≥ 14px at
+     360–390px rather than shrinking to fit the desktop constellation. */
+  .viewport { aspect-ratio: 100 / 150; }
+  .slot {
+    --x: var(--mx);
+    --y: var(--my);
+    --w-num: var(--mw);
+  }
+  .stage { transform: rotateX(12deg) rotateY(16deg) rotateZ(-2deg); }
+  .module { --hbm-step: 0.16em; }
+  .face { padding: 1.1em 1em 1em 1.85em; }
+  .label { font-size: max(1.05em, 14px); }
+  .glassPanel,
+  .glass,
+  .connectors { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slot { transition: none; }
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   STANDALONE — one module with its own perspective (anatomy, specimens)
+   ═════════════════════════════════════════════════════════════════ */
+
+.single {
+  position: relative;
+  width: 100%;
+  container-type: inline-size;
+}
+.singleViewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 0.92;
+  perspective: 240cqw;
+  perspective-origin: 50% 35%;
+}
+.singleStage {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(15deg) rotateY(26deg) rotateZ(-3deg);
+}
+.singleSlot {
+  position: absolute;
+  left: 17%;
+  top: 16%;
+  width: calc(var(--w-num) * 1%);
+  transform-style: preserve-3d;
+}
