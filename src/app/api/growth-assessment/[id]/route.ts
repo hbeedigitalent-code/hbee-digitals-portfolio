@@ -1,51 +1,44 @@
 // src/app/api/growth-assessment/[id]/route.ts
-// No 'use client' needed - API route
+//
+// GET   — one growth assessment with its merchant and review.
+// PATCH — set an assessment's `status` and/or `review_status`.
+//
+// ADMIN ONLY. Both handlers previously ran with no authentication on a
+// service-role client, so anyone holding an assessment id — which the public
+// POST /api/growth-assessment returns to every submitter — could read the
+// joined merchant and internal review, and change workflow status.
+//
+// Both now go through requireActiveAdmin() before anything else: session, then
+// the signed 2FA cookie, then active admin membership. The request body and the
+// id are not even looked at until that passes, and the service-role client used
+// for the assessment operation is the one the gate hands back.
 
 import { NextRequest, NextResponse } from 'next/server'
-
-// Lazy initialize Supabase client
-let supabaseAdmin: any = null
-
-function getSupabaseAdmin() {
-  if (supabaseAdmin) return supabaseAdmin
-  
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  
-  if (!supabaseUrl || !supabaseKey) {
-    console.warn('Supabase environment variables are not set')
-    return null
-  }
-  
-  // Dynamic import to avoid build-time issues
-  const { createClient } = require('@supabase/supabase-js')
-  supabaseAdmin = createClient(supabaseUrl, supabaseKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  })
-  
-  return supabaseAdmin
-}
+import { requireActiveAdmin, ADMIN_UUID_RE } from '@/lib/admin-api-auth'
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const supabase = getSupabaseAdmin()
-  
-  if (!supabase) {
-    console.error('Supabase not configured - missing environment variables')
-    return NextResponse.json(
-      { error: 'Server configuration error. Please check environment variables.' },
-      { status: 500 }
-    )
-  }
-
   try {
-    const { id } = params
-    const body = await request.json()
+    const auth = await requireActiveAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.db
+
+    const id = typeof params?.id === 'string' ? params.id.trim() : ''
+    if (!ADMIN_UUID_RE.test(id)) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+
+    let body: any
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    }
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    }
     const { status, review_status } = body
 
     if (!status && !review_status) {
@@ -154,18 +147,15 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const supabase = getSupabaseAdmin()
-  
-  if (!supabase) {
-    console.error('Supabase not configured - missing environment variables')
-    return NextResponse.json(
-      { error: 'Server configuration error. Please check environment variables.' },
-      { status: 500 }
-    )
-  }
-
   try {
-    const { id } = params
+    const auth = await requireActiveAdmin()
+    if (!auth.ok) return auth.response
+    const supabase = auth.db
+
+    const id = typeof params?.id === 'string' ? params.id.trim() : ''
+    if (!ADMIN_UUID_RE.test(id)) {
+      return NextResponse.json({ error: 'Assessment not found' }, { status: 404 })
+    }
 
     const { data, error } = await supabase
       .from('growth_assessments')
