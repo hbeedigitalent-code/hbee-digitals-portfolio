@@ -53,6 +53,18 @@
   display: inline-flex;
   align-items: center;
 }
+/* Two deliberate lines of three. The second starts a new row and hangs under
+   the first word (indent = signal width + its gap). */
+.eyebrowLine {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 0.625rem;
+}
+.eyebrowLineHang {
+  flex-basis: 100%;
+  padding-left: calc(0.875rem + 0.875rem);
+}
 /* Square structural node as the separator. Its left margin subtracts the
    0.14em tracking that trails the previous word, so both gaps read equal. */
 .eyebrowItem::before {
@@ -71,13 +83,15 @@
   .eyebrow { column-gap: 1.125rem; }
   .eyebrowSignal { margin-right: 0; }
   .eyebrowItem::before { display: none; }
+  .eyebrowLine { column-gap: 1.125rem; }
+  .eyebrowLineHang { padding-left: calc(0.875rem + 1.125rem); }
 }
 
-/* Hero visual: ~8% more presence on large desktop only. Scaled from a left-of-centre
+/* Hero visual: ~5% more presence on large desktop only. Scaled from a left-of-centre
    origin so it grows into the page margin, not into the text column. */
 @media (min-width: 1440px) {
   .heroVisual > * {
-    transform: scale(1.08);
+    transform: scale(1.05);
     transform-origin: 35% 50%;
   }
 }

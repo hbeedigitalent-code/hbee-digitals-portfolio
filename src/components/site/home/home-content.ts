@@ -9,7 +9,7 @@
  */
 
 export const HERO = {
-  eyebrow: ['Brand', 'Experience', 'Technology', 'Creative', 'Growth'],
+  eyebrow: ['Brand', 'Experience', 'Technology', 'Creative', 'Discovery', 'Growth'],
   headline: ['Growth works better', 'when everything', 'connects.'],
   lede:
     'Hbee brings together brand, customer experience, technology, creative and growth systems so businesses can move forward with more clarity and confidence.',

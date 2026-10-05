@@ -26,16 +26,26 @@ export function HomeHero() {
         </svg>
       </div>
 
-      <SiteGrid className="items-center gap-y-12 pb-[var(--hb-space-section-compact)] pt-[clamp(2.5rem,5vw,4.5rem)]">
-        <div className="col-span-4 md:col-span-8 lg:col-span-6 xl:col-span-5">
-          {/* One typographic sequence: CSS node separators (no glyph bullets), wraps on
-              narrow screens. Screen readers hear a comma-separated list. */}
+      {/* Desktop: the text column aligns to the TOP of the row (it used to be
+          centred against the much taller module column, which pushed the CTAs
+          below the fold on ~768px-tall laptops). Its offset scales with
+          viewport height, so short screens stay tight and tall screens breathe. */}
+      <SiteGrid className="items-center gap-y-12 pb-[var(--hb-space-section-compact)] pt-[clamp(2.5rem,5vw,4.5rem)] lg:pt-10">
+        <div className="col-span-4 md:col-span-8 lg:col-span-6 lg:mt-[clamp(1.5rem,5vh,4rem)] lg:self-start xl:col-span-5">
+          {/* One typographic sequence in two deliberate lines of three (six words no
+              longer fit the column). Separators sit only BETWEEN words within a
+              line, so no line ever starts with one; the second line hangs under
+              the first word. Screen readers hear a comma-separated list. */}
           <p className={styles.eyebrow}>
             <span aria-hidden="true" className={styles.eyebrowSignal} />
-            {HERO.eyebrow.map((word, i) => (
-              <span key={word} className={i > 0 ? styles.eyebrowItem : undefined}>
-                {i > 0 && <span className="sr-only">, </span>}
-                {word}
+            {[HERO.eyebrow.slice(0, 3), HERO.eyebrow.slice(3)].map((line, l) => (
+              <span key={l} className={l > 0 ? `${styles.eyebrowLine} ${styles.eyebrowLineHang}` : styles.eyebrowLine}>
+                {line.map((word, i) => (
+                  <span key={word} className={i > 0 ? styles.eyebrowItem : undefined}>
+                    {(l > 0 || i > 0) && <span className="sr-only">, </span>}
+                    {word}
+                  </span>
+                ))}
               </span>
             ))}
           </p>
@@ -64,9 +74,10 @@ export function HomeHero() {
           </div>
         </div>
 
-        <div className={`col-span-4 md:col-span-8 lg:col-span-6 xl:col-span-7 ${styles.heroVisual}`}>
+        <div className={`col-span-4 md:col-span-8 lg:col-span-6 lg:mt-5 xl:col-span-7 ${styles.heroVisual}`}>
           <HbeeModuleGroup
             idPrefix="hero"
+            motion="hero"
             label="The Hbee system: Brand, Experience, Technology, Creative, Discovery and Growth, connected."
             className="mx-auto max-w-[680px] lg:max-w-none"
           />

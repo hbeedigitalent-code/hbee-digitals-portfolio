@@ -324,6 +324,17 @@
   box-shadow: inset 0 1px 0 rgba(207, 224, 255, 0.14);
 }
 
+/* Phone-only connector set (shown by the container query below). */
+.connectorsMobile {
+  position: absolute;
+  inset: 0;
+  display: none;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: translateZ(-3cqw);
+}
+
 .connectors {
   position: absolute;
   inset: 0;
@@ -335,9 +346,9 @@
 
 /* ── Mobile: same system, less complexity ───────────────────── */
 @container (max-width: 400px) {
-  /* Larger modules in a taller 2 × 3 stagger so labels stay ≥ 14px at
-     360–390px rather than shrinking to fit the desktop constellation. */
-  .viewport { aspect-ratio: 100 / 150; }
+  /* The desktop cluster, compacted: same relative positions around the
+     spine, modules enlarged so labels hold ≥ 14px at 360–390px. */
+  .viewport { aspect-ratio: 100 / 112; }
   .slot {
     --x: var(--mx);
     --y: var(--my);
@@ -350,6 +361,7 @@
   .glassPanel,
   .glass,
   .connectors { display: none; }
+  .connectorsMobile { display: block; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -392,3 +404,152 @@
 }
 .viewport[data-system='fragmented'] .connectors { opacity: 0.25; }
 .viewport[data-system='fragmented'] .glassPanel { opacity: 0.5; }
+
+/* ═════════════════════════════════════════════════════════════════
+   HERO MOTION — ASSEMBLE → CONNECT → SIGNAL → SETTLE   (motion="hero")
+
+   CSS keyframes + one SVG SMIL path; no JavaScript, no rAF, nothing runs
+   after the sequence. Every rule is gated on [data-motion-ready], which the
+   pre-paint inline script sets only when motion is allowed — so reduced
+   motion (and client-side navigation) render the approved final state.
+
+   fill-mode BACKWARDS: each element holds its start keyframe during its
+   delay, then returns to its untouched base style when done. The rest state
+   is therefore the Phase 2 composition itself, not an animation end-frame.
+
+   Timeline (desktop):
+     0–480ms     support planes establish
+     100–970ms   modules assemble (staggered, magnetic ease)
+     380–1140ms  connectors draw in sequence; nodes resolve 600–1070ms
+     780–1300ms  orange signal travels spine → Growth (SMIL)
+     950–1760ms  brief Electric Blue edge response; Growth glow 1240–1760ms
+   ═════════════════════════════════════════════════════════════════ */
+
+.heroMotion .viewport { --hbm-amp: 1; }
+
+@keyframes hbmAssemble {
+  from {
+    transform:
+      translate3d(
+        calc(var(--ax) * var(--hbm-amp) * 1cqw),
+        calc(var(--ay) * var(--hbm-amp) * 1cqw),
+        calc((var(--z) - 5 * var(--hbm-amp)) * 1cqw)
+      )
+      rotateZ(calc(var(--ar, 0deg) * var(--hbm-amp)));
+  }
+  to { transform: translate3d(0, 0, calc(var(--z) * 1cqw)) rotateZ(0deg); }
+}
+@keyframes hbmPlane {
+  from { opacity: 0; transform: translate3d(0, 1.5cqw, calc((var(--z) - 3) * 1cqw)); }
+  to { opacity: 1; transform: translate3d(0, 0, calc(var(--z) * 1cqw)); }
+}
+@keyframes hbmDraw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes hbmFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes hbmPulse {
+  0% { opacity: 0; }
+  40% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ASSEMBLE — spine first (index 0), then the six modules. */
+:global([data-surface='site'][data-motion-ready]) .heroMotion .slot {
+  animation: hbmAssemble 620ms var(--hb-ease) backwards;
+  animation-delay: calc(100ms + var(--hb-motion-index, 0) * 50ms);
+}
+:global([data-surface='site'][data-motion-ready]) .heroMotion .glassPanel {
+  animation: hbmPlane 480ms var(--hb-ease) backwards;
+}
+:global([data-surface='site'][data-motion-ready]) .heroMotion .floor {
+  animation: hbmFadeIn 400ms var(--hb-ease) backwards;
+}
+
+/* CONNECT — connectors draw one after another; nodes resolve after them. */
+:global([data-surface='site'][data-motion-ready]) .heroMotion [data-connect] {
+  transition: none;
+  /* fill BOTH (end values = base values): holding the final frame avoids a
+     snap-back the browser was observed not to repaint for SVG in the 3D stage. */
+  animation: hbmDraw 460ms var(--hb-ease-in-out) both;
+  animation-delay: calc(380ms + var(--hb-motion-index, 0) * 75ms);
+}
+:global([data-surface='site'][data-motion-ready]) .heroMotion .node {
+  animation: hbmFadeIn 260ms var(--hb-ease) both;
+  animation-delay: calc(600ms + var(--hb-motion-index, 0) * 70ms);
+}
+
+/* SIGNAL — the travelling signal lives in this layer, at Growth's depth.
+   Hidden unless motion is on; the SMIL animation inside it does the travel. */
+.travelLayer {
+  position: absolute;
+  inset: 0;
+  display: none;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  transform: translateZ(4.4cqw);
+}
+:global([data-surface='site'][data-motion-ready]) .heroMotion .travelLayer { display: block; }
+
+/* SETTLE — connection confirmed: a brief Electric Blue edge response on each
+   module, then Growth's insert receives the signal (short glow), then rest. */
+:global([data-surface='site'][data-motion-ready]) .heroMotion .face::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 0.09em rgba(150, 190, 255, 0.75), inset 0 0 1.4em rgba(29, 110, 255, 0.28);
+  opacity: 0;
+  pointer-events: none;
+  animation: hbmPulse 600ms var(--hb-ease) backwards;
+  animation-delay: calc(950ms + var(--hb-motion-index, 0) * 35ms);
+}
+:global([data-surface='site'][data-motion-ready]) .heroMotion .signal::after {
+  content: '';
+  position: absolute;
+  inset: -0.5em;
+  border-radius: 999px;
+  background: radial-gradient(closest-side, rgba(252, 93, 28, 0.6), rgba(252, 93, 28, 0));
+  opacity: 0;
+  pointer-events: none;
+  animation: hbmPulse 520ms var(--hb-ease) backwards;
+  animation-delay: 1240ms;
+}
+
+/* Mobile (phone composition): smaller offsets, shorter, fewer moving parts —
+   no travel, no edge response (connectors/glass are already hidden here). */
+@container (max-width: 400px) {
+  .heroMotion .viewport { --hbm-amp: 0.5; }
+  :global([data-surface='site'][data-motion-ready]) .heroMotion .slot {
+    animation-duration: 480ms;
+    animation-delay: calc(40ms + var(--hb-motion-index, 0) * 35ms);
+  }
+  :global([data-surface='site'][data-motion-ready]) .heroMotion .travelLayer { display: none; }
+  :global([data-surface='site'][data-motion-ready]) .heroMotion .face::after { animation: none; }
+  /* The constellation's links resolve as the modules settle (fade, not draw). */
+  :global([data-surface='site'][data-motion-ready]) .heroMotion .connectorsMobile {
+    animation: hbmFadeIn 320ms var(--hb-ease) both;
+    animation-delay: 380ms;
+  }
+  :global([data-surface='site'][data-motion-ready]) .heroMotion .signal::after { animation-delay: 520ms; }
+}
+
+/* Belt and braces: reduced motion never animates, even if the flag is set. */
+@media (prefers-reduced-motion: reduce) {
+  .heroMotion .slot,
+  .heroMotion .glassPanel,
+  .heroMotion .floor,
+  .heroMotion [data-connect],
+  .heroMotion .node,
+  .heroMotion .connectorsMobile,
+  .heroMotion .face::after,
+  .heroMotion .signal::after {
+    animation: none !important;
+  }
+  .heroMotion .travelLayer { display: none !important; }
+}

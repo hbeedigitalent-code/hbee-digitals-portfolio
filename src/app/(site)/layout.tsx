@@ -31,7 +31,10 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
     <div
       data-surface="site"
       data-surface-root=""
-      className={`${manrope.variable} flex min-h-screen flex-col`}
+      // overflow-x: clip — reveal start states (e.g. SHIFT's 32px offset) must
+      // never create sideways page scroll on phones. `clip` (not `hidden`) does
+      // not create a scroll container, so the sticky header keeps working.
+      className={`${manrope.variable} flex min-h-screen flex-col overflow-x-clip`}
       suppressHydrationWarning
     >
       <SiteMotionGate />
