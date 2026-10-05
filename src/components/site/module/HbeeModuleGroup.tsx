@@ -45,7 +45,7 @@ interface Slot {
   x: number
   y: number
   w: number
-  /** Mobile (container ≤ 480px): larger modules in a taller 2 × 3 stagger. */
+  /** Mobile (container ≤ 400px, i.e. phones): larger modules in a taller 2 × 3 stagger. */
   m: { x: number; y: number; w: number }
   z: number // cqw
   ax: number // assemble start offset, cqw
@@ -112,6 +112,12 @@ interface HbeeModuleGroupProps {
   label?: string
   /** Unique per page when the group is rendered more than once. */
   idPrefix?: string
+  /**
+   * `connected` (default): the resting system.
+   * `fragmented`: modules drift apart, connectors fade and no orange
+   * appears — used where the story is about disconnection.
+   */
+  state?: 'connected' | 'fragmented'
   className?: string
 }
 
@@ -119,14 +125,16 @@ export function HbeeModuleGroup({
   items = DEFAULT_MODULE_ITEMS,
   label = 'Connected capabilities',
   idPrefix = 'system',
+  state = 'connected',
   className,
 }: HbeeModuleGroupProps) {
+  const connected = state === 'connected'
   const six = items.slice(0, SLOTS.length)
 
   return (
     <SiteReveal motion="reveal" as="figure" className={cn(styles.figure, className)}>
       <figcaption className="sr-only">{label}</figcaption>
-      <div className={styles.viewport}>
+      <div className={styles.viewport} data-system={state}>
         <span aria-hidden="true" className={styles.floor} />
         <div className={styles.stage}>
           {GLASS_PANELS.map((g, i) => (
@@ -168,7 +176,7 @@ export function HbeeModuleGroup({
           </svg>
 
           <div className={styles.slot} style={slotStyle(SPINE, 0)} aria-hidden="true">
-            <HbeeSpine idPrefix={idPrefix} />
+            <HbeeSpine idPrefix={idPrefix} signal={connected} />
           </div>
 
           <ul className={styles.stageList}>
@@ -176,7 +184,7 @@ export function HbeeModuleGroup({
               const s = SLOTS[i]
               return (
                 <li key={item.label} className={styles.slot} style={slotStyle(s, i + 1)}>
-                  <HbeeModule label={item.label} icon={item.icon} sweep={s.sweep} glass={s.glass} signal={s.signal} />
+                  <HbeeModule label={item.label} icon={item.icon} sweep={s.sweep} glass={s.glass} signal={connected && s.signal} />
                 </li>
               )
             })}

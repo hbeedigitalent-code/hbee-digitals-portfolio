@@ -99,3 +99,209 @@
   }
   .bar { transition: none; }
 }
+
+/* ═════════════════════════════════════════════════════════════════
+   Desktop submenus — REVEAL → SHIFT → FOCUS
+   Panels stay mounted. Closed = visibility:hidden (out of tab order and the
+   accessibility tree) after the fade, via a delayed visibility transition.
+   ═════════════════════════════════════════════════════════════════ */
+
+.menuPanel {
+  visibility: hidden;
+  opacity: 0;
+  transform: translate3d(0, -8px, 0);
+  transition:
+    opacity 200ms var(--hb-ease),
+    transform 220ms var(--hb-ease),
+    visibility 0s linear 220ms;
+}
+.menuPanel[data-state='open'] {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 280ms var(--hb-ease),
+    transform 320ms var(--hb-ease),
+    visibility 0s;
+}
+
+.menuMega {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  z-index: 45;
+  border-bottom: 1px solid var(--hb-border);
+  background: var(--hb-white);
+  box-shadow: 0 24px 48px -28px rgba(7, 51, 143, 0.28);
+}
+
+/* Items inside an open panel reveal with a small stagger. */
+.menuItem {
+  opacity: 0;
+  transform: translate3d(0, 6px, 0);
+  transition:
+    opacity 140ms var(--hb-ease),
+    transform 160ms var(--hb-ease);
+}
+.menuPanel[data-state='open'] .menuItem {
+  opacity: 1;
+  transform: none;
+  transition-duration: 260ms, 300ms;
+  transition-delay: calc(60ms + var(--i, 0) * 32ms);
+}
+
+.menuGroupTitle {
+  font-size: var(--hb-text-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hb-fg-muted);
+}
+
+/* Shared link styles — every panel uses these. Hover is a Mist wash;
+   keyboard focus uses the site focus ring. */
+.menuStackLink,
+.menuStepLink {
+  position: relative;
+  display: block;
+  margin-inline: -0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--hb-radius-sm);
+  transition: background-color var(--hb-dur-fast) var(--hb-ease);
+}
+.menuStackLink:hover,
+.menuStepLink:hover,
+.menuStackLink:focus-within,
+.menuStepLink:focus-within { background: var(--hb-mist); }
+
+/* Title link whose hit area covers its whole item (description included). */
+.stretchedLink { text-decoration: none; }
+.stretchedLink::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.menuLink {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  margin-inline: -0.75rem;
+  padding-inline: 0.75rem;
+  border-radius: var(--hb-radius-sm);
+  font-size: 0.9375rem;
+  color: var(--hb-fg-body);
+  transition: background-color var(--hb-dur-fast) var(--hb-ease), color var(--hb-dur-fast) var(--hb-ease);
+}
+.menuLink:hover { background: var(--hb-mist); color: var(--hb-fg); }
+
+/* Overview / action link with the SVG arrow; the arrow SHIFTs 3px on hover. */
+.menuAction {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--hb-link);
+}
+.menuAction:hover { text-decoration: underline; text-underline-offset: 6px; }
+.menuActionArrow { transition: transform var(--hb-dur-base) var(--hb-ease); }
+.menuAction:hover .menuActionArrow,
+.menuAction:focus-visible .menuActionArrow { transform: translateX(3px); }
+
+/* Quiet supporting note (Work, How We Work, Insights, About). */
+.menuNote {
+  position: relative;
+  align-self: start;
+  padding-left: 2rem;
+  border-left: 1px solid var(--hb-border);
+}
+/* Work only: a single structural Node marks the note. */
+.noteNode {
+  position: absolute;
+  left: -5px;
+  top: 0.15rem;
+  width: 9px;
+  height: 9px;
+  border-radius: 1px 1px 4px 1px;
+  background: var(--hb-blue);
+  box-shadow: 0 0 0 4px var(--hb-white);
+}
+
+/* Feature panel — the diagnostic prompt, last to arrive (FOCUS). */
+.menuFeature {
+  position: relative;
+  overflow: hidden;
+  padding: 2rem 2rem 2rem 3rem;
+  border-radius: var(--hb-radius-xs) var(--hb-radius-xs) var(--hb-radius-sweep) var(--hb-radius-xs);
+  background: var(--hb-mist);
+}
+.menuFocus { transform: translate3d(0, 6px, 0) scale(0.98); }
+.menuPanel[data-state='open'] .menuFocus { transition-delay: calc(120ms + var(--i, 0) * 32ms); }
+
+/* Restrained Hbee geometry: a structural stem with a Connection Gap, and one
+   orange Signal capsule. */
+.featureStem {
+  position: absolute;
+  left: 1.25rem;
+  top: 2.6rem;
+  bottom: 1.5rem;
+  width: 5px;
+  border-radius: 1px;
+  background: var(--hb-blue);
+}
+.featureStem::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -1.4rem;
+  width: 100%;
+  height: 0.7rem;
+  border-radius: inherit;
+  background: inherit;
+}
+.featureSignal {
+  position: absolute;
+  right: 1.5rem;
+  top: 1.5rem;
+  width: 1.5rem;
+  height: 0.75rem;
+  border-radius: 2px 999px 999px 2px;
+  background: var(--hb-orange);
+}
+
+/* ── Mobile accordions ─────────────────────────────────────────── */
+.accordionBody {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 260ms var(--hb-ease);
+}
+.accordionBody[data-open='true'] { grid-template-rows: 1fr; }
+.accordionInner { overflow: hidden; min-height: 0; }
+.accordionBody[data-open='false'] .accordionInner { visibility: hidden; transition: visibility 0s linear 260ms; }
+
+/* ── Menu control: reserved activation layer (not animated yet) ───
+   A later phase may add a brief 600–900ms activation here — thin blue
+   signal arcs and one small orange signal — then settle. It must never
+   loop or spin, and must not change the control's meaning (navigation). */
+.activation {
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menuPanel,
+  .menuPanel[data-state='open'],
+  .menuItem,
+  .menuFocus,
+  .menuPanel[data-state='open'] .menuItem {
+    transform: none;
+    transition-delay: 0ms;
+  }
+  .accordionBody { transition: none; }
+}

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
-import { ArrowRight } from 'lucide-react'
+import { SiteArrow } from './SiteIcons'
 import { cn } from '@/lib/cn'
 
 /**
@@ -59,11 +59,9 @@ export function siteButtonClasses(variant: SiteButtonVariant = 'brand', size: Si
 
 function Arrow() {
   return (
-    <ArrowRight
-      aria-hidden="true"
-      size={17}
-      strokeWidth={2}
-      className="shrink-0 transition-transform duration-[var(--hb-dur-base)] ease-[var(--hb-ease)] group-hover/btn:translate-x-1"
+    <SiteArrow
+      size={16}
+      className="transition-transform duration-[var(--hb-dur-base)] ease-[var(--hb-ease)] group-hover/btn:translate-x-[3px] group-focus-visible/btn:translate-x-[3px]"
     />
   )
 }

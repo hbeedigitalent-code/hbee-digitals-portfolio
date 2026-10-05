@@ -200,9 +200,14 @@ body:has([data-surface-root]) {
 }
 
 /* ── Grid ───────────────────────────────────────────────────
-   Zero specificity (:where) so Tailwind utilities on the same element
-   (gap-y-*, py-*, max-w-*) refine these rather than lose to them. */
-:where([data-surface='site'] .hb-container) {
+   .hb-container is (0,1,0) on purpose. The root layout inlines
+   `*{margin:0;padding:0}` AFTER all stylesheets, so a zero-specificity
+   container lost on source order: its padding-inline and margin-inline:auto
+   were reset and content ran to the viewport edges. (0,1,0) beats `*` and
+   does not compete with any utility we pair it with (py-*, flex, h-*).
+   .hb-grid sets only grid properties, which `*` never touches, so it stays
+   at zero specificity and utilities (gap-y-*) refine it. */
+:where([data-surface='site']) .hb-container {
   width: 100%;
   max-width: calc(var(--hb-container) + var(--hb-gutter) * 2);
   margin-inline: auto;

@@ -1,0 +1,217 @@
+/* ═════════════════════════════════════════════════════════════════
+   Homepage section details that are awkward as utilities.
+   All colours come from --hb-* tones, so each detail adapts to the
+   section it sits in. No continuous animation anywhere.
+   ═════════════════════════════════════════════════════════════════ */
+
+/* ── Hero: faint structural field behind the module system ─────── */
+.heroField {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 70% at 78% 42%, rgba(207, 224, 255, 0.85), rgba(234, 242, 255, 0) 70%),
+    linear-gradient(180deg, var(--hb-white), var(--hb-cloud) 70%);
+}
+.heroGrid {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 62%;
+  height: 100%;
+  opacity: 0.55;
+}
+
+/* Headline: "connects" in Royal Blue, the full stop as a single Signal. */
+.connects { color: var(--hb-blue); }
+.stop { color: var(--hb-orange); }
+
+/* ── Hero: eyebrow as one typographic sequence ─────────────────── */
+.eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 0.625rem;
+  font-family: var(--hb-font-body);
+  font-size: var(--hb-text-eyebrow);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hb-fg-body);
+}
+.eyebrowSignal {
+  display: block;
+  width: 0.875rem;
+  height: 0.5rem;
+  margin-right: 0.875rem;
+  border-radius: 2px 999px 999px 2px;
+  background: var(--hb-orange);
+}
+.eyebrowItem {
+  display: inline-flex;
+  align-items: center;
+}
+/* Square structural node as the separator. Its left margin subtracts the
+   0.14em tracking that trails the previous word, so both gaps read equal. */
+.eyebrowItem::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 4px;
+  margin: 0 0.75rem 0 calc(0.75rem - 0.14em);
+  border-radius: 1px;
+  background: var(--hb-structure);
+  transform: translateY(-0.5px);
+}
+/* Narrow screens wrap the sequence; a wrapped line must never start with a
+   separator, so separators give way to even spacing. */
+@media (max-width: 639px) {
+  .eyebrow { column-gap: 1.125rem; }
+  .eyebrowSignal { margin-right: 0; }
+  .eyebrowItem::before { display: none; }
+}
+
+/* Hero visual: ~8% more presence on large desktop only. Scaled from a left-of-centre
+   origin so it grows into the page margin, not into the text column. */
+@media (min-width: 1440px) {
+  .heroVisual > * {
+    transform: scale(1.08);
+    transform-origin: 35% 50%;
+  }
+}
+
+/* ── Six conditions: a structural rail, one node per condition ───── */
+.rail {
+  position: relative;
+  border-left: 1px solid var(--hb-border);
+}
+/* The node is anchored to the number, so it stays aligned with it at any
+   name size or layout. 2rem = the item's left padding. */
+.railNumber {
+  position: relative;
+}
+.railNumber::before {
+  content: '';
+  position: absolute;
+  left: calc(-2rem - 5px);
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border-radius: 1px 1px 4px 1px;
+  background: var(--hb-structure);
+  box-shadow: 0 0 0 4px var(--hb-bg);
+  transform: translateY(-50%);
+}
+
+/* ── Growth System track ────────────────────────────────────────── */
+.track {
+  position: relative;
+}
+.trackLine {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 30.5px;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--hb-structure) 0%, var(--hb-structure) 70%, var(--hb-structure-soft) 100%);
+}
+.trackNode {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border: 1.5px solid var(--hb-structure-soft);
+  border-radius: 14px 14px 24px 14px;
+  background: var(--hb-surface);
+  box-shadow: var(--hb-shadow-2);
+  font-family: var(--hb-font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--hb-blue);
+}
+@media (min-width: 1024px) {
+  .trackNode { width: 64px; height: 64px; font-size: 1.0625rem; border-radius: 16px 16px 28px 16px; }
+}
+
+/* The Signal travels once along the track when it is revealed, then settles
+   just before Optimize (beside the node, never covering its number).
+   Reduced motion / no JS: it simply rests there. */
+.trackSignal {
+  position: absolute;
+  z-index: 2;
+  top: 23px;
+  left: calc(90% - 58px);
+  width: 34px;
+  height: 18px;
+  margin-left: -17px;
+  border-radius: 3px 999px 999px 3px;
+  background: var(--hb-orange);
+  box-shadow: 0 0 0 4px var(--hb-bg), 0 0 22px rgba(252, 93, 28, 0.55);
+  transition: left 1900ms var(--hb-ease-in-out) 350ms;
+}
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='false']) .trackSignal {
+  left: calc(10% + 58px);
+}
+
+@media (max-width: 1023px) {
+  .trackLine { display: none; }
+  .trackSignal { display: none; }
+}
+
+/* Mobile/tablet: vertical sequence on a rail */
+.stageList {
+  position: relative;
+}
+@media (max-width: 1023px) {
+  .stageList { border-left: 1px solid var(--hb-border); padding-left: 1.5rem; }
+}
+
+/* ── Capabilities: deliverables as a stacked list, hairline dash markers ─ */
+.deliverable {
+  position: relative;
+  padding-left: 1.125rem;
+}
+.deliverable::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.72em;
+  width: 0.625rem;
+  height: 1.5px;
+  border-radius: 1px;
+  background: var(--hb-structure);
+  opacity: 0.55;
+}
+
+/* ── Proof ──────────────────────────────────────────────────────── */
+.quoteMark {
+  display: block;
+  width: 2.75rem;
+  height: 2rem;
+  color: var(--hb-structure);
+}
+
+/* ── Work / insights media frame: one Sweep corner ──────────────── */
+.media {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--hb-radius-sm) var(--hb-radius-sm) var(--hb-radius-sweep) var(--hb-radius-sm);
+  background: var(--hb-plane);
+}
+.media img {
+  transition: transform 600ms var(--hb-ease);
+}
+.mediaHover:hover .media img,
+.mediaHover:focus-within .media img {
+  transform: scale(1.025);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trackSignal { transition: none; }
+  .media img { transition: none; }
+}

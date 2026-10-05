@@ -4,10 +4,12 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useId, useRef, useState, type CSSProperties } from 'react'
 import { cn } from '@/lib/cn'
-import { PRIMARY_CTA, PRIMARY_NAV, UTILITY_NAV } from '../navigation'
+import { NAV_MENUS, PRIMARY_CTA, PRIMARY_NAV, UTILITY_NAV, type NavMenu, type SiteLink } from '../navigation'
 import { SiteButton } from '../primitives/SiteButton'
+import { SiteArrow, SiteChevron } from '../primitives/SiteIcons'
 import { useReducedMotion } from '../motion/useReducedMotion'
 import styles from './site-nav.module.css'
+import { SiteDesktopNav } from './SiteDesktopNav'
 
 /** How long the panel stays mounted while its exit plays (see site-nav.module.css). */
 const CLOSE_MS = 260
@@ -108,28 +110,7 @@ export function SiteNav() {
 
   return (
     <>
-      <nav aria-label="Primary" className="hidden lg:block">
-        <ul className="flex items-center gap-1">
-          {PRIMARY_NAV.map((item) => {
-            const active = isActive(pathname, item.href)
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  aria-current={active ? 'page' : undefined}
-                  className={cn(
-                    'relative inline-flex min-h-[44px] items-center px-3.5 text-[0.9375rem] font-medium text-hb-fg-body transition-colors duration-[var(--hb-dur-fast)] hover:text-hb-fg',
-                    'after:absolute after:inset-x-3.5 after:bottom-2 after:h-[2px] after:origin-left after:scale-x-0 after:bg-hb-structure after:transition-transform after:duration-[var(--hb-dur-base)] after:ease-[var(--hb-ease)] hover:after:scale-x-100',
-                    active && 'text-hb-fg after:scale-x-100',
-                  )}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
-      </nav>
+      <SiteDesktopNav pathname={pathname} />
 
       <div className="flex items-center gap-2 lg:gap-5">
         <Link
@@ -150,9 +131,11 @@ export function SiteNav() {
           onClick={() => (open ? close() : openMenu())}
           className={cn(
             styles.toggle,
-            'inline-flex h-11 w-11 items-center justify-center rounded-[var(--hb-radius-md)] text-hb-fg transition-colors hover:bg-hb-plane lg:hidden',
+            'relative inline-flex h-11 w-11 items-center justify-center rounded-[var(--hb-radius-md)] text-hb-fg transition-colors hover:bg-hb-plane lg:hidden',
           )}
         >
+          {/* Reserved for a future brief activation (see .activation). Idle in Phase 2. */}
+          <span aria-hidden="true" data-activation="idle" className={styles.activation} />
           <span aria-hidden="true" className={styles.icon}>
             <span className={cn(styles.bar, styles.barTop)} />
             <span className={cn(styles.bar, styles.barMid)} />
@@ -182,6 +165,9 @@ export function SiteNav() {
                 const active = isActive(pathname, item.href)
                 return (
                   <li key={item.href} className={cn(styles.item, 'border-b border-hb-border')} style={{ '--i': index } as CSSProperties}>
+                    {NAV_MENUS[item.href] ? (
+                      <MobileAccordion item={item} menu={NAV_MENUS[item.href]} active={active} />
+                    ) : (
                     <Link
                       href={item.href}
                       aria-current={active ? 'page' : undefined}
@@ -193,6 +179,7 @@ export function SiteNav() {
                       {item.label}
                       {active && <span aria-hidden="true" className="h-2.5 w-5 rounded-l-[2px] rounded-r-full bg-hb-signal" />}
                     </Link>
+                    )}
                   </li>
                 )
               })}
@@ -214,5 +201,84 @@ export function SiteNav() {
         </div>
       )}
     </>
+  )
+}
+
+/**
+ * Mobile submenu: an accessible accordion inside the full-screen menu — never
+ * the desktop mega-panel. Same information architecture as desktop, laid out
+ * vertically: each column's links (with its title), stages with their short
+ * line, then the overview action. Supporting notes stay desktop-only, except
+ * a secondary action (e.g. Talk to Hbee), which is kept.
+ */
+function MobileAccordion({ item, menu, active }: { item: SiteLink; menu: NavMenu; active: boolean }) {
+  const [expanded, setExpanded] = useState(false)
+  const bodyId = useId()
+  const secondary = menu.aside?.cta && menu.aside.cta.variant !== 'conversion' ? menu.aside.cta : null
+
+  return (
+    <div>
+      <button
+        type="button"
+        aria-expanded={expanded}
+        aria-controls={bodyId}
+        onClick={() => setExpanded((v) => !v)}
+        className={cn(
+          'flex min-h-[60px] w-full items-center justify-between text-left font-hb-display text-[1.625rem] font-semibold tracking-[-0.02em] text-hb-fg',
+          active && 'text-hb-blue',
+        )}
+      >
+        {item.label}
+        <SiteChevron size={20} className={cn('transition-transform duration-200 ease-[var(--hb-ease)]', expanded && 'rotate-180')} />
+      </button>
+      <div id={bodyId} data-open={expanded} className={styles.accordionBody}>
+        <div className={styles.accordionInner}>
+          <div className="flex flex-col pb-5">
+            {menu.columns.map((column, c) => (
+              <div key={column.title ?? c} className={c > 0 ? 'mt-3' : undefined}>
+                {column.title && (
+                  <p className="pb-1 pt-2 text-[length:var(--hb-text-eyebrow)] font-semibold uppercase tracking-[0.14em] text-hb-fg-muted">
+                    {column.title}
+                  </p>
+                )}
+                <ul>
+                  {column.links.map((link, i) => (
+                    <li key={link.href} className="relative py-1.5">
+                      {/* Title is the link (stretched over the row); the stage summary stays plain text. */}
+                      <Link
+                        href={link.href}
+                        className="flex min-h-[32px] items-baseline gap-2.5 text-[1.0625rem] text-hb-fg after:absolute after:inset-0 after:content-['']"
+                      >
+                        {column.layout === 'steps' && (
+                          <span aria-hidden="true" className="text-[0.75rem] font-semibold tabular-nums tracking-[0.08em] text-hb-link">
+                            {String(i + 1).padStart(2, '0')}
+                          </span>
+                        )}
+                        {link.label}
+                      </Link>
+                      {column.layout === 'steps' && link.description && (
+                        <p className="mt-0.5 pl-[1.875rem] text-[0.875rem] leading-snug text-hb-fg-body">{link.description}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+            {menu.overview && (
+              <Link href={menu.overview.href} className="group/action mt-3 inline-flex min-h-[44px] items-center gap-2 font-semibold text-hb-link">
+                {menu.overview.label}
+                <SiteArrow size={16} className="transition-transform duration-[var(--hb-dur-base)] group-hover/action:translate-x-[3px]" />
+              </Link>
+            )}
+            {secondary && (
+              <Link href={secondary.href} className="group/action mt-1 inline-flex min-h-[44px] items-center gap-2 font-semibold text-hb-link">
+                {secondary.label}
+                <SiteArrow size={16} className="transition-transform duration-[var(--hb-dur-base)] group-hover/action:translate-x-[3px]" />
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

@@ -57,7 +57,7 @@ function PreviewLabel({ children }: { children: ReactNode }) {
 
 const ANATOMY = [
   ['Structural Shell', 'The Royal Blue face. Substantial, never white.'],
-  ['Depth Plane', 'Stacked Deep Blue → Navy layers give shallow, real depth.'],
+  ['Depth Plane', 'Stacked layers, Deep Blue fading into Navy, give shallow, real depth.'],
   ['Sweep', 'One large-radius corner — the controlled sweep of the mark’s D.'],
   ['Open Channel', 'A recessed slot broken by a Connection Gap, after the mark’s separated stem.'],
   ['Edge Energy', 'A restrained Electric Blue rim, strongest where light enters.'],

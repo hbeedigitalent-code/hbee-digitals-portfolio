@@ -334,7 +334,7 @@
 }
 
 /* ── Mobile: same system, less complexity ───────────────────── */
-@container (max-width: 480px) {
+@container (max-width: 400px) {
   /* Larger modules in a taller 2 × 3 stagger so labels stay ≥ 14px at
      360–390px rather than shrinking to fit the desktop constellation. */
   .viewport { aspect-ratio: 100 / 150; }
@@ -385,3 +385,10 @@
   width: calc(var(--w-num) * 1%);
   transform-style: preserve-3d;
 }
+
+/* ── Fragmented state: same system, drifted apart ───────────── */
+.viewport[data-system='fragmented'] .slot {
+  transform: translate3d(calc(var(--ax) * 1.5cqw), calc(var(--ay) * 1.5cqw), calc(var(--z) * 1cqw));
+}
+.viewport[data-system='fragmented'] .connectors { opacity: 0.25; }
+.viewport[data-system='fragmented'] .glassPanel { opacity: 0.5; }
