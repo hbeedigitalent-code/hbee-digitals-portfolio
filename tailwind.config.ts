@@ -65,6 +65,38 @@ const config: Config = {
           light: '#60A5FA',
           dark: 'var(--bg-inverse)',
         },
+
+        /* ── Public rebuild (additive) — resolve only inside
+              [data-surface="site"]; see src/styles/site-tokens.css ── */
+        hb: {
+          blue: 'var(--hb-blue)',
+          orange: 'var(--hb-orange)',
+          'deep-blue': 'var(--hb-deep-blue)',
+          electric: 'var(--hb-electric)',
+          ice: 'var(--hb-ice)',
+          mist: 'var(--hb-mist)',
+          night: 'var(--hb-night)',
+          'deep-navy': 'var(--hb-deep-navy)',
+          midnight: 'var(--hb-midnight)',
+          cloud: 'var(--hb-cloud)',
+          white: 'var(--hb-white)',
+          ink: 'var(--hb-ink)',
+          slate: 'var(--hb-slate)',
+          muted: 'var(--hb-muted)',
+          bg: 'var(--hb-bg)',
+          surface: 'var(--hb-surface)',
+          'surface-raised': 'var(--hb-surface-raised)',
+          fg: 'var(--hb-fg)',
+          'fg-body': 'var(--hb-fg-body)',
+          'fg-muted': 'var(--hb-fg-muted)',
+          border: 'var(--hb-border)',
+          structure: 'var(--hb-structure)',
+          'structure-soft': 'var(--hb-structure-soft)',
+          plane: 'var(--hb-plane)',
+          signal: 'var(--hb-signal)',
+          link: 'var(--hb-link)',
+          focus: 'var(--hb-focus)',
+        },
       },
       fontFamily: {
         sans: [
@@ -78,6 +110,9 @@ const config: Config = {
           'sans-serif',
         ],
         heading: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
+        /* Public rebuild (additive) */
+        'hb-display': ['var(--hb-font-display)'],
+        'hb-body': ['var(--hb-font-body)'],
       },
       fontSize: {
         /* semantic additions — Tailwind defaults (xs…9xl) are untouched */
