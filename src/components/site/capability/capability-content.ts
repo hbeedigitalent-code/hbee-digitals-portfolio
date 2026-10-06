@@ -335,12 +335,166 @@ export const DISCOVERY_TRAFFIC: CapabilityDetail = {
   },
 }
 
-/** Capabilities that have a detail page (Phase 8: Brand & Positioning, Digital Systems, Creative & UGC, Discovery & Traffic). */
+export const COMMERCE_EXPERIENCE: CapabilityDetail = {
+  slug: 'commerce-experience',
+  systemModule: 'Experience',
+  hero: {
+    headline: 'From interest to purchase.',
+    headlineAccent: 'A better experience at every step.',
+    summary:
+      'We design and improve the customer journey so it’s clear, seamless and built to convert — from product discovery and content to checkout, fulfilment and post-purchase experience.',
+    visualLabel:
+      'Commerce Experience, highlighted as the active module of the Hbee system, connected to Creative, Brand, Technology, Discovery and Growth.',
+    longHeadline: true,
+  },
+  opportunity: {
+    headline: 'A great product deserves a better buying experience.',
+    copy:
+      'People may discover your brand and be interested in what you offer, but if the buying experience is confusing, slow or inconsistent, many will drop off before they become customers.',
+    outcomes: [
+      { name: 'Conversion', text: 'Turn interest into action through a clearer, lower-friction buying journey.' },
+      { name: 'Confidence', text: 'Give customers the information, reassurance and experience they need to move forward.' },
+      {
+        name: 'Customer Value',
+        text: 'Create an experience that supports repeat purchase, stronger customer relationships and long-term growth.',
+      },
+    ],
+  },
+  approach: {
+    headline: 'From journey design',
+    headlineAccent: 'to real results.',
+    copy:
+      'We combine customer understanding, experience design and technical implementation to create commerce experiences that are easier to use, built to convert and ready to grow with the business.',
+    steps: [
+      {
+        name: 'Map',
+        text: 'Understand the customer, current journey, friction points, questions, decision barriers and growth opportunities.',
+      },
+      {
+        name: 'Design',
+        text: 'Define the experience, information hierarchy, content structure, interaction patterns and conversion path.',
+      },
+      {
+        name: 'Build',
+        text: 'Implement or improve the commerce experience across the relevant customer journey — from product discovery and product pages to cart, checkout and post-purchase touchpoints.',
+      },
+      {
+        name: 'Optimize',
+        text: 'Measure behavior, remove friction, test improvements and continuously increase clarity, confidence, conversion and customer value.',
+      },
+    ],
+  },
+  work: {
+    headline: 'Commerce experiences applied to real businesses.',
+    empty: 'Real capability examples will appear here as related case studies are published.',
+  },
+  systemFit: {
+    headline: 'Better experiences.',
+    headlineAccent: 'A stronger whole.',
+    copy:
+      'Commerce Experience becomes more powerful when it connects with the rest of the growth system — supported by clear positioning, reliable technology, strong creative, the right discovery channels and retention systems that extend customer value beyond the first purchase.',
+    /* Owner-supplied relations; the first two condensed to fit the diagram's node lines. */
+    relations: {
+      'brand-positioning': 'Gives the experience clear positioning, product meaning and reasons to choose.',
+      'digital-systems': 'Provides the platform, integrations and data a reliable commerce experience needs.',
+      'creative-ugc': 'Brings product value, proof and customer understanding into the buying journey.',
+      'discovery-traffic': 'Brings the right audience into an experience designed to help them move forward.',
+      'retention-growth': 'Extends the customer journey beyond the first transaction into repeat value.',
+    },
+  },
+  cta: {
+    eyebrow: 'Ready to improve your commerce experience',
+    headline: 'Let’s turn more interest into customers.',
+    copy:
+      'Start with a focused Growth Review and get a clearer view of where your commerce experience is creating friction — and what deserves attention first.',
+  },
+}
+
+export const RETENTION_GROWTH: CapabilityDetail = {
+  slug: 'retention-growth',
+  systemModule: 'Growth',
+  hero: {
+    headline: 'More customers.',
+    headlineAccent: 'Greater value over time.',
+    summary:
+      'We help businesses keep more customers, increase repeat value and build long-term growth through retention strategy, lifecycle experiences and data-informed engagement.',
+    visualLabel:
+      'Retention & Growth, highlighted as the active module of the Hbee system, connected to Experience, Creative, Brand, Technology and Discovery.',
+  },
+  opportunity: {
+    headline: 'Growth is stronger when customers stay.',
+    copy:
+      'Acquiring new customers is important, but long-term growth becomes stronger when businesses also keep customers, increase the value created over time and build relationships that reduce dependence on constantly finding the next buyer.',
+    outcomes: [
+      { name: 'Retention', text: 'Keep more of the customers the business has already worked to acquire.' },
+      {
+        name: 'Lifetime Value',
+        text: 'Increase the value each customer creates over time through stronger repeat engagement and purchase behavior.',
+      },
+      {
+        name: 'Sustainable Growth',
+        text: 'Build more predictable growth by combining new customer acquisition with stronger repeat value and ongoing customer relationships.',
+      },
+    ],
+  },
+  approach: {
+    headline: 'From customer relationships',
+    headlineAccent: 'to lasting growth.',
+    copy:
+      'We combine customer understanding, lifecycle strategy, creative context and technology to build retention systems that help businesses stay connected, increase repeat value and create more predictable growth.',
+    steps: [
+      {
+        name: 'Analyze',
+        text: 'Review current customer behavior, retention patterns, lifecycle touchpoints, segmentation, repeat purchase behavior and growth opportunities.',
+      },
+      {
+        name: 'Strategy',
+        text: 'Define retention priorities, customer segments, lifecycle journeys, engagement opportunities, offers, content direction and measurement.',
+      },
+      {
+        name: 'Implement',
+        text: 'Build or improve the required retention systems, lifecycle experiences, customer communication, offers and automation across the relevant customer journey.',
+      },
+      {
+        name: 'Optimize',
+        text: 'Measure customer behavior and repeat-value performance, learn from results and refine journeys, segments, content, offers and automation over time.',
+      },
+    ],
+  },
+  work: {
+    headline: 'Retention and growth applied to real businesses.',
+    empty: 'Real capability examples will appear here as related case studies are published.',
+  },
+  systemFit: {
+    headline: 'Stronger customers.',
+    headlineAccent: 'A stronger whole.',
+    copy:
+      'Retention & Growth becomes more valuable when it connects with the rest of the growth system — supported by clear positioning, reliable technology, relevant creative, effective discovery and a commerce experience that gives customers reasons to return.',
+    /* Owner-supplied relations, condensed (meaning unchanged) to fit the diagram's node lines. */
+    relations: {
+      'brand-positioning': 'Gives customers a clear reason to stay connected and keep choosing the brand.',
+      'digital-systems': 'Provides the customer data, integrations and automation retention depends on.',
+      'creative-ugc': 'Brings relevant stories, offers and communication beyond the first purchase.',
+      'discovery-traffic': 'Brings in qualified new customers, so retention can grow the value of acquisition.',
+      'commerce-experience': 'Creates the buying and post-purchase experience that gives customers reasons to return.',
+    },
+  },
+  cta: {
+    eyebrow: 'Ready to grow longer together',
+    headline: 'Let’s build a more valuable customer base.',
+    copy:
+      'Start with a focused Growth Review and get a clearer view of how customer retention, repeat value and lifecycle systems can support more predictable growth.',
+  },
+}
+
+/** Capabilities that have a detail page — the complete six-capability set (Phase 10). */
 export const CAPABILITY_DETAILS: Record<string, CapabilityDetail> = {
   [BRAND_POSITIONING.slug]: BRAND_POSITIONING,
   [DIGITAL_SYSTEMS.slug]: DIGITAL_SYSTEMS,
   [CREATIVE_UGC.slug]: CREATIVE_UGC,
   [DISCOVERY_TRAFFIC.slug]: DISCOVERY_TRAFFIC,
+  [COMMERCE_EXPERIENCE.slug]: COMMERCE_EXPERIENCE,
+  [RETENTION_GROWTH.slug]: RETENTION_GROWTH,
 }
 
 /** Name, group and icon from the Services capability system. */
