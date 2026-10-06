@@ -22,7 +22,7 @@ import { supabase } from '@/lib/supabase'
 const SLUG_PATTERN = /^[a-z0-9_]+(?:-[a-z0-9_]+)*$/
 const RESERVED_SLUGS = new Set(['portfolio'])
 
-function isValidPortfolioSlug(slug: string | null | undefined): slug is string {
+export function isValidPortfolioSlug(slug: string | null | undefined): slug is string {
   return typeof slug === 'string' && SLUG_PATTERN.test(slug) && !RESERVED_SLUGS.has(slug)
 }
 
@@ -32,9 +32,9 @@ if (typeof window !== 'undefined') {
 
 /* ── Shared helpers ─────────────────────────────────────────── */
 
-type Row = Record<string, unknown>
+export type Row = Record<string, unknown>
 
-function text(value: unknown): string | undefined {
+export function text(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined
   const cleaned = value
     .replace(/<[^>]*>/g, ' ')
@@ -45,13 +45,13 @@ function text(value: unknown): string | undefined {
   return cleaned.length ? cleaned : undefined
 }
 
-function truncate(value: string | undefined, max: number): string | undefined {
+export function truncate(value: string | undefined, max: number): string | undefined {
   if (!value || value.length <= max) return value
   const cut = value.slice(0, max)
   return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), max * 0.6)).replace(/[,.;:\s]+$/, '')}…`
 }
 
-function imageUrl(value: unknown): string | undefined {
+export function imageUrl(value: unknown): string | undefined {
   const v = text(value)
   if (!v) return undefined
   if (v.startsWith('/') || /^https:\/\/[^\s]+$/i.test(v)) return v
