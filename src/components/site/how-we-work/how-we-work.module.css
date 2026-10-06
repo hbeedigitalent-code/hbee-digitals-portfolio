@@ -1,0 +1,381 @@
+/* ═════════════════════════════════════════════════════════════════
+   How We Work — process-led. Colours from the --hb-* tones; geometry
+   from the mark. Nothing loops.
+   ═════════════════════════════════════════════════════════════════ */
+.anchor { scroll-margin-top: 1rem; }
+
+.heroLayout,
+.heroVisual { /* hooks for the short-height rule */ }
+@media (min-width: 1024px) and (max-height: 720px) {
+  .heroLayout.heroLayout { padding-top: 1.5rem; }
+  .heroVisual > figure { max-width: 520px; }
+}
+
+/* ═══ Hero — process system ═══ */
+.systemViewport.systemViewport { aspect-ratio: 100 / 92; }
+@container (max-width: 400px) {
+  .systemViewport.systemViewport { aspect-ratio: 100 / 118; }
+}
+.stageNumber {
+  display: block;
+  font-family: var(--hb-font-display);
+  font-size: 1.15em;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+/* The orange signal: a short segment that travels the route once and rests
+   at Optimize. Rest state (no motion) = the segment at the end. */
+.routeSignal {
+  stroke-dasharray: 0.07 1;
+  stroke-dashoffset: -0.93;
+}
+@keyframes procAssemble {
+  from { transform: translate3d(-1.5cqw, 1.5cqw, calc((var(--z) - 4) * 1cqw)); }
+  to { transform: translate3d(0, 0, calc(var(--z) * 1cqw)); }
+}
+@keyframes procFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes procTravel { from { stroke-dashoffset: 0.07; } to { stroke-dashoffset: -0.93; } }
+:global([data-surface='site'][data-motion-ready]) .systemMotion .stageSlot {
+  animation: procAssemble 520ms var(--hb-ease) backwards;
+  animation-delay: calc(80ms + var(--hb-motion-index, 0) * 70ms);
+}
+/* fill BOTH for SVG in the 3D stage (end values = base values). */
+:global([data-surface='site'][data-motion-ready]) .systemMotion .route { animation: procFade 380ms var(--hb-ease) 520ms both; }
+:global([data-surface='site'][data-motion-ready]) .systemMotion .routeSignal { animation: procTravel 1100ms var(--hb-ease-in-out) 760ms both; }
+@media (prefers-reduced-motion: reduce) {
+  .stageSlot, .route, .routeSignal { animation: none !important; }
+}
+
+/* ═══ Growth conditions — diagnostic, not services ═══ */
+.conditionsLabel {
+  margin-bottom: 1rem;
+  font-size: var(--hb-text-eyebrow);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hb-fg-body);
+}
+.conditions { display: grid; gap: 0.75rem; list-style: none; }
+@media (min-width: 640px) { .conditions { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .conditions { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.condition {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 1rem 1.125rem;
+  border: 1px solid var(--hb-border);
+  border-radius: var(--hb-radius-md);
+  background: var(--hb-cloud);
+}
+/* Outline icon tile (diagnostic), deliberately unlike the solid capability tiles. */
+.conditionIcon {
+  display: block;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  padding: 0.5rem;
+  border: 1.5px solid var(--hb-structure-soft);
+  border-radius: 8px 8px 14px 8px;
+  background: var(--hb-white);
+  color: var(--hb-blue);
+}
+
+/* ═══ Five-stage flow (Night) ═══ */
+.flow { position: relative; --node: 3.5rem; --gap: 1.25rem; }
+.flowList { position: relative; display: grid; gap: 2.25rem; list-style: none; }
+.flowStage { position: relative; display: flex; gap: 1.25rem; }
+.flowNode {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: var(--node);
+  height: var(--node);
+  flex: none;
+  place-items: center;
+  border: 1.5px solid var(--hb-electric);
+  border-radius: 12px 12px 20px 12px;
+  background: var(--hb-midnight);
+  font-family: var(--hb-font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  box-shadow: 0 0 1.6rem -0.4rem rgba(29, 110, 255, 0.7);
+}
+.flowNode[data-first] { background: var(--hb-blue); border-color: var(--hb-blue); }
+/* Phones/tablets: a vertical rail node to node. */
+.flowStage:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--node) / 2 - 1px);
+  top: var(--node);
+  bottom: -2.25rem;
+  width: 2px;
+  background: rgba(29, 110, 255, 0.45);
+}
+.flowLine, .flowSignal { display: none; }
+@media (min-width: 1024px) {
+  .flowList { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--gap); }
+  .flowStage {
+    flex-direction: column;
+    padding: 1.25rem;
+    border: 1px solid var(--hb-border);
+    border-radius: var(--hb-radius-md) var(--hb-radius-md) 24px var(--hb-radius-md);
+    background: var(--hb-surface);
+  }
+  .flowStage:not(:last-child)::before { display: none; }
+  /* One line through every node: column width = (100% - 4 gaps) / 5. */
+  .flowLine {
+    position: absolute;
+    z-index: 0;
+    display: block;
+    top: calc(1.25rem + var(--node) / 2 - 1px);
+    left: calc(1.25rem + var(--node) / 2);
+    right: calc((100% - 4 * var(--gap)) / 5 - 1.25rem - var(--node) / 2);
+    height: 2px;
+    background: linear-gradient(90deg, var(--hb-electric), rgba(29, 110, 255, 0.5));
+  }
+  .flowList { z-index: 1; }
+  /* The Signal travels once from Assess to Optimize when revealed, then rests beside Optimize. */
+  .flowSignal {
+    position: absolute;
+    z-index: 2;
+    display: block;
+    top: calc(1.25rem + var(--node) / 2 - 7px);
+    left: calc(100% - (100% - 4 * var(--gap)) / 5 + 1.25rem + var(--node) + 10px);
+    width: 26px;
+    height: 14px;
+    border-radius: 3px 999px 999px 3px;
+    background: var(--hb-orange);
+    box-shadow: 0 0 18px rgba(252, 93, 28, 0.55);
+    transition: left 1800ms var(--hb-ease-in-out) 400ms;
+  }
+  :global([data-surface='site'][data-motion-ready]) :global([data-revealed='false']) .flowSignal {
+    left: calc(1.25rem + var(--node) + 10px);
+  }
+}
+
+/* ═══ Capabilities enter where needed ═══ */
+.capGroups { display: grid; gap: 1.25rem; }
+@media (min-width: 768px) { .capGroups { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.capGroupName {
+  margin-bottom: 0.75rem;
+  font-family: var(--hb-font-body);
+  font-size: var(--hb-text-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hb-link);
+}
+.capTiles { display: grid; gap: 0.625rem; list-style: none; }
+.capTile {
+  display: flex;
+  min-height: 3.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 10px 10px 18px 10px;
+  background: linear-gradient(160deg, #3b82ff, var(--hb-blue) 58%, var(--hb-deep-blue));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 3px 0 #052a75, 0 12px 20px -12px rgba(29, 110, 255, 0.7);
+  font-family: var(--hb-font-display);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #ffffff;
+  transition: transform var(--hb-dur-fast) var(--hb-ease);
+}
+.capTile:hover { transform: translateY(-2px); }
+.capTileIcon { display: block; width: 1.25rem; height: 1.25rem; flex: none; }
+.rail {
+  margin-top: 1.75rem;
+  padding: 1.25rem 1.25rem 1rem;
+  border: 1px dashed var(--hb-structure-soft);
+  border-radius: var(--hb-radius-md);
+}
+.railStages {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  list-style: none;
+}
+.railStages::before {
+  content: '';
+  position: absolute;
+  top: 0.75rem;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: var(--hb-structure-soft);
+}
+.railStage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--hb-fg);
+  text-align: center;
+}
+.railNode {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border-radius: 5px 5px 9px 5px;
+  background: var(--hb-blue);
+  font-size: 0.75rem;
+  color: #ffffff;
+}
+.railNote { margin-top: 1rem; font-size: 0.875rem; color: var(--hb-fg-body); text-align: center; }
+
+/* ═══ Working together ═══ */
+.principles { display: grid; gap: 2rem var(--hb-grid-gap); list-style: none; }
+@media (min-width: 768px) { .principles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1152px) { .principles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.principle { position: relative; padding-top: 1.25rem; border-top: 1px solid var(--hb-border); }
+.principle::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 0;
+  width: 2.5rem;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--hb-structure);
+}
+
+/* ═══ Client Portal ═══ */
+.portalSection { border-top: 1px solid var(--hb-border); }
+.benefits { display: grid; gap: 1.25rem; margin-top: 2rem; list-style: none; }
+.benefit { position: relative; padding-left: 1.25rem; }
+.benefit::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.45rem;
+  width: 8px;
+  height: 8px;
+  border-radius: 1px 1px 4px 1px;
+  background: var(--hb-structure);
+}
+
+/* A restrained, truthful illustration of the real dashboard structure. */
+.portal {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--hb-border);
+  border-radius: var(--hb-radius-md) var(--hb-radius-md) 28px var(--hb-radius-md);
+  background: var(--hb-white);
+  box-shadow: var(--hb-shadow-2), 0 30px 60px -40px rgba(7, 51, 143, 0.45);
+}
+.portalChrome {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--hb-border);
+  background: var(--hb-cloud);
+}
+.portalChrome span { width: 9px; height: 9px; border-radius: 50%; background: var(--hb-border); }
+.portalChrome p { margin-left: 0.75rem; font-size: 0.8125rem; font-weight: 600; color: var(--hb-fg-body); }
+.portalBody { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr); }
+.portalNav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.875rem 0.625rem;
+  border-right: 1px solid var(--hb-border);
+  font-size: 0.8125rem;
+  color: var(--hb-fg-body);
+}
+.portalNav span { padding: 0.375rem 0.625rem; border-radius: 6px; }
+.portalNavActive { background: var(--hb-mist); font-weight: 600; color: var(--hb-link); }
+.portalMain { min-width: 0; padding: 1.125rem; }
+.portalTitle { font-family: var(--hb-font-display); font-size: 1.125rem; font-weight: 700; color: var(--hb-fg); }
+.portalStats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.625rem; margin-top: 0.875rem; }
+@media (min-width: 768px) { .portalStats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.portalStat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.75rem;
+  border: 1px solid var(--hb-border);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  color: var(--hb-fg-body);
+}
+.portalStat span { font-family: var(--hb-font-display); font-size: 1.25rem; font-weight: 700; color: var(--hb-fg); }
+.portalProject { margin-top: 0.875rem; padding: 0.875rem; border: 1px solid var(--hb-border); border-radius: 8px; }
+.portalProjectHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--hb-fg);
+}
+.portalPill { padding: 0.125rem 0.625rem; border-radius: 999px; background: var(--hb-mist); font-size: 0.75rem; color: var(--hb-link); }
+.portalProgress { height: 6px; margin-top: 0.75rem; overflow: hidden; border-radius: 999px; background: var(--hb-mist); }
+.portalProgress span { display: block; width: var(--p); height: 100%; border-radius: inherit; background: var(--hb-blue); }
+.portalMilestones { display: grid; gap: 0.375rem; margin-top: 0.75rem; list-style: none; font-size: 0.8125rem; color: var(--hb-fg-body); }
+.portalMilestones li { display: flex; align-items: center; gap: 0.5rem; }
+.portalMilestones li::before { content: ''; width: 8px; height: 8px; border: 1.5px solid var(--hb-structure-soft); border-radius: 2px; }
+.portalMilestones li[data-done]::before { border-color: var(--hb-blue); background: var(--hb-blue); }
+.portalNote { padding: 0.5rem 1rem; border-top: 1px solid var(--hb-border); font-size: 0.75rem; color: var(--hb-fg-muted); text-align: right; }
+@media (max-width: 639px) {
+  .portalBody { grid-template-columns: minmax(0, 1fr); }
+  .portalNav { flex-direction: row; overflow: hidden; border-right: 0; border-bottom: 1px solid var(--hb-border); white-space: nowrap; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flowSignal, .capTile { transition: none; }
+}
+
+/* ═══ Phase 13.1 — MOBILE ONLY: lighter process system ═══════════════
+   Hero (phone container ≤ 400px): two-column zig-zag with no overlap (slot
+   values in ProcessSystem.tsx), shallower extrusion and gentler tilt, so
+   every stage face and label is clear. Desktop/tablet never match. */
+.processStage,
+.stageModule { /* hooks */ }
+@container (max-width: 400px) {
+  .processStage.processStage { transform: rotateX(8deg) rotateY(10deg) rotateZ(-1deg); }
+  .stageModule.stageModule { --hbm-step: 0.09em; }
+}
+
+/* Process section (< 640px): small stage node → clear title → readable
+   explanation on one continuous rail; restrained depth; one orange segment
+   on the rail into Optimize. Tablet (640–1023) and desktop unchanged. */
+@media (max-width: 639px) {
+  .flow { --node: 2.5rem; }
+  .flowList { gap: 1.75rem; }
+  .flowStage { gap: 1rem; }
+  .flowNode {
+    border-width: 1px;
+    border-radius: 9px 9px 14px 9px;
+    font-size: 0.875rem;
+    box-shadow: 0 0 0.9rem -0.35rem rgba(29, 110, 255, 0.6);
+  }
+  .flowStage h3 { font-size: 1.125rem; }
+  .flowStage:not(:last-child)::before {
+    bottom: -1.75rem;
+    width: 1.5px;
+    left: calc(var(--node) / 2 - 0.75px);
+    background: rgba(29, 110, 255, 0.4);
+  }
+  .flowStage:nth-last-child(2)::after {
+    content: '';
+    position: absolute;
+    left: calc(var(--node) / 2 - 2px);
+    bottom: -1.25rem;
+    width: 4px;
+    height: 0.75rem;
+    border-radius: 999px;
+    background: var(--hb-orange);
+    box-shadow: 0 0 10px rgba(252, 93, 28, 0.55);
+  }
+}
