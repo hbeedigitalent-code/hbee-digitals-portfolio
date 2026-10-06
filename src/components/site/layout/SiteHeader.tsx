@@ -14,8 +14,12 @@ import { SiteNav } from './SiteNav'
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-hb-border before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:bg-[rgba(247,249,252,0.88)] before:backdrop-blur-md before:content-['']">
-      <div className="hb-container flex h-[var(--hb-header-height)] items-center justify-between gap-6">
-        <HbeeLogo priority />
+      {/* Compact desktop: tighter gaps so the full navigation stays on one line —
+          1152–1279px one step, 1024–1151px one more. 1280px+ is unchanged. */}
+      <div className="hb-container flex h-[var(--hb-header-height)] items-center justify-between gap-6 lg:max-[1279px]:gap-4 lg:max-[1151px]:gap-3">
+        <div className="shrink-0">
+          <HbeeLogo priority className="whitespace-nowrap" />
+        </div>
         <SiteNav />
       </div>
     </header>

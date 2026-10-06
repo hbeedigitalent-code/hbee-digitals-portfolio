@@ -407,3 +407,14 @@
   .workCard { transition: none; }
   .faq[open] .faqAnswer { animation: none; }
 }
+
+/* ── Short desktop viewports (≥1024px wide AND ≤720px tall — e.g. a
+   1366×768 laptop at 100% zoom, content area ~620–650px) ───────────────
+   Less top padding and a modestly smaller system (560 → 500px), so the
+   centred editorial block rises and both CTAs stay in view. Normal/tall
+   desktop, tablet and phones are untouched. */
+.heroGrid { /* hook for the rule below */ }
+@media (min-width: 1024px) and (max-height: 720px) {
+  .heroGrid.heroGrid { padding-top: 1.5rem; }
+  .heroVisual > figure { max-width: 500px; }
+}

@@ -229,3 +229,18 @@
   .trackSignal { transition: none; }
   .media img { transition: none; }
 }
+
+/* ── Short desktop viewports (e.g. a 1366×768 laptop at 100% zoom, whose
+   browser content area is only ~620–650px tall) ─────────────────────────
+   Threshold: ≥1024px wide AND ≤720px tall. Normal/tall desktop (768px+),
+   tablet and phones are untouched. Spacing only — the H1, copy and the
+   cluster keep their size; the cluster may run below the fold. */
+.heroLayout,
+.heroText { /* hooks for the rule below */ }
+@media (min-width: 1024px) and (max-height: 720px) {
+  .heroLayout.heroLayout { padding-top: 2rem; }
+  .heroText.heroText { margin-top: 0.5rem; }
+  .heroText h1 { margin-top: 1.25rem; }
+  .heroText h1 + p { margin-top: 1.25rem; }
+  .heroText > div:last-child { margin-top: 1.75rem; }
+}

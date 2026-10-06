@@ -29,7 +29,7 @@ export function ServicesHero() {
         </svg>
       </div>
 
-      <SiteGrid className="items-center gap-y-12 pb-[var(--hb-space-section-compact)] pt-[clamp(2.5rem,5vw,4.5rem)] lg:pt-12">
+      <SiteGrid className={`items-center gap-y-12 pb-[var(--hb-space-section-compact)] pt-[clamp(2.5rem,5vw,4.5rem)] lg:pt-12 ${styles.heroGrid}`}>
         <div className="col-span-4 md:col-span-8 lg:col-span-7 xl:col-span-6">
           <p className={homeStyles.eyebrow}>
             <span aria-hidden="true" className={homeStyles.eyebrowSignal} />

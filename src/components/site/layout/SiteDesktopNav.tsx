@@ -107,14 +107,14 @@ export function SiteDesktopNav({ pathname }: { pathname: string }) {
         }
       }}
     >
-      <ul className="flex items-center gap-1">
+      <ul className="flex items-center gap-1 lg:max-[1279px]:gap-0.5">
         {PRIMARY_NAV.map((item) => {
           const menu = NAV_MENUS[item.href]
           const current = isActive(pathname, item.href)
           const open = active === item.href
           const triggerClasses = cn(
-            'group/trigger relative inline-flex min-h-[44px] items-center gap-1.5 px-3.5 text-[0.9375rem] font-medium text-hb-fg-body transition-colors duration-[var(--hb-dur-fast)] hover:text-hb-fg',
-            'after:absolute after:inset-x-3.5 after:bottom-2 after:h-[2px] after:origin-left after:scale-x-0 after:bg-hb-structure after:transition-transform after:duration-[var(--hb-dur-base)] after:ease-[var(--hb-ease)] hover:after:scale-x-100',
+            'group/trigger relative inline-flex min-h-[44px] items-center gap-1.5 whitespace-nowrap px-3.5 text-[0.9375rem] font-medium text-hb-fg-body transition-colors duration-[var(--hb-dur-fast)] hover:text-hb-fg lg:max-[1279px]:gap-1 lg:max-[1279px]:px-2.5 lg:max-[1151px]:px-2',
+            'after:absolute after:inset-x-3.5 lg:max-[1279px]:after:inset-x-2.5 lg:max-[1151px]:after:inset-x-2 after:bottom-2 after:h-[2px] after:origin-left after:scale-x-0 after:bg-hb-structure after:transition-transform after:duration-[var(--hb-dur-base)] after:ease-[var(--hb-ease)] hover:after:scale-x-100',
             (current || open) && 'text-hb-fg after:scale-x-100',
           )
 

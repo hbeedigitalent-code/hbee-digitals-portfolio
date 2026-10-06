@@ -112,14 +112,14 @@ export function SiteNav() {
     <>
       <SiteDesktopNav pathname={pathname} />
 
-      <div className="flex items-center gap-2 lg:gap-5">
+      <div className="flex shrink-0 items-center gap-2 lg:gap-5 lg:max-[1279px]:gap-3 lg:max-[1151px]:gap-2">
         <Link
           href={UTILITY_NAV.href}
-          className="hidden min-h-[44px] items-center text-[0.875rem] font-medium text-hb-fg-body hover:text-hb-fg lg:inline-flex"
+          className="hidden min-h-[44px] items-center whitespace-nowrap text-[0.875rem] font-medium text-hb-fg-body hover:text-hb-fg lg:inline-flex"
         >
           {UTILITY_NAV.label}
         </Link>
-        <SiteButton href={PRIMARY_CTA.href} variant="conversion" className="hidden sm:inline-flex">
+        <SiteButton href={PRIMARY_CTA.href} variant="conversion" className="hidden sm:inline-flex lg:max-[1279px]:px-4">
           {PRIMARY_CTA.label}
         </SiteButton>
         <button

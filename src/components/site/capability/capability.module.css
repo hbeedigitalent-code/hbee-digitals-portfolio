@@ -1,0 +1,429 @@
+/* ═════════════════════════════════════════════════════════════════
+   Capability-detail template details that are awkward as utilities.
+   Colours come from the --hb-* tones; geometry from the mark. No
+   continuous animation anywhere.
+   ═════════════════════════════════════════════════════════════════ */
+
+/* In-page targets. globals.css already gives html scroll-padding-top: 80px
+   (the header); scroll margins ADD to it — this is breathing room only. */
+.anchor {
+  scroll-margin-top: 1rem;
+}
+
+/* ═══ 01 HERO — focus system ═══════════════════════════════════════
+   Reuses the module group's 3D classes; these rules only change the stage
+   proportions, the supporting material and the motion. Doubled class
+   selectors win over the module stylesheet regardless of load order. */
+
+.focusViewport.focusViewport { aspect-ratio: 100 / 92; }
+
+/* Supporting modules: same geometry, lighter material, set back. Colour
+   variables only — opacity/filter would flatten the 3D depth stack.
+   The face lightens toward the top; the lower face, where the white label
+   sits, stays deep enough for AA text contrast (#3f6fdd ≈ 4.6:1). */
+.supportModule.supportModule {
+  --hbm-step: 0.15em;
+  --hbm-face-a: #9ab9fb;
+  --hbm-face-b: #6d93f0;
+  --hbm-face-c: #3f6fdd;
+  --hbm-face-d: #3664cf;
+  --hbm-depth-front: #5b80d6;
+  --hbm-depth-back: #3858a8;
+}
+
+.focusSignalLink {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+@container (max-width: 400px) {
+  .focusViewport.focusViewport { aspect-ratio: 100 / 120; }
+}
+
+/* FOCUS → CONNECT → SETTLE. Same gate and fill-mode rules as the homepage
+   hero: nothing is hidden without data-motion-ready, the rest state is the
+   untouched composition, nothing runs afterwards (ends ≈ 1.15s). */
+@keyframes capFocus {
+  from { transform: translate3d(0, 1.2cqw, calc((var(--z) - 6) * 1cqw)); }
+  to { transform: translate3d(0, 0, calc(var(--z) * 1cqw)); }
+}
+@keyframes capSettle {
+  from { transform: translate3d(calc(var(--ax) * 1cqw), calc(var(--ay) * 1cqw), calc((var(--z) - 3) * 1cqw)); }
+  to { transform: translate3d(0, 0, calc(var(--z) * 1cqw)); }
+}
+@keyframes capFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes capDraw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+:global([data-surface='site'][data-motion-ready]) .focusMotion .focusFeatured {
+  animation: capFocus 560ms var(--hb-ease) 60ms backwards;
+}
+:global([data-surface='site'][data-motion-ready]) .focusMotion .focusSpine {
+  animation: capFocus 520ms var(--hb-ease) 160ms backwards;
+}
+:global([data-surface='site'][data-motion-ready]) .focusMotion .focusSupport {
+  animation: capSettle 520ms var(--hb-ease) backwards;
+  animation-delay: calc(200ms + (var(--hb-motion-index, 2) - 2) * 45ms);
+}
+/* fill BOTH for SVG in the 3D stage (end values = base values). */
+:global([data-surface='site'][data-motion-ready]) .focusMotion .focusLinks {
+  animation: capFade 360ms var(--hb-ease) 560ms both;
+}
+:global([data-surface='site'][data-motion-ready]) .focusMotion .focusSignalLink {
+  animation: capDraw 380ms var(--hb-ease-in-out) 760ms both;
+}
+@container (max-width: 400px) {
+  :global([data-surface='site'][data-motion-ready]) .focusMotion .focusSupport {
+    animation-duration: 440ms;
+    animation-delay: calc(140ms + (var(--hb-motion-index, 2) - 2) * 30ms);
+  }
+  :global([data-surface='site'][data-motion-ready]) .focusMotion .focusLinks { animation-delay: 420ms; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focusFeatured,
+  .focusSpine,
+  .focusSupport,
+  .focusLinks,
+  .focusSignalLink {
+    animation: none !important;
+  }
+}
+
+/* ═══ 02 OPPORTUNITY — three outcomes under one structural rule ═════ */
+.outcomes {
+  display: grid;
+  gap: 2.25rem;
+  list-style: none;
+}
+@media (min-width: 768px) {
+  .outcomes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--hb-grid-gap);
+  }
+}
+.outcome {
+  position: relative;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--hb-border);
+}
+/* A short structural segment and its node mark each outcome on the rule. */
+.outcome::before,
+.outcome::after {
+  content: '';
+  position: absolute;
+  left: 0;
+}
+.outcome::before {
+  top: -2px;
+  width: 2.75rem;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--hb-structure);
+}
+.outcome::after {
+  top: -5px;
+  left: 2.75rem;
+  width: 9px;
+  height: 9px;
+  border-radius: 1px 1px 4px 1px;
+  background: var(--hb-ice);
+}
+
+/* ═══ 03 WHAT WE DO — one framed workstream panel ══════════════════ */
+.stepsLabel {
+  margin-bottom: 1rem;
+  font-family: var(--hb-font-body);
+  font-size: var(--hb-text-eyebrow);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hb-fg-body);
+}
+.steps {
+  display: grid;
+  list-style: none;
+  border: 1px solid var(--hb-border);
+  border-radius: var(--hb-radius-md) var(--hb-radius-md) 28px var(--hb-radius-md);
+  background: var(--hb-white);
+  box-shadow: var(--hb-shadow-2);
+}
+.step {
+  position: relative;
+  display: flex;
+  gap: 1.25rem;
+  padding: 1.5rem;
+}
+.step + .step { border-top: 1px solid var(--hb-border); }
+.stepNumber {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: none;
+  place-items: center;
+  border: 1.5px solid var(--hb-structure);
+  border-radius: 8px 8px 14px 8px;
+  background: var(--hb-white);
+  font-family: var(--hb-font-display);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--hb-blue);
+}
+/* Phones: the four steps read as one sequence, number to number. */
+@media (max-width: 767px) {
+  .step:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: calc(1.5rem + 1.375rem - 1px);
+    top: calc(1.5rem + 2.75rem);
+    bottom: -1.5rem;
+    width: 2px;
+    background: var(--hb-structure-soft);
+  }
+}
+/* ≥768: 2 × 2 inside the same frame. */
+@media (min-width: 768px) {
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .step + .step { border-top: 0; }
+  .step:nth-child(even) { border-left: 1px solid var(--hb-border); }
+  .step:nth-child(n + 3) { border-top: 1px solid var(--hb-border); }
+  .step { padding: 1.75rem; }
+}
+
+/* ═══ 05 SYSTEM FIT — module → link → bus → five nodes ════════════ */
+.fit {
+  --bus-gap: 1.75rem;          /* bus → icon */
+  --icon-c: 1.875rem;          /* node padding (.625rem) + icon centre (1.25rem) */
+  display: grid;
+  align-items: center;
+}
+.fitSource {
+  position: relative;
+  z-index: 1;
+  width: min(14rem, 72%);
+  margin-left: -1.75rem;       /* the standalone module sits 17% inside its box */
+}
+.fitLink {
+  position: relative;
+  display: block;
+  width: 2px;
+  height: 2.25rem;
+  margin-left: 0;
+  background: var(--hb-structure);
+  transform-origin: top;
+  transition: transform 420ms var(--hb-ease) 120ms;
+}
+.fitSignal {
+  position: absolute;
+  top: -4px;
+  left: -10px;
+  width: 22px;
+  height: 12px;
+  border-radius: 2px 999px 999px 2px;
+  background: var(--hb-orange);
+  box-shadow: 0 0 14px rgba(252, 93, 28, 0.5);
+}
+@media (min-width: 768px) {
+  .fit { grid-template-columns: minmax(0, 14rem) 3rem minmax(0, 1fr); }
+  .fitSource { width: auto; margin-left: 0; }
+  .fitLink {
+    width: auto;
+    height: 2px;
+    margin-left: -1.25rem;     /* start at the module's visible edge */
+    transform-origin: left;
+  }
+  .fitSignal { top: -5px; left: -6px; }
+}
+
+.fitNodes {
+  position: relative;
+  padding-left: var(--bus-gap);
+  list-style: none;
+}
+.fitNode {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding-block: 0.625rem;
+}
+/* Bus segment: this node's centre to the next node's centre. */
+.fitNode:not(:last-child)::before,
+.fitNode::after {
+  content: '';
+  position: absolute;
+  background: var(--hb-structure);
+  transition: transform 360ms var(--hb-ease);
+  transition-delay: calc(420ms + var(--hb-motion-index, 0) * 90ms);
+}
+.fitNode:not(:last-child)::before {
+  left: calc(var(--bus-gap) * -1);
+  top: var(--icon-c);
+  bottom: calc(var(--icon-c) * -1);
+  width: 2px;
+  transform-origin: top;
+}
+/* Branch: bus → node. */
+.fitNode::after {
+  left: calc(var(--bus-gap) * -1);
+  top: calc(var(--icon-c) - 1px);
+  width: var(--bus-gap);
+  height: 2px;
+  transform-origin: left;
+}
+/* Phones: the link comes down from the module onto the top of the bus. */
+@media (max-width: 767px) {
+  .fitNodes::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: var(--icon-c);
+    width: 2px;
+    background: var(--hb-structure);
+  }
+}
+.fitIcon {
+  display: block;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: none;
+  padding: 0.6rem;
+  border-radius: 6px 6px 14px 6px;
+  background: linear-gradient(160deg, #3b82ff, var(--hb-blue) 58%, var(--hb-deep-blue));
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 3px 0 #052a75,
+    0 10px 18px -8px rgba(29, 110, 255, 0.5);
+}
+.fitGroup {
+  display: block;
+  margin-top: 0.125rem;
+  font-family: var(--hb-font-body);
+  font-size: var(--hb-text-eyebrow);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hb-fg-body);
+}
+
+/* Desktop (≥1152 — the template's desktop breakpoint, shared with the
+   min-[1152px] grid spans in the section components): the diagram owns the
+   right half of the section — larger source module, longer link, larger
+   nodes, centred on the copy column, over a faint system field. Columns are
+   fluid between 1152 and 1440 so the diagram fits the narrower desktop.
+   Phones/tablets keep the composition above. */
+@media (min-width: 1152px) {
+  .fit {
+    --bus-gap: 2.25rem;
+    --icon-c: 2.125rem;          /* node padding (.625rem) + icon centre (1.5rem) */
+    position: relative;
+    grid-template-columns: minmax(0, clamp(12.5rem, 19.4vw - 1.5rem, 16rem)) clamp(2.5rem, 5.56vw - 1.5rem, 3.5rem) minmax(0, 1fr);
+    padding-left: 0.5rem;
+  }
+  /* Faint field: no border, no card — just a soft plane the system sits on. */
+  .fit::before {
+    content: '';
+    position: absolute;
+    inset: -2.5rem -1.5rem -2.5rem -1.25rem;
+    z-index: -1;
+    border-radius: var(--hb-radius-lg) var(--hb-radius-lg) var(--hb-radius-sweep) var(--hb-radius-lg);
+    background:
+      radial-gradient(42% 60% at 22% 50%, rgba(207, 224, 255, 0.85), rgba(234, 242, 255, 0) 70%),
+      linear-gradient(120deg, rgba(234, 242, 255, 0.55), rgba(234, 242, 255, 0.15));
+    pointer-events: none;
+  }
+  .fitLink { margin-left: -1.75rem; height: 3px; }
+  .fitSignal { top: -5.5px; left: -8px; width: 28px; height: 14px; }
+  .fitNode {
+    gap: 1rem;
+    padding-block: 0.625rem;
+  }
+  .fitNode::after { height: 3px; top: calc(var(--icon-c) - 1.5px); }
+  .fitNode:not(:last-child)::before { width: 3px; left: calc(var(--bus-gap) * -1 - 0.5px); }
+  .fitIcon {
+    width: 3rem;
+    height: 3rem;
+    padding: 0.75rem;
+    border-radius: 8px 8px 16px 8px;
+  }
+  .fitNode h3 { font-size: 1.1875rem; line-height: 1.35; }
+  .fitNode p { font-size: 0.9375rem; text-wrap: wrap; }
+  /* Group sits on the name line, so each node reads in two lines. */
+  .fitGroup { display: inline-block; margin: 0 0 0 0.75rem; vertical-align: 0.12em; }
+}
+
+/* CONNECT once, when the diagram is revealed. */
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='false']) .fitLink { transform: scaleY(0); }
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='false']) .fitNode:not(:last-child)::before { transform: scaleY(0); }
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='false']) .fitNode::after { transform: scaleX(0); }
+@media (min-width: 768px) {
+  :global([data-surface='site'][data-motion-ready]) :global([data-revealed='false']) .fitLink { transform: scaleX(0); }
+}
+
+/* ═══ 06 CTA — restrained structural geometry ═════════════════════ */
+.ctaGeometry {
+  position: absolute;
+  top: 50%;
+  right: max(-4rem, -4vw);
+  z-index: -1;
+  width: clamp(16rem, 30vw, 27rem);
+  aspect-ratio: 1;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.ctaGlyph {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.1;
+}
+.ctaGlyph2 { transform: translate(-1.5rem, 1.5rem); opacity: 0.18; }
+.ctaGlyph3 { transform: translate(-3rem, 3rem); opacity: 0.32; }
+@media (max-width: 1023px) {
+  .ctaGeometry { top: auto; bottom: -3rem; right: -5rem; width: 15rem; transform: none; }
+  .ctaGlyph { opacity: 0.1; }
+  .ctaGlyph2 { opacity: 0.16; }
+  .ctaGlyph3 { opacity: 0.3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fitLink,
+  .fitNode::before,
+  .fitNode::after { transition: none; }
+}
+
+/* ═══ 01 HERO — short desktop viewports ══════════════════════════════
+   ≥1024px wide AND ≤720px tall (e.g. a 1366×768 laptop at 100% zoom,
+   content area ~620–650px): less top padding and a modestly smaller focus
+   system (600 → 540px, uniform — the featured module keeps its dominance),
+   so the centred editorial block rises and both CTAs stay in view. */
+.heroGrid,
+.heroVisual { /* hooks for the rule below */ }
+@media (min-width: 1024px) and (max-height: 720px) {
+  .heroGrid.heroGrid { padding-top: 1.5rem; }
+  .heroVisual > figure { max-width: 540px; }
+}
+
+/* Long two-line headlines (content: hero.longHeadline) wrap to a 4-line H1.
+   On short desktop viewports those heroes tighten their vertical rhythm —
+   spacing only, the H1 keeps its size — so both CTAs stay in view. Heroes
+   without the flag are unaffected. */
+.heroLong { /* hook for the rule below */ }
+@media (min-width: 1024px) and (max-height: 720px) {
+  .heroGrid.heroLong { padding-top: 1rem; }
+  .heroLong h1 { margin-top: 1rem; }
+  .heroLong h1 + p { margin-top: 0.75rem; }
+  .heroLong h1 + p + div { margin-top: 1.125rem; }
+}
