@@ -397,3 +397,8 @@
 .outcome { padding-left: 1.25rem; border-left: 3px solid var(--hb-structure); }
 
 @media (prefers-reduced-motion: reduce) { .liveButton { transition: none; } }
+
+/* Phase 14.1 — filtered-out projects must not render. Grid items carry the
+   `flex` utility, whose display beats the browser's [hidden] rule; this
+   restores it for the Work grid only (not a global rule). */
+.grid > [hidden] { display: none !important; }

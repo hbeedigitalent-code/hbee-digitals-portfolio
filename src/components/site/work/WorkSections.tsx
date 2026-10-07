@@ -98,7 +98,7 @@ export function WorkCollection({ data }: { data: WorkData }) {
           <ul className={styles.grid}>
             {featured && (
               <li data-work-item="" data-view="filtered-only" data-category={featured.categoryKey ?? ''} hidden className="flex">
-                <WorkCard item={featured} />
+                <WorkCard item={featured} priority />
               </li>
             )}
             {rest.map((item, i) => (
@@ -177,10 +177,10 @@ function WorkFeatured({ item }: { item: WorkItem }) {
   )
 }
 
-function WorkCard({ item }: { item: WorkItem }) {
+function WorkCard({ item, priority }: { item: WorkItem; priority?: boolean }) {
   return (
     <article className={cn(homeStyles.mediaHover, styles.card, 'group')}>
-      <Media item={item} sizes="(min-width: 1152px) 30vw, (min-width: 768px) 45vw, 100vw" />
+      <Media item={item} sizes="(min-width: 1152px) 30vw, (min-width: 768px) 45vw, 100vw" priority={priority} />
       <div className="flex flex-1 flex-col p-5 md:p-6">
         <Meta item={item} />
         <h3 className="mt-2 font-hb-display text-[1.25rem] font-bold leading-snug tracking-[-0.015em] text-hb-fg">
