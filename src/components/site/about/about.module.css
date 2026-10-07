@@ -1,0 +1,798 @@
+/* ═════════════════════════════════════════════════════════════════
+   About — the most human page: people, story, belief. Colours from the
+   --hb-* tones; geometry from the mark. Every motion plays once; nothing
+   loops. Reduced motion renders the final composition.
+   ═════════════════════════════════════════════════════════════════ */
+.anchor { scroll-margin-top: 1rem; }
+
+.heroLayout,
+.heroVisual { /* hooks for the short-height rule */ }
+@media (min-width: 1024px) and (max-height: 720px) {
+  .heroLayout.heroLayout { padding-top: 1.5rem; }
+  .heroVisual > figure { max-width: 580px; }
+}
+
+/* ═══ 01 Hero — people system ═══ */
+.people {
+  position: relative;
+  width: 100%;
+  /* Block margins only: the inline margins come from the caller (mx-auto lg:mr-0),
+     which right-aligns the composition in its column on desktop. */
+  margin-block: 0;
+  container-type: inline-size;
+}
+.people::before {
+  content: '';
+  position: absolute;
+  inset: -4% -8% -2% -8%;
+  z-index: -1;
+  background: radial-gradient(closest-side, rgba(207, 224, 255, 0.9), rgba(234, 242, 255, 0.45) 55%, rgba(234, 242, 255, 0));
+  pointer-events: none;
+}
+.peopleStage {
+  --vh: 84;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 100 / 84;
+}
+@container (max-width: 400px) {
+  .peopleStage { --vh: 100; aspect-ratio: 1; }
+}
+/* Placement: x / w in % of the stage width, y / h in stage units of --vh. */
+.frame,
+.heroSlot {
+  --x: var(--dx);
+  --y: var(--dy);
+  --w: var(--dw);
+  --h: var(--dh);
+  position: absolute;
+  left: calc(var(--x) * 1%);
+  top: calc(var(--y) / var(--vh) * 100%);
+  width: calc(var(--w) * 1%);
+}
+@container (max-width: 400px) {
+  .frame,
+  .heroSlot { --x: var(--mx); --y: var(--my); --w: var(--mw); --h: var(--mh); }
+}
+.frame {
+  z-index: 1;
+  height: calc(var(--h) / var(--vh) * 100%);
+  overflow: hidden;
+  border: 4px solid var(--hb-white);
+  border-radius: 18px;
+  background: var(--hb-mist);
+  box-shadow: var(--hb-shadow-2);
+}
+.frameMain { border-radius: 20px 20px clamp(36px, 9cqw, 72px) 20px; }
+.frameSide[data-frame='2'] { z-index: 2; }
+.framePhoto { object-position: 50% 22%; }
+.framePlane {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  --hb-structure: rgba(6, 66, 179, 0.22);
+  background:
+    linear-gradient(rgba(6, 66, 179, 0.06) 1px, transparent 1px) 0 0 / 25% 25%,
+    linear-gradient(90deg, rgba(6, 66, 179, 0.06) 1px, transparent 1px) 0 0 / 25% 25%,
+    linear-gradient(150deg, var(--hb-mist), var(--hb-ice));
+}
+.framePlaneGlyph { width: 42%; height: auto; }
+
+.heroPaths {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.heroPathsMobile { display: none; }
+@container (max-width: 400px) {
+  .heroPathsDesktop { display: none; }
+  .heroPathsMobile { display: block; }
+}
+.heroPath {
+  stroke: var(--hb-electric);
+  stroke-opacity: 0.55;
+  stroke-width: 0.34;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+}
+/* The orange signal: a short segment; rest state = resting at Systems. */
+.heroSignal {
+  stroke: var(--hb-signal);
+  stroke-width: 0.75;
+  stroke-linecap: round;
+  stroke-dasharray: 0.09 1;
+  stroke-dashoffset: -0.91;
+}
+.heroNode {
+  position: absolute;
+  z-index: 2;
+  left: 89%;
+  top: calc(69.5 / 84 * 100%);
+  width: 0.625rem;
+  height: 0.625rem;
+  margin: -0.3125rem 0 0 -0.3125rem;
+  border: 2px solid var(--hb-white);
+  border-radius: 50%;
+  background: var(--hb-electric);
+  box-shadow: 0 0 0 3px rgba(29, 110, 255, 0.18);
+}
+@container (max-width: 400px) {
+  .heroNode { left: 86%; top: 85%; }
+}
+.heroModules { position: absolute; inset: 0; z-index: 3; margin: 0; padding: 0; list-style: none; }
+.heroSlot {
+  --w-num: var(--w);
+  perspective: 80cqw;
+  perspective-origin: 50% 40%;
+}
+.heroSlotStage {
+  transform-style: preserve-3d;
+  transform: rotateX(12deg) rotateY(20deg) rotateZ(-3deg);
+}
+.heroCaption {
+  position: absolute;
+  z-index: 2;
+  left: 63%;
+  top: calc(74 / 84 * 100%);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--hb-fg-body);
+}
+@container (max-width: 560px) {
+  .heroCaption { display: none; }
+}
+
+@keyframes aboutReveal { from { opacity: 0; transform: scale(0.965); } }
+@keyframes aboutShift { from { opacity: 0; transform: translate3d(3cqw, 0, 0); } }
+@keyframes aboutAssemble { from { opacity: 0; transform: translate3d(-2cqw, 2.5cqw, 0); } }
+@keyframes aboutDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes aboutTravel {
+  0% { stroke-dashoffset: 0.09; opacity: 0; }
+  8% { opacity: 1; }
+  100% { stroke-dashoffset: -0.91; opacity: 1; }
+}
+@keyframes aboutFade { from { opacity: 0; } }
+:global([data-surface='site'][data-motion-ready]) .people .frameMain { animation: aboutReveal 700ms var(--hb-ease) 60ms backwards; }
+:global([data-surface='site'][data-motion-ready]) .people .frameSide {
+  animation: aboutShift 640ms var(--hb-ease) backwards;
+  animation-delay: calc(160ms + var(--hb-motion-index, 0) * 110ms);
+}
+:global([data-surface='site'][data-motion-ready]) .people .heroSlot {
+  animation: aboutAssemble 620ms var(--hb-ease) backwards;
+  animation-delay: calc(480ms + var(--hb-motion-index, 0) * 90ms);
+}
+:global([data-surface='site'][data-motion-ready]) .people .heroPath { animation: aboutDraw 700ms var(--hb-ease-in-out) 900ms backwards; }
+:global([data-surface='site'][data-motion-ready]) .people .heroNode { animation: aboutFade 360ms var(--hb-ease) 1300ms backwards; }
+:global([data-surface='site'][data-motion-ready]) .people .heroSignal { animation: aboutTravel 1000ms var(--hb-ease-in-out) 1500ms both; }
+:global([data-surface='site'][data-motion-ready]) .people .heroCaption { animation: aboutFade 600ms var(--hb-ease) 1700ms backwards; }
+
+/* ═══ 02 Who we are ═══ */
+.listLabel {
+  font-size: var(--hb-text-eyebrow);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hb-fg-body);
+}
+.together { margin-top: 1rem; list-style: none; border-bottom: 1px solid var(--hb-border); }
+.togetherItem {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.125rem 0.75rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--hb-border);
+}
+.togetherNode {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 2px 2px 5px 2px;
+  background: var(--hb-blue);
+}
+.togetherName { font-family: var(--hb-font-display); font-weight: 600; color: var(--hb-fg); }
+.togetherText { grid-column: 2; font-size: 0.9375rem; line-height: 1.45; }
+@media (min-width: 640px) {
+  .togetherItem { grid-template-columns: 1.25rem minmax(0, 12rem) minmax(0, 1fr); }
+  .togetherText { grid-column: auto; }
+}
+
+.purpose { position: relative; }
+.purposeMedia,
+.purposePlane {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: 20px 20px var(--hb-radius-sweep) 20px;
+  background: var(--hb-mist);
+}
+@media (min-width: 1152px) {
+  .purposeMedia,
+  .purposePlane { aspect-ratio: 5 / 4.6; }
+}
+.purposeImg { object-position: 50% 30%; }
+.purposePlane {
+  --hb-structure: rgba(6, 66, 179, 0.16);
+  background:
+    linear-gradient(rgba(6, 66, 179, 0.05) 1px, transparent 1px) 0 0 / 12.5% 12.5%,
+    linear-gradient(90deg, rgba(6, 66, 179, 0.05) 1px, transparent 1px) 0 0 / 12.5% 12.5%,
+    radial-gradient(120% 90% at 20% 10%, var(--hb-white), var(--hb-mist) 55%, var(--hb-ice));
+}
+.purposeGlyph { position: absolute; width: 58%; height: auto; left: 10%; top: 8%; }
+.purposeCard {
+  position: relative;
+  width: min(23rem, calc(100% - 1.5rem));
+  margin: -3.5rem 0.75rem 0 auto;
+  padding: 1.5rem 1.5rem 1.625rem;
+  border: 1px solid var(--hb-border);
+  border-radius: 16px 16px 28px 16px;
+  background: var(--hb-white);
+  box-shadow: var(--hb-shadow-2);
+}
+@media (min-width: 768px) {
+  .purposeCard { position: absolute; right: 1.25rem; bottom: 1.25rem; margin: 0; }
+}
+.purposeLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hb-fg-body);
+}
+.purposeLabelSignal { display: block; width: 0.75rem; height: 0.4rem; border-radius: 2px 999px 999px 2px; background: var(--hb-signal); }
+.purposeTitle {
+  margin-top: 0.875rem;
+  font-family: var(--hb-font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: var(--hb-fg);
+}
+.purposeText { margin-top: 0.75rem; font-size: 0.9375rem; line-height: 1.55; }
+
+/* ═══ 03 Beliefs — editorial statements, not a feature grid ═══ */
+.beliefs { display: grid; gap: 0.75rem; margin-top: 2.5rem; list-style: none; }
+@media (min-width: 640px) { .beliefs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.belief {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.125rem 1.25rem;
+  border: 1px solid var(--hb-border);
+  border-radius: var(--hb-radius-md) var(--hb-radius-md) 22px var(--hb-radius-md);
+  background: var(--hb-white);
+}
+.beliefIcon {
+  display: block;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: none;
+  padding: 0.55rem;
+  border-radius: 10px 10px 16px 10px;
+  background: var(--hb-mist);
+  color: var(--hb-blue);
+}
+.beliefName {
+  font-family: var(--hb-font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--hb-fg);
+}
+.beliefText { margin-top: 0.375rem; font-size: 0.9375rem; line-height: 1.55; }
+@media (min-width: 1024px) {
+  .beliefs { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1.5rem; margin-top: 3.5rem; }
+  .belief {
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.5rem 0 0;
+    border: 0;
+    border-top: 2px solid var(--hb-blue);
+    border-radius: 0;
+    background: transparent;
+  }
+}
+
+/* ═══ 04 Team ═══ */
+.leadCard {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--hb-border);
+  border-radius: 20px 20px var(--hb-radius-sweep) 20px;
+  background: var(--hb-cloud);
+}
+@media (min-width: 640px) {
+  .leadCard { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); }
+}
+.leadBody { display: flex; flex-direction: column; padding: 1.5rem 1.5rem 1.75rem; }
+@media (min-width: 640px) {
+  .leadBody { justify-content: center; padding: 2rem 2.25rem; }
+}
+.role {
+  font-size: var(--hb-text-eyebrow);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hb-blue);
+}
+.leadName {
+  margin-top: 0.75rem;
+  font-family: var(--hb-font-display);
+  font-size: clamp(1.75rem, 1.4rem + 1vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  color: var(--hb-fg);
+}
+.leadBio { margin-top: 1rem; max-width: 30rem; font-size: 1.0625rem; line-height: 1.6; }
+
+.portrait { position: relative; aspect-ratio: 4 / 5; overflow: hidden; background: var(--hb-mist); }
+.leadPortrait { aspect-ratio: 4 / 4.2; }
+@media (min-width: 640px) { .leadPortrait { aspect-ratio: 4 / 5; } }
+.portraitImg {
+  object-position: 50% 22%;
+  transition: transform 900ms var(--hb-ease);
+}
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='false']) .portraitImg { transform: scale(1.06); }
+.portraitPlane {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  --hb-structure: rgba(6, 66, 179, 0.14);
+  background: linear-gradient(150deg, var(--hb-mist), var(--hb-ice));
+}
+.portraitGlyph { position: absolute; width: 78%; height: auto; right: -18%; bottom: -14%; }
+.portraitInitials {
+  position: relative;
+  font-family: var(--hb-font-display);
+  font-size: 2.75rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--hb-blue);
+}
+
+.linkedin {
+  display: inline-grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--hb-border);
+  border-radius: 10px 10px 16px 10px;
+  background: var(--hb-white);
+  color: var(--hb-blue);
+  transition: background-color var(--hb-dur-fast) var(--hb-ease), border-color var(--hb-dur-fast) var(--hb-ease);
+}
+.linkedin:hover { border-color: var(--hb-structure-soft); background: var(--hb-mist); }
+.linkedinIcon { width: 18px; height: 18px; }
+
+.memberList { display: grid; gap: 1rem; list-style: none; }
+@media (min-width: 640px) { .memberList { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 768px) { .memberList { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1152px) { .memberList { grid-template-columns: repeat(var(--team-cols, 4), minmax(0, 1fr)); gap: 1.25rem; } }
+.memberItem { display: flex; }
+.member {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--hb-border);
+  border-radius: 16px 16px 28px 16px;
+  background: var(--hb-cloud);
+  transition: transform var(--hb-dur-base) var(--hb-ease), box-shadow var(--hb-dur-base) var(--hb-ease);
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .member:hover,
+  .member:focus-within { transform: translateY(-3px); box-shadow: var(--hb-shadow-2); }
+}
+.memberBody { padding: 1rem 1.125rem 1.25rem; }
+.memberName {
+  font-family: var(--hb-font-display);
+  font-size: 1.0625rem;
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--hb-fg);
+}
+.memberRole { margin-top: 0.125rem; font-size: 0.875rem; line-height: 1.4; }
+.memberBio { margin-top: 0.75rem; font-size: 0.875rem; line-height: 1.55; }
+
+/* Phones, 3+ profiles: a user-controlled rail (swipe, snap, buttons). */
+.teamRailWrap { position: relative; }
+.teamRailControls { display: none; }
+.teamRailControls[hidden] { display: none !important; }
+@media (max-width: 639px) {
+  .teamRailScroll {
+    margin-inline: calc(var(--hb-gutter) * -1);
+    padding: 0.25rem var(--hb-gutter) 0.5rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--hb-gutter);
+    scrollbar-width: none;
+  }
+  .teamRailScroll::-webkit-scrollbar { display: none; }
+  .teamRailScroll .memberList { grid-auto-flow: column; grid-auto-columns: min(76vw, 17.5rem); grid-template-columns: none; gap: 0.75rem; }
+  .teamRailScroll .memberItem { scroll-snap-align: start; }
+  /* Cards inside the rail are clipped horizontally, so a per-card viewport
+     reveal would leave swiped-to cards blank for a moment. In the rail they
+     are simply visible; !important outranks the surface's motion-ready
+     start state (an attribute-heavy selector in site-tokens.css). */
+  .teamRailScroll .memberItem { opacity: 1 !important; transform: none !important; }
+  .teamRailScroll .portraitImg { transform: none !important; }
+  .teamRailControls { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.75rem; }
+}
+.teamRailButton {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--hb-border);
+  border-radius: 50%;
+  background: var(--hb-white);
+  color: var(--hb-fg);
+}
+.teamRailButton:disabled { opacity: 0.4; }
+
+.teamEmpty {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.75rem;
+  border: 1px solid var(--hb-border);
+  border-radius: var(--hb-radius-md) var(--hb-radius-md) 28px var(--hb-radius-md);
+  background: var(--hb-cloud);
+}
+.teamEmptyGlyph {
+  display: grid;
+  width: 4.5rem;
+  height: 4.5rem;
+  place-items: center;
+  border-radius: 10px 10px 20px 10px;
+  background: var(--hb-white);
+}
+
+/* ═══ 05 How we think — connected philosophy ═══ */
+.think {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 400 / 340;
+  container-type: inline-size;
+}
+.thinkSvg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.thinkOrbit { stroke: var(--hb-ice); stroke-width: 1; stroke-dasharray: 2 5; }
+.thinkCircle { fill: rgba(207, 224, 255, 0.18); stroke: var(--hb-blue); stroke-opacity: 0.32; stroke-width: 1.25; }
+.thinkSignal {
+  stroke: var(--hb-signal);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 0.05 1;
+  stroke-dashoffset: -0.95;
+}
+@keyframes thinkTravel {
+  0% { stroke-dashoffset: 0.05; opacity: 0; }
+  6% { opacity: 1; }
+  100% { stroke-dashoffset: -0.95; opacity: 1; }
+}
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='false']) .thinkSignal { opacity: 0; }
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='true']) .thinkSignal {
+  animation: thinkTravel 1600ms var(--hb-ease-in-out) 1200ms both;
+}
+.thinkNodes { position: absolute; inset: 0; margin: 0; padding: 0; list-style: none; }
+.thinkNode {
+  position: absolute;
+  width: 34%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.thinkNode[data-node='strategy'] { left: 33%; top: 9%; }
+.thinkNode[data-node='implementation'] { left: 10%; top: 61%; width: 30%; }
+.thinkNode[data-node='growth'] { left: 60%; top: 61%; width: 30%; }
+.thinkIcon { display: block; width: clamp(1.25rem, 6cqw, 1.75rem); height: clamp(1.25rem, 6cqw, 1.75rem); color: var(--hb-blue); }
+.thinkName {
+  margin-top: 0.375rem;
+  font-family: var(--hb-font-display);
+  font-size: clamp(0.9375rem, 3.6cqw, 1.125rem);
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--hb-fg);
+}
+.thinkText { margin-top: 0.25rem; font-size: clamp(0.75rem, 3cqw, 0.875rem); line-height: 1.35; }
+.thinkHub {
+  position: absolute;
+  left: 50%;
+  top: 57%;
+  display: grid;
+  width: 16%;
+  aspect-ratio: 1;
+  margin: -8% 0 0 -8%;
+  place-items: center;
+  border: 1.5px solid var(--hb-ice);
+  border-radius: 22% 22% 40% 22%;
+  background: var(--hb-white);
+  box-shadow: var(--hb-glow-electric);
+}
+.thinkHubGlyph { width: 62%; height: auto; }
+
+/* ═══ 06 Difference ═══ */
+.contrast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  max-width: 30rem;
+  margin-top: 2rem;
+  padding: 1rem 1.125rem;
+  border-radius: var(--hb-radius-md) var(--hb-radius-md) 22px var(--hb-radius-md);
+  background: var(--hb-mist);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+.contrastIcon { display: block; width: 1.375rem; height: 1.375rem; flex: none; margin-top: 0.05rem; color: var(--hb-blue); }
+.differences { display: grid; list-style: none; column-gap: 2.5rem; }
+@media (min-width: 640px) { .differences { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.difference {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.375rem 0;
+  border-top: 1px solid var(--hb-border);
+}
+.differenceIcon {
+  display: block;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: none;
+  padding: 0.55rem;
+  border: 1.5px solid var(--hb-structure-soft);
+  border-radius: 8px 8px 14px 8px;
+  color: var(--hb-blue);
+}
+.differenceName {
+  font-family: var(--hb-font-display);
+  font-size: 1.0625rem;
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--hb-fg);
+}
+.differenceText { margin-top: 0.25rem; font-size: 0.9375rem; line-height: 1.55; }
+
+/* ═══ 07 Reach ═══ */
+.reachPoints { display: grid; gap: 0; margin-top: 1.5rem; border-top: 1px solid var(--hb-border); }
+.reachPoint { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--hb-border); }
+.reachPoint dt {
+  font-size: var(--hb-text-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.reachPoint dd { font-family: var(--hb-font-display); font-weight: 650; color: var(--hb-fg); text-align: right; }
+@media (min-width: 640px) {
+  .reachPoints { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; border-top: 0; }
+  .reachPoint { flex-direction: column; justify-content: flex-start; gap: 0.375rem; border-bottom: 0; border-top: 2px solid var(--hb-blue); }
+  .reachPoint dd { text-align: left; }
+}
+
+.reach {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 20px 20px var(--hb-radius-sweep) 20px;
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(29, 110, 255, 0.16), rgba(29, 110, 255, 0) 60%),
+    var(--hb-night);
+  color: #c3cfe2;
+}
+
+/* Two framings of one map; each SVG's box equals its wrapper's aspect ratio. */
+.mapScene { position: relative; width: 100%; }
+.mapWorld { display: none; }
+@media (min-width: 640px) {
+  .mapWorld { display: block; }
+  .mapRegionScene { display: none; }
+}
+.mapSvg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; }
+.mapGrid line { stroke: var(--hb-ice); stroke-opacity: 0.07; stroke-width: 0.2; }
+.mapGrid .mapEquator { stroke-opacity: 0.13; stroke-dasharray: 0.8 1.2; }
+.mapLand { opacity: 0.3; }
+.mapRoute {
+  fill: none;
+  stroke: var(--hb-electric);
+  stroke-opacity: 0.7;
+  stroke-width: 0.34;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+}
+/* Rest state: no signal — each one has arrived and handed over to its point. */
+.mapSignal {
+  fill: none;
+  stroke: var(--hb-signal);
+  stroke-width: 0.8;
+  stroke-linecap: round;
+  stroke-dasharray: 0.1 1;
+  stroke-dashoffset: -0.9;
+  opacity: 0;
+}
+.mapPointRing { fill: none; stroke: var(--hb-electric); stroke-opacity: 0.75; stroke-width: 0.3; transform-box: fill-box; transform-origin: center; }
+.mapPointCore { fill: var(--hb-ice); }
+.mapPointQuiet .mapPointRing { stroke-opacity: 0.4; }
+.mapPointQuiet .mapPointCore { fill: #8fb4ff; transform: scale(0.8); transform-box: fill-box; transform-origin: center; }
+.mapPulse,
+.mapBeacon { fill: none; stroke: var(--hb-electric); stroke-width: 0.4; opacity: 0; transform-box: fill-box; transform-origin: center; }
+
+.mapRegion {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #a9bfe0;
+}
+.mapRegionEnd { transform: translate(-100%, -50%); }
+/* Abuja label: below-left of the point — the one direction no route leaves in. */
+.mapAnchor {
+  position: absolute;
+  left: var(--ax);
+  top: var(--ay);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.3rem 0.7rem 0.3rem 0.45rem;
+  transform: translate(calc(-100% + 1.25rem), 1.1rem);
+  border: 1px solid rgba(207, 224, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(13, 35, 64, 0.92);
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: #ffffff;
+}
+.mapAnchorPin { display: block; width: 0.875rem; height: 0.875rem; color: var(--hb-ice); }
+
+.reachFoot { padding: 0.25rem 1rem 1rem; }
+@media (min-width: 640px) { .reachFoot { padding: 0.25rem 1.25rem 1.25rem; } }
+.mapLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem 1.25rem;
+  margin-bottom: 0.875rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #8fa1bd;
+}
+.mapLegendItem { display: inline-flex; align-items: center; gap: 0.5rem; }
+.mapLegendHome { width: 0.625rem; height: 0.625rem; border: 2px solid #ffffff; border-radius: 50%; background: var(--hb-electric); }
+.mapLegendPoint { width: 0.5rem; height: 0.5rem; border: 1.5px solid var(--hb-electric); border-radius: 50%; background: var(--hb-ice); background-clip: content-box; padding: 1px; }
+.reachCards { display: grid; gap: 0.75rem; }
+@media (min-width: 640px) { .reachCards { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.reachLocation {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.125rem;
+  border: 1px solid rgba(207, 224, 255, 0.16);
+  border-radius: 14px;
+  background: rgba(13, 35, 64, 0.9);
+}
+.reachPin { display: block; width: 1.375rem; height: 1.375rem; flex: none; color: var(--hb-ice); }
+.reachLocationName { font-family: var(--hb-font-display); font-size: 1rem; font-weight: 700; letter-spacing: 0.01em; color: #ffffff; }
+.reachLocationText { margin-top: 0.125rem; font-size: 0.875rem; line-height: 1.45; }
+.reachMindset {
+  padding: 1rem 1.125rem;
+  border: 1px solid rgba(207, 224, 255, 0.16);
+  border-radius: 14px 14px 28px 14px;
+  background: var(--hb-midnight);
+}
+.reachMindsetTitle { font-family: var(--hb-font-display); font-size: 1.125rem; font-weight: 700; line-height: 1.2; color: #ffffff; }
+.reachMindsetText { margin-top: 0.5rem; font-size: 0.875rem; line-height: 1.5; }
+
+/* ── Reach motion: region → Abuja → routes outward → signals → points → beacon ── */
+@keyframes mapOn { from { opacity: 0.25; } }
+@keyframes mapDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes mapTravel {
+  0% { stroke-dashoffset: 0.1; opacity: 0; }
+  6% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { stroke-dashoffset: -0.9; opacity: 0; }
+}
+@keyframes mapPing {
+  0% { transform: scale(1); stroke-opacity: 0.9; }
+  55% { transform: scale(2.6); stroke-opacity: 0; }
+  56% { transform: scale(0.6); stroke-opacity: 0; }
+  100% { transform: scale(1); }
+}
+@keyframes mapPulse {
+  from { opacity: 0.9; transform: scale(1); }
+  to { opacity: 0; transform: scale(3.6); }
+}
+@keyframes mapBeacon {
+  0% { opacity: 0; transform: scale(1); }
+  12% { opacity: 0.5; }
+  100% { opacity: 0; transform: scale(3.2); }
+}
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='false']) :is(.mapHome, .mapPoint) { opacity: 0.25; }
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='false']) .mapRoute { stroke-dashoffset: 1; }
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='true']) .mapHome { animation: mapOn 700ms var(--hb-ease) 100ms both; }
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='true']) .mapPulse { animation: mapPulse 1300ms var(--hb-ease) 300ms both; }
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='true']) .mapRoute {
+  animation: mapDraw 800ms var(--hb-ease-in-out) both;
+  animation-delay: calc(500ms + var(--i) * 180ms);
+}
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='true']) .mapSignal {
+  animation: mapTravel 1000ms var(--hb-ease-in-out) both;
+  animation-delay: calc(900ms + var(--i) * 180ms);
+}
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='true']) .mapPoint {
+  animation: mapOn 400ms var(--hb-ease) both;
+  animation-delay: calc(1800ms + var(--i) * 180ms);
+}
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='true']) .mapPointRing {
+  animation: mapPing 1000ms var(--hb-ease) both;
+  animation-delay: calc(1800ms + var(--i) * 180ms);
+}
+/* The one deliberate loop: a slow beacon at home, after the sequence. */
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='true']) .mapBeacon { animation: mapBeacon 3600ms ease-out 3600ms infinite; }
+
+
+/* ═══ 08 Who we work with ═══ */
+.fit { display: grid; gap: 0.75rem; list-style: none; }
+@media (min-width: 768px) {
+  .fit { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fitItem:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+.fitItem {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+  padding: 1.125rem 1.25rem;
+  border: 1px solid var(--hb-border);
+  border-radius: var(--hb-radius-md) var(--hb-radius-md) 22px var(--hb-radius-md);
+  background: var(--hb-cloud);
+}
+.fitIndex {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border-radius: 10px 10px 16px 10px;
+  background: var(--hb-mist);
+  font-family: var(--hb-font-display);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--hb-blue);
+}
+.fitName { font-family: var(--hb-font-display); font-size: 1.0625rem; font-weight: 650; line-height: 1.3; color: var(--hb-fg); }
+.fitText { margin-top: 0.25rem; font-size: 0.9375rem; line-height: 1.5; }
+.fitNote { display: flex; flex-wrap: wrap; align-items: center; gap: 0 1rem; margin-top: 1.5rem; }
+
+/* ═══ 09 CTA ═══ */
+.cta { display: grid; gap: 1.5rem 3rem; max-width: 44rem; }
+@media (min-width: 1152px) {
+  .cta { max-width: 62rem; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: end; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frame, .heroSlot, .heroPath, .heroNode, .heroSignal, .heroCaption,
+  .thinkSignal, .mapHome, .mapPulse, .mapBeacon, .mapRoute, .mapSignal, .mapPoint, .mapPointRing { animation: none !important; }
+  .thinkSignal { opacity: 1 !important; }
+  .portraitImg { transform: none !important; transition: none; }
+}
