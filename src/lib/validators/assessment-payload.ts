@@ -21,7 +21,8 @@ export interface ValidatedAssessment {
   country: string
   industry: string
   business_stage: string
-  store_age: string
+  /** Required for every stage except Planning, where it may be absent (see STORE_AGE_OPTIONAL_STAGE) — never ''. */
+  store_age?: string
   primary_goals: string[]
   /** Optional (see OPTIONAL_STRINGS) — absent when not answered, never ''. */
   success_vision?: string
@@ -78,7 +79,6 @@ const REQUIRED_STRINGS = [
   'country',
   'industry',
   'business_stage',
-  'store_age',
   'email_capture',
   'email_automations',
   'customer_reviews',
@@ -100,6 +100,20 @@ const REQUIRED_STRINGS = [
  * keeps its minimum length.
  */
 const OPTIONAL_STRINGS = ['success_vision', 'best_channel', 'paid_ads_usage', 'main_obstacle'] as const
+
+/**
+ * store_age is required for every business stage EXCEPT Planning (Phase 16.4.2):
+ * a business that has not launched has no selling history to report. For
+ * Planning an absent or blank answer is LEFT OUT (never '' or a placeholder),
+ * so the merchant column stays NULL. A value that IS sent is held to the same
+ * rules as before, so clients that always send it keep working unchanged.
+ *
+ * Safe end to end (production preflight): merchants.store_age is nullable text
+ * with no default, CHECK constraint or trigger, and submit_growth_assessment
+ * reads it only when creating a NEW merchant — it never updates an existing
+ * merchant row, so an omitted answer cannot overwrite a stored value.
+ */
+const STORE_AGE_OPTIONAL_STAGE = 'Planning'
 
 const REQUIRED_ARRAYS = ['primary_goals', 'marketing_channels'] as const
 const OPTIONAL_ARRAYS = ['paid_ad_platforms'] as const
@@ -200,6 +214,22 @@ export function validateAssessmentPayload(input: Record<string, unknown>): Valid
     }
 
     out[field] = value
+  }
+
+  {
+    const raw = input.store_age
+    const mayBeAbsent = out.business_stage === STORE_AGE_OPTIONAL_STAGE
+    const value = typeof raw === 'string' ? clean(raw) : ''
+    if (raw !== undefined && raw !== null && typeof raw !== 'string') {
+      return { ok: false, error: 'Missing or invalid field: store_age' }
+    }
+    if (!value) {
+      if (!mayBeAbsent) return { ok: false, error: 'Missing or invalid field: store_age' }
+    } else if (value.length > MAX_LENGTHS.store_age) {
+      return { ok: false, error: 'The value for store_age is too long.' }
+    } else {
+      out.store_age = value
+    }
   }
 
   for (const field of OPTIONAL_STRINGS) {
