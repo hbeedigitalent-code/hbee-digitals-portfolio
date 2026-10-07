@@ -15,6 +15,7 @@ import {
 import { createNotification } from '@/lib/notifications/createNotification'
 import { verifyTurnstileToken, turnstileFailureMessage } from '@/lib/turnstile'
 import { validateAssessmentPayload } from '@/lib/validators/assessment-payload'
+import { checkRateLimit, getClientIp, rateLimitMessage } from '@/lib/rate-limit'
 
 /** Submission keys are browser-generated UUIDs. Anything else is ignored. */
 const SUBMISSION_KEY_RE =
@@ -65,17 +66,32 @@ export async function POST(request: NextRequest) {
     }
 
     // ------------------------------------------------------------------
-    // 0. Turnstile — verified BEFORE any validation, database write or email.
-    //    A failed check must cost nothing: no merchant row, no assessment,
-    //    no review, no notification, no message to the supplied address.
+    // 0a. Rate limit — same pattern as /api/contact and /api/onboarding, and
+    //     checked before anything else that costs work: a limited request
+    //     makes no Turnstile call, no database write and queues no email.
+    // ------------------------------------------------------------------
+    const clientIp = getClientIp(request)
+    const limit = await checkRateLimit('assessment', clientIp)
+    if (!limit.ok) {
+      return NextResponse.json(
+        { error: rateLimitMessage(limit.retryAfterSeconds) },
+        {
+          status: 429,
+          headers: limit.retryAfterSeconds
+            ? { 'Retry-After': String(limit.retryAfterSeconds) }
+            : undefined,
+        },
+      )
+    }
+
+    // ------------------------------------------------------------------
+    // 0b. Turnstile — verified BEFORE any validation, database write or email.
+    //     A failed check must cost nothing: no merchant row, no assessment,
+    //     no review, no notification, no message to the supplied address.
     // ------------------------------------------------------------------
     const turnstileToken = (rawBody as Record<string, unknown>).turnstile_token
-    const remoteIp =
-      request.headers.get('cf-connecting-ip') ||
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      null
 
-    const turnstile = await verifyTurnstileToken(turnstileToken, remoteIp)
+    const turnstile = await verifyTurnstileToken(turnstileToken, clientIp)
     if (!turnstile.ok) {
       return NextResponse.json(
         {
@@ -241,7 +257,6 @@ export async function POST(request: NextRequest) {
     }
 
     const assessmentId: string = submission.assessment_id
-    const merchantId: string | null = submission.merchant_id ?? null
     const reviewId: string | null = submission.review_id ?? null
     const isRetry: boolean = submission.duplicate === true
 
@@ -305,36 +320,13 @@ export async function POST(request: NextRequest) {
         : `/admin/growth-assessments/${assessmentId}`,
     })
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        merchant_id: merchantId,
-        assessment_id: assessmentId,
-        review_id: reviewId,
-        // NOTE: email outcomes are deliberately NOT returned here.
-        //
-        // This endpoint is PUBLIC. Telling an anonymous caller whether an
-        // internal admin notification was sent, or that a server
-        // configuration value is missing, discloses internal state to someone
-        // with no business knowing it. Outcomes go to the server log instead
-        // (see the email block above), and will move to the durable
-        // event/delivery record plus an authorized admin view when that batch
-        // lands. Neither a log line nor a response field is durable delivery
-        // tracking.
-        hgri_score: hgriScore,
-        classification: classification,
-        primary_constraint: primaryConstraint,
-        recommended_focus: recommendedFocus,
-        score_breakdown: {
-          visibility: visibilityScore,
-          conversion: conversionScore,
-          retention: retentionScore,
-          authority: authorityScore,
-          scalability: scalabilityScore,
-          total: hgriScore
-        }
-      }
-    })
+    // A bare acknowledgement. The only caller (useAssessmentForm) reads
+    // `response.ok` and nothing from a success body. This endpoint is PUBLIC:
+    // scores, classification, constraint and focus are internal review inputs
+    // (the merchant is told no score is returned), and database identifiers
+    // have no use to an anonymous caller. Email outcomes stay in the server
+    // log above for the same reason.
+    return NextResponse.json({ success: true })
 
   } catch (error) {
     console.error('Assessment submission error:', error)

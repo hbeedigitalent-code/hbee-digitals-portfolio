@@ -47,11 +47,14 @@ export interface RateLimitResult {
  * Values are sized for human use, not for convenience of testing. A person
  * submitting a contact form does so once or twice; five in ten minutes from one
  * IP is already unusual. Onboarding is stricter because each submission also
- * writes files to storage.
+ * writes files to storage. The growth assessment is a single long-form
+ * submission; its quota leaves room for a few retries of a failed submit (each
+ * retry is a request) without allowing bulk submission.
  */
 export const RATE_LIMITS = {
   contact: { requests: 5, window: '10 m' },
   onboarding: { requests: 3, window: '10 m' },
+  assessment: { requests: 5, window: '10 m' },
 } as const
 
 export type RateLimitName = keyof typeof RATE_LIMITS

@@ -23,10 +23,11 @@ export interface ValidatedAssessment {
   business_stage: string
   store_age: string
   primary_goals: string[]
-  success_vision: string
+  /** Optional (see OPTIONAL_STRINGS) — absent when not answered, never ''. */
+  success_vision?: string
   marketing_channels: string[]
-  best_channel: string
-  paid_ads_usage: string
+  best_channel?: string
+  paid_ads_usage?: string
   paid_ad_platforms: string[]
   visibility_confidence: number
   email_capture: string
@@ -35,7 +36,7 @@ export interface ValidatedAssessment {
   content_publishing: string
   upsells_crosssells: string
   biggest_challenge: string
-  main_obstacle: string
+  main_obstacle?: string
   support_type: string
   improvement_timeline: string
   consent: true
@@ -78,19 +79,27 @@ const REQUIRED_STRINGS = [
   'industry',
   'business_stage',
   'store_age',
-  'success_vision',
-  'best_channel',
-  'paid_ads_usage',
   'email_capture',
   'email_automations',
   'customer_reviews',
   'content_publishing',
   'upsells_crosssells',
   'biggest_challenge',
-  'main_obstacle',
   'support_type',
   'improvement_timeline',
 ] as const
+
+/**
+ * Answers that may be omitted (Phase 16.1). None of them is scored and none
+ * populates a merchant field — they only ever lived in raw_answers_json.
+ *
+ * An omitted (or blank) answer is LEFT OUT of the validated payload rather than
+ * stored as '' or a placeholder, so raw_answers_json records exactly what the
+ * merchant said. An answer that IS given is held to the same rules as before:
+ * it must be a string, it is cleaned and length-capped, and success_vision
+ * keeps its minimum length.
+ */
+const OPTIONAL_STRINGS = ['success_vision', 'best_channel', 'paid_ads_usage', 'main_obstacle'] as const
 
 const REQUIRED_ARRAYS = ['primary_goals', 'marketing_channels'] as const
 const OPTIONAL_ARRAYS = ['paid_ad_platforms'] as const
@@ -190,10 +199,23 @@ export function validateAssessmentPayload(input: Record<string, unknown>): Valid
       continue
     }
 
+    out[field] = value
+  }
+
+  for (const field of OPTIONAL_STRINGS) {
+    const raw = input[field]
+    if (raw === undefined || raw === null) continue
+    if (typeof raw !== 'string') {
+      return { ok: false, error: `Invalid value for ${field}.` }
+    }
+    const value = clean(raw)
+    if (!value) continue
+    if (value.length > (MAX_LENGTHS[field] ?? 500)) {
+      return { ok: false, error: `The value for ${field} is too long.` }
+    }
     if (field === 'success_vision' && value.length < 10) {
       return { ok: false, error: 'Please describe your success vision in a little more detail.' }
     }
-
     out[field] = value
   }
 
