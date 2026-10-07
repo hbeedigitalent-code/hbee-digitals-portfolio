@@ -15,7 +15,11 @@
 
 import { NextResponse } from 'next/server'
 import { requireActiveAdmin, queryFailure, ADMIN_UUID_RE } from '@/lib/admin-api-auth'
+import { buildAssessmentAnswers } from '@/lib/admin/assessment-answers'
 
+// The assessment is read with an explicit column list (it was `*`): exactly
+// what the two review screens use, plus raw_answers_json, which is converted
+// below into labelled answer sections and is NOT itself returned.
 const DETAIL_COLUMNS = `
   id, status, review_notes, created_at, updated_at, completed_at,
   hgri_score, growth_classification, strengths, opportunities,
@@ -23,7 +27,9 @@ const DETAIL_COLUMNS = `
   merchant_id, assessment_id,
   merchant:merchants(id, business_name, contact_name, email, website, industry, country,
                      business_stage, store_age),
-  assessment:growth_assessments(*)
+  assessment:growth_assessments(id, created_at, hgri_score, classification, growth_classification,
+                                visibility_score, conversion_score, retention_score,
+                                authority_score, scalability_score, raw_answers_json)
 `
 
 /** Bounded numeric score, or null when the caller sent nothing usable. */
@@ -65,7 +71,20 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     if (error) return queryFailure('growth review detail', error)
     if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    return NextResponse.json({ review: data })
+    // Stored answers -> allow-listed, labelled sections (see assessment-answers.ts).
+    // The raw blob stays on the server.
+    const { assessment: rawAssessment, ...review } = data as Record<string, any>
+    const assessmentRow = Array.isArray(rawAssessment) ? rawAssessment[0] ?? null : rawAssessment ?? null
+    const merchantRow = Array.isArray(review.merchant) ? review.merchant[0] ?? null : review.merchant ?? null
+    let assessment: Record<string, unknown> | null = null
+    let answers: ReturnType<typeof buildAssessmentAnswers> = []
+    if (assessmentRow) {
+      const { raw_answers_json: rawAnswers, ...rest } = assessmentRow
+      assessment = rest
+      answers = buildAssessmentAnswers(rawAnswers, merchantRow)
+    }
+
+    return NextResponse.json({ review: { ...review, assessment, answers } })
   } catch (error) {
     console.error('[admin-api] growth review detail error:', error)
     return NextResponse.json({ error: 'Failed to load data' }, { status: 500 })

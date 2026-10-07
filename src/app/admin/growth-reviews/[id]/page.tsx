@@ -6,6 +6,7 @@ import Link from 'next/link'
 import StatusBadge from '@/components/ui/StatusBadge'
 import SvgIcon from '@/components/ui/SvgIcon'
 import ProgramDecisionPanel from '@/components/admin/ProgramDecisionPanel'
+import AssessmentAnswers from '@/components/admin/AssessmentAnswers'
 import Button from '@/components/ui/Button'
 
 interface PageProps {
@@ -261,8 +262,54 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
+      {/* Merchant context beside the review controls (≥1280px). The context
+          column stays in view while the editor scrolls, so a merchant's answers
+          can be cross-referenced with the scores; below 1280px it stacks first. */}
+      <div className="grid gap-6 xl:grid-cols-12 xl:items-start">
+        <div
+          role="region"
+          aria-label="Merchant context"
+          tabIndex={0}
+          className="min-w-0 space-y-6 rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] xl:col-span-5 xl:sticky xl:top-0 xl:max-h-[calc(100vh-7.5rem)] xl:overflow-y-auto"
+        >
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+            <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Merchant record</h2>
+            <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+              <div className="min-w-0">
+                <dt className="text-[var(--text-muted)]">Business Name</dt>
+                <dd className="font-medium text-[var(--text-primary)] break-words">{merchant?.business_name || 'N/A'}</dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="text-[var(--text-muted)]">Industry</dt>
+                <dd className="font-medium text-[var(--text-primary)] break-words">{merchant?.industry || 'N/A'}</dd>
+              </div>
+              <div className="min-w-0 sm:col-span-2">
+                <dt className="text-[var(--text-muted)]">Email</dt>
+                <dd className="font-medium text-[var(--text-primary)] break-all">{merchant?.email || 'N/A'}</dd>
+              </div>
+              <div className="min-w-0 sm:col-span-2">
+                <dt className="text-[var(--text-muted)]">Website</dt>
+                <dd className="font-medium text-[var(--text-primary)] break-all">
+                  {merchant?.website ? (
+                    <a href={merchant.website} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline">
+                      {merchant.website}
+                    </a>
+                  ) : 'N/A'}
+                </dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="text-[var(--text-muted)]">Country</dt>
+                <dd className="font-medium text-[var(--text-primary)] break-words">{merchant?.country || 'N/A'}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <AssessmentAnswers sections={review.answers || []} submittedAt={assessment?.created_at} />
+        </div>
+
+        <div className="min-w-0 xl:col-span-7">
+      <div className="grid gap-6 lg:grid-cols-3 xl:grid-cols-1">
+        <div className="lg:col-span-2 xl:col-span-1 space-y-6">
           {/* Score Card */}
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
             <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">HGRI™ Score</h3>
@@ -442,40 +489,9 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Right Column */}
+        {/* Right Column (below the editor from 1280px, where the merchant
+            context column takes the left) */}
         <div className="space-y-6">
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Business Information</h3>
-            <dl className="space-y-2 text-sm">
-              <div>
-                <dt className="text-[var(--text-muted)]">Business Name</dt>
-                <dd className="font-medium text-[var(--text-primary)]">{merchant?.business_name || 'N/A'}</dd>
-              </div>
-              <div>
-                <dt className="text-[var(--text-muted)]">Email</dt>
-                <dd className="font-medium text-[var(--text-primary)]">{merchant?.email || 'N/A'}</dd>
-              </div>
-              <div>
-                <dt className="text-[var(--text-muted)]">Website</dt>
-                <dd className="font-medium text-[var(--text-primary)]">
-                  {merchant?.website ? (
-                    <a href={merchant.website} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline">
-                      {merchant.website}
-                    </a>
-                  ) : 'N/A'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[var(--text-muted)]">Industry</dt>
-                <dd className="font-medium text-[var(--text-primary)]">{merchant?.industry || 'N/A'}</dd>
-              </div>
-              <div>
-                <dt className="text-[var(--text-muted)]">Country</dt>
-                <dd className="font-medium text-[var(--text-primary)]">{merchant?.country || 'N/A'}</dd>
-              </div>
-            </dl>
-          </div>
-
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
             <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Activity</h3>
             <div className="space-y-3 text-sm">
@@ -539,6 +555,8 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
               )}
             </>
           )}
+        </div>
+      </div>
         </div>
       </div>
     </div>
