@@ -47,7 +47,8 @@ function LoginContent() {
 
       if (error) throw error
 
-      router.push('/client-portal')
+      // Only one allow-listed return path (the portal invitation); anything else goes to the portal.
+      router.push(searchParams.get('next') === '/portal-invitation' ? '/portal-invitation' : '/client-portal')
     } catch (err) {
       if (err instanceof Error && err.message.includes('Email not confirmed')) {
         setError('Please confirm your email address first. Check your inbox for the confirmation link.')

@@ -2,34 +2,23 @@
 //
 // The outcome email for a deliberate APPROVED program decision.
 //
-// TRIGGER: queued by POST /api/admin/growth-assessments/[id]/decision AFTER
-// record_program_decision() has committed. It is never queued before the
-// decision succeeds, never queued by review completion, and never produced by
-// scanning historical review_status values.
+// TRIGGER (unchanged): queued by POST /api/admin/growth-assessments/[id]/decision
+// AFTER record_program_decision() has committed — never by review completion,
+// never by scanning historical review_status values.
 //
-// IT TELLS THE TRUTH ABOUT RELEASE. `profileReleased` is decided at enqueue
-// time by the SAME conditions the client Growth Profile endpoint enforces —
-// a recorded approval, a linked client, a profile bound to the decision, and
-// the GROWTH_PROFILE_RELEASE_ENABLED gate. Only when all of them hold does this
-// email say the profile is available or show a portal button. Otherwise it
-// confirms the approval and says access details follow, which is exactly what
-// is true at that moment.
+// IT TELLS THE TRUTH ABOUT RELEASE (unchanged). `profileReleased` is decided at
+// enqueue time by the same conditions the client Growth Profile endpoint
+// enforces. Only then does this email say the profile is available or show the
+// portal button.
 //
-// WHAT IT NEVER SAYS: no revenue or sales guarantee, no deadline, no
-// suggestion that paid implementation is required, and never an admin's
-// internal decision note.
+// Phase 16.6: moved onto the Hbee email system (hbee-email.ts) with permanent
+// lifecycle language — Growth Review, not the Growth Support Initiative; no
+// "free for life"; no capacity/slot language; signed by the team. Reply-to uses
+// the configured RESEND_REPLY_TO via configuredReplyTo().
 
 import { Resend } from 'resend'
-import {
-  renderEmail,
-  deliver,
-  emailFrom,
-  emailReplyTo,
-  emailUrl,
-  supportEmail,
-  type EmailBlock,
-  type EmailSendResult,
-} from '@/lib/emails/layout'
+import { configuredReplyTo, deliver, emailFrom, supportEmail, type EmailSendResult } from '@/lib/emails/layout'
+import { cleanText, renderHbeeEmail, type HbeeEmailBlock, type HbeeEmailOptions } from '@/lib/emails/hbee-email'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -37,123 +26,110 @@ export interface GrowthProgramApprovedData {
   firstName: string
   email: string
   businessName: string
-  /** The decision row this email reports. Used for provider-side idempotency. */
+  /** The decision row this email reports. Idempotency only — never rendered. */
   decisionId: string
-  /**
-   * True ONLY when the Growth Profile is genuinely retrievable by the client
-   * right now. Decided by the decision route, never by this template.
-   */
+  /** True ONLY when the Growth Profile is genuinely retrievable right now. Decided by the decision route. */
   profileReleased: boolean
+  /**
+   * True when no portal account is connected yet, so the decision route also
+   * sends a separate Portal Invitation. This email then points to it — it never
+   * carries the invitation link or token itself.
+   */
+  invitationFollows?: boolean
+  /**
+   * False when no portal account is connected AND no invitation could be
+   * created: the email then gives a neutral next step and promises no link.
+   * Absent (older queued events) is treated as connected.
+   */
+  accountConnected?: boolean
 }
 
-export async function sendGrowthProgramApprovedEmail(
-  data: GrowthProgramApprovedData,
-): Promise<EmailSendResult> {
-  const { profileReleased } = data
+type ContentData = Pick<GrowthProgramApprovedData, 'firstName' | 'businessName' | 'profileReleased' | 'invitationFollows' | 'accountConnected'>
 
-  const blocks: EmailBlock[] = [
-    { type: 'paragraph', text: `Hi ${data.firstName},` },
+export function buildGrowthProgramApprovedEmail(data: ContentData): HbeeEmailOptions & { subject: string } {
+  const firstName = cleanText(data.firstName)
+  const business = cleanText(data.businessName) || 'your business'
+  const released = data.profileReleased === true
+  const replyTo = configuredReplyTo()
+
+  const blocks: HbeeEmailBlock[] = [
+    // The decision route sends 'there' when no contact name is stored.
+    { type: 'paragraph', text: firstName && firstName !== 'there' ? `Hi ${firstName},` : 'Hi,' },
     {
       type: 'paragraph',
-      text:
-        `We have reviewed the Growth Readiness Assessment for ${data.businessName}, and ` +
-        'we are pleased to tell you that your business has been approved for the Hbee ' +
-        'Growth Support Initiative.',
-    },
-    { type: 'heading', text: 'What being approved means' },
-    {
-      type: 'list',
-      items: [
-        'Your Growth Profile is yours free, for life, as an approved merchant.',
-        'It sets out where your growth is currently constrained and what we recommend you prioritise.',
-        'Implementation is a separate, optional paid service. Nothing here requires you to buy it.',
-      ],
+      text: `We've completed our review of the Growth Review for ${business}, and we'd like to move forward with you.`,
     },
   ]
-
-  if (profileReleased) {
-    blocks.push(
-      { type: 'heading', text: 'Your Growth Profile is ready' },
-      {
-        type: 'paragraph',
-        text:
-          'You can read it now in your secure client portal. Sign in with the account ' +
-          'linked to this application.',
-      },
-    )
-  } else {
-    // The gate is closed, or the portal account is not linked yet. Saying the
-    // profile is "available" here would be a link to a page that withholds it.
+  if (!released && data.invitationFollows === true) {
     blocks.push(
       { type: 'heading', text: 'What happens next' },
       {
-        type: 'paragraph',
-        text:
-          'Your Growth Profile has been prepared. We will write to you again as soon as ' +
-          'it is available in your client portal, with instructions for opening it.',
+        type: 'steps',
+        items: [
+          "You'll receive a separate email with a secure link to set up your Hbee client portal.",
+          'Sign in or create your account using that link.',
+          "We'll let you know when your Growth Profile is available in your portal.",
+        ],
       },
     )
+  } else if (!released && data.accountConnected === false) {
+    blocks.push(
+      { type: 'heading', text: 'What happens next' },
+      { type: 'paragraph', text: "We'll be in touch shortly with the next step, including how to access your client portal." },
+    )
+  } else if (released) {
+    blocks.push({
+      type: 'paragraph',
+      text:
+        'Your Growth Profile is ready in your client portal. It sets out where growth is currently ' +
+        'constrained and what we recommend prioritising.',
+    })
+  } else {
+    blocks.push(
+      { type: 'heading', text: 'What happens next' },
+      { type: 'paragraph', text: "We'll email you again as soon as your Growth Profile is available in your client portal." },
+    )
   }
-
   blocks.push({
     type: 'callout',
-    title: 'No obligation',
+    title: 'Good to know',
     text:
-      'Approval gives you the Growth Profile and the recommendations in it. Whether you ' +
-      'ask us to implement any of them is entirely your decision, and the profile is ' +
-      'yours either way.',
+      'Your Growth Profile and its recommendations are yours to act on. Implementation is a separate, ' +
+      'optional service — nothing here requires you to buy it.',
   })
 
-  const subject = profileReleased
-    ? 'Your Hbee Growth Profile is ready'
-    : `${data.businessName} has been approved for the Hbee Growth Support Initiative`
+  return {
+    subject: released ? 'Your Growth Profile is ready' : 'Good news about your Growth Review',
+    preheader: released ? 'Your Growth Profile is ready in your client portal.' : `We'd like to move forward with ${business}.`,
+    status: { tone: 'approved', label: released ? 'Growth Profile ready' : 'Growth Review approved' },
+    heading: released ? 'Your Growth Profile is ready.' : "We'd like to move forward.",
+    blocks,
+    primaryAction: released ? { label: 'Open your Growth Profile', url: '/client-portal/growth-profile' } : undefined,
+    signoff: { name: 'The Hbee Digitals Team' },
+    reason: "You're receiving this because you submitted a Growth Review to Hbee Digitals.",
+    supportEmail: replyTo?.address ?? supportEmail(),
+    repliesMonitored: replyTo !== null,
+  }
+}
 
+export function renderGrowthProgramApprovedEmail(data: ContentData) {
+  const { subject, ...options } = buildGrowthProgramApprovedEmail(data)
+  return { subject, ...renderHbeeEmail(options) }
+}
+
+export async function sendGrowthProgramApprovedEmail(data: GrowthProgramApprovedData): Promise<EmailSendResult> {
+  const subject = buildGrowthProgramApprovedEmail(data).subject
   return deliver(
     'growth-program-approved',
     async () => {
-      const { html, text } = renderEmail({
-        preheader: profileReleased
-          ? 'Your Growth Profile is available in your client portal.'
-          : 'Your business has been approved for the Growth Support Initiative.',
-        eyebrow: 'Application approved',
-        heading: profileReleased
-          ? 'Your Growth Profile is ready'
-          : 'You have been approved',
-        blocks,
-        // The CTA appears ONLY when the profile is genuinely retrievable.
-        // emailUrl() resolves through NEXT_PUBLIC_SITE_URL and raises a
-        // configuration error rather than guessing an origin.
-        cta: profileReleased
-          ? {
-              label: 'Open your Growth Profile',
-              url: emailUrl('/client-portal/growth-profile'),
-            }
-          : undefined,
-        signoff: { name: 'Habeeb Ismaila', title: 'CEO & Founder, Hbee Digitals' },
-        reason:
-          'You are receiving this because you submitted the Growth Readiness Assessment at hbeedigitals.com.',
-        supportEmail: supportEmail(),
-      })
-
+      const { html, text } = renderGrowthProgramApprovedEmail(data)
+      const replyTo = configuredReplyTo()
       return resend.emails.send(
-        {
-          from: emailFrom(),
-          ...emailReplyTo(),
-          to: data.email,
-          subject,
-          html,
-          text,
-        },
-        // Provider-side de-duplication, keyed on the decision itself. Combined
-        // with the outbox event_key, a retry cannot deliver a second copy.
+        { from: emailFrom(), ...(replyTo ? { replyTo: replyTo.header } : {}), to: data.email, subject, html, text },
+        // Provider-side de-duplication, keyed on the decision itself (unchanged).
         { idempotencyKey: `growth-program-approved:${data.decisionId}` },
       )
     },
-    {
-      templateSlug: 'growth-program-approved',
-      recipientEmail: data.email,
-      recipientName: data.firstName,
-      subject,
-    },
+    { templateSlug: 'growth-program-approved', recipientEmail: data.email, recipientName: data.firstName, subject },
   )
 }

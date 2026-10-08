@@ -69,8 +69,8 @@ const REFUSAL_MESSAGES: Record<string, string> = {
     'This assessment is not linked to a merchant record, so there is nothing to ' +
     'release. Resolve the merchant link before deciding.',
   client_not_linked:
-    'No portal account is linked to this merchant. Approval does not create or ' +
-    'link an account — link it deliberately, then approve.',
+    'No portal account is connected to this merchant yet. Send the portal invitation ' +
+    '(below); once the merchant has accepted it, record the approval.',
   client_link_ambiguous:
     'More than one portal account is linked to this merchant. Resolve that before ' +
     'approving; nothing is merged automatically.',
@@ -241,8 +241,10 @@ async function queueDecisionOutcomeEmail(input: {
   outcome: any
   merchantId: string | null
   sharedMessage: string | null
+  /** True ONLY when a portal invitation was successfully created/reused for this approval. */
+  invitationFollows?: boolean
 }): Promise<OutcomeEmailReport> {
-  const { db, decision, outcome, merchantId, sharedMessage } = input
+  const { db, decision, outcome, merchantId, sharedMessage, invitationFollows = false } = input
 
   if (decision === 'withdrawn') {
     return { queued: false, reason: 'withdrawal_is_not_announced_automatically' }
@@ -306,7 +308,14 @@ async function queueDecisionOutcomeEmail(input: {
       businessName,
       decisionId: String(outcome.id ?? ''),
       ...(decision === 'approved'
-        ? { profileReleased }
+        ? {
+            profileReleased,
+            // True only when the invitation ALREADY EXISTS (created/reused before
+            // this email is queued). The Approved email never carries the token.
+            invitationFollows,
+            // No connected account and no invitation (it failed): neutral next step.
+            accountConnected: Boolean(outcome.client_id),
+          }
         : sharedMessage
           ? { sharedMessage }
           : {}),
@@ -459,17 +468,71 @@ export async function POST(request: Request, { params }: { params: { id: string 
     // unique index on event_key — so a double-clicked button, a browser retry
     // and a worker retry all collapse onto one row. A genuinely new decision
     // gets a new decision_seq and therefore a new email, which is correct.
+    // ---- PORTAL INVITATION → APPROVED EMAIL → INVITATION EMAIL (Phase 16.6)
+    //
+    // For an approval with NO connected portal account (client_id NULL):
+    //   1. create or reuse the merchant's open invitation (email DEFERRED);
+    //   2. queue the Approved email — with invitationFollows = true ONLY if
+    //      step 1 succeeded, so it never promises an invitation that does not exist;
+    //   3. queue the Portal Invitation email (the ONLY email with the access link).
+    //
+    // If step 1 fails, the Approved email is still queued now (option A), with
+    // neutral next-step wording. Deferring it would need a later trigger to
+    // enqueue it, which the decision-keyed outbox does not have — it could be
+    // lost. The failure is returned to the admin, whose "Send portal invitation"
+    // action is the recovery path.
+    //
+    // Never fatal: the decision has already committed. Idempotent: invitations
+    // are one-per-merchant and every email is keyed (decision_seq / invitation id).
+    let invitation: { state: string; ok: boolean; emailQueued?: boolean; message?: string } | null = null
+    let queueInvitationEmail: (() => Promise<boolean>) | null = null
+    if (decision === 'approved' && outcome.merchant_id && !outcome.client_id) {
+      const { issuePortalInvitation } = await import('@/lib/portal-invitations')
+      const issued = await issuePortalInvitation(
+        db,
+        { merchantId: outcome.merchant_id, actorId: userId, assessmentId },
+        { deferEmail: true },
+      ).catch(() => ({ ok: false as const, reason: 'write_failed' as const }))
+      if (issued.ok && issued.state !== 'already_linked') {
+        invitation = { ok: true, state: issued.state }
+        queueInvitationEmail = issued.queueEmail
+      } else if (issued.ok) {
+        // An account was connected between the decision and now: nothing to invite.
+        invitation = { ok: true, state: 'already_linked' }
+      } else {
+        invitation = {
+          ok: false,
+          state: issued.reason,
+          message:
+            'The approval was recorded, but the portal invitation could not be created ' +
+            `(${issued.reason}). Use "Send portal invitation" to retry.`,
+        }
+        console.error(`[decision] invitation after approval failed: ${issued.reason}`)
+      }
+    }
+
     const emailOutcome = await queueDecisionOutcomeEmail({
       db,
       decision: decision as Decision,
       outcome,
       merchantId: outcome.merchant_id,
       sharedMessage,
+      invitationFollows: queueInvitationEmail !== null,
     })
+
+    if (queueInvitationEmail && invitation) {
+      invitation.emailQueued = await queueInvitationEmail().catch(() => false)
+      if (!invitation.emailQueued) {
+        invitation.message =
+          'The approval was recorded and the invitation created, but its email could not be queued. ' +
+          'Use "Send portal invitation" to re-send it.'
+      }
+    }
 
     const releaseEnabled = process.env.GROWTH_PROFILE_RELEASE_ENABLED === 'true'
 
     return NextResponse.json({
+      invitation,
       success: true,
       decision: {
         id: outcome.id,
@@ -488,7 +551,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
       // TRUTHFUL, not aspirational: `released` is whether the client can
       // actually retrieve the profile right now, under exactly the conditions
       // the client endpoint enforces.
-      released: decision === 'approved' && releaseEnabled && Boolean(outcome.profile_id),
+      // A client must be connected too: with client_id NULL nobody can open it yet.
+      released: decision === 'approved' && releaseEnabled && Boolean(outcome.profile_id) && Boolean(outcome.client_id),
       // What was queued, and — when nothing was — why. Provider acceptance is
       // NOT delivery; this only reports that the intent was recorded.
       outcomeEmail: emailOutcome,

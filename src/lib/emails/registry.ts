@@ -82,6 +82,10 @@ const REGISTRY: Record<string, SendFromPayload> = {
       // Absent or non-true means NOT released. The claim has to be made
       // explicitly at enqueue time; it is never inferred here.
       profileReleased: payload.profileReleased === true,
+      // Phase 16.6: a separate Portal Invitation follows (no account connected yet).
+      invitationFollows: payload.invitationFollows === true,
+      // Only an explicit false selects the neutral "we'll be in touch" wording.
+      accountConnected: payload.accountConnected !== false,
     })
   },
 
@@ -105,6 +109,25 @@ const REGISTRY: Record<string, SendFromPayload> = {
       // The decision's private `notes` column is a different field and is not
       // put into the payload by the decision endpoint.
       sharedMessage: str(payload, 'sharedMessage'),
+    })
+  },
+
+  // Phase 16.6. Queued only by issuePortalInvitation(). The payload carries the
+  // invitation id, never the token — the template recomputes the token server-side.
+  'portal-invitation': async (payload) => {
+    const email = str(payload, 'email')
+    const invitationId = str(payload, 'invitationId')
+    const expiresAt = str(payload, 'expiresAt')
+    if (!email || !invitationId || !expiresAt) {
+      return { ok: false, outcome: 'failed', reason: 'payload_incomplete' }
+    }
+    const { sendPortalInvitationEmail } = await import('@/lib/emails/hos/portal-invitation')
+    return sendPortalInvitationEmail({
+      firstName: str(payload, 'firstName') || '',
+      email,
+      businessName: str(payload, 'businessName') || '',
+      invitationId,
+      expiresAt,
     })
   },
 

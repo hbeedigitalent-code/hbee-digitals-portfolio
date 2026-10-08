@@ -2,32 +2,21 @@
 //
 // The outcome email for a deliberate DECLINED program decision.
 //
-// TRIGGER: queued by POST /api/admin/growth-assessments/[id]/decision AFTER
-// record_program_decision() has committed. Exactly one per decision.
+// TRIGGER (unchanged): queued by POST /api/admin/growth-assessments/[id]/decision
+// AFTER record_program_decision() has committed. Exactly one per decision.
 //
-// TONE IS DELIBERATE. Not being approved for the programme is a capacity and
-// fit judgement, not a verdict on the business. This email therefore:
-//   * does not rank, score or grade the merchant,
-//   * does not imply they failed anything,
-//   * does not suggest that declining paid implementation caused the outcome,
-//   * does not upsell, and
-//   * leaves the door open without promising a future review.
+// TONE IS DELIBERATE (unchanged): a fit judgement, not a verdict — no ranking,
+// scoring, upsell or implied failure, and the door left open without promising
+// a future review. INTERNAL NOTES NEVER APPEAR HERE; the only client-facing text
+// is a note the admin explicitly marked shareable. No portal access is offered.
 //
-// INTERNAL NOTES NEVER APPEAR HERE. record_program_decision() stores an admin's
-// `notes` on the decision row for the audit trail; that field is never read by
-// this template and is never placed in the payload. The only client-facing text
-// is a note the admin explicitly marks as shareable.
+// Phase 16.6: moved onto the Hbee email system with permanent lifecycle
+// language (Growth Review; no programme/capacity/slot wording), a team signoff,
+// and reply-to from the configured RESEND_REPLY_TO.
 
 import { Resend } from 'resend'
-import {
-  renderEmail,
-  deliver,
-  emailFrom,
-  emailReplyTo,
-  supportEmail,
-  type EmailBlock,
-  type EmailSendResult,
-} from '@/lib/emails/layout'
+import { configuredReplyTo, deliver, emailFrom, supportEmail, type EmailSendResult } from '@/lib/emails/layout'
+import { cleanText, renderHbeeEmail, type HbeeEmailBlock, type HbeeEmailOptions } from '@/lib/emails/hbee-email'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -35,91 +24,69 @@ export interface GrowthProgramDeclinedData {
   firstName: string
   email: string
   businessName: string
+  /** Idempotency only — never rendered. */
   decisionId: string
-  /**
-   * OPTIONAL and explicitly client-facing. The admin has to tick a box for this
-   * to be sent; the private `notes` field on the decision is a different value
-   * and is never passed in here.
-   */
+  /** Only a note the admin explicitly marked as shareable. */
   sharedMessage?: string | null
 }
 
-export async function sendGrowthProgramDeclinedEmail(
-  data: GrowthProgramDeclinedData,
-): Promise<EmailSendResult> {
-  const blocks: EmailBlock[] = [
-    { type: 'paragraph', text: `Hi ${data.firstName},` },
+type ContentData = Pick<GrowthProgramDeclinedData, 'firstName' | 'businessName' | 'sharedMessage'>
+
+export function buildGrowthProgramDeclinedEmail(data: ContentData): HbeeEmailOptions & { subject: string } {
+  const firstName = cleanText(data.firstName)
+  const business = cleanText(data.businessName) || 'your business'
+  const replyTo = configuredReplyTo()
+
+  const blocks: HbeeEmailBlock[] = [
+    { type: 'paragraph', text: firstName && firstName !== 'there' ? `Hi ${firstName},` : 'Hi,' },
     {
       type: 'paragraph',
-      text:
-        `Thank you for applying to the Hbee Growth Support Initiative and for the time ` +
-        `you put into the assessment for ${data.businessName}.`,
+      text: `Thank you for completing the Growth Review for ${business}, and for the time you put into your answers.`,
     },
     {
       type: 'paragraph',
       text:
-        'We are not able to approve your application for the programme at this time. ' +
-        'We take on a limited number of businesses for it, and this decision reflects ' +
-        'that capacity and fit rather than any judgement about your business.',
+        "After reviewing it carefully, we've decided not to move forward at this stage. This reflects fit " +
+        'and timing, not a judgement about your business.',
     },
   ]
+  const shared = cleanText(data.sharedMessage)
+  if (shared) blocks.push({ type: 'callout', title: 'A note from the team', text: shared })
+  blocks.push({
+    type: 'paragraph',
+    text: "You're welcome to get in touch if you'd like to talk it through, or if your circumstances change.",
+  })
 
-  if (data.sharedMessage) {
-    blocks.push({
-      type: 'callout',
-      title: 'A note from our team',
-      text: data.sharedMessage,
-    })
+  return {
+    subject: 'An update on your Growth Review',
+    preheader: `An update on the Growth Review for ${business}.`,
+    status: { tone: 'declined', label: 'Growth Review update' },
+    heading: 'An update on your Growth Review.',
+    blocks,
+    signoff: { name: 'The Hbee Digitals Team' },
+    reason: "You're receiving this because you submitted a Growth Review to Hbee Digitals.",
+    supportEmail: replyTo?.address ?? supportEmail(),
+    repliesMonitored: replyTo !== null,
   }
+}
 
-  blocks.push(
-    {
-      type: 'paragraph',
-      text:
-        'You are welcome to get in touch if you would like to talk it through, and you ' +
-        'are welcome to apply again in future if your circumstances change.',
-    },
-    {
-      type: 'paragraph',
-      text: 'We genuinely wish you well with your growth.',
-    },
-  )
+export function renderGrowthProgramDeclinedEmail(data: ContentData) {
+  const { subject, ...options } = buildGrowthProgramDeclinedEmail(data)
+  return { subject, ...renderHbeeEmail(options) }
+}
 
-  const subject = 'An update on your Hbee Growth Support application'
-
+export async function sendGrowthProgramDeclinedEmail(data: GrowthProgramDeclinedData): Promise<EmailSendResult> {
+  const subject = buildGrowthProgramDeclinedEmail(data).subject
   return deliver(
     'growth-program-declined',
     async () => {
-      const { html, text } = renderEmail({
-        preheader: 'An update on your application to the Growth Support Initiative.',
-        eyebrow: 'Application update',
-        heading: 'An update on your application',
-        blocks,
-        // No CTA. There is nothing to click, and a button here would be a
-        // sales prompt attached to a rejection.
-        signoff: { name: 'Habeeb Ismaila', title: 'CEO & Founder, Hbee Digitals' },
-        reason:
-          'You are receiving this because you submitted the Growth Readiness Assessment at hbeedigitals.com.',
-        supportEmail: supportEmail(),
-      })
-
+      const { html, text } = renderGrowthProgramDeclinedEmail(data)
+      const replyTo = configuredReplyTo()
       return resend.emails.send(
-        {
-          from: emailFrom(),
-          ...emailReplyTo(),
-          to: data.email,
-          subject,
-          html,
-          text,
-        },
+        { from: emailFrom(), ...(replyTo ? { replyTo: replyTo.header } : {}), to: data.email, subject, html, text },
         { idempotencyKey: `growth-program-declined:${data.decisionId}` },
       )
     },
-    {
-      templateSlug: 'growth-program-declined',
-      recipientEmail: data.email,
-      recipientName: data.firstName,
-      subject,
-    },
+    { templateSlug: 'growth-program-declined', recipientEmail: data.email, recipientName: data.firstName, subject },
   )
 }

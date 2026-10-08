@@ -149,6 +149,33 @@ export default function ProgramDecisionPanel({ assessmentId, onRecorded }: Props
     }
   }
 
+  async function sendInvitation() {
+    if (!confirm('Send a portal invitation to this merchant’s email address?')) return
+    setBusy('invite')
+    setError(null)
+    setNotice(null)
+    try {
+      const response = await fetch(`/api/admin/growth-assessments/${assessmentId}/invite`, {
+        method: 'POST',
+        credentials: 'same-origin',
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.message || result.error || 'The invitation could not be sent.')
+      setNotice(
+        result.state === 'already_linked'
+          ? 'This merchant already has a connected portal account.'
+          : result.state === 'existing'
+            ? 'An invitation is already open for this merchant — it has been re-sent.'
+            : 'Invitation sent. The account connects when the merchant accepts it.',
+      )
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'The invitation could not be sent.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
   async function record(decision: string, confirmText: string, acknowledge = false) {
     if (!acknowledge && !confirm(confirmText)) return
 
@@ -189,12 +216,20 @@ export default function ProgramDecisionPanel({ assessmentId, onRecorded }: Props
         throw new Error(result.message || result.error || 'The decision could not be recorded.')
       }
 
+      const base = result.released
+        ? 'Decision recorded. The Growth Profile is now released to the client, and the outcome email has been queued.'
+        : result.outcomeEmail?.queued
+          ? 'Decision recorded. The outcome email has been queued. The profile is NOT released yet.'
+          : 'Decision recorded. No outcome email was queued for this decision.'
+      // Phase 16.6: an approval with no connected account also sends the portal invitation.
+      const inv = result.invitation
+      if (inv && (!inv.ok || inv.emailQueued === false)) {
+        setError(inv.message || 'The approval was recorded, but the portal invitation could not be sent.')
+      }
       setNotice(
-        result.released
-          ? 'Decision recorded. The Growth Profile is now released to the client, and the outcome email has been queued.'
-          : result.outcomeEmail?.queued
-            ? 'Decision recorded. The outcome email has been queued. The profile is NOT released yet.'
-            : 'Decision recorded. No outcome email was queued for this decision.',
+        inv?.ok && inv.emailQueued
+          ? `${base} A portal invitation has been ${inv.state === 'existing' ? 're-sent' : 'sent'} — the profile becomes visible once the merchant connects their account.`
+          : base,
       )
       setNotes('')
       setSharedMessage('')
@@ -297,6 +332,27 @@ export default function ProgramDecisionPanel({ assessmentId, onRecorded }: Props
               an admin picks one existing client from the list and confirms.
               The write goes through link_client_to_merchant() via the gated
               route — the browser never touches clients.merchant_id. */}
+          {/* Phase 16.6: the usual path — invite the merchant to connect their own
+              account. The link is made only when they accept while signed in with
+              the invited, verified email. Idempotent: re-sending reuses the open
+              invitation. */}
+          {clientState === 'no_client' && (
+            <div className="space-y-2 rounded-lg border border-[var(--border)] p-3">
+              <p className="text-xs font-medium text-[var(--text-muted)]">Invite the merchant to the client portal</p>
+              <button
+                type="button"
+                onClick={sendInvitation}
+                disabled={busy !== null}
+                className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-card)]"
+              >
+                {busy === 'invite' ? 'Sending…' : 'Send portal invitation'}
+              </button>
+              <p className="text-xs text-[var(--text-muted)]">
+                Emails a personal link to the merchant&apos;s address. Their account is connected only
+                when they accept it signed in with that address. Once connected, record the decision.
+              </p>
+            </div>
+          )}
           {clientState === 'no_client' && (
             <div className="space-y-2">
               <label htmlFor="link-client" className="block text-xs font-medium text-[var(--text-muted)]">
