@@ -1,125 +1,138 @@
 // src/lib/emails/hos/assessment-received.ts
 //
 // Sent once, from POST /api/growth-assessment, immediately after a submission
-// is stored. Trigger and function contract are unchanged.
+// is stored (and retried from the email_events outbox via registry.ts).
+// Trigger, queue, payload and function contract are unchanged.
 //
-// Rebuilt on the shared branded layout (src/lib/emails/layout.ts). Three
-// factual corrections came with that, all of which contradicted the confirmed
-// program terms:
+// Phase 16.5: the first template on the Hbee email design system
+// (src/lib/emails/hbee-email.ts). It is the inbox counterpart of the Growth
+// Review confirmation page — "your Growth Review was received, and here's what
+// happens next" — and says nothing the programme has not committed to:
 //
-//   1. "Over the next 12-48 hours" — an invented turnaround. No review time has
-//      been committed to, so none is stated.
-//   2. A six-step "HOS Journey" tracker ending in Strategy / Proposal /
-//      Onboarding, which presented a paid engagement as the expected path.
-//   3. Copy that read as though the review outcome were a formality. Submission
-//      is an application; approval is a separate, deliberate decision.
+//   - no portal / account CTA: an account is not part of receipt;
+//   - no assessment reference: database identifiers are internal;
+//   - no approval, consultation, engagement, turnaround, score or profile
+//     promise, and no Growth Support Initiative / "free for life" language;
+//   - signed by the team, not an individual.
+//
+// The assessmentId still arrives in the queued payload and is still used — as
+// the provider idempotency key — but it is never rendered.
 
 import { Resend } from 'resend'
 import {
-  renderEmail,
+  configuredReplyTo,
   deliver,
   emailFrom,
-  emailReplyTo,
   supportEmail,
-  type EmailBlock,
   type EmailSendResult,
 } from '@/lib/emails/layout'
+import { cleanText, renderHbeeEmail, type HbeeEmailOptions } from '@/lib/emails/hbee-email'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
+
+export const ASSESSMENT_RECEIVED_SUBJECT = "We've received your Growth Review"
 
 interface EmailData {
   firstName: string
   email: string
+  /** Idempotency only. Never rendered. */
   assessmentId: string
-  portalUrl: string
+  /**
+   * Still present in queued payloads (and passed by registry.ts) for event
+   * compatibility. Deliberately unused: receipt does not invite an account.
+   */
+  portalUrl?: string
+}
+
+/** The message content. Pure — no sending, no environment beyond the configured origin. */
+export function buildAssessmentReceivedEmail(data: Pick<EmailData, 'firstName'>): HbeeEmailOptions & { subject: string } {
+  const firstName = cleanText(data.firstName)
+  const greeting = firstName ? `Hi ${firstName},` : 'Hi,'
+  const thanks = firstName ? `Thanks, ${firstName} — here's what happens next.` : "Thanks — here's what happens next."
+
+  return {
+    subject: ASSESSMENT_RECEIVED_SUBJECT,
+    preheader: thanks,
+    status: { tone: 'received', label: 'Assessment received' },
+    heading: 'Thank you — we have your answers.',
+    blocks: [
+      { type: 'paragraph', text: greeting },
+      {
+        type: 'paragraph',
+        text: 'Thank you for completing the Hbee Digitals Growth Review. Your answers are now with our team.',
+      },
+      {
+        type: 'paragraph',
+        text:
+          "We'll review them alongside your website, online store or main selling page where that's useful, " +
+          'so we understand the business as a whole.',
+      },
+      { type: 'heading', text: 'What happens next' },
+      {
+        type: 'steps',
+        items: [
+          'We review your answers alongside your website or store.',
+          'We identify what deserves attention, and where the strongest opportunities or constraints appear.',
+          'We email you with the most useful next step.',
+        ],
+      },
+      {
+        type: 'callout',
+        title: 'Good to know',
+        text:
+          "Submitting a Growth Review doesn't mean approval, a paid engagement or portal access. " +
+          'It helps us understand your business before we recommend the most useful next step.',
+      },
+      { type: 'paragraph', tone: 'muted', text: 'Nothing else is needed from you for now.' },
+    ],
+    signoff: { name: 'The Hbee Digitals Team' },
+    reason: "You're receiving this because you submitted a Growth Review to Hbee Digitals.",
+    // One source for the footer address, the "Reply to this email" wording and
+    // the reply-to header (below), so the email never claims replies it can't receive.
+    supportEmail: configuredReplyTo()?.address ?? supportEmail(),
+    repliesMonitored: configuredReplyTo() !== null,
+  }
+}
+
+/** Subject plus both bodies. Throws EmailConfigurationError when no site origin is configured. */
+export function renderAssessmentReceivedEmail(data: Pick<EmailData, 'firstName'>) {
+  const { subject, ...options } = buildAssessmentReceivedEmail(data)
+  return { subject, ...renderHbeeEmail(options) }
 }
 
 export async function sendAssessmentReceivedEmail(data: EmailData): Promise<EmailSendResult> {
-  const blocks: EmailBlock[] = [
-    { type: 'paragraph', text: `Hi ${data.firstName},` },
-    {
-      type: 'paragraph',
-      text:
-        'Thank you for completing the Hbee Digitals Growth Readiness Assessment. ' +
-        'Your submission has been received and is now with our team.',
-    },
-    {
-      type: 'reference',
-      label: 'Your assessment reference',
-      value: data.assessmentId,
-    },
-    { type: 'heading', text: 'What happens next' },
-    {
-      type: 'paragraph',
-      text:
-        'A member of the Hbee team reviews your answers and your store, and looks at ' +
-        'where your growth is currently constrained.',
-    },
-    {
-      type: 'list',
-      items: [
-        'Your current growth stage and priorities',
-        'How you attract and convert customers today',
-        'Your website and customer experience',
-        'Trust, retention and conversion opportunities',
-        'Readiness to implement changes',
-      ],
-    },
-    {
-      type: 'callout',
-      title: 'Submitting is an application, not an approval',
-      text:
-        'Receiving this email confirms we have your assessment. It does not mean you ' +
-        'have been approved for the growth support programme. We will write to you ' +
-        'again once a decision has been made.',
-    },
-    { type: 'heading', text: 'Set up your client portal' },
-    {
-      type: 'paragraph',
-      text:
-        'You can create your secure client portal account now. Your Growth Profile ' +
-        'appears there if your application is approved.',
-    },
-  ]
-
   // Rendering is INSIDE deliver(): building the links is what can raise a
   // configuration error, and that must be reported, not thrown at the caller.
   // The assessment itself is already stored by this point and stays stored.
-  return deliver('assessment-received', async () => {
-    const { html, text } = renderEmail({
-      preheader: 'We have your assessment. Here is what happens next.',
-      eyebrow: 'Assessment received',
-      heading: "We've received your Growth Readiness Assessment",
-      blocks,
-      cta: { label: 'Create your portal account', url: data.portalUrl },
-      signoff: { name: 'Habeeb Ismaila', title: 'CEO & Founder, Hbee Digitals' },
-      reason:
-        'You are receiving this because you submitted the Growth Readiness Assessment at hbeedigitals.com.',
-      supportEmail: supportEmail(),
-    })
+  return deliver(
+    'assessment-received',
+    async () => {
+      const { subject, html, text } = renderAssessmentReceivedEmail(data)
+      const replyTo = configuredReplyTo()
 
-    // Returned, not awaited-and-discarded: deliver() inspects the provider
-    // envelope, because the Resend SDK RESOLVES with { error } on rejection.
-    return resend.emails.send(
-      {
-        from: emailFrom(),
-        ...emailReplyTo(),
-        to: data.email,
-        subject: "We've received your Growth Readiness Assessment",
-        html,
-        text,
-      },
-      // Provider-side idempotency. Resend de-duplicates on this key, so a
-      // retry of the same logical send cannot deliver a second copy. Its
-      // window is the provider's, not ours (Resend documents 24 hours), so
-      // it protects against a retry storm — NOT against a resend days later.
-      { idempotencyKey: `assessment-received:${data.assessmentId}` },
-    )
-  }, {
-    templateSlug: 'assessment-received',
-    recipientEmail: data.email,
-    recipientName: data.firstName,
-    subject: "We've received your Growth Readiness Assessment",
-  },
+      // Returned, not awaited-and-discarded: deliver() inspects the provider
+      // envelope, because the Resend SDK RESOLVES with { error } on rejection.
+      return resend.emails.send(
+        {
+          from: emailFrom(),
+          ...(replyTo ? { replyTo: replyTo.header } : {}),
+          to: data.email,
+          subject,
+          html,
+          text,
+        },
+        // Provider-side idempotency. Resend de-duplicates on this key, so a
+        // retry of the same logical send cannot deliver a second copy. Its
+        // window is the provider's, not ours (Resend documents 24 hours), so
+        // it protects against a retry storm — NOT against a resend days later.
+        { idempotencyKey: `assessment-received:${data.assessmentId}` },
+      )
+    },
+    {
+      templateSlug: 'assessment-received',
+      recipientEmail: data.email,
+      recipientName: data.firstName,
+      subject: ASSESSMENT_RECEIVED_SUBJECT,
+    },
   )
 }

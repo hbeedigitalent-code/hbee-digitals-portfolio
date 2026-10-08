@@ -648,3 +648,26 @@ export function emailReplyTo(): { replyTo: string } | Record<string, never> {
 export function supportEmail(): string {
   return process.env.RESEND_REPLY_TO_EMAIL?.trim() || 'hello@hbeedigitals.com'
 }
+
+/**
+ * The reply-to address as it is ACTUALLY configured on the Hbee project:
+ * RESEND_REPLY_TO (Vercel, Production + Preview).
+ *
+ * emailReplyTo() and supportEmail() above read RESEND_REPLY_TO_EMAIL, which is
+ * not configured, so the templates that use them send no reply-to header. That
+ * is left exactly as it is here — switching them would change delivery for
+ * every template. Templates on the Hbee email system (hbee-email.ts) use this
+ * instead, so they only claim replies are read when a reply-to really is set.
+ *
+ * Accepts `addr@host` or `Name <addr@host>`. Anything else is treated as not
+ * configured (null): a malformed reply-to would make the provider reject the
+ * message, and an email must never invite replies that go nowhere.
+ */
+export function configuredReplyTo(): { header: string; address: string } | null {
+  const configured = process.env.RESEND_REPLY_TO?.trim()
+  if (!configured) return null
+  const named = configured.match(/^[^<>]*<\s*([^<>\s]+)\s*>$/)
+  const address = named ? named[1] : configured
+  if (!/^[^<>@\s]+@[^<>@\s.]+(\.[^<>@\s.]+)+$/.test(address)) return null
+  return { header: configured, address }
+}
