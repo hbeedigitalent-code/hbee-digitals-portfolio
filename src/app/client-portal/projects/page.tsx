@@ -1,157 +1,206 @@
 // src/app/client-portal/projects/page.tsx
+//
+// Projects list (Phase 18.6). Reads ONE session-bound endpoint, /api/client-portal/projects,
+// which returns the caller's own projects as an allow-list (it replaces the browser-side
+// projects.select('*') under RLS). Filters and grouping are presentation over the real stored
+// status; no status is invented.
+
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@/lib/supabase-client'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import SvgIcon from '@/components/ui/SvgIcon'
-import StatusPill from '@/components/ui/StatusPill'
+import { ArrowRight, Plus } from 'lucide-react'
+import {
+  PROJECT_FILTERS,
+  parseProgress,
+  formatProjectDate,
+  matchesProjectFilter,
+  statusLabel,
+  statusTone,
+  type ProjectFilter,
+} from '@/lib/client-portal/projects-display'
+import styles from './projects.module.css'
 
-interface Project {
+interface PortalProject {
   id: string
-  project_id: string
-  project_name: string
-  status: string
-  progress: number
-  description: string
-  created_at: string
+  reference: string | null
+  name: string
+  status: string | null
+  progress: number | string | null
+  description: string | null
+  startDate: string | null
+  expectedCompletion: string | null
+  createdAt: string | null
 }
 
-export default function ClientProjectsPage() {
-  const router = useRouter()
-  const supabase = createClientComponentClient()
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
+type LoadState = 'loading' | 'ready' | 'ambiguous' | 'error'
 
-  useEffect(() => {
-    fetchProjects()
+export default function ClientProjectsPage() {
+  const [state, setState] = useState<LoadState>('loading')
+  const [projects, setProjects] = useState<PortalProject[]>([])
+  const [filter, setFilter] = useState<ProjectFilter>('all')
+
+  const load = useCallback(async () => {
+    setState('loading')
+    try {
+      const response = await fetch('/api/client-portal/projects', { credentials: 'same-origin' })
+      if (response.status === 409) {
+        setState('ambiguous')
+        return
+      }
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !Array.isArray(payload?.projects)) {
+        setState('error')
+        return
+      }
+      const list = payload.projects as PortalProject[]
+      setProjects(list)
+      // Open on Active when there is anything active; otherwise show everything.
+      setFilter(list.some((p) => matchesProjectFilter(p.status, 'active')) ? 'active' : 'all')
+      setState('ready')
+    } catch (err) {
+      console.error('Error:', err)
+      setState('error')
+    }
   }, [])
 
-  async function fetchProjects() {
-    setLoading(true)
+  useEffect(() => {
+    load()
+  }, [load])
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const { data: clientData } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (clientData) {
-        const { data: projectData } = await supabase
-          .from('projects')
-          .select('*')
-          .eq('client_id', clientData.id)
-          .order('created_at', { ascending: false })
-        setProjects(projectData || [])
-      }
-    }
-
-    setLoading(false)
-  }
-
-  if (loading) {
+  if (state === 'loading') {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+      <div className={styles.center}>
+        <div className={styles.spinner} />
       </div>
     )
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Your Projects</h1>
-          <p className="text-sm text-[var(--text-muted)]">Track the progress of your projects</p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          {/* Quick Project Request Button */}
-          <Link
-            href="/client-portal/project-request"
-            className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
-          >
-            <SvgIcon name="plus" size={16} color="white" />
-            Request New Project
-          </Link>
-          {/* Full Onboarding Button */}
-          <Link
-            href="/client-onboarding"
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-6 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-section)]"
-          >
-            <SvgIcon name="file" size={16} color="var(--text-muted)" />
-            Full Onboarding
+  if (state === 'ambiguous') {
+    return (
+      <div className={styles.center}>
+        <div className={styles.centerBody}>
+          <p>Your sign-in is linked to more than one business record, so we have not shown your projects. Please contact us and we will sort it out.</p>
+          <Link href="/contact" className={styles.secondary}>
+            Contact Hbee Digitals
           </Link>
         </div>
       </div>
+    )
+  }
+
+  if (state === 'error') {
+    return (
+      <div className={styles.center}>
+        <div className={styles.centerBody}>
+          <p>We could not load your projects. Please try again in a moment.</p>
+          <button type="button" onClick={load} className={styles.secondary}>
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const shown = projects.filter((p) => matchesProjectFilter(p.status, filter))
+
+  return (
+    <div className={styles.page}>
+      <header className={styles.hero}>
+        <div>
+          <p className={styles.eyebrow}>
+            <span aria-hidden="true" className={styles.node} />
+            Projects
+          </p>
+          <h1 className={styles.h1}>
+            Your work with Hbee, <em>in progress.</em>
+          </h1>
+          <p className={styles.lead}>Every project, its current status and how far along it is.</p>
+        </div>
+        <div className={styles.heroActions}>
+          <Link href="/client-portal/project-request" className={styles.primary}>
+            <Plus aria-hidden="true" />
+            Request new project
+          </Link>
+          <Link href="/client-onboarding" className={styles.secondary}>
+            Full onboarding
+          </Link>
+        </div>
+      </header>
 
       {projects.length === 0 ? (
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--bg-section)]">
-            <SvgIcon name="projects" size={32} color="var(--text-muted)" />
-          </div>
-          <h3 className="text-lg font-semibold text-[var(--text-primary)]">No projects yet</h3>
-          <p className="mt-2 text-sm text-[var(--text-muted)]">
-            Start by requesting a new project. Our team will review and get back to you.
-          </p>
-          <div className="mt-4 flex flex-wrap justify-center gap-3">
-            <Link
-              href="/client-portal/project-request"
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
-            >
-              <SvgIcon name="plus" size={16} color="white" />
-              Quick Request
-            </Link>
-            <Link
-              href="/client-onboarding"
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-6 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-section)]"
-            >
-              <SvgIcon name="file" size={16} color="var(--text-muted)" />
-              Full Onboarding
-            </Link>
+        <div className={`${styles.panel} ${styles.center}`}>
+          <div className={styles.centerBody}>
+            <h2>No projects yet</h2>
+            <p>Start by requesting a new project. Our team will review it and get back to you.</p>
           </div>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {projects.map((project) => (
-            <Link
-              key={project.id}
-              href={`/client-portal/projects/${project.id}`}
-              className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6 transition hover:shadow-md"
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-semibold text-[var(--text-primary)]">{project.project_name}</p>
-                  <p className="text-sm text-[var(--text-muted)]">{project.project_id}</p>
-                </div>
-                <StatusPill status={project.status || 'New'} />
-              </div>
+        <>
+          <div className={styles.filters} role="group" aria-label="Filter projects">
+            {PROJECT_FILTERS.map((f) => {
+              const count = projects.filter((p) => matchesProjectFilter(p.status, f.key)).length
+              // Groups with nothing in them are not offered (All is always there).
+              if (f.key !== 'all' && count === 0) return null
+              return (
+                <button key={f.key} type="button" className={styles.filter} aria-pressed={filter === f.key} onClick={() => setFilter(f.key)}>
+                  {f.label}
+                  <span className={styles.count}>{count}</span>
+                </button>
+              )
+            })}
+          </div>
 
-              {project.description && (
-                <p className="mt-2 text-sm text-[var(--text-muted)] line-clamp-2">{project.description}</p>
-              )}
-
-              <div className="mt-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-[var(--text-muted)]">Progress</span>
-                  <span className="font-medium text-[var(--text-primary)]">{project.progress || 0}%</span>
-                </div>
-                <div className="mt-1 h-1.5 w-full rounded-full bg-[var(--bg-section)]">
-                  <div
-                    className="h-1.5 rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-lime)]"
-                    style={{ width: `${project.progress || 0}%` }}
-                  />
-                </div>
-              </div>
-
-              <p className="mt-3 text-xs text-[var(--text-muted)]">
-                Created: {new Date(project.created_at).toLocaleDateString()}
-              </p>
-            </Link>
-          ))}
-        </div>
+          {shown.length === 0 ? (
+            <p className={styles.quiet}>No projects in this view.</p>
+          ) : (
+            <ul className={styles.list}>
+              {shown.map((p) => {
+                const tone = statusTone(p.status)
+                const progress = parseProgress(p.progress)
+                const due = formatProjectDate(p.expectedCompletion)
+                return (
+                  <li key={p.id}>
+                    <Link href={`/client-portal/projects/${p.id}`} className={styles.row}>
+                      <div style={{ minWidth: 0 }}>
+                        <p className={styles.rowTitle}>{p.name}</p>
+                        {p.reference && <p className={styles.rowRef}>{p.reference}</p>}
+                        {p.description && <p className={styles.rowDesc}>{p.description}</p>}
+                      </div>
+                      <div className={styles.rowMeta}>
+                        {progress === null ? (
+                          <p className={styles.due}>Progress not set</p>
+                        ) : (
+                          <>
+                            <div className={styles.progressRow}>
+                              <span>Progress</span>
+                              <b>{progress}%</b>
+                            </div>
+                            <div className={styles.bar} aria-hidden="true">
+                              <span style={{ width: `${progress}%` }} />
+                            </div>
+                          </>
+                        )}
+                        {due && <p className={styles.due}>Expected completion {due}</p>}
+                      </div>
+                      <div className={styles.rowEnd}>
+                        <span
+                          className={`${styles.chip} ${tone === 'needs' ? styles.chipNeeds : tone === 'done' ? styles.chipDone : tone === 'muted' ? styles.chipMuted : ''}`}
+                        >
+                          {statusLabel(p.status)}
+                        </span>
+                        <span className={styles.link} aria-hidden="true">
+                          Open project
+                          <ArrowRight />
+                        </span>
+                      </div>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </>
       )}
     </div>
   )
