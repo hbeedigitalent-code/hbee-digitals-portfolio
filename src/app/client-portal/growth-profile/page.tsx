@@ -13,13 +13,19 @@
 //
 // The route decides visibility; this page only renders the state it is given,
 // so no access rule lives in the browser.
+//
+// Phase 18.2 changed presentation and information hierarchy only. Everything
+// shown is a real field from that payload, or is derived from those fields
+// (the lowest pillar). Nothing is invented.
 
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
+import { BarChart3, Check, Download, Search, ShoppingCart } from 'lucide-react'
 import SvgIcon from '@/components/ui/SvgIcon'
-import Button from '@/components/ui/Button'
+import { HbeeModuleStandalone } from '@/components/site/module/HbeeModule'
+import styles from './growth-profile.module.css'
 
 type ProfileState =
   | 'loading'
@@ -46,30 +52,8 @@ interface ClientGrowthProfile {
   pdf_url: string | null
 }
 
-const CLASSIFICATION_EMOJIS: Record<string, string> = {
-  'Foundation': '🏗️',
-  'Foundation Stage': '🏗️',
-  'Growth Potential': '🌱',
-  'Growth Ready': '🚀',
-  'Scale Ready': '🌍',
-}
-
-const CLASSIFICATION_COLORS: Record<string, string> = {
-  'Foundation': 'border-blue-500/30 bg-blue-500/10',
-  'Foundation Stage': 'border-blue-500/30 bg-blue-500/10',
-  'Growth Potential': 'border-yellow-500/30 bg-yellow-500/10',
-  'Growth Ready': 'border-green-500/30 bg-green-500/10',
-  'Scale Ready': 'border-purple-500/30 bg-purple-500/10',
-}
-
-const CLASSIFICATION_TEXT_COLORS: Record<string, string> = {
-  'Foundation': 'text-blue-500',
-  'Foundation Stage': 'text-blue-500',
-  'Growth Potential': 'text-yellow-500',
-  'Growth Ready': 'text-green-500',
-  'Scale Ready': 'text-purple-500',
-}
-
+/** Canonical order — the API only ever returns these five keys. */
+const PILLAR_ORDER = ['visibility', 'conversion', 'retention', 'authority', 'scalability'] as const
 const PILLAR_LABELS: Record<string, string> = {
   visibility: 'Visibility',
   conversion: 'Conversion',
@@ -78,7 +62,22 @@ const PILLAR_LABELS: Record<string, string> = {
   scalability: 'Scalability',
 }
 
-/** Shared shell for every non-ready state. */
+const ICON = { strokeWidth: 1.75, width: '100%', height: '100%' } as const
+
+function clampPct(n: number): number {
+  return Math.max(0, Math.min(100, n))
+}
+
+function Eyebrow({ children }: { children: ReactNode }) {
+  return (
+    <p className={styles.eyebrow}>
+      <span aria-hidden="true" className={styles.node} />
+      {children}
+    </p>
+  )
+}
+
+/** Shared shell for every non-ready state. Copy and actions are unchanged from before. */
 function EmptyState({
   icon,
   title,
@@ -87,15 +86,17 @@ function EmptyState({
 }: {
   icon: string
   title: string
-  children: React.ReactNode
-  action?: React.ReactNode
+  children: ReactNode
+  action?: ReactNode
 }) {
   return (
-    <div className="flex min-h-[400px] flex-col items-center justify-center px-4 text-center">
-      <SvgIcon name={icon} size={56} color="var(--text-muted)" />
-      <h2 className="mt-4 text-xl font-bold text-[var(--text-primary)] md:text-2xl">{title}</h2>
-      <div className="mt-2 max-w-md text-sm text-[var(--text-secondary)]">{children}</div>
-      {action && <div className="mt-6 flex flex-wrap justify-center gap-3">{action}</div>}
+    <div className={`${styles.panel} ${styles.state}`}>
+      <span className={styles.stateIcon}>
+        <SvgIcon name={icon} size={28} color="var(--hb-blue)" />
+      </span>
+      <h2 className={styles.stateTitle}>{title}</h2>
+      <div className={styles.stateBody}>{children}</div>
+      {action && <div className={styles.stateActions}>{action}</div>}
     </div>
   )
 }
@@ -148,8 +149,8 @@ export default function GrowthProfilePage() {
 
   if (state === 'loading') {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+      <div className={styles.loading}>
+        <div className={styles.spinner} />
       </div>
     )
   }
@@ -164,14 +165,11 @@ export default function GrowthProfilePage() {
         title="Your Growth Profile is not connected yet"
         action={
           <>
-            <Link href="/contact">
-              <Button>
-                <SvgIcon name="email" size={16} color="white" />
-                Contact Hbee Digitals
-              </Button>
+            <Link href="/contact" className={styles.primary}>
+              Contact Hbee Digitals
             </Link>
-            <Link href="/client-portal">
-              <Button variant="secondary">Back to Dashboard</Button>
+            <Link href="/client-portal" className={styles.secondary}>
+              Back to Dashboard
             </Link>
           </>
         }
@@ -180,7 +178,7 @@ export default function GrowthProfilePage() {
           This portal account is not yet connected to your business record, so we
           cannot show a Growth Profile here.
         </p>
-        <p className="mt-2">
+        <p>
           Get in touch and we will connect it for you. If you have completed the
           Growth Readiness Assessment, mention the email address you used.
         </p>
@@ -194,11 +192,8 @@ export default function GrowthProfilePage() {
         icon="warning"
         title="We need to check your account"
         action={
-          <Link href="/contact">
-            <Button>
-              <SvgIcon name="email" size={16} color="white" />
-              Contact Hbee Digitals
-            </Button>
+          <Link href="/contact" className={styles.primary}>
+            Contact Hbee Digitals
           </Link>
         }
       >
@@ -220,11 +215,8 @@ export default function GrowthProfilePage() {
         icon="warning"
         title="We need to check your Growth Profile"
         action={
-          <Link href="/contact">
-            <Button>
-              <SvgIcon name="email" size={16} color="white" />
-              Contact Hbee Digitals
-            </Button>
+          <Link href="/contact" className={styles.primary}>
+            Contact Hbee Digitals
           </Link>
         }
       >
@@ -243,11 +235,8 @@ export default function GrowthProfilePage() {
         icon="growth-readiness"
         title="Complete your assessment"
         action={
-          <Link href="/growth-readiness">
-            <Button>
-              Start Assessment
-              <SvgIcon name="arrow-right" size={16} color="white" />
-            </Button>
+          <Link href="/growth-readiness" className={styles.primary}>
+            Start Assessment
           </Link>
         }
       >
@@ -265,8 +254,8 @@ export default function GrowthProfilePage() {
         icon="clock"
         title="Your assessment is with our team"
         action={
-          <Link href="/client-portal">
-            <Button variant="secondary">Back to Dashboard</Button>
+          <Link href="/client-portal" className={styles.secondary}>
+            Back to Dashboard
           </Link>
         }
       >
@@ -285,11 +274,8 @@ export default function GrowthProfilePage() {
         icon="growth-profile"
         title="No Growth Profile available"
         action={
-          <Link href="/contact">
-            <Button variant="secondary">
-              <SvgIcon name="email" size={16} />
-              Contact Hbee Digitals
-            </Button>
+          <Link href="/contact" className={styles.secondary}>
+            Contact Hbee Digitals
           </Link>
         }
       >
@@ -308,9 +294,11 @@ export default function GrowthProfilePage() {
         title="Something went wrong"
         action={
           <>
-            <Button onClick={fetchProfile}>Try Again</Button>
-            <Link href="/client-portal">
-              <Button variant="secondary">Back to Dashboard</Button>
+            <button type="button" onClick={fetchProfile} className={styles.primary}>
+              Try Again
+            </button>
+            <Link href="/client-portal" className={styles.secondary}>
+              Back to Dashboard
             </Link>
           </>
         }
@@ -320,182 +308,206 @@ export default function GrowthProfilePage() {
     )
   }
 
-  const classification = profile.growth_classification || 'Foundation Stage'
-  const emoji = CLASSIFICATION_EMOJIS[classification] || '📈'
-  const colorClass =
-    CLASSIFICATION_COLORS[classification] || 'border-gray-500/30 bg-gray-500/10'
-  const textColor = CLASSIFICATION_TEXT_COLORS[classification] || 'text-gray-500'
+  // ── Ready ───────────────────────────────────────────────────────
+  const classification = profile.growth_classification
+  const score = profile.hgri_score
+
+  const pillars = PILLAR_ORDER.filter((k) => typeof profile.pillars?.[k] === 'number').map((k) => ({
+    key: k,
+    label: PILLAR_LABELS[k],
+    value: profile.pillars![k] as number,
+  }))
+
+  // The constraint is the lowest of the real pillar scores — nothing more. It needs at
+  // least two pillars to compare, and it is not named when every pillar is equal.
+  let lowest: (typeof pillars)[number] | null = null
+  if (pillars.length >= 2) {
+    const min = Math.min(...pillars.map((p) => p.value))
+    const max = Math.max(...pillars.map((p) => p.value))
+    if (min < max) lowest = pillars.find((p) => p.value === min) ?? null
+  }
+
+  // "What should move next": recommendations when present, otherwise opportunities as the
+  // fallback. The API ties neither to a pillar, so nothing here is shown as pillar-specific.
+  const nextItems = profile.recommendations.length > 0 ? profile.recommendations : profile.opportunities
+
+  const columns =
+    (profile.strengths.length > 0 ? 1 : 0) + (lowest ? 1 : 0) + (nextItems.length > 0 ? 1 : 0)
+
+  const prepared = new Date(profile.created_at)
+  const preparedLabel = Number.isNaN(prepared.getTime())
+    ? null
+    : prepared.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className={styles.page}>
+      {/* 1 — Context / hero */}
+      <header className={styles.hero}>
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Your Growth Profile</h1>
-          <p className="text-[var(--text-secondary)]">
-            View your Growth Readiness Index and personalized insights
+          <Eyebrow>Growth Profile</Eyebrow>
+          <h1 className={styles.heroTitle}>
+            A clear view of where your business <em>can grow.</em>
+          </h1>
+          <p className={styles.heroLead}>
+            Here&rsquo;s Hbee&rsquo;s reviewed understanding of your business, where growth is
+            constrained, and what should move next.
           </p>
+          {(preparedLabel || profile.pdf_url) && (
+            <div className={styles.heroMeta}>
+              {preparedLabel && <span>Prepared {preparedLabel}</span>}
+              {profile.pdf_url && (
+                <a href={profile.pdf_url} target="_blank" rel="noopener noreferrer" className={styles.pdf}>
+                  <Download aria-hidden="true" width={16} height={16} />
+                  Download PDF
+                </a>
+              )}
+            </div>
+          )}
         </div>
-        {profile.pdf_url && (
-          <a
-            href={profile.pdf_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--bg-section)] hover:scale-[1.02]"
-          >
-            <SvgIcon name="download" size={16} color="var(--accent)" />
-            Download PDF
-          </a>
-        )}
-      </div>
 
-      {/* HGRI Score Card */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <div className="flex flex-col gap-6 md:flex-row md:items-center">
-          <div className="flex flex-shrink-0 flex-col items-center">
-            <div className="text-5xl font-bold text-[var(--text-primary)]">
-              {profile.hgri_score ?? 0}
-            </div>
-            <div className="mt-1 text-sm text-[var(--text-muted)]">HGRI™ Score</div>
+        <div className={styles.cluster} aria-hidden="true">
+          <div className={`${styles.clusterItem} ${styles.clusterA}`}>
+            <HbeeModuleStandalone label="Visibility" icon={<Search {...ICON} />} sweep="br" width={64} />
           </div>
-
-          <div className="hidden h-16 w-px bg-[var(--border)] md:block" />
-
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">{emoji}</span>
-              <div>
-                <span
-                  className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${colorClass} ${textColor}`}
-                >
-                  {classification}
-                </span>
-              </div>
-            </div>
-            {profile.summary && (
-              <p className="mt-2 text-[var(--text-secondary)]">{profile.summary}</p>
-            )}
+          <div className={`${styles.clusterItem} ${styles.clusterB}`}>
+            <HbeeModuleStandalone label="Conversion" icon={<ShoppingCart {...ICON} />} sweep="tr" width={64} />
+          </div>
+          <div className={`${styles.clusterItem} ${styles.clusterC}`}>
+            <HbeeModuleStandalone label="Scalability" icon={<BarChart3 {...ICON} />} sweep="br" width={64} />
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Pillar Scores */}
-      {profile.pillars && (
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-          <h3 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">Growth Pillars</h3>
-          <div className="space-y-4">
-            {Object.entries(profile.pillars).map(([pillar, score]) => {
-              const label =
-                PILLAR_LABELS[pillar] || pillar.charAt(0).toUpperCase() + pillar.slice(1)
+      {/* 2 — Overall readiness */}
+      <section className={`${styles.panel} ${styles.panelPad} ${styles.readiness}`} aria-labelledby="gp-readiness">
+        <div>
+          <Eyebrow>Overall assessment</Eyebrow>
+          <h2 id="gp-readiness" className={styles.classification}>
+            {classification || profile.title || 'Your Growth Profile'}
+          </h2>
+          {profile.summary && <p className={styles.summary}>{profile.summary}</p>}
+        </div>
+        <div className={styles.scoreBlock}>
+          <p className={styles.scoreLabel}>Overall score (HGRI&trade;)</p>
+          <p className={styles.score}>
+            <span className={styles.scoreValue}>{score ?? '—'}</span>
+            {score !== null && <span className={styles.scoreMax}>/ 100</span>}
+          </p>
+          {score !== null && (
+            <div className={styles.scoreBar} aria-hidden="true">
+              <span style={{ width: `${clampPct(score)}%` }} />
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* 3 — Five diagnostic pillars */}
+      {pillars.length > 0 && (
+        <section aria-labelledby="gp-pillars">
+          <Eyebrow>Diagnostic pillars</Eyebrow>
+          <h2 id="gp-pillars" className="sr-only">
+            Diagnostic pillars
+          </h2>
+          <ul className={styles.pillars} style={{ listStyle: 'none', padding: 0, marginBottom: 0 }}>
+            {pillars.map((p) => {
+              const isLow = lowest?.key === p.key
               return (
-                <div key={pillar}>
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="text-sm font-medium text-[var(--text-secondary)]">{label}</span>
-                    <span className="text-sm font-semibold text-[var(--text-primary)]">
-                      {score}/100
+                <li key={p.key} className={`${styles.pillar} ${isLow ? styles.pillarLow : ''}`}>
+                  <div className={styles.pillarTop}>
+                    <span className={styles.pillarName}>{p.label}</span>
+                    <span className={styles.pillarScore}>
+                      {p.value}
+                      <small>/100</small>
                     </span>
                   </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--bg-section)]">
-                    <div
-                      className="h-full rounded-full bg-[var(--accent)] transition-all duration-500"
-                      style={{ width: `${Math.min(score, 100)}%` }}
-                    />
+                  <div className={styles.bar} aria-hidden="true">
+                    <span style={{ width: `${clampPct(p.value)}%` }} />
                   </div>
-                </div>
+                  {isLow && <p className={styles.pillarTag}>Lowest pillar</p>}
+                </li>
               )
             })}
-          </div>
-        </div>
-      )}
-
-      {/* Strengths & Opportunities */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {profile.strengths.length > 0 && (
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-            <div className="flex items-center gap-2">
-              <SvgIcon name="check" size={20} color="#22C55E" />
-              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Strengths</h3>
-            </div>
-            <ul className="mt-3 space-y-2">
-              {profile.strengths.map((strength, index) => (
-                <li
-                  key={index}
-                  className="flex items-start gap-2 text-sm text-[var(--text-secondary)]"
-                >
-                  <span className="mt-1 text-green-500">•</span>
-                  {strength}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {profile.opportunities.length > 0 && (
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-            <div className="flex items-center gap-2">
-              <SvgIcon name="growth" size={20} color="#F97316" />
-              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Opportunities</h3>
-            </div>
-            <ul className="mt-3 space-y-2">
-              {profile.opportunities.map((opportunity, index) => (
-                <li
-                  key={index}
-                  className="flex items-start gap-2 text-sm text-[var(--text-secondary)]"
-                >
-                  <span className="mt-1 text-[var(--accent)]">•</span>
-                  {opportunity}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-
-      {/* Recommendations */}
-      {profile.recommendations.length > 0 && (
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-          <div className="flex items-center gap-2">
-            <SvgIcon name="strategy" size={20} color="#3B82F6" />
-            <h3 className="text-lg font-semibold text-[var(--text-primary)]">
-              Growth Recommendations
-            </h3>
-          </div>
-          <ul className="mt-3 space-y-3">
-            {profile.recommendations.map((rec, index) => (
-              <li
-                key={index}
-                className="flex items-start gap-3 text-sm text-[var(--text-secondary)]"
-              >
-                <span className="mt-1 flex-shrink-0 text-[var(--accent)]">{index + 1}.</span>
-                {rec}
-              </li>
-            ))}
           </ul>
+        </section>
+      )}
+
+      {/* 4–6 — What we see · Main constraint · What should move next */}
+      {columns > 0 && (
+        <div className={`${styles.panel} ${styles.columns} ${columns === 2 ? styles.two : ''}`}>
+          {profile.strengths.length > 0 && (
+            <section className={styles.col} aria-labelledby="gp-see">
+              <Eyebrow>Key insights</Eyebrow>
+              <h2 id="gp-see" className={styles.sectionTitle}>
+                What we see
+              </h2>
+              <ul className={styles.checks}>
+                {profile.strengths.map((item, i) => (
+                  <li key={i}>
+                    <span className={styles.tick} aria-hidden="true">
+                      <Check strokeWidth={3} />
+                    </span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {lowest && (
+            <section className={styles.col} aria-labelledby="gp-constraint">
+              <Eyebrow>Main constraint</Eyebrow>
+              <h2 id="gp-constraint" className={styles.constraintTitle}>
+                {lowest.label} constraint
+              </h2>
+              <p className={styles.constraintLabel}>
+                {lowest.label} · {lowest.value}/100
+              </p>
+              <p className={styles.constraintText}>
+                {lowest.label} is the lowest of your pillar scores in this review.
+              </p>
+            </section>
+          )}
+
+          {nextItems.length > 0 && (
+            <section className={styles.col} aria-labelledby="gp-next-priorities">
+              <Eyebrow>Top priorities</Eyebrow>
+              <h2 id="gp-next-priorities" className={styles.sectionTitle}>
+                What should move next
+              </h2>
+              <ol className={styles.steps}>
+                {nextItems.map((item, i) => (
+                  <li key={i} className={i >= 3 ? styles.later : undefined}>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
         </div>
       )}
 
-      {/* Next Steps */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <h3 className="text-lg font-semibold text-[var(--text-primary)]">Next Steps</h3>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Your Growth Profile, recommendations and quarterly reviews stay free. When
-          you are ready to implement, we can agree a scope.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <Link href="/client-portal/project-request">
-            <Button>
-              <SvgIcon name="proposals" size={16} color="white" />
-              Request Proposal
-            </Button>
+      {/* 7 — Next step */}
+      <section className={`${styles.panel} ${styles.panelPad} ${styles.next}`} aria-labelledby="gp-next">
+        <div>
+          <Eyebrow>Next step</Eyebrow>
+          <h2 id="gp-next" className={styles.sectionTitle}>
+            Where attention is needed most
+          </h2>
+          <p className={styles.nextText}>
+            Your Growth Profile shows where attention is needed most. If you want Hbee to help
+            implement one of these priorities, you can start a conversation about the appropriate
+            scope.
+          </p>
+        </div>
+        <div className={styles.actions}>
+          <Link href="/contact" className={styles.primary}>
+            Contact Hbee
           </Link>
-          <Link href="/contact">
-            <Button variant="secondary">
-              <SvgIcon name="chat" size={16} />
-              Schedule Consultation
-            </Button>
+          <Link href="/client-portal/proposals" className={styles.secondary}>
+            View proposals
           </Link>
         </div>
-      </div>
+      </section>
     </div>
   )
 }
