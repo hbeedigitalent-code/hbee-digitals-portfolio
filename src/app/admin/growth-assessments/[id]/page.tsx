@@ -9,6 +9,7 @@ import { MerchantLifecycleService } from '@/lib/services/merchant-lifecycle'
 import StatusBadge from '@/components/ui/StatusBadge'
 import SvgIcon from '@/components/ui/SvgIcon'
 import Button from '@/components/ui/Button'
+import { CLASSIFICATIONS, prefillReview } from '@/lib/admin/review-prefill'
 
 interface PageProps {
   params: {
@@ -66,18 +67,15 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
 
       // Populate form data
       if (data) {
+        // Same prefill boundary as the review page: assessment pillars (0–20) → review (0–100),
+        // stored review values kept (src/lib/admin/review-prefill.ts).
+        const prefill = prefillReview(data, data.assessment)
         setFormData({
           review_notes: data.review_notes || '',
-          hgri_score: data.hgri_score || data.assessment?.hgri_score || 0,
-          growth_classification: data.growth_classification || data.assessment?.growth_classification || 'Growth Potential',
           strengths: data.strengths || [''],
           opportunities: data.opportunities || [''],
-          visibility_score: data.visibility_score || 0,
-          conversion_score: data.conversion_score || 0,
-          retention_score: data.retention_score || 0,
-          authority_score: data.authority_score || 0,
-          scalability_score: data.scalability_score || 0,
-          status: data.status || 'pending'
+          status: data.status || 'pending',
+          ...prefill,
         })
       }
     } catch (error) {
@@ -265,7 +263,7 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
     )
   }
 
-  const classifications = ['Foundation', 'Growth Potential', 'Growth Ready', 'Scale Ready']
+  const classifications = [...CLASSIFICATIONS]
 
   return (
     <div className="space-y-6">

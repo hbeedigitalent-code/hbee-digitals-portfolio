@@ -8,6 +8,7 @@ import SvgIcon from '@/components/ui/SvgIcon'
 import ProgramDecisionPanel from '@/components/admin/ProgramDecisionPanel'
 import AssessmentAnswers from '@/components/admin/AssessmentAnswers'
 import Button from '@/components/ui/Button'
+import { CLASSIFICATIONS, prefillReview } from '@/lib/admin/review-prefill'
 
 interface PageProps {
   params: {
@@ -66,18 +67,15 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
       setAssessment(data.assessment)
 
       if (data) {
+        // Assessment pillars are 0–20; the review sliders are 0–100. The prefill boundary
+        // (src/lib/admin/review-prefill.ts) multiplies by 5 and keeps stored review values.
+        const prefill = prefillReview(data, data.assessment)
         setFormData({
           review_notes: data.review_notes || '',
-          hgri_score: data.hgri_score || data.assessment?.hgri_score || 0,
-          growth_classification: data.growth_classification || data.assessment?.growth_classification || 'Growth Potential',
           strengths: data.strengths || [''],
           opportunities: data.opportunities || [''],
-          visibility_score: data.visibility_score || data.assessment?.visibility_score || 0,
-          conversion_score: data.conversion_score || data.assessment?.conversion_score || 0,
-          retention_score: data.retention_score || data.assessment?.retention_score || 0,
-          authority_score: data.authority_score || data.assessment?.authority_score || 0,
-          scalability_score: data.scalability_score || data.assessment?.scalability_score || 0,
-          status: data.status || 'pending'
+          status: data.status || 'pending',
+          ...prefill,
         })
       }
     } catch (error) {
@@ -230,7 +228,7 @@ export default function AdminGrowthReviewDetailPage({ params }: PageProps) {
     )
   }
 
-  const classifications = ['Foundation', 'Growth Potential', 'Growth Ready', 'Scale Ready']
+  const classifications = [...CLASSIFICATIONS]
   const isCompleted = formData.status === 'completed'
 
   return (
