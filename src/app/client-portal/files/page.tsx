@@ -1,29 +1,63 @@
 // src/app/client-portal/files/page.tsx
+//
+// Files & Deliverables (Phase 18.5).
+//
+// Reads ONE session-bound endpoint, /api/client-portal/files, which returns the client's own
+// project files, projects and deliverables as an allow-list — no raw file_url, storage path or
+// client id ever reaches the browser. Uploads still go through the existing signed-TUS
+// FileUploader (context "client_file"); downloads and deletes still use the existing
+// /api/client-portal/files/[id] routes; deliverable downloads use the new signed route.
+//
+// Search, type filter and project filter are presentation only, over the loaded rows. File
+// types are derived from the stored MIME type; projects are only the existing project_id
+// relation — there are no folders.
+
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@/lib/supabase-client'
-import SvgIcon from '@/components/ui/SvgIcon'
-import EmptyState from '@/components/client-portal/EmptyState'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { ArrowRight, Download, Search, Upload } from 'lucide-react'
 import FileUploader from '@/components/uploads/FileUploader'
+import {
+  FILE_FILTERS,
+  fileCategory,
+  fileTypeLabel,
+  formatBytes,
+  formatDate,
+  groupByProject,
+  matchesProject,
+  matchesSearch,
+  projectLabel,
+  type FileFilter,
+  type ProjectLike,
+} from '@/lib/client-portal/files-display'
+import styles from './files.module.css'
 
-interface ClientFile {
+interface PortalFile {
   id: string
-  file_name: string
-  file_url: string
-  file_type: string
-  file_size: number
-  uploaded_at: string
-  project_id: string | null
+  name: string
+  type: string | null
+  size: number | null
+  uploadedAt: string | null
+  projectId: string | null
 }
 
-interface ClientProject {
-  id: string
-  project_name: string | null
-  project_id: string | null
+interface PortalProject extends ProjectLike {
   status: string | null
 }
 
+interface PortalDeliverable {
+  id: string
+  title: string | null
+  description: string | null
+  version: string | null
+  status: string | null
+  uploadedAt: string | null
+  projectId: string | null
+  hasFile: boolean
+}
+
+type LoadState = 'loading' | 'ready' | 'ambiguous' | 'error'
 
 // A project is "active" (and therefore the sensible auto-selection when the
 // client has exactly one) unless it is finished or archived.
@@ -32,17 +66,62 @@ const INACTIVE_PROJECT_STATUSES = ['Completed', 'Archived']
 // Sentinel <select> value meaning "not tied to a specific project".
 const GENERAL_VALUE = ''
 
+function statusText(value: string | null): string | null {
+  const t = (value || '').replace(/[_-]+/g, ' ').trim()
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : null
+}
+
 export default function ClientFilesPage() {
-  const supabase = createClientComponentClient()
-  const [files, setFiles] = useState<ClientFile[]>([])
-  const [projects, setProjects] = useState<ClientProject[]>([])
+  const [state, setState] = useState<LoadState>('loading')
+  const [files, setFiles] = useState<PortalFile[]>([])
+  const [projects, setProjects] = useState<PortalProject[]>([])
+  const [deliverables, setDeliverables] = useState<PortalDeliverable[]>([])
+  const [deliverablesUnavailable, setDeliverablesUnavailable] = useState(false)
+
   const [selectedProjectId, setSelectedProjectId] = useState<string>(GENERAL_VALUE)
-  const [loading, setLoading] = useState(true)
-  const [clientId, setClientId] = useState<string | null>(null)
   const [pageError, setPageError] = useState<string | null>(null)
+  const [pageNotice, setPageNotice] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [pageNotice, setPageNotice] = useState<string | null>(null)
+
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<FileFilter>('all')
+  const [projectFilter, setProjectFilter] = useState<string>('all')
+  const [grouped, setGrouped] = useState(false)
+
+  const fetchData = useCallback(async (initial = false) => {
+    if (initial) setState('loading')
+    try {
+      const response = await fetch('/api/client-portal/files', { credentials: 'same-origin' })
+      if (response.status === 409) {
+        setState('ambiguous')
+        return
+      }
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload || !Array.isArray(payload.files)) {
+        setState('error')
+        return
+      }
+      const clientProjects = (payload.projects || []) as PortalProject[]
+      setFiles(payload.files as PortalFile[])
+      setProjects(clientProjects)
+      setDeliverables((payload.deliverables || []) as PortalDeliverable[])
+      setDeliverablesUnavailable(!!payload.deliverablesUnavailable)
+      if (initial) {
+        // Default the upload target to General, unless there is exactly one active project.
+        const active = clientProjects.filter((p) => !INACTIVE_PROJECT_STATUSES.includes(p.status || ''))
+        setSelectedProjectId(active.length === 1 ? active[0].id : GENERAL_VALUE)
+      }
+      setState('ready')
+    } catch (err) {
+      console.error('Error:', err)
+      setState('error')
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchData(true)
+  }, [fetchData])
 
   /**
    * Deletion is SERVER-SIDE. The browser sends only the file id; the route
@@ -50,10 +129,10 @@ export default function ClientFilesPage() {
    * row, and removes the object and the metadata row under the service role.
    * Nothing here touches Storage or project_files directly.
    */
-  async function handleDelete(file: ClientFile) {
+  async function handleDelete(file: PortalFile) {
     if (
       !confirm(
-        `Delete "${file.file_name}"?\n\nThis removes the file permanently and cannot be undone.`,
+        `Delete "${file.name}"?\n\nThis removes the file permanently and cannot be undone.`,
       )
     ) {
       return
@@ -73,12 +152,12 @@ export default function ClientFilesPage() {
         throw new Error(result.error || 'The file could not be deleted.')
       }
 
-      // Drop it from the table without refetching the whole page.
+      // Drop it from the list without refetching the whole page.
       setFiles((current) => current.filter((f) => f.id !== file.id))
       setPageNotice(
         result.storageMissing
-          ? `"${file.file_name}" was removed from your list. The stored file was already gone.`
-          : `"${file.file_name}" was deleted.`,
+          ? `"${file.name}" was removed from your list. The stored file was already gone.`
+          : `"${file.name}" was deleted.`,
       )
     } catch (error) {
       console.error('Delete error:', error)
@@ -90,62 +169,10 @@ export default function ClientFilesPage() {
     }
   }
 
-  useEffect(() => {
-    fetchData()
-  }, [])
-
-  async function fetchData() {
-    setLoading(true)
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const { data: clientData } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (clientData) {
-        setClientId(clientData.id)
-
-        const [{ data: fileData }, { data: projectData }] = await Promise.all([
-          supabase
-            .from('project_files')
-            .select('*')
-            .eq('client_id', clientData.id)
-            .order('uploaded_at', { ascending: false }),
-          supabase
-            .from('projects')
-            .select('id, project_name, project_id, status')
-            .eq('client_id', clientData.id)
-            .order('created_at', { ascending: false }),
-        ])
-
-        setFiles(fileData || [])
-
-        const clientProjects = (projectData || []) as ClientProject[]
-        setProjects(clientProjects)
-
-        // Default to General, unless there is exactly one active project.
-        const activeProjects = clientProjects.filter(
-          (p) => !INACTIVE_PROJECT_STATUSES.includes(p.status || ''),
-        )
-        setSelectedProjectId(activeProjects.length === 1 ? activeProjects[0].id : GENERAL_VALUE)
-      }
-    }
-
-    setLoading(false)
-  }
-
-  function projectLabel(projectId: string | null): string {
-    if (!projectId) return 'General'
-    const match = projects.find((p) => p.id === projectId)
-    return match?.project_name || match?.project_id || 'Project'
-  }
-
-  async function handleDownload(file: ClientFile) {
+  /** Signed download for a project file or a deliverable; the tab is opened inside the click. */
+  async function openSigned(id: string, url: string) {
     setPageError(null)
-    setDownloadingId(file.id)
+    setDownloadingId(id)
 
     // Open the tab synchronously, inside the click handler, before any
     // await — a tab opened only after an awaited fetch resolves is treated
@@ -153,7 +180,7 @@ export default function ClientFilesPage() {
     const newTab = window.open('', '_blank')
 
     try {
-      const response = await fetch(`/api/client-portal/files/${file.id}/signed-url`)
+      const response = await fetch(url)
       const result = await response.json()
 
       if (!response.ok || !result.url) {
@@ -176,147 +203,346 @@ export default function ClientFilesPage() {
     }
   }
 
-  function formatFileSize(bytes: number) {
-    if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-  }
+  const handleDownload = (file: PortalFile) => openSigned(file.id, `/api/client-portal/files/${file.id}/signed-url`)
+  const handleDeliverableDownload = (d: PortalDeliverable) =>
+    openSigned(d.id, `/api/client-portal/deliverables/${d.id}/signed-url`)
 
-  if (loading) {
+  const visible = useMemo(
+    () =>
+      files.filter(
+        (f) =>
+          (filter === 'all' || fileCategory(f.type, f.name) === filter) &&
+          matchesProject(f, projectFilter) &&
+          matchesSearch(f, query, projects),
+      ),
+    [files, filter, projectFilter, query, projects],
+  )
+  const groups = useMemo(() => (grouped ? groupByProject(visible, projects) : []), [grouped, visible, projects])
+
+  if (state === 'loading') {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
+      <div className={styles.center}>
+        <div className={styles.spinner} />
       </div>
     )
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Files</h1>
-          <p className="text-[var(--text-muted)]">Upload and manage your project files</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <label htmlFor="file-project" className="sr-only">Attach to project</label>
-          <select
-            id="file-project"
-            value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-medium text-[var(--text-primary)]"
-          >
-            <option value={GENERAL_VALUE}>General / No specific project</option>
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.project_name || project.project_id || 'Untitled project'}
-              </option>
-            ))}
-          </select>
+  if (state === 'ambiguous') {
+    return (
+      <div className={styles.center}>
+        <div className={styles.centerBody}>
+          <p>Your sign-in is linked to more than one business record, so we have not shown your files. Please contact us and we will sort it out.</p>
+          <Link href="/contact" className={styles.secondary}>
+            Contact Hbee Digitals
+          </Link>
         </div>
       </div>
+    )
+  }
 
-      {/* Uploads use the single signed-TUS transport (context "client_file").
-          The browser no longer writes to Storage or to project_files: it asks
-          the server to authorize a batch, sends bytes to a server-selected path
-          with a scoped token, and finalizes by upload ID. The selected project
-          is re-verified against this client account server-side, so a project id
-          belonging to another client cannot be attached. */}
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-        <FileUploader
-          context="client_file"
-          projectId={selectedProjectId || null}
-          label="Upload files"
-          onComplete={() => { void fetchData() }}
-        />
+  if (state === 'error') {
+    return (
+      <div className={styles.center}>
+        <div className={styles.centerBody}>
+          <p>We could not load your files. Please try again in a moment.</p>
+          <button type="button" onClick={() => fetchData(true)} className={styles.secondary}>
+            Try Again
+          </button>
+        </div>
       </div>
+    )
+  }
+
+  const hasGeneral = files.some((f) => !f.projectId)
+
+  const renderFile = (file: PortalFile) => {
+    const project = projectLabel(file.projectId, projects)
+    const type = fileTypeLabel(file.type, file.name)
+    const size = formatBytes(file.size)
+    const date = formatDate(file.uploadedAt)
+    return (
+      <li key={file.id} className={styles.file}>
+        <div style={{ minWidth: 0 }}>
+          <p className={styles.fileName}>{file.name}</p>
+          <p className={styles.metaLine}>{[project, type, size, date].filter(Boolean).join(' · ')}</p>
+        </div>
+        <span className={styles.desk}>{project}</span>
+        <span className={styles.desk}>
+          <span className={styles.badge}>{type}</span>
+        </span>
+        <span className={styles.desk}>{size ?? '—'}</span>
+        <span className={styles.desk}>{date ?? '—'}</span>
+        <div className={styles.actions}>
+          <button
+            type="button"
+            onClick={() => handleDownload(file)}
+            disabled={downloadingId === file.id || deletingId === file.id}
+            className={styles.dl}
+            aria-label={`Download ${file.name}`}
+          >
+            <Download aria-hidden="true" />
+            {downloadingId === file.id ? 'Preparing…' : 'Download'}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDelete(file)}
+            disabled={deletingId === file.id || downloadingId === file.id}
+            aria-label={`Delete ${file.name}`}
+            className={styles.del}
+          >
+            {deletingId === file.id ? 'Deleting…' : 'Delete'}
+          </button>
+        </div>
+      </li>
+    )
+  }
+
+  const counts: Record<FileFilter, number> = {
+    all: files.length,
+    documents: files.filter((f) => fileCategory(f.type, f.name) === 'documents').length,
+    images: files.filter((f) => fileCategory(f.type, f.name) === 'images').length,
+    other: files.filter((f) => fileCategory(f.type, f.name) === 'other').length,
+  }
+
+  return (
+    <div className={styles.page}>
+      {/* 1 — Context */}
+      <header className={styles.hero}>
+        <div>
+          <p className={styles.eyebrow}>
+            <span aria-hidden="true" className={styles.node} />
+            Files
+          </p>
+          <h1 className={styles.h1}>
+            Everything shared for your work, <em>in one place.</em>
+          </h1>
+          <p className={styles.lead}>
+            Access project files, assets and deliverables shared through your work with Hbee Digitals.
+          </p>
+        </div>
+        <a href="#upload" className={styles.primary}>
+          <Upload aria-hidden="true" />
+          Upload file
+        </a>
+      </header>
+
       {pageError && (
-        <div role="alert" className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm font-semibold text-red-500">
+        <div role="alert" className={styles.err}>
           {pageError}
         </div>
       )}
-
       {pageNotice && (
-        <div
-          role="status"
-          className="rounded-xl border border-[var(--success)]/30 bg-[var(--success-subtle)] p-3 text-sm font-semibold text-[var(--success)]"
-        >
+        <div role="status" className={styles.ok}>
           {pageNotice}
         </div>
       )}
 
-      {files.length === 0 ? (
-        <EmptyState
-          title="No files uploaded"
-          description="Upload your project files, documents, and assets here."
-          icon="file"
-        />
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
-          <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="border-b border-[var(--border)] bg-[var(--bg-section)]">
-              <tr className="text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-                <th className="px-4 py-3">File Name</th>
-                <th className="px-4 py-3 hidden sm:table-cell">Project</th>
-                <th className="px-4 py-3 hidden md:table-cell">Type</th>
-                <th className="px-4 py-3 hidden md:table-cell">Size</th>
-                <th className="px-4 py-3 hidden lg:table-cell">Uploaded</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border)]">
-              {files.map((file) => (
-                <tr key={file.id} className="hover:bg-[var(--bg-section)] transition">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <SvgIcon name="file" size={16} color="var(--text-muted)" />
-                      <div className="min-w-0">
-                        <span className="block text-sm font-medium text-[var(--text-primary)]">{file.file_name}</span>
-                        <span className="block text-xs text-[var(--text-muted)] sm:hidden">{projectLabel(file.project_id)}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 hidden sm:table-cell">
-                    <span className="text-sm text-[var(--text-muted)]">{projectLabel(file.project_id)}</span>
-                  </td>
-                  <td className="px-4 py-3 hidden md:table-cell">
-                    <span className="text-sm text-[var(--text-muted)]">{file.file_type?.split('/').pop() || 'Unknown'}</span>
-                  </td>
-                  <td className="px-4 py-3 hidden md:table-cell text-sm text-[var(--text-muted)]">
-                    {formatFileSize(file.file_size)}
-                  </td>
-                  <td className="px-4 py-3 hidden lg:table-cell text-sm text-[var(--text-muted)]">
-                    {new Date(file.uploaded_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleDownload(file)}
-                        disabled={downloadingId === file.id || deletingId === file.id}
-                        className="inline-flex items-center gap-1 text-sm text-[var(--accent-orange)] hover:underline disabled:cursor-wait disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-page)]"
-                      >
-                        {downloadingId === file.id ? 'Preparing...' : 'Download'}
-                        <SvgIcon name="download" size={14} color="var(--accent-orange)" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(file)}
-                        disabled={deletingId === file.id || downloadingId === file.id}
-                        aria-label={`Delete ${file.file_name}`}
-                        className="inline-flex items-center gap-1 text-sm text-[var(--error)] hover:underline disabled:cursor-wait disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-page)]"
-                      >
-                        {deletingId === file.id ? 'Deleting...' : 'Delete'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* 2 — Search and filters (presentation only) */}
+      {files.length > 0 && (
+        <section className={`${styles.panel} ${styles.controls}`} aria-label="Search and filter files">
+          <label className={styles.search}>
+            <span className="sr-only">Search files</span>
+            <Search aria-hidden="true" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by file, project or type"
+              className={styles.input}
+            />
+          </label>
+          <div className={styles.row2} role="group" aria-label="File type">
+            {FILE_FILTERS.map((f) => (
+              <button key={f.key} type="button" className={styles.chip} aria-pressed={filter === f.key} onClick={() => setFilter(f.key)}>
+                {f.label}
+                <span className={styles.count}>{counts[f.key]}</span>
+              </button>
+            ))}
           </div>
-        </div>
+          {(projects.length > 0 || hasGeneral) && (
+            <div className={styles.selectWrap} style={{ gridColumn: '1 / -1' }}>
+              <label className="sr-only" htmlFor="files-project-filter">
+                Filter by project
+              </label>
+              <select id="files-project-filter" value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)} className={styles.select}>
+                <option value="all">All projects</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+                {hasGeneral && <option value="general">General (no project)</option>}
+              </select>
+              <button type="button" className={styles.toggle} aria-pressed={grouped} onClick={() => setGrouped((g) => !g)}>
+                By project
+              </button>
+            </div>
+          )}
+        </section>
       )}
+
+      {/* 3 — Project files */}
+      <section className={styles.panel} aria-labelledby="files-list">
+        <p className={styles.eyebrow}>
+          <span aria-hidden="true" className={styles.node} />
+          Project files
+        </p>
+        <h2 id="files-list" className="sr-only">
+          Project files
+        </h2>
+        {files.length === 0 ? (
+          <p className={styles.quiet} style={{ marginTop: '0.75rem' }}>
+            No files yet. Files shared with you, and files you upload below, will appear here.
+          </p>
+        ) : visible.length === 0 ? (
+          <div style={{ marginTop: '0.75rem' }}>
+            <p className={styles.quiet}>No files match your search or filters.</p>
+            <button
+              type="button"
+              className={styles.secondary}
+              style={{ marginTop: '0.75rem' }}
+              onClick={() => {
+                setQuery('')
+                setFilter('all')
+                setProjectFilter('all')
+              }}
+            >
+              Clear search and filters
+            </button>
+          </div>
+        ) : grouped ? (
+          <div style={{ marginTop: '0.75rem' }}>
+            {groups.map((g) => (
+              <div key={g.key} className={styles.group}>
+                <div className={styles.groupHead}>
+                  <h3 className={styles.groupName}>{g.label}</h3>
+                  <span className={styles.muted}>
+                    {g.files.length} {g.files.length === 1 ? 'file' : 'files'}
+                  </span>
+                </div>
+                <ul className={styles.list}>{g.files.map(renderFile)}</ul>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ marginTop: '0.875rem' }}>
+            <div className={styles.listHead} aria-hidden="true">
+              <span>File</span>
+              <span>Project</span>
+              <span>Type</span>
+              <span>Size</span>
+              <span>Added</span>
+              <span />
+            </div>
+            <ul className={styles.list}>{visible.map(renderFile)}</ul>
+          </div>
+        )}
+      </section>
+
+      {/* 4 — Upload. Uploads use the single signed-TUS transport (context "client_file"). The
+          browser asks the server to authorize a batch, sends bytes to a server-selected path with
+          a scoped token, and finalizes by upload ID. The selected project is re-verified against
+          this client account server-side, so a project id belonging to another client cannot be
+          attached. */}
+      <section id="upload" className={styles.panel} aria-labelledby="files-upload">
+        <p className={styles.eyebrow}>
+          <span aria-hidden="true" className={styles.node} />
+          Upload
+        </p>
+        <h2 id="files-upload" className={styles.h2}>
+          Add a file to your work
+        </h2>
+        <div className={styles.uploadGrid}>
+          <div className={styles.field}>
+            <label htmlFor="file-project" className={styles.label}>
+              Attach to project
+            </label>
+            <select id="file-project" value={selectedProjectId} onChange={(e) => setSelectedProjectId(e.target.value)} className={styles.select}>
+              <option value={GENERAL_VALUE}>General / No specific project</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <FileUploader
+            context="client_file"
+            projectId={selectedProjectId || null}
+            label="Upload files"
+            onComplete={() => {
+              void fetchData()
+            }}
+          />
+        </div>
+      </section>
+
+      {/* 5 — Deliverables (only when real rows exist) */}
+      {deliverables.length > 0 && (
+        <section id="deliverables" className={styles.panel} aria-labelledby="files-deliverables">
+          <p className={styles.eyebrow}>
+            <span aria-hidden="true" className={styles.node} />
+            Deliverables
+          </p>
+          <h2 id="files-deliverables" className={styles.h2}>
+            Delivered to you
+          </h2>
+          <ul className={styles.dels}>
+            {deliverables.map((d) => {
+              const status = statusText(d.status)
+              const project = d.projectId ? projectLabel(d.projectId, projects) : null
+              const date = formatDate(d.uploadedAt)
+              return (
+                <li key={d.id} className={styles.del2}>
+                  <div style={{ minWidth: 0 }}>
+                    <p className={styles.delTitle}>{d.title || 'Deliverable'}</p>
+                    {d.description && <p className={styles.delDesc}>{d.description}</p>}
+                    <div className={styles.delMeta}>
+                      {status && <span className={styles.status}>{status}</span>}
+                      {d.version && <span>Version {d.version}</span>}
+                      {project && <span>{project}</span>}
+                      {date && <span>{date}</span>}
+                    </div>
+                  </div>
+                  {d.hasFile && (
+                    <button
+                      type="button"
+                      className={styles.dl}
+                      onClick={() => handleDeliverableDownload(d)}
+                      disabled={downloadingId === d.id}
+                      aria-label={`Download ${d.title || 'deliverable'}`}
+                    >
+                      <Download aria-hidden="true" />
+                      {downloadingId === d.id ? 'Preparing…' : 'Download'}
+                    </button>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
+      {deliverablesUnavailable && (
+        <p className={styles.quiet} role="status">
+          Deliverables could not be loaded just now.
+        </p>
+      )}
+
+      {/* 6 — Request / help */}
+      <section className={`${styles.panel} ${styles.help}`} aria-labelledby="files-help">
+        <div>
+          <h2 id="files-help" className={styles.h2} style={{ marginTop: 0 }}>
+            Need something you can&rsquo;t find?
+          </h2>
+          <p className={styles.quiet} style={{ marginTop: '0.375rem' }}>
+            Tell Hbee what you&rsquo;re looking for through a project request.
+          </p>
+        </div>
+        <Link href="/client-portal/project-request" className={styles.secondary}>
+          Submit a request
+          <ArrowRight aria-hidden="true" />
+        </Link>
+      </section>
     </div>
   )
 }
