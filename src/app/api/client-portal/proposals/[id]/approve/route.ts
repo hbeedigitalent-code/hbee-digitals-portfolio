@@ -18,6 +18,7 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { createNotification } from '@/lib/notifications/createNotification'
+import { isProposalExpired } from '@/lib/client-portal/proposal-display'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -74,6 +75,23 @@ export async function POST(_request: Request, { params }: { params: { id: string
     }
 
     const now = new Date().toISOString()
+
+    // Expiry guard (Phase 18.4). A sent/viewed proposal whose expires_at has passed is closed to
+    // client action — the same rule the UI uses (isProposalExpired). Nothing is stored; the
+    // proposal stays visible, it just cannot be responded to. The read is scoped to the caller.
+    const { data: current } = await adminClient
+      .from('proposals')
+      .select('status, expires_at')
+      .eq('id', proposalId)
+      .eq('client_id', clientRow.id)
+      .maybeSingle()
+
+    if (current && isProposalExpired(current)) {
+      return NextResponse.json(
+        { error: "This proposal's validity period has ended. Please contact Hbee if you'd like to revisit it." },
+        { status: 409 },
+      )
+    }
 
     // Only `status` and `accepted_at` are written.
     //

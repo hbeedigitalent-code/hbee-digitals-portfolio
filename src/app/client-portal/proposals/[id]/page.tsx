@@ -1,6 +1,6 @@
 // src/app/client-portal/proposals/[id]/page.tsx
 //
-// Client proposal review. Phase P3.
+// Client proposal review. Phase P3; presentation refined in Phase 18.4.
 //
 // This page never touches Supabase: every read and every decision goes through
 // the authenticated /api/client-portal/proposals/* routes, which resolve the
@@ -10,15 +10,30 @@
 //
 // It also never imports createNotification.ts — the admin notification is
 // emitted by the approve / request-changes routes on the server.
+//
+// Phase 18.4 changed layout and hierarchy only. The fetch, viewed, download, approve and
+// request-changes handlers below are unchanged, as are the endpoints they call. Only fields
+// the API returns are shown; there is no invented scope narrative, outcomes or discussion.
 
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import SvgIcon from '@/components/ui/SvgIcon'
-import StatusPill from '@/components/ui/StatusPill'
+import { ArrowLeft, Check, Download, FileText } from 'lucide-react'
 import { proposalStatusLabel } from '@/lib/proposal-status'
 import { formatFileSize } from '@/lib/proposal-file-validation'
+import {
+  displayStatus,
+  formatDate,
+  isProposalActionable,
+  isProposalExpired,
+  formatMoney,
+  isPastDate,
+  lifecycle,
+  statusTone,
+  type ProposalPricing,
+} from '@/lib/client-portal/proposal-display'
+import styles from '../proposals.module.css'
 
 interface ProposalFile {
   id: string
@@ -32,12 +47,6 @@ interface ProposalService {
   name?: string
   description?: string
   price?: string | number
-}
-
-interface ProposalPricing {
-  total?: number | string | null
-  currency?: string | null
-  payment_terms?: string | null
 }
 
 interface ClientProposal {
@@ -62,27 +71,7 @@ interface ClientProposal {
   } | null
 }
 
-const FOCUS_RING =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-page)]'
-
 const MAX_REASON_LENGTH = 2000
-
-function formatMoney(pricing: ProposalPricing | null): string {
-  const total = Number(pricing?.total)
-  if (!Number.isFinite(total)) return '—'
-  const currency = pricing?.currency || 'USD'
-  try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(total)
-  } catch {
-    return `${currency} ${total.toLocaleString()}`
-  }
-}
-
-function formatDate(value: string | null | undefined): string {
-  if (!value) return '—'
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString()
-}
 
 function fileExtensionLabel(fileName: string): string {
   const lastDot = fileName.lastIndexOf('.')
@@ -260,273 +249,321 @@ export default function ClientProposalDetailPage({ params }: { params: { id: str
 
   if (loading) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
+      <div className={styles.center}>
+        <div className={styles.spinner} />
       </div>
     )
   }
 
   if (notFound || !proposal) {
     return (
-      <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
-        <SvgIcon name="warning" size={48} color="var(--text-muted)" />
-        <h2 className="mt-4 text-xl font-bold text-[var(--text-primary)]">Proposal Not Found</h2>
-        <p className="text-[var(--text-muted)]">
-          This proposal doesn&apos;t exist or is no longer available to you.
-        </p>
-        <Link
-          href="/client-portal"
-          className={`mt-4 rounded-full bg-[var(--accent-orange)] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] ${FOCUS_RING}`}
-        >
-          Back to Dashboard
-        </Link>
+      <div className={styles.center}>
+        <div className={styles.centerBody}>
+          <h2>Proposal not found</h2>
+          <p>This proposal doesn&apos;t exist or is no longer available to you.</p>
+          <Link href="/client-portal/proposals" className={styles.secondary}>
+            Back to proposals
+          </Link>
+        </div>
       </div>
     )
   }
 
   const services = Array.isArray(proposal.services) ? proposal.services : []
-  const canDecide = proposal.status === 'sent' || proposal.status === 'viewed'
+  // One shared rule (also enforced by the approve / request-changes routes): sent or viewed AND not expired.
+  const canDecide = isProposalActionable(proposal)
+  const isExpired = isProposalExpired(proposal)
   const isApproved = proposal.status === 'approved'
   const isChangesRequested = proposal.status === 'changes_requested'
 
+  const currency = proposal.pricing?.currency
+  const total = formatMoney(proposal.pricing?.total, currency)
+  const expiry = formatDate(proposal.expires_at)
+  const expiryPast = isPastDate(proposal.expires_at)
+  const shownStatus = displayStatus(proposal)
+  const tone = statusTone(shownStatus)
+  const steps = lifecycle(proposal)
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-              {proposal.title || 'Proposal'}
-            </h1>
-            <p className="text-sm text-[var(--text-muted)]">
-              {proposal.proposal_number || '—'}
-              {proposal.merchant?.business_name ? ` · ${proposal.merchant.business_name}` : ''}
+    <div className={styles.page}>
+      <Link href="/client-portal/proposals" className={styles.back}>
+        <ArrowLeft aria-hidden="true" />
+        All proposals
+      </Link>
+
+      {/* Header + commercial summary */}
+      <header className={styles.panel}>
+        <div className={styles.headTop}>
+          <div style={{ minWidth: 0 }}>
+            <p className={styles.eyebrow}>
+              <span aria-hidden="true" className={styles.node} />
+              Proposal
+            </p>
+            <h1 className={styles.h1}>{proposal.title || 'Proposal'}</h1>
+            <p className={styles.meta}>
+              {[proposal.proposal_number, proposal.merchant?.business_name].filter(Boolean).join(' · ') || 'Proposal'}
             </p>
           </div>
-          <StatusPill status={proposalStatusLabel(proposal.status)} />
+          <span className={`${styles.chip} ${tone === 'approved' ? styles.chipApproved : tone === 'changes' ? styles.chipChanges : tone === 'expired' ? styles.chipExpired : ''}`}>
+            {isExpired ? 'Expired' : proposalStatusLabel(proposal.status)}
+          </span>
         </div>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className={styles.summary}>
           <div>
-            <p className="text-sm text-[var(--text-muted)]">Investment</p>
-            <p className="font-medium text-[var(--text-primary)]">{formatMoney(proposal.pricing)}</p>
+            <dt>Investment</dt>
+            <dd className={total ? styles.big : undefined}>{total ?? 'Not specified'}</dd>
           </div>
           <div>
-            <p className="text-sm text-[var(--text-muted)]">Timeline</p>
-            <p className="font-medium text-[var(--text-primary)]">{proposal.timeline || '—'}</p>
+            <dt>Timeline</dt>
+            <dd>{proposal.timeline || 'Not specified'}</dd>
           </div>
           <div>
-            <p className="text-sm text-[var(--text-muted)]">Payment Terms</p>
-            <p className="font-medium text-[var(--text-primary)]">
-              {proposal.pricing?.payment_terms || '—'}
-            </p>
+            <dt>Payment terms</dt>
+            <dd>{proposal.pricing?.payment_terms || 'Not specified'}</dd>
           </div>
           <div>
-            <p className="text-sm text-[var(--text-muted)]">Expires</p>
-            <p className="font-medium text-[var(--text-primary)]">
-              {formatDate(proposal.expires_at)}
-            </p>
+            <dt>Valid until</dt>
+            <dd className={expiry && expiryPast ? styles.past : undefined}>
+              {expiry ?? 'No expiry date'}
+              {expiry && expiryPast && <small>This date has passed</small>}
+            </dd>
           </div>
-        </div>
-      </div>
+        </dl>
+
+        <ol className={styles.life} aria-label="Proposal progress">
+          {steps.map((s) => (
+            <li key={s.name} className={`${styles.step} ${s.done ? styles.stepDone : styles.stepPending}`}>
+              <span className={styles.stepName}>{s.name}</span>
+              {s.date}
+            </li>
+          ))}
+        </ol>
+
+        {canDecide && (
+          <a href="#proposal-decision" className={styles.jump}>
+            Respond to this proposal ↓
+          </a>
+        )}
+      </header>
 
       {successMessage && (
-        <p
-          role="status"
-          className="rounded-xl border border-[var(--success)]/30 bg-[var(--success-subtle)] p-4 text-sm text-[var(--success)]"
-        >
+        <p role="status" className={styles.ok}>
           {successMessage}
         </p>
       )}
 
       {error && (
-        <p role="alert" className="text-sm text-red-500">
+        <p role="alert" className={styles.err}>
           {error}
         </p>
       )}
 
-      {/* Scope / services */}
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <h2 className="text-lg font-semibold text-[var(--text-primary)]">Scope of Work</h2>
-        {services.length === 0 ? (
-          <p className="mt-3 text-sm text-[var(--text-muted)]">No services listed.</p>
-        ) : (
-          <div className="mt-4 space-y-3">
-            {services.map((service, index) => (
-              <div
-                key={index}
-                className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] pb-3 last:border-0 last:pb-0"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium text-[var(--text-primary)]">{service.name || '—'}</p>
-                  {service.description && (
-                    <p className="text-sm text-[var(--text-muted)]">{service.description}</p>
-                  )}
-                </div>
-                <p className="font-semibold text-[var(--text-primary)]">
-                  {Number.isFinite(Number(service.price))
-                    ? `$${Number(service.price).toFixed(2)}`
-                    : '—'}
-                </p>
-              </div>
-            ))}
-            <div className="flex items-center justify-between border-t border-[var(--border)] pt-3">
-              <span className="font-semibold text-[var(--text-primary)]">Total</span>
-              <span className="text-lg font-bold text-[var(--text-primary)]">
-                {formatMoney(proposal.pricing)}
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Attachments */}
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <h2 className="text-lg font-semibold text-[var(--text-primary)]">Documents</h2>
-        {files.length === 0 ? (
-          <p className="mt-3 text-sm text-[var(--text-muted)]">
-            No documents attached to this proposal.
-          </p>
-        ) : (
-          <ul className="mt-4 divide-y divide-[var(--border)]">
-            {files.map((file) => (
-              <li
-                key={file.id}
-                className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
-              >
-                <div className="flex min-w-0 items-start gap-3">
-                  <SvgIcon name="document" size={18} color="var(--text-muted)" />
-                  <div className="min-w-0">
-                    <p
-                      className="truncate font-medium text-[var(--text-primary)]"
-                      title={file.file_name}
-                    >
-                      {file.file_name}
-                    </p>
-                    <p className="text-xs text-[var(--text-muted)]">
-                      {fileExtensionLabel(file.file_name)} · {formatFileSize(file.file_size)} ·{' '}
-                      {formatDate(file.uploaded_at)}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleDownload(file)}
-                  disabled={busyFileId === file.id}
-                  className={`inline-flex flex-shrink-0 items-center gap-1 text-sm text-[var(--accent-orange)] hover:underline disabled:cursor-wait disabled:opacity-60 ${FOCUS_RING}`}
-                >
-                  <SvgIcon name="download" size={14} color="var(--accent-orange)" />
-                  Download
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {/* Terms */}
-      {proposal.terms && (
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Terms &amp; Conditions</h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm text-[var(--text-secondary)]">
-            {proposal.terms}
-          </p>
-        </div>
-      )}
-
-      {/* Decision */}
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <h2 className="text-lg font-semibold text-[var(--text-primary)]">Your Decision</h2>
-
-        {isApproved && (
-          <p className="mt-3 text-sm text-[var(--text-secondary)]">
-            You approved this proposal on {formatDate(proposal.accepted_at)}. We&apos;ll be in touch
-            with next steps.
-          </p>
-        )}
-
-        {isChangesRequested && (
-          <p className="mt-3 text-sm text-[var(--text-secondary)]">
-            You&apos;ve requested changes to this proposal. We&apos;re reviewing your feedback and
-            will send an updated version shortly.
-          </p>
-        )}
-
-        {canDecide && !changesOpen && (
-          <>
-            <p className="mt-3 text-sm text-[var(--text-secondary)]">
-              Review the scope and documents above, then approve or tell us what you&apos;d like
-              changed.
+      <div className={styles.layout}>
+        <div className={styles.stack}>
+          {/* Services / scope — exactly the services the proposal lists */}
+          <section className={styles.panel} aria-labelledby="prop-scope">
+            <p className={styles.eyebrow}>
+              <span aria-hidden="true" className={styles.node} />
+              What is included
             </p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={handleApprove}
-                disabled={submitting}
-                className={`inline-flex items-center gap-2 rounded-full bg-[var(--accent-orange)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] disabled:opacity-50 ${FOCUS_RING}`}
-              >
-                <SvgIcon name="check" size={16} color="white" />
-                {submitting ? 'Submitting…' : 'Approve Proposal'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setChangesOpen(true)
-                  setError(null)
-                }}
-                disabled={submitting}
-                className={`inline-flex items-center gap-2 rounded-full border border-[var(--border)] px-5 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-section)] disabled:opacity-50 ${FOCUS_RING}`}
-              >
-                Request Changes
-              </button>
-            </div>
-          </>
-        )}
-
-        {canDecide && changesOpen && (
-          <form onSubmit={handleRequestChanges} className="mt-4 space-y-3">
-            <div>
-              <label
-                htmlFor="proposal-change-reason"
-                className="text-sm font-medium text-[var(--text-secondary)]"
-              >
-                What would you like changed? *
-              </label>
-              <textarea
-                id="proposal-change-reason"
-                rows={5}
-                maxLength={MAX_REASON_LENGTH}
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Tell us what to adjust — scope, pricing, timeline, anything else."
-                className={`mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-orange)] focus:outline-none ${FOCUS_RING}`}
-              />
-              <p className="mt-1 text-xs text-[var(--text-muted)]">
-                {reason.length}/{MAX_REASON_LENGTH}
+            <h2 id="prop-scope" className={styles.h2}>
+              Services &amp; scope
+            </h2>
+            {services.length === 0 ? (
+              <p className={styles.quiet} style={{ marginTop: '0.75rem' }}>
+                No services listed.
               </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="submit"
-                disabled={submitting || !reason.trim()}
-                className={`inline-flex items-center gap-2 rounded-full bg-[var(--accent-orange)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] disabled:opacity-50 ${FOCUS_RING}`}
-              >
-                {submitting ? 'Sending…' : 'Send Request'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setChangesOpen(false)
-                  setReason('')
-                }}
-                disabled={submitting}
-                className={`inline-flex items-center gap-2 rounded-full border border-[var(--border)] px-5 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-section)] disabled:opacity-50 ${FOCUS_RING}`}
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        )}
+            ) : (
+              <>
+                <ul className={styles.services}>
+                  {services.map((service, index) => {
+                    const price = formatMoney(service.price, currency)
+                    return (
+                      <li key={index} className={styles.service}>
+                        <div style={{ minWidth: 0 }}>
+                          <p className={styles.serviceName}>{service.name || '—'}</p>
+                          {service.description && <p className={styles.serviceDesc}>{service.description}</p>}
+                        </div>
+                        {price && <p className={styles.servicePrice}>{price}</p>}
+                      </li>
+                    )
+                  })}
+                </ul>
+                {total && (
+                  <div className={styles.total}>
+                    <span className={styles.totalLabel}>Total investment</span>
+                    <span className={styles.totalValue}>{total}</span>
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+
+          {/* Documents — metadata only; downloads use the signed-URL route */}
+          <section className={styles.panel} aria-labelledby="prop-docs">
+            <p className={styles.eyebrow}>
+              <span aria-hidden="true" className={styles.node} />
+              Files
+            </p>
+            <h2 id="prop-docs" className={styles.h2}>
+              Documents
+            </h2>
+            {files.length === 0 ? (
+              <p className={styles.quiet} style={{ marginTop: '0.75rem' }}>
+                No documents attached to this proposal.
+              </p>
+            ) : (
+              <ul className={styles.files}>
+                {files.map((file) => (
+                  <li key={file.id} className={styles.file}>
+                    <div className={styles.fileMain}>
+                      <FileText aria-hidden="true" />
+                      <div style={{ minWidth: 0 }}>
+                        <p className={styles.fileName} title={file.file_name}>
+                          {file.file_name}
+                        </p>
+                        <p className={styles.fileMeta}>
+                          {[fileExtensionLabel(file.file_name), formatFileSize(file.file_size), formatDate(file.uploaded_at)]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDownload(file)}
+                      disabled={busyFileId === file.id}
+                      className={styles.dl}
+                      aria-label={`Download ${file.file_name}`}
+                    >
+                      <Download aria-hidden="true" />
+                      Download
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {/* Terms */}
+          {proposal.terms && (
+            <section className={styles.panel} aria-labelledby="prop-terms">
+              <p className={styles.eyebrow}>
+                <span aria-hidden="true" className={styles.node} />
+                Terms
+              </p>
+              <h2 id="prop-terms" className={styles.h2}>
+                Terms &amp; conditions
+              </h2>
+              <p className={styles.terms}>{proposal.terms}</p>
+            </section>
+          )}
+        </div>
+
+        {/* Decision */}
+        <aside className={styles.aside}>
+          <section id="proposal-decision" className={`${styles.panel} ${styles.decision}`} aria-labelledby="prop-decision">
+            <p className={styles.eyebrow}>
+              <span aria-hidden="true" className={styles.node} />
+              Next step
+            </p>
+            <h2 id="prop-decision" className={styles.h2}>
+              Your decision
+            </h2>
+
+            {isApproved && (
+              <p className={styles.decisionNote}>
+                You approved this proposal{formatDate(proposal.accepted_at) ? ` on ${formatDate(proposal.accepted_at)}` : ''}. We&apos;ll be in touch
+                with next steps.
+              </p>
+            )}
+
+            {isExpired && (
+              <>
+                <p className={styles.decisionNote}>
+                  This proposal&apos;s validity period has ended. Contact Hbee if you&apos;d like to revisit the scope.
+                </p>
+                <div className={styles.actions}>
+                  <Link href="/contact" className={styles.secondary}>
+                    Contact Hbee
+                  </Link>
+                </div>
+              </>
+            )}
+
+            {isChangesRequested && (
+              <p className={styles.decisionNote}>
+                You&apos;ve requested changes to this proposal. We&apos;re reviewing your feedback and
+                will send an updated version shortly.
+              </p>
+            )}
+
+            {canDecide && !changesOpen && (
+              <>
+                <p className={styles.decisionNote}>
+                  Review the scope and documents, then approve or tell us what you&apos;d like
+                  changed.
+                </p>
+                <div className={styles.actions}>
+                  <button type="button" onClick={handleApprove} disabled={submitting} className={styles.primary}>
+                    <Check aria-hidden="true" />
+                    {submitting ? 'Submitting…' : 'Approve Proposal'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setChangesOpen(true)
+                      setError(null)
+                    }}
+                    disabled={submitting}
+                    className={styles.secondary}
+                  >
+                    Request Changes
+                  </button>
+                </div>
+              </>
+            )}
+
+            {canDecide && changesOpen && (
+              <form onSubmit={handleRequestChanges}>
+                <div className={styles.field}>
+                  <label htmlFor="proposal-change-reason" className={styles.label}>
+                    What would you like changed? *
+                  </label>
+                  <textarea
+                    id="proposal-change-reason"
+                    rows={5}
+                    maxLength={MAX_REASON_LENGTH}
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="Tell us what to adjust — scope, pricing, timeline, anything else."
+                    className={styles.textarea}
+                  />
+                  <p className={styles.count}>
+                    {reason.length}/{MAX_REASON_LENGTH}
+                  </p>
+                </div>
+                <div className={styles.actions}>
+                  <button type="submit" disabled={submitting || !reason.trim()} className={styles.primary}>
+                    {submitting ? 'Sending…' : 'Send Request'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setChangesOpen(false)
+                      setReason('')
+                    }}
+                    disabled={submitting}
+                    className={styles.secondary}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+          </section>
+        </aside>
       </div>
     </div>
   )

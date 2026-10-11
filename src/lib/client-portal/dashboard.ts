@@ -9,6 +9,8 @@
 // statuses). There is no stage, milestone, "latest update" or message data, because
 // none of those exist in the backend.
 
+import { isProposalActionable } from './proposal-display'
+
 export const PILLAR_ORDER = ['visibility', 'conversion', 'retention', 'authority', 'scalability'] as const
 export type PillarKey = (typeof PILLAR_ORDER)[number]
 
@@ -210,13 +212,7 @@ export interface AttentionItem {
 
 /** A proposal the client still has to respond to: sent or viewed, and not past its expiry. */
 export function isAwaitingResponse(p: ProposalRow, now: Date): boolean {
-  const status = (p.status || '').toLowerCase()
-  if (status !== 'sent' && status !== 'viewed') return false
-  if (p.expires_at) {
-    const t = new Date(p.expires_at).getTime()
-    if (Number.isFinite(t) && t < now.getTime()) return false
-  }
-  return true
+  return isProposalActionable({ status: (p.status || '').toLowerCase(), expires_at: p.expires_at }, now)
 }
 
 const PROJECT_ATTENTION: Record<string, string> = {
