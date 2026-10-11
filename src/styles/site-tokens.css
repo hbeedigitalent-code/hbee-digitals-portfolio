@@ -13,9 +13,16 @@
 
    The public site does NOT follow the global dark-first theme. A section is
    dark only when it says data-tone="night" (or "deep").
+
+   PORTAL (Phase 18.1): the authenticated Client Portal declares
+   data-surface="portal" and shares ONLY the first block below (palette, type,
+   scales and the default Cloud tone) so there is one source for the brand
+   values. Everything else here — tones, motion, base rules — stays site-only.
+   The portal's own layer lives in src/styles/portal-tokens.css.
    ═════════════════════════════════════════════════════════════════ */
 
-[data-surface='site'] {
+[data-surface='site'],
+[data-surface='portal'] {
   /* ── Palette ─────────────────────────────────────────────── */
   --hb-blue: #0642b3;          /* Royal Blue — structure */
   --hb-orange: #fc5d1c;        /* Signal Orange — action */

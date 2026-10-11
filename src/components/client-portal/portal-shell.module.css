@@ -1,0 +1,307 @@
+/* ═════════════════════════════════════════════════════════════════
+   Client Portal shell (Phase 18.1) — light-first, on the Hbee palette.
+   Left navigation stays; the top bar carries only the bell and the profile
+   control. All colours come from the --hb-* tokens on [data-surface="portal"].
+   ═════════════════════════════════════════════════════════════════ */
+
+.shell {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--hb-cloud);
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────── */
+.sidebar {
+  display: none;
+  width: 17.5rem;
+  flex: none;
+  flex-direction: column;
+  border-right: 1px solid var(--hb-border-soft);
+  background: var(--hb-white);
+}
+@media (min-width: 1024px) {
+  .sidebar { display: flex; }
+}
+.sidebarBody { display: flex; min-height: 0; flex: 1; flex-direction: column; }
+
+.brand { padding: 1.375rem 1.5rem 1.125rem; }
+.context {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.625rem 0 0 0.125rem;
+  font-family: var(--hb-font-body);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--hb-muted);
+}
+/* The Hbee signal node, as on the public site's eyebrows. */
+.node { width: 0.625rem; height: 0.3125rem; border-radius: 2px 999px 999px 2px; background: var(--hb-orange); }
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--hb-border-soft);
+  border-radius: 12px;
+  background: var(--hb-cloud);
+}
+.avatar {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--hb-white);
+  box-shadow: inset 0 0 0 1px var(--hb-ice);
+  font-family: var(--hb-font-display);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--hb-blue);
+}
+.avatarSm { width: 2.25rem; height: 2.25rem; font-size: 0.875rem; }
+.avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.who { min-width: 0; }
+.name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--hb-font-display); font-size: 0.9375rem; font-weight: 700; letter-spacing: -0.005em; color: var(--hb-ink); }
+.business { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; color: var(--hb-slate); }
+
+.navScroll { flex: 1; overflow-y: auto; padding: 1.125rem 1rem 0.5rem; }
+.navList { display: grid; gap: 0.25rem; list-style: none; margin: 0; padding: 0; }
+.navItem {
+  position: relative;
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.5rem 0.75rem 0.5rem 1rem;
+  border-radius: 8px;
+  font-family: var(--hb-font-body);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--hb-slate);
+  text-decoration: none;
+  transition: background-color 160ms var(--hb-ease), color 160ms var(--hb-ease);
+}
+.navItem:hover { background: var(--hb-cloud); color: var(--hb-ink); }
+.navIcon { width: 1.25rem; height: 1.25rem; flex: none; stroke-width: 1.6; color: var(--hb-muted); transition: color 160ms var(--hb-ease); }
+.navItem:hover .navIcon { color: var(--hb-slate); }
+/* Active: a Mist wash that fades out to the right, Royal Blue text/icon and a fine blue
+   structural rule on the left edge — not a filled pill. */
+.navItem[aria-current='page'] {
+  background: linear-gradient(90deg, var(--hb-mist), rgba(234, 242, 255, 0.35));
+  color: var(--hb-blue);
+  font-weight: 600;
+}
+.navItem[aria-current='page'] .navIcon { color: var(--hb-blue); }
+.navItem[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--hb-blue);
+}
+
+.sidebarFoot { margin: 0 1rem; padding: 0.875rem 0 1.25rem; border-top: 1px solid var(--hb-border-soft); }
+.logout {
+  display: flex;
+  width: 100%;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--hb-border-soft);
+  border-radius: 8px;
+  background: var(--hb-white);
+  font-family: var(--hb-font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--hb-slate);
+  cursor: pointer;
+  transition: background-color 160ms var(--hb-ease), border-color 160ms var(--hb-ease);
+}
+.logout:hover { background: var(--hb-cloud); border-color: var(--hb-ice); color: var(--hb-ink); }
+.logout:hover .logoutIcon { color: var(--hb-error); }
+.logoutIcon { width: 1.125rem; height: 1.125rem; }
+
+/* ── Main column ─────────────────────────────────────────────── */
+.main { display: flex; min-width: 0; flex: 1; flex-direction: column; overflow: hidden; }
+
+.topbar {
+  position: relative;
+  z-index: 30;
+  display: flex;
+  min-height: 4.25rem;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--hb-border-soft);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+@media (min-width: 1024px) {
+  .topbar { min-height: 4.5rem; padding-inline: 2.5rem; }
+}
+.topLeft { display: flex; min-width: 0; align-items: center; gap: 0.75rem; }
+.topRight { display: flex; align-items: center; gap: 0.5rem; }
+
+.hamburger {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--hb-border-soft);
+  border-radius: 10px;
+  background: var(--hb-white);
+  color: var(--hb-ink);
+  cursor: pointer;
+}
+.hamburger:hover { background: var(--hb-cloud); }
+@media (min-width: 1024px) {
+  .hamburger { display: none; }
+}
+.icon20 { width: 1.25rem; height: 1.25rem; }
+
+/* The section name. A paragraph, not a heading: every page renders its own h1. */
+.section {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--hb-font-display);
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  color: var(--hb-ink);
+}
+
+.profileWrap { position: relative; }
+.profileBtn {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem 0.25rem 0.25rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--hb-ink);
+  cursor: pointer;
+}
+.profileBtn:hover { background: var(--hb-cloud); border-color: var(--hb-border-soft); }
+.profileName { display: none; max-width: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (min-width: 640px) { .profileName { display: inline; } }
+.chevron { width: 1rem; height: 1rem; color: var(--hb-muted); transition: transform 160ms var(--hb-ease); }
+.profileBtn[aria-expanded='true'] .chevron { transform: rotate(180deg); }
+
+.scrim { position: fixed; inset: 0; z-index: 40; background: transparent; }
+.panel {
+  position: absolute;
+  right: 0;
+  z-index: 50;
+  margin-top: 0.5rem;
+  width: min(16rem, calc(100vw - 2rem));
+  padding: 0.875rem;
+  border: 1px solid var(--hb-border-soft);
+  border-radius: 14px;
+  background: var(--hb-white);
+  box-shadow: var(--hb-shadow-2);
+}
+.panelLabel { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--hb-slate); }
+.panelEmail { margin-top: 0.25rem; overflow-wrap: anywhere; font-size: 0.875rem; font-weight: 600; color: var(--hb-ink); }
+.panelLink {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.75rem;
+  border: 1px solid var(--hb-border-soft);
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--hb-ink);
+  text-decoration: none;
+}
+.panelLink:hover { background: var(--hb-cloud); }
+.panel .logout { margin-top: 0.5rem; min-height: 2.5rem; font-size: 0.875rem; }
+
+/* The canvas carries the public site's pale structural grid, very quietly. Pages supply
+   their own surfaces and Hbee Modules on top of it. */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem 1rem;
+  background-color: var(--hb-cloud);
+  background-image:
+    radial-gradient(ellipse 70% 38% at 0% 0%, rgba(234, 242, 255, 0.9), rgba(234, 242, 255, 0) 70%),
+    linear-gradient(rgba(6, 66, 179, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 66, 179, 0.045) 1px, transparent 1px);
+  background-size: auto, 64px 64px, 64px 64px;
+}
+@media (min-width: 1024px) { .content { padding: 2.5rem; } }
+.content:focus { outline: none; }
+
+/* ── Mobile drawer ───────────────────────────────────────────── */
+.backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(6, 20, 38, 0.55); }
+.drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 50;
+  display: flex;
+  width: min(18rem, 86vw);
+  flex-direction: column;
+  background: var(--hb-white);
+  box-shadow: var(--hb-shadow-2);
+}
+@media (min-width: 1024px) {
+  .backdrop, .drawer { display: none; }
+}
+.drawerHead { display: flex; align-items: flex-start; justify-content: space-between; }
+.drawerClose {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: 0.75rem 0.75rem 0 0;
+  flex: none;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--hb-slate);
+  cursor: pointer;
+}
+.drawerClose:hover { background: var(--hb-cloud); color: var(--hb-ink); }
+
+@keyframes portalDrawerIn { from { transform: translateX(-100%); } }
+@keyframes portalFadeIn { from { opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) {
+  .drawer { animation: portalDrawerIn 240ms var(--hb-ease) both; }
+  .backdrop { animation: portalFadeIn 200ms var(--hb-ease) both; }
+}
+
+/* ── Gate states (auth check / no client) ────────────────────── */
+.centered { display: grid; min-height: 100vh; min-height: 100dvh; place-items: center; padding: 1rem; background: var(--hb-cloud); text-align: center; }
+.centeredText { max-width: 28rem; font-size: 1rem; color: var(--hb-slate); }
+.spinner { width: 2.5rem; height: 2.5rem; border: 2px solid var(--hb-blue); border-top-color: transparent; border-radius: 50%; }
+@keyframes portalSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: no-preference) {
+  .spinner { animation: portalSpin 800ms linear infinite; }
+}

@@ -1,0 +1,84 @@
+/* ═════════════════════════════════════════════════════════════════
+   HBEE CLIENT PORTAL — SCOPED SURFACE  (Phase 18.1)
+
+   [data-surface="portal"] is the authenticated continuation of the public site:
+   the same --hb-* palette, type and scales (shared from site-tokens.css), light-
+   first, White / Cloud dominant, Royal Blue structure, Signal Orange action.
+
+   WHY AN ALIAS LAYER. The portal's existing page content was written against the
+   older global tokens (--bg-card, --text-primary, --accent, …), which follow a
+   dark-first theme set on <html>. The refined portal is LIGHT-FIRST, so this
+   surface re-declares those legacy names from the Hbee palette. Descendants then
+   render light and on-brand whatever theme the visitor last chose elsewhere, and
+   each page can be rebuilt on --hb-* tokens later without touching this shell.
+
+   Scoped: nothing here targets :root, html, body or bare elements, and the global
+   tokens used by Admin and the public site are untouched.
+   ═════════════════════════════════════════════════════════════════ */
+
+[data-surface='portal'] {
+  color-scheme: light;
+
+  /* ── Legacy names → Hbee palette ─────────────────────────── */
+  --bg: var(--hb-cloud);
+  --bg-page: var(--hb-cloud);
+  --bg-subtle: var(--hb-mist);
+  --bg-section: var(--hb-mist);
+  --bg-card: var(--hb-white);
+  --bg-card-hover: var(--hb-cloud);
+  --bg-card-dark: var(--hb-night);
+  --bg-inverse: var(--hb-night);
+  --surface: var(--hb-white);
+
+  --text: var(--hb-ink);
+  --text-primary: var(--hb-ink);
+  --text-secondary: var(--hb-slate);
+  --text-muted: var(--hb-slate);
+  --text-on-inverse: var(--hb-white);
+
+  --border: var(--hb-border-soft);
+  --border-strong: #b9cbe6;
+
+  /* Structure is blue; action is orange. */
+  --accent: var(--hb-blue);
+  --accent-subtle: var(--hb-mist);
+  --accent-orange: var(--hb-orange);
+  --accent-lime: var(--hb-orange); /* deprecated name, kept so old call sites stay on-brand */
+  --cta: var(--hb-orange);
+  --cta-hover: #e5490f;
+  --cta-text: var(--hb-night);     /* white on #FC5D1C fails AA at button sizes; Night passes */
+  --orange-600: #e5490f;
+  --blue-500: var(--hb-electric);
+  --navy-800: var(--hb-deep-navy);
+
+  --success: var(--hb-success);
+  --success-subtle: #dcfce7;
+  --error: var(--hb-error);
+  --ring: rgba(29, 110, 255, 0.4);
+  --radius-control: var(--hb-radius-md);
+
+  background-color: var(--hb-bg);
+  color: var(--hb-fg-body);
+  font-family: var(--hb-font-body);
+}
+
+[data-surface='portal'] ::selection { background: var(--hb-ice); color: var(--hb-night); }
+
+/* One visible, on-brand focus ring for every keyboard-reachable control in the portal. */
+[data-surface='portal'] :focus-visible {
+  outline: 2px solid var(--hb-focus);
+  outline-offset: 2px;
+}
+
+/* app/layout.tsx critical CSS makes every <nav> position:fixed (a marketing-header rule).
+   The portal's sidebar nav is an in-flow list, so undo it here — same reset the public
+   site applies under [data-surface='site']. */
+html :where([data-surface='portal']) nav {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 0;
+}

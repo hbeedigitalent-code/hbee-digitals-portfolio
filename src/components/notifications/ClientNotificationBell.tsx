@@ -230,13 +230,13 @@ export default function ClientNotificationBell() {
         aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
-        className={`relative p-2 rounded-lg hover:bg-[var(--bg-section)] transition ${FOCUS_RING}`}
+        className={`relative grid h-11 w-11 place-items-center rounded-lg hover:bg-[var(--bg-section)] transition ${FOCUS_RING}`}
       >
         <SvgIcon name="bell" size={20} color="var(--text-muted)" />
         {unreadCount > 0 && (
           <span
             aria-hidden="true"
-            className="absolute -top-0.5 -right-0.5 min-w-[18px] rounded-full bg-red-500 px-1.5 py-0.5 text-center text-xs font-bold text-white"
+            className="absolute -top-0.5 -right-0.5 min-w-[18px] rounded-full bg-[var(--hb-orange,#fc5d1c)] px-1.5 py-0.5 text-center text-xs font-bold text-[var(--hb-night,#061426)]"
           >
             {badgeLabel}
           </span>
