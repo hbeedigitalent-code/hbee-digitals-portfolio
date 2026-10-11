@@ -110,6 +110,8 @@ export interface HbeeEmailOptions {
   supportEmail: string
   /** True only when a reply-to is really configured (layout.ts configuredReplyTo → RESEND_REPLY_TO). */
   repliesMonitored: boolean
+  /** Optional quiet footer links (e.g. Client Portal). In-app paths only; none by default. */
+  footerLinks?: Array<{ label: string; url: string }>
 }
 
 /** Collapse whitespace and drop control characters from a dynamic value. */
@@ -276,6 +278,12 @@ function emailFooter(options: HbeeEmailOptions, siteHref: string): string {
     `<p style="margin:0 0 10px;font-family:${BODY};font-size:13px;line-height:1.6;color:${C.slate};">${supportLine}</p>` +
     `<p style="margin:0;font-family:${BODY};font-size:12px;line-height:1.6;color:${C.muted};">` +
     `<a href="${escapeHtml(siteHref)}" target="_blank" rel="noopener" style="color:${C.muted};text-decoration:underline;">${escapeHtml(host)}</a>` +
+    (options.footerLinks ?? [])
+      .map(
+        (l) =>
+          `&nbsp;&middot;&nbsp;<a href="${escapeHtml(emailUrl(l.url))}" target="_blank" rel="noopener" style="color:${C.muted};text-decoration:underline;">${escapeHtml(l.label)}</a>`,
+      )
+      .join('') +
     `&nbsp;&middot;&nbsp;&copy; ${new Date().getFullYear()} Hbee Digitals</p>` +
     `</td></tr>`
   )
@@ -405,6 +413,7 @@ export function renderHbeeEmailText(options: HbeeEmailOptions): string {
   lines.push('', 'With thanks,', plain(options.signoff.name))
   if (options.signoff.title) lines.push(plain(options.signoff.title))
   lines.push('', '---', plain(options.reason), supportSentence(options), requireEmailOrigin())
+  for (const l of options.footerLinks ?? []) lines.push(`${plain(l.label)}: ${emailUrl(l.url)}`)
   return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n'
 }
 

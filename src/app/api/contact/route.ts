@@ -30,6 +30,7 @@ import { verifyTurnstileToken, turnstileFailureMessage } from '@/lib/turnstile'
 import { validateContactPayload } from '@/lib/validators/contact-payload'
 import { checkRateLimit, getClientIp, rateLimitMessage } from '@/lib/rate-limit'
 import { sendContactConfirmation } from '@/lib/emails/contact-confirmation'
+import { sendContactAcknowledgementEmail } from '@/lib/emails/contact-acknowledgement'
 import { sendAdminContactNotification } from '@/lib/emails/admin-contact-notification'
 
 export async function POST(req: Request) {
@@ -101,6 +102,39 @@ export async function POST(req: Request) {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
+    // Phase 17 — the rebuilt Contact page ('enquiry'). contact_submissions has
+    // no budget/timeline columns and its form_type/source values may be
+    // constrained, so an enquiry is stored with the EXISTING values ('contact' /
+    // 'website_contact_form'); the enquiry type goes in `service`, and the two
+    // optional answers are appended to the stored message under a separator so
+    // the admin inbox still shows them. No schema change.
+    const isEnquiry = contact.form_type === 'enquiry'
+    const enquiryDetails = isEnquiry
+      ? [
+          contact.enquiry?.budget ? `Estimated budget: ${contact.enquiry.budget}` : null,
+          contact.enquiry?.timeline ? `Timeline: ${contact.enquiry.timeline}` : null,
+        ].filter(Boolean)
+      : []
+    const storedMessage = enquiryDetails.length
+      ? `${contact.message}\n\n—\n${enquiryDetails.join('\n')}`
+      : contact.message
+
+    // Idempotency for the enquiry form: an identical submission from the same
+    // address within ten minutes (a retry, a double send) is acknowledged as
+    // success without a second row or a second pair of emails.
+    if (isEnquiry) {
+      const { data: recent, error: recentError } = await supabase
+        .from('contact_submissions')
+        .select('id')
+        .eq('email', contact.email)
+        .eq('message', storedMessage)
+        .gte('created_at', new Date(Date.now() - 10 * 60_000).toISOString())
+        .limit(1)
+      if (!recentError && recent && recent.length > 0) {
+        return NextResponse.json({ success: true, form_type: 'enquiry', message: 'Form submitted successfully!' })
+      }
+    }
+
     const { data: inquiry, error: dbError } = await supabase
       .from('contact_submissions')
       .insert([
@@ -111,9 +145,9 @@ export async function POST(req: Request) {
           phone: contact.phone,
           website: contact.website,
           service: contact.service,
-          message: contact.message,
-          form_type: contact.form_type,
-          source: contact.source,
+          message: storedMessage,
+          form_type: isEnquiry ? 'contact' : contact.form_type,
+          source: isEnquiry ? 'website_contact_form' : contact.source,
           status: 'new',
           is_read: false,
           created_at: new Date().toISOString(),
@@ -138,13 +172,28 @@ export async function POST(req: Request) {
     const isConsultation = contact.form_type === 'free_consultation'
     const submissionId: string | null = inquiry?.id ? String(inquiry.id) : null
 
+    // The acknowledgement is keyed by the client's attempt key when present (a
+    // retry of the same attempt cannot send twice), otherwise by the stored row.
+    const ackKey = contact.enquiry?.submissionKey ?? submissionId
+    const submittedAt = `${new Date().toLocaleString('en-GB', { timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short' })} UTC`
+
     const [confirmation, notification] = await Promise.all([
-      sendContactConfirmation(
-        contact.full_name,
-        contact.email,
-        isConsultation,
-        submissionId,
-      ),
+      isEnquiry
+        ? sendContactAcknowledgementEmail({
+            fullName: contact.full_name,
+            email: contact.email,
+            enquiryType: contact.enquiry!.enquiryType,
+            company: contact.company,
+            budget: contact.enquiry?.budget ?? null,
+            timeline: contact.enquiry?.timeline ?? null,
+            idempotencyKey: ackKey,
+          })
+        : sendContactConfirmation(
+            contact.full_name,
+            contact.email,
+            isConsultation,
+            submissionId,
+          ),
       sendAdminContactNotification({
         fullName: contact.full_name,
         email: contact.email,
@@ -155,6 +204,16 @@ export async function POST(req: Request) {
         message: contact.message,
         isConsultation,
         submissionId,
+        ...(isEnquiry
+          ? {
+              enquiry: {
+                enquiryType: contact.enquiry!.enquiryType,
+                budget: contact.enquiry?.budget,
+                timeline: contact.enquiry?.timeline,
+                submittedAt,
+              },
+            }
+          : {}),
       }),
     ])
 

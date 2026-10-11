@@ -94,10 +94,24 @@ export function emailOrigin(): string | null {
     const url = new URL(configured)
     // Only absolute http(s) origins are usable in an email.
     if (url.protocol !== 'https:' && url.protocol !== 'http:') return null
+    // A PRODUCTION deployment must never put a local or insecure address in a real
+    // recipient's inbox. On Vercel production, a non-https or local origin is treated as
+    // unconfigured, so requireEmailOrigin() throws and the send is abandoned and reported
+    // (EmailConfigurationError) instead of delivered. Local previews are unaffected.
+    if (process.env.VERCEL_ENV === 'production' && !isPublicOrigin(url)) return null
     return url.origin
   } catch {
     return null
   }
+}
+
+/** https, and not a loopback / unspecified / local-only host. */
+function isPublicOrigin(url: URL): boolean {
+  if (url.protocol !== 'https:') return false
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '')
+  if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) return false
+  if (host === '0.0.0.0' || host === '::' || host === '::1' || /^127\./.test(host)) return false
+  return true
 }
 
 /**

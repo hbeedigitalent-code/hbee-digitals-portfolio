@@ -20,6 +20,8 @@ export const PRIMARY_NAV: SiteLink[] = [
   { label: 'How We Work', href: '/how-we-work' },
   { label: 'Insights', href: '/insights' },
   { label: 'About', href: '/about' },
+  // Phase 17: a regular destination. /contact already exists in production.
+  { label: 'Contact', href: '/contact' },
 ]
 
 export const UTILITY_NAV: SiteLink = { label: 'Client Portal', href: '/client-login' }
@@ -225,7 +227,8 @@ export interface FooterColumn {
 }
 
 export const FOOTER_COLUMNS: FooterColumn[] = [
-  { title: 'Explore', links: PRIMARY_NAV },
+  // Contact lives under "Work with us" in the footer; the header keeps it in PRIMARY_NAV.
+  { title: 'Explore', links: PRIMARY_NAV.filter((link) => link.href !== '/contact') },
   {
     title: 'Capabilities',
     links: CAPABILITIES.map((label) => ({ label, href: '/services' })),

@@ -18,9 +18,22 @@
 // column — the Turnstile token included, which is consumed by the route and is
 // not a field name below.
 
-export type ContactFormType = 'contact' | 'free_consultation'
+import {
+  BUDGETS,
+  ENQUIRY_LIMITS,
+  ENQUIRY_MESSAGES,
+  ENQUIRY_TYPES,
+  TIMELINES,
+  normaliseWebsite as normaliseEnquiryWebsite,
+} from '@/lib/contact/enquiry'
 
-/** Exactly the columns the route writes to `contact_submissions`. */
+/**
+ * 'enquiry' is the rebuilt Contact page (Phase 17). The two legacy forms keep
+ * 'contact' and 'free_consultation' with their behaviour unchanged.
+ */
+export type ContactFormType = 'contact' | 'free_consultation' | 'enquiry'
+
+/** Exactly the columns the route writes to `contact_submissions`, plus enquiry-only fields. */
 export interface ValidatedContact {
   form_type: ContactFormType
   source: string
@@ -31,6 +44,14 @@ export interface ValidatedContact {
   website: string | null
   service: string | null
   message: string
+  /** Enquiry only. Optional answers are absent (never ''). */
+  enquiry?: {
+    enquiryType: (typeof ENQUIRY_TYPES)[number]
+    budget?: (typeof BUDGETS)[number]
+    timeline?: (typeof TIMELINES)[number]
+    /** Client-generated UUID for this attempt; used only to de-duplicate emails on retry. */
+    submissionKey?: string
+  }
 }
 
 export type ContactValidationOutcome =
@@ -58,7 +79,74 @@ const EMAIL_RE = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/
 /** Digits, spaces and the punctuation real phone numbers actually contain. */
 const PHONE_RE = /^[+()\-.\s\d]{5,50}$/
 
-const FORM_TYPES: readonly ContactFormType[] = ['contact', 'free_consultation']
+const FORM_TYPES: readonly ContactFormType[] = ['contact', 'free_consultation', 'enquiry']
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+/** The rebuilt Contact page's enquiry. Allow-listed choices; optional answers absent, never ''. */
+function validateEnquiry(input: Record<string, unknown>): ContactValidationOutcome {
+  const fullName = pick(input, 'full_name', 'name')
+  if (!fullName || fullName.length > ENQUIRY_LIMITS.name) return { ok: false, error: ENQUIRY_MESSAGES.name }
+
+  const email = pick(input, 'email').toLowerCase()
+  if (!email || email.length > ENQUIRY_LIMITS.email || !EMAIL_RE.test(email)) {
+    return { ok: false, error: ENQUIRY_MESSAGES.email }
+  }
+
+  const enquiryType = pick(input, 'enquiry_type')
+  if (!(ENQUIRY_TYPES as readonly string[]).includes(enquiryType)) {
+    return { ok: false, error: ENQUIRY_MESSAGES.enquiryType }
+  }
+
+  const message = pick(input, 'message')
+  if (message.length < ENQUIRY_LIMITS.messageMin) return { ok: false, error: ENQUIRY_MESSAGES.message }
+  if (message.length > ENQUIRY_LIMITS.messageMax) {
+    return { ok: false, error: 'That message is too long. Please shorten it and try again.' }
+  }
+
+  const company = pick(input, 'company')
+  if (company.length > ENQUIRY_LIMITS.company) return { ok: false, error: 'That business name is too long.' }
+
+  const rawWebsite = pick(input, 'website')
+  let website: string | null = null
+  if (rawWebsite) {
+    website = normaliseEnquiryWebsite(rawWebsite)
+    if (!website) return { ok: false, error: ENQUIRY_MESSAGES.website }
+  }
+
+  // Optional choices: absent or blank → omitted; anything else must be an allowed option.
+  const budget = pick(input, 'budget')
+  if (budget && !(BUDGETS as readonly string[]).includes(budget)) {
+    return { ok: false, error: 'That budget option is not valid.' }
+  }
+  const timeline = pick(input, 'timeline')
+  if (timeline && !(TIMELINES as readonly string[]).includes(timeline)) {
+    return { ok: false, error: 'That timeline option is not valid.' }
+  }
+
+  const submissionKey = pick(input, 'submission_key')
+
+  return {
+    ok: true,
+    value: {
+      form_type: 'enquiry',
+      source: 'contact_page',
+      full_name: fullName,
+      email,
+      company: company || null,
+      phone: null,
+      website,
+      service: enquiryType,
+      message,
+      enquiry: {
+        enquiryType: enquiryType as (typeof ENQUIRY_TYPES)[number],
+        ...(budget ? { budget: budget as (typeof BUDGETS)[number] } : {}),
+        ...(timeline ? { timeline: timeline as (typeof TIMELINES)[number] } : {}),
+        ...(UUID_RE.test(submissionKey) ? { submissionKey: submissionKey.toLowerCase() } : {}),
+      },
+    },
+  }
+}
 
 /**
  * Strips control characters and normalises whitespace. Tab and newline survive
@@ -122,6 +210,8 @@ export function validateContactPayload(
   const formType: ContactFormType = FORM_TYPES.includes(rawFormType as ContactFormType)
     ? (rawFormType as ContactFormType)
     : 'contact'
+
+  if (formType === 'enquiry') return validateEnquiry(input)
 
   const source = pick(input, 'source').slice(0, MAX_LENGTHS.source) ||
     (formType === 'free_consultation' ? 'consultation_popup' : 'website_contact_form')
