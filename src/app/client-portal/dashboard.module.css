@@ -20,7 +20,7 @@
 .panel { min-width: 0; border: 1px solid var(--hb-border-soft); border-radius: 14px; background: var(--hb-white); padding: 1.25rem; }
 @media (min-width: 768px) { .panel { padding: 1.5rem 1.75rem; } }
 .panelHead { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.title { margin-top: 0.5rem; font-family: var(--hb-font-display); font-size: 1.25rem; font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; color: var(--hb-ink); }
+.title { overflow-wrap: anywhere; margin-top: 0.5rem; font-family: var(--hb-font-display); font-size: 1.25rem; font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; color: var(--hb-ink); }
 .link { display: inline-flex; min-height: 2.75rem; align-items: center; gap: 0.375rem; font-size: 0.875rem; font-weight: 600; color: var(--hb-blue); text-decoration: none; }
 .link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .link svg { width: 1rem; height: 1rem; }
@@ -29,14 +29,16 @@
 
 /* ── Current priority ─────────────────────────────────────────── */
 .priority { display: grid; gap: 1.25rem; }
-@media (min-width: 900px) { .priority { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 12rem; align-items: center; gap: 2rem; } }
-.priorityHeading { margin-top: 0.625rem; font-family: var(--hb-font-display); font-size: clamp(1.625rem, 1.3rem + 1.4vw, 2.375rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.03em; color: var(--hb-ink); }
+@media (min-width: 900px) { .priority { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: center; gap: 2rem; } }
+/* The Hbee Module only joins when the panel is wide enough to hold three columns comfortably. */
+@media (min-width: 1280px) { .priority { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 12rem; } }
+.priorityHeading { overflow-wrap: anywhere; margin-top: 0.625rem; font-family: var(--hb-font-display); font-size: clamp(1.625rem, 1.3rem + 1.4vw, 2.375rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.03em; color: var(--hb-ink); }
 .priorityBase { margin-top: 0.625rem; font-size: 0.9375rem; color: var(--hb-slate); }
-.guidance { padding-top: 1.125rem; border-top: 1px solid var(--hb-border-soft); font-size: 0.9375rem; line-height: 1.6; color: var(--hb-slate); }
+.guidance { padding-top: 1.125rem; border-top: 1px solid var(--hb-border-soft); font-size: 0.9375rem; line-height: 1.6; color: var(--hb-slate); overflow-wrap: anywhere; }
 @media (min-width: 900px) { .guidance { padding: 0 0 0 2rem; border-top: 0; border-left: 1px solid var(--hb-border-soft); } }
 .guidance strong { display: block; margin-bottom: 0.375rem; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--hb-muted); }
 .priorityModule { display: none; position: relative; width: 100%; max-width: 12rem; }
-@media (min-width: 900px) { .priorityModule { display: block; } }
+@media (min-width: 1280px) { .priorityModule { display: block; } }
 
 /* ── Main grid: attention · active work · activity ────────────── */
 .grid { display: grid; gap: 1.25rem; }
@@ -123,3 +125,7 @@ a.feedItem:hover { background: var(--hb-cloud); }
 .spinner { width: 2.5rem; height: 2.5rem; border: 2px solid var(--hb-blue); border-top-color: transparent; border-radius: 50%; }
 @keyframes dashSpin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: no-preference) { .spinner { animation: dashSpin 800ms linear infinite; } }
+
+/* Long unbroken words (project / proposal names) must wrap inside their column, not widen it. */
+.attList > li { min-width: 0; }
+.attTitle, .attContext, .projectName, .projectCode, .desc { overflow-wrap: anywhere; }

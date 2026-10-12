@@ -10,6 +10,7 @@
 // none of those exist in the backend.
 
 import { isProposalActionable } from './proposal-display'
+import { parseProgress } from './projects-display'
 
 export const PILLAR_ORDER = ['visibility', 'conversion', 'retention', 'authority', 'scalability'] as const
 export type PillarKey = (typeof PILLAR_ORDER)[number]
@@ -131,7 +132,8 @@ export interface ActiveProject {
   code: string | null
   name: string
   status: string
-  progress: number
+  /** The stored progress 0–100, or null when it is not set (null is NOT zero). */
+  progress: number | null
   description: string | null
   startDate: string | null
   expectedCompletion: string | null
@@ -139,12 +141,6 @@ export interface ActiveProject {
 
 const INACTIVE = new Set(['completed', 'archived'])
 const isInactive = (status: string | null) => INACTIVE.has((status || '').trim().toLowerCase())
-
-function clampProgress(value: unknown): number {
-  const n = Number(value)
-  if (!Number.isFinite(n)) return 0
-  return Math.max(0, Math.min(100, Math.round(n)))
-}
 
 function shortText(value: string | null, max = 280): string | null {
   const t = (value || '').trim()
@@ -158,7 +154,7 @@ function toActive(p: ProjectRow): ActiveProject {
     code: p.project_id || null,
     name: (p.project_name || '').trim() || 'Untitled project',
     status: (p.status || '').trim() || 'New',
-    progress: clampProgress(p.progress),
+    progress: parseProgress(p.progress),
     description: shortText(p.description),
     startDate: p.start_date || null,
     expectedCompletion: p.expected_completion_date || null,
@@ -328,7 +324,7 @@ export function buildActivity(input: {
   for (const d of input.deliverables) {
     const t = validTime(d.uploaded_at)
     if (t === null || !d.title || announced.has(`deliverable:${d.id}`) || announced.has(`project_deliverable:${d.id}`)) continue
-    items.push({ type: 'deliverable', title: d.title, context: 'Deliverable available', at: d.uploaded_at!, href: '/client-portal/deliverables', t })
+    items.push({ type: 'deliverable', title: d.title, context: 'Deliverable available', at: d.uploaded_at!, href: '/client-portal/files', t })
   }
   for (const p of input.proposals) {
     const t = validTime(p.sent_at)

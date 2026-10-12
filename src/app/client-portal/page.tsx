@@ -288,15 +288,21 @@ export default function ClientPortalHome() {
                     </div>
                     <span className={styles.status}>{p.status}</span>
                   </div>
-                  <div className={styles.progress}>
-                    <div className={styles.progressRow}>
-                      <span>Progress</span>
-                      <b>{p.progress}%</b>
+                  {p.progress === null ? (
+                    <p className={styles.muted} style={{ marginTop: '0.875rem' }}>
+                      Progress not set
+                    </p>
+                  ) : (
+                    <div className={styles.progress}>
+                      <div className={styles.progressRow}>
+                        <span>Progress</span>
+                        <b>{p.progress}%</b>
+                      </div>
+                      <div className={styles.bar} aria-hidden="true">
+                        <span style={{ width: `${p.progress}%` }} />
+                      </div>
                     </div>
-                    <div className={styles.bar} aria-hidden="true">
-                      <span style={{ width: `${p.progress}%` }} />
-                    </div>
-                  </div>
+                  )}
                   {p.description && <p className={styles.desc}>{p.description}</p>}
                   {(fmtDate(p.startDate) || fmtDate(p.expectedCompletion)) && (
                     <dl className={styles.dates}>
@@ -444,7 +450,7 @@ export default function ClientPortalHome() {
             <section className={styles.panel} aria-labelledby="home-deliverables">
               <div className={styles.panelHead}>
                 <Eyebrow>Deliverables</Eyebrow>
-                <ArrowLink href="/client-portal/deliverables">View all</ArrowLink>
+                <ArrowLink href="/client-portal/files">View all</ArrowLink>
               </div>
               <h2 id="home-deliverables" className="sr-only">
                 Deliverables

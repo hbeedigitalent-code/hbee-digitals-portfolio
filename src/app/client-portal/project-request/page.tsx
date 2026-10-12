@@ -1,14 +1,13 @@
 // src/app/client-portal/project-request/page.tsx
 //
-// New project request (Phase 18.7: presentation and copy only). The client lookup, the redirects
-// and the form's submission behaviour are unchanged. The old "Full onboarding" link pointed at the
-// public new-client onboarding form, which is not an option for an existing portal client, so it
-// is replaced by a plain route to contact Hbee.
+// New project request. The page needs only the client's business/name for context, which it reads
+// from the session-bound /api/client-portal/me (no browser-side clients query, no Supabase client
+// at all). Unauthenticated -> /client-login and no client record -> /client-portal/settings, exactly
+// as before. The form submits through /api/client-portal/project-requests.
 'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@/lib/supabase-client'
 import { ProjectRequestForm } from '@/components/client-portal/ProjectRequestForm'
 import { SupportLoading } from '@/components/client-portal/SupportState'
 import Link from 'next/link'
@@ -16,43 +15,51 @@ import styles from '@/components/client-portal/support.module.css'
 
 export default function ProjectRequestPage() {
   const router = useRouter()
-  const supabase = createClientComponentClient()
   const [loading, setLoading] = useState(true)
   const [clientData, setClientData] = useState<{
-    id: string
-    user_id: string
     full_name: string
     business_name: string
     email: string
   } | null>(null)
 
   useEffect(() => {
+    let cancelled = false
     async function fetchClient() {
-      const { data: { user } } = await supabase.auth.getUser()
+      try {
+        const response = await fetch('/api/client-portal/me', { credentials: 'same-origin' })
 
-      if (!user) {
-        router.push('/client-login')
-        return
-      }
+        if (response.status === 401) {
+          router.push('/client-login')
+          return
+        }
+        const payload = await response.json().catch(() => null)
 
-      const { data: client } = await supabase
-        .from('clients')
-        .select('id, user_id, full_name, business_name, email')
-        .eq('user_id', user.id)
-        .maybeSingle()
+        if (response.ok && payload?.client) {
+          if (!cancelled) {
+            setClientData({
+              full_name: payload.client.full_name || '',
+              business_name: payload.client.business_name || '',
+              email: payload.client.email || '',
+            })
+            setLoading(false)
+          }
+          return
+        }
 
-      if (client) {
-        setClientData(client)
-      } else {
+        // No client record (404), ambiguous binding (409) or a server error: send them to Settings,
+        // which explains the account state, exactly as the page did when no client row was found.
         router.push('/client-portal/settings')
-        return
+      } catch (err) {
+        console.error('Error:', err)
+        router.push('/client-portal/settings')
       }
-
-      setLoading(false)
     }
 
     fetchClient()
-  }, [router, supabase])
+    return () => {
+      cancelled = true
+    }
+  }, [router])
 
   if (loading) return <SupportLoading />
 
@@ -76,8 +83,6 @@ export default function ProjectRequestPage() {
 
       <section className={styles.panel} aria-label="Project request form">
         <ProjectRequestForm
-          clientId={clientData.id}
-          userId={clientData.user_id}
           clientName={clientData.full_name}
           businessName={clientData.business_name}
           email={clientData.email}
