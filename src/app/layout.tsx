@@ -36,7 +36,9 @@ export const metadata: Metadata = {
   authors: [{ name: siteName, url: siteUrl }],
   creator: siteName,
   publisher: siteName,
-  alternates: { canonical: siteUrl },
+  // No global `alternates.canonical` / `openGraph.url`: Next.js inherits both into every page
+  // that does not override them, which stamped the homepage URL onto utility pages.
+  // Public pages declare their own through pageMetadata().
   manifest: '/site.webmanifest',
   icons: {
     icon: [
@@ -50,7 +52,6 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: siteUrl,
     title: siteTitle,
     description: siteDescription,
     siteName,

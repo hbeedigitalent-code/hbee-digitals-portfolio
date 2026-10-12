@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 import { Suspense } from 'react'
-import { GoogleAnalytics as NextGoogleAnalytics } from '@next/third-parties/google'
 
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
@@ -21,13 +20,11 @@ import SubscribePopup from '@/components/SubscribePopup'
  *
  * The public-site widget cluster (cookie banner, subscribe popup, cursor
  * glow, scroll utilities, floating WhatsApp), the JSON-LD structured data,
- * analytics, and the service-worker registration also live here rather than
+ * and analytics also live here rather than
  * in the root layout, so none of them render on /admin/*, /client-portal/*,
  * /admin/login, or /admin-2fa-challenge.
  */
 export default function MarketingLayout({ children }: { children: ReactNode }) {
-  const gaId = process.env.NEXT_PUBLIC_GA_ID
-
   return (
     <>
       <Suspense fallback={null}>
@@ -48,22 +45,6 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
       <CookieConsent />
       <PageUtilities />
       <FloatingWhatsApp />
-
-      {/* Load analytics after page load */}
-      {gaId && <NextGoogleAnalytics gaId={gaId} />}
-
-      {/* Service Worker for caching */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {
-              window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(console.error);
-              });
-            }
-          `,
-        }}
-      />
     </>
   )
 }

@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
+import { readCookieConsent, storeCookieConsent } from '@/lib/cookie-consent'
+
 /**
  * Cookie consent for the public site surface.
  *
@@ -16,24 +18,14 @@ export function SiteCookieConsent() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    let consent: string | null = null
-    try {
-      consent = window.localStorage.getItem('hbee_cookie_consent')
-    } catch {
-      /* storage unavailable: show the banner */
-    }
-    if (!consent) {
+    if (!readCookieConsent()) {
       const timer = window.setTimeout(() => setVisible(true), 900)
       return () => window.clearTimeout(timer)
     }
   }, [])
 
   const save = (value: 'accepted' | 'declined') => {
-    try {
-      window.localStorage.setItem('hbee_cookie_consent', value)
-    } catch {
-      /* choice applies for this page view only */
-    }
+    storeCookieConsent(value)
     setVisible(false)
   }
 

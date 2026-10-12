@@ -21,11 +21,6 @@ export default function StructuredData() {
     "@type": "WebSite",
     name: "Hbee Digitals",
     url: "https://hbeedigitals.com",
-    potentialAction: {
-      "@type": "SearchAction",
-      target: "https://hbeedigitals.com/search?q={search_term_string}",
-      "query-input": "required name=search_term_string",
-    },
   }
 
   const serviceSchema = {

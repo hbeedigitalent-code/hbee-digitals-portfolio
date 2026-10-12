@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import SvgIcon from '@/components/ui/SvgIcon'
+import { readCookieConsent, storeCookieConsent } from '@/lib/cookie-consent'
 
 export default function CookieBanner() {
   const reducedMotion = useReducedMotion()
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const consent = localStorage.getItem('hbee_cookie_consent')
+    const consent = readCookieConsent()
     if (!consent) {
       const timer = window.setTimeout(() => setVisible(true), 900)
       return () => window.clearTimeout(timer)
@@ -18,7 +19,7 @@ export default function CookieBanner() {
   }, [])
 
   const saveConsent = (value: 'accepted' | 'declined') => {
-    localStorage.setItem('hbee_cookie_consent', value)
+    storeCookieConsent(value)
     setVisible(false)
   }
 
