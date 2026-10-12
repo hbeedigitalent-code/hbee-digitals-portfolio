@@ -181,7 +181,7 @@ CREATE UNIQUE INDEX portal_invitations_one_open_per_merchant
 CREATE INDEX portal_invitations_merchant_idx ON public.portal_invitations (merchant_id);
 
 -- Server-only.
-REVOKE ALL ON TABLE public.portal_invitations FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.portal_invitations FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.portal_invitations TO service_role;
 ALTER TABLE public.portal_invitations ENABLE ROW LEVEL SECURITY;
 
@@ -313,6 +313,11 @@ BEGIN
   FOREACH op IN ARRAY ARRAY['SELECT', 'INSERT', 'UPDATE'] LOOP
     IF NOT has_table_privilege('service_role', 'public.portal_invitations', op) THEN
       RAISE EXCEPTION 'Abort: service_role lacks % on portal_invitations', op;
+    END IF;
+  END LOOP;
+  FOREACH op IN ARRAY ARRAY['DELETE', 'TRUNCATE', 'TRIGGER', 'REFERENCES'] LOOP
+    IF has_table_privilege('service_role', 'public.portal_invitations', op) THEN
+      RAISE EXCEPTION 'Abort: service_role unexpectedly has % on portal_invitations', op;
     END IF;
   END LOOP;
   IF NOT has_function_privilege('service_role', 'public.consume_portal_invitation(text, uuid, text)', 'EXECUTE') THEN
