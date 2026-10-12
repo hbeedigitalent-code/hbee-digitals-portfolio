@@ -60,16 +60,16 @@ export default function NotFound() {
         <div className="mt-12 pt-8 border-t border-[var(--border)]">
           <p className="text-sm text-[var(--text-muted)]">
             Try visiting{' '}
-            <Link href="/portfolio" className="text-[var(--accent)] hover:underline">
-              Portfolio
+            <Link href="/work" className="text-[var(--accent)] hover:underline">
+              Work
             </Link>
             {' · '}
             <Link href="/services" className="text-[var(--accent)] hover:underline">
               Services
             </Link>
             {' · '}
-            <Link href="/blog" className="text-[var(--accent)] hover:underline">
-              Blog
+            <Link href="/insights" className="text-[var(--accent)] hover:underline">
+              Insights
             </Link>
           </p>
         </div>

@@ -18,8 +18,10 @@
  * path can be exercised in tests with raw rows.
  */
 
+import { cache } from 'react'
+
 import { supabase } from '@/lib/supabase'
-import { addHeadingIds, cleanBlogHtml, estimateReadTime } from '@/lib/blog-utils'
+import { absoluteUrl, addHeadingIds, cleanBlogHtml, estimateReadTime, SITE_URL } from '@/lib/blog-utils'
 import { sanitizeBlogHtml } from '@/lib/sanitize-blog-html'
 import { imageUrl, text, truncate, type Row } from './home-data'
 
@@ -27,9 +29,9 @@ if (typeof window !== 'undefined') {
   throw new Error('src/lib/site/insights-data.ts is server-only')
 }
 
-/** Rebuild article route (→ /insights/[slug] at launch). */
+/** Article route. */
 export function insightDetailHref(slug: string) {
-  return `/rebuild-insights/${slug}`
+  return `/insights/${slug}`
 }
 
 const SLUG_PATTERN = /^[a-z0-9_]+(?:-[a-z0-9_]+)*$/
@@ -259,4 +261,99 @@ export async function getInsightDetail(slug: string): Promise<InsightDetail | nu
 const DATE = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
 export function formatInsightDate(iso?: string) {
   return iso ? DATE.format(new Date(iso)) : undefined
+}
+
+/* ── Search / social metadata + structured data ─────────────── */
+
+export interface InsightSeo {
+  title: string
+  description: string
+  ogTitle: string
+  ogDescription: string
+  author: string
+  keywords: string[]
+  canonical: string
+  image: string
+  imageAlt: string
+  publishedAt?: string
+  modifiedAt?: string
+  blogPostingLd: Record<string, unknown>
+  breadcrumbLd: Record<string, unknown>
+}
+
+/**
+ * Canonical: the article's own /insights URL. A stored canonical_url is honoured
+ * only when it points off-site (a deliberate cross-post); one that points at this
+ * site's retired /blog/ path would contradict the redirect, so it is ignored.
+ */
+function canonicalOf(row: Row, slug: string) {
+  const own = `${SITE_URL}/insights/${slug}`
+  const stored = text(row.canonical_url)
+  if (!stored) return own
+  try {
+    const u = new URL(stored, SITE_URL)
+    return /(^|\.)hbeedigitals\.com$/i.test(u.hostname) ? own : u.toString()
+  } catch {
+    return own
+  }
+}
+
+const loadInsightSeo = cache(async (slug: string): Promise<InsightSeo | null> => {
+  if (!SLUG_PATTERN.test(slug)) return null
+  try {
+    const { data, error } = await supabase.from('blog_posts').select('*').eq('slug', slug).eq('status', 'published').maybeSingle()
+    if (error || !data) return null
+    const row = data as Row
+    const heading = text(row.title)
+    if (!heading) return null
+    const title = text(row.seo_title) ?? text(row.og_title) ?? heading
+    const description = text(row.seo_description) ?? text(row.og_description) ?? (text(row.excerpt) ?? '').slice(0, 160)
+    const author = text(row.author) ?? 'Hbee Digitals'
+    const canonical = canonicalOf(row, slug)
+    const image = absoluteUrl(text(row.og_image) ?? text(row.featured_image))
+    const keywords = [...new Set([text(row.focus_keyword), ...tagsOf(row)].filter((k): k is string => Boolean(k)))]
+    const published = text(row.published_at)
+    const modified = text(row.updated_at)
+    return {
+      title,
+      description,
+      ogTitle: text(row.og_title) ?? title,
+      ogDescription: text(row.og_description) ?? description,
+      author,
+      keywords,
+      canonical,
+      image,
+      imageAlt: text(row.featured_image_alt) ?? heading,
+      publishedAt: published,
+      modifiedAt: modified,
+      blogPostingLd: {
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        headline: title.slice(0, 110),
+        description: description || undefined,
+        image: [image],
+        datePublished: published,
+        dateModified: modified ?? published,
+        author: { '@type': 'Person', name: author },
+        publisher: { '@type': 'Organization', name: 'Hbee Digitals', url: SITE_URL },
+        keywords: keywords.length > 0 ? keywords.join(', ') : undefined,
+        mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
+      },
+      breadcrumbLd: {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'Insights', item: `${SITE_URL}/insights` },
+          { '@type': 'ListItem', position: 3, name: heading, item: canonical },
+        ],
+      },
+    }
+  } catch {
+    return null
+  }
+})
+
+export function getInsightSeo(slug: string) {
+  return loadInsightSeo(slug)
 }

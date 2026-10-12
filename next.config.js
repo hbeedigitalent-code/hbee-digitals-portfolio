@@ -164,11 +164,39 @@ const nextConfig = {
         destination: '/',
         permanent: true,
       },
-      {
-        source: '/projects',
-        destination: '/portfolio',
-        permanent: true,
-      },
+      // ── Public route migration (Phase 19) ──────────────────────────────
+      // Replaced public content: permanent. Detail redirects pass the slug through.
+      { source: '/projects', destination: '/work', permanent: true },
+      { source: '/portfolio', destination: '/work', permanent: true },
+      { source: '/portfolio/:slug', destination: '/work/:slug', permanent: true },
+      { source: '/blog', destination: '/insights', permanent: true },
+      { source: '/blog/:slug', destination: '/insights/:slug', permanent: true },
+      { source: '/process', destination: '/how-we-work', permanent: true },
+      // Legacy Growth Readiness / assessment journey → the Growth Review journey.
+      { source: '/growth-readiness', destination: '/growth-review', permanent: true },
+      { source: '/assessment', destination: '/growth-review', permanent: true },
+      { source: '/assessment/thank-you', destination: '/growth-review/received', permanent: true },
+      // ── Legacy service-detail URLs → closest capability (Phase 19 corrections) ──
+      // Slugs verified from the repo and its history (Navbar links, the Services fallback
+      // list, ServiceOrbit). "website-design" and "brand-experience" appeared only in
+      // ServiceOrbit during two commits on 2026-05-21 (e223fc3, b523ba3).
+      { source: '/services/web-development', destination: '/services/digital-systems', permanent: true },
+      { source: '/services/technical-consulting', destination: '/services/digital-systems', permanent: true },
+      { source: '/services/maintenance', destination: '/services/digital-systems', permanent: true },
+      { source: '/services/website-design', destination: '/services/digital-systems', permanent: true },
+      { source: '/services/ecommerce', destination: '/services/commerce-experience', permanent: true },
+      { source: '/services/ecommerce-solutions', destination: '/services/commerce-experience', permanent: true },
+      { source: '/services/ui-ux-design', destination: '/services/commerce-experience', permanent: true },
+      { source: '/services/brand-strategy', destination: '/services/brand-positioning', permanent: true },
+      { source: '/services/brand-experience', destination: '/services/brand-positioning', permanent: true },
+      { source: '/services/digital-marketing', destination: '/services/discovery-traffic', permanent: true },
+      { source: '/services/seo', destination: '/services/discovery-traffic', permanent: true },
+      { source: '/services/ppc', destination: '/services/discovery-traffic', permanent: true },
+      // ── Supporting legacy pages with no place in the final route plan ──
+      { source: '/reviews', destination: '/work', permanent: true },
+      { source: '/before-after', destination: '/work', permanent: true },
+      { source: '/pricing', destination: '/services', permanent: true },
+      { source: '/faq', destination: '/contact', permanent: true },
     ];
   },
   

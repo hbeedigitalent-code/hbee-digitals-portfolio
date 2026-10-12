@@ -48,7 +48,7 @@ export default async function ReviewsPage() {
               </Link>
 
               <Link
-                href="/portfolio"
+                href="/work"
                 className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-7 py-3 text-sm font-black text-[var(--accent)] transition hover:bg-[var(--accent)]/15"
               >
                 View Case Studies

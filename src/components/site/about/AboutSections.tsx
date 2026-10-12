@@ -213,7 +213,7 @@ export function HowWeThink() {
           <Intro eyebrow={THINKING.eyebrow} id="about-think-title" headline={THINKING.headline} flow />
           <SiteReveal index={2}>
             <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{THINKING.copy}</p>
-            <SiteLinkArrow href="/rebuild-how-we-work" className="mt-4 min-h-[44px]">
+            <SiteLinkArrow href="/how-we-work" className="mt-4 min-h-[44px]">
               {THINKING.link}
             </SiteLinkArrow>
           </SiteReveal>

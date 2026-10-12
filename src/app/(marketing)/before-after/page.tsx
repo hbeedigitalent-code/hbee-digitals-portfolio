@@ -110,7 +110,7 @@ export default function BeforeAfterPage() {
                 Start Your Transformation
               </Link>
               <Link
-                href="/portfolio"
+                href="/work"
                 className="btn-secondary inline-flex min-h-[52px] items-center justify-center gap-2 px-7 py-3 text-sm font-black"
               >
                 View All Work
@@ -193,7 +193,7 @@ export default function BeforeAfterPage() {
                         'A focused transformation built around trust, mobile experience, and conversion clarity.'}
                     </p>
                     <Link
-                      href={item.slug ? `/portfolio/${item.slug}` : '/portfolio'}
+                      href={item.slug ? `/work/${item.slug}` : '/work'}
                       className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)]/10 px-4 py-2 text-sm font-black text-[var(--accent)] transition-all duration-200 hover:bg-[var(--accent)]/20 hover:gap-3"
                     >
                       View Full Case Study

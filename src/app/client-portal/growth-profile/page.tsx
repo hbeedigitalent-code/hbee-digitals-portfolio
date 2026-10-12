@@ -235,7 +235,7 @@ export default function GrowthProfilePage() {
         icon="growth-readiness"
         title="Complete your assessment"
         action={
-          <Link href="/growth-readiness" className={styles.primary}>
+          <Link href="/growth-review" className={styles.primary}>
             Start Assessment
           </Link>
         }

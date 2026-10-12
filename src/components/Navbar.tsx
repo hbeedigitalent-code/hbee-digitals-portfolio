@@ -79,12 +79,12 @@ const fallbackMenu: NavGroup[] = [
   },
   {
     label: 'Portfolio',
-    href: '/portfolio',
+    href: '/work',
     icon: 'portfolio',
     children: [
       {
         label: 'All Case Studies',
-        href: '/portfolio',
+        href: '/work',
         icon: 'portfolio',
         description: 'Browse selected stores, websites, and growth systems.',
       },
@@ -115,7 +115,7 @@ const fallbackMenu: NavGroup[] = [
       },
       {
         label: 'Our Process',
-        href: '/process',
+        href: '/how-we-work',
         icon: 'rocket',
         description: 'See how we move from audit to launch.',
       },
@@ -123,12 +123,12 @@ const fallbackMenu: NavGroup[] = [
   },
   {
     label: 'Resources',
-    href: '/blog',
+    href: '/insights',
     icon: 'blog',
     children: [
       {
         label: 'Blog',
-        href: '/blog',
+        href: '/insights',
         icon: 'blog',
         description: 'Insights on Shopify, websites, branding, and growth.',
       },

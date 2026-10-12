@@ -47,7 +47,7 @@ function InsightHero({ detail }: { detail: InsightDetail }) {
     <SiteSection tone="cloud" spacing="none" contained={false} aria-labelledby="insight-title" className="overflow-hidden">
       <div className={cn(styles.articleHero, !image && styles.articleHeroTextOnly)}>
         <div className={styles.articleHeroText}>
-          <Link href="/rebuild-insights" className={styles.backLink}>
+          <Link href="/insights" className={styles.backLink}>
             <SiteArrow size={15} className="rotate-180" />
             Back to Insights
           </Link>

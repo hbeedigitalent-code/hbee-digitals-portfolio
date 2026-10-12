@@ -1,25 +1,20 @@
 /**
- * Content URLs used by the rebuilt public site.
- *
- * Navigation already points at the owner-approved FUTURE routes (/work,
- * /insights, /growth-review). Links to individual pieces of real content
- * instead use the routes that work TODAY (/portfolio/[slug], /blog/[slug]),
- * so the isolated preview can be reviewed end to end. At launch, when the
- * redirects land, flip these helpers — nothing else needs to change.
+ * Public route helpers for the site. Final routes:
+ *   /work, /work/[slug], /insights, /insights/[slug], /growth-review, /contact
  */
 
 export const GROWTH_REVIEW_HREF = '/growth-review'
 export const CONTACT_HREF = '/contact'
 
-export const ALL_WORK_HREF = '/portfolio' // → /work at launch
-export const ALL_INSIGHTS_HREF = '/blog' // → /insights at launch
+export const ALL_WORK_HREF = '/work'
+export const ALL_INSIGHTS_HREF = '/insights'
 
 export function caseStudyHref(slug: string) {
-  return `/portfolio/${slug}` // → /work/[slug] at launch
+  return `/work/${slug}`
 }
 
 export function insightHref(slug: string) {
-  return `/blog/${slug}` // → /insights/[slug] at launch
+  return `/insights/${slug}`
 }
 
 export function growthReviewHref(constraint?: string) {

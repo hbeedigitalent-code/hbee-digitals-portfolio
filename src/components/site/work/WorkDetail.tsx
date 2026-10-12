@@ -82,7 +82,7 @@ function WorkDetailHero({ detail }: { detail: WorkDetail }) {
     <SiteSection tone="cloud" spacing="none" contained={false} aria-labelledby="case-title" className="overflow-hidden">
       <div className={cn(styles.caseHero, !image && styles.caseHeroTextOnly)}>
         <div className={styles.caseHeroText}>
-          <Link href="/rebuild-work" className={styles.backLink}>
+          <Link href="/work" className={styles.backLink}>
             <SiteArrow size={15} className="rotate-180" />
             Back to all work
           </Link>
@@ -102,7 +102,7 @@ function WorkDetailHero({ detail }: { detail: WorkDetail }) {
           {detail.summary && <p className="mt-6 max-w-[36rem] text-[length:var(--hb-text-lede)] leading-[1.55] text-hb-fg-body">{detail.summary}</p>}
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <LiveSiteLink detail={detail} variant="button" />
-            <SiteButton href="/rebuild-work#work-collection" variant="secondary" size="lg">
+            <SiteButton href="/work#work-collection" variant="secondary" size="lg">
               View More Work
             </SiteButton>
           </div>

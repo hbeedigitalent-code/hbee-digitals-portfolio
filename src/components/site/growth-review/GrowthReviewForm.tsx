@@ -56,7 +56,7 @@ import styles from './growth-review.module.css'
  * after the server answers { success: true }.
  */
 
-const RECEIVED_PATH = '/rebuild-growth-review/received'
+const RECEIVED_PATH = '/growth-review/received'
 const SUBMIT_URL = '/api/growth-assessment'
 type Errors = Partial<Record<FieldKey, string>>
 type Phase = 'idle' | 'submitting' | 'slow' | 'verySlow'

@@ -181,7 +181,7 @@ export function ProcessCapabilities() {
           </SiteReveal>
           <SiteReveal index={2}>
             <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{CAPABILITIES_INTRO.copy}</p>
-            <SiteLinkArrow href="/rebuild-services" className="mt-4 min-h-[44px]">
+            <SiteLinkArrow href="/services" className="mt-4 min-h-[44px]">
               Explore Our Services
             </SiteLinkArrow>
           </SiteReveal>
@@ -195,7 +195,7 @@ export function ProcessCapabilities() {
                 <ul className={styles.capTiles}>
                   {group.capabilities.map((cap) => (
                     <li key={cap.slug}>
-                      <Link href={`/rebuild-services/${cap.slug}`} className={styles.capTile}>
+                      <Link href={`/services/${cap.slug}`} className={styles.capTile}>
                         <span aria-hidden="true" className={styles.capTileIcon}>
                           {CAPABILITY_ICONS[cap.icon]}
                         </span>

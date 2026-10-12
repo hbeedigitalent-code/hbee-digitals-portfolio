@@ -20,16 +20,19 @@
  * same code path can be exercised in tests with raw rows.
  */
 
+import { cache } from 'react'
+
 import { supabase } from '@/lib/supabase'
+import { absoluteUrl } from '@/lib/blog-utils'
 import { imageUrl, isValidPortfolioSlug, text, truncate, type Row } from './home-data'
 
 if (typeof window !== 'undefined') {
   throw new Error('src/lib/site/work-data.ts is server-only')
 }
 
-/** Rebuild case-study route (→ /work/[slug] at launch). */
+/** Case-study route. */
 export function workDetailHref(slug: string) {
-  return `/rebuild-work/${slug}`
+  return `/work/${slug}`
 }
 
 /* ── Shared field rules ─────────────────────────────────────── */
@@ -294,4 +297,45 @@ export async function getWorkDetail(slug: string): Promise<WorkDetail | null> {
   } catch {
     return null
   }
+}
+
+/* ── Search / social metadata ───────────────────────────────── */
+
+export interface WorkSeo {
+  title: string
+  description: string
+  image?: string
+  imageAlt?: string
+}
+
+/** Same rules as the former /portfolio/[slug]: stored SEO fields win, then the case study's own fields. */
+const loadWorkSeo = cache(async (slug: string): Promise<WorkSeo | null> => {
+  if (!isValidPortfolioSlug(slug)) return null
+  try {
+    const { data, error } = await supabase
+      .from('portfolio_items')
+      .select('*')
+      .eq('slug', slug)
+      .eq('is_active', true)
+      .limit(1)
+      .maybeSingle()
+    if (error || !data) return null
+    const row = data as Row
+    const detail = toWorkDetail(row)
+    if (!detail) return null
+    const hero = detail.heroImage
+    return {
+      title: text(row.seo_title) ?? detail.client,
+      description:
+        text(row.seo_description) ?? detail.summary ?? 'Conversion-focused ecommerce and digital growth case study.',
+      image: hero?.src ? absoluteUrl(hero.src) : undefined,
+      imageAlt: hero?.alt,
+    }
+  } catch {
+    return null
+  }
+})
+
+export function getWorkSeo(slug: string) {
+  return loadWorkSeo(slug)
 }

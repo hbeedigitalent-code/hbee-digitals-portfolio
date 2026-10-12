@@ -40,7 +40,7 @@ export function CapabilitySystemFit({ detail, name }: { detail: CapabilityDetail
           </SiteReveal>
           <SiteReveal index={2}>
             <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{fit.copy}</p>
-            <SiteLinkArrow href="/rebuild-services#capabilities" className="mt-4 min-h-[44px]">
+            <SiteLinkArrow href="/services#capabilities" className="mt-4 min-h-[44px]">
               Explore the full system
             </SiteLinkArrow>
           </SiteReveal>

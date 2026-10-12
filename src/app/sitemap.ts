@@ -1,33 +1,27 @@
 import type { MetadataRoute } from 'next'
 import { supabase } from '@/lib/supabase'
+import { CAPABILITY_DETAILS } from '@/components/site/capability/capability-content'
 
 const baseUrl = 'https://hbeedigitals.com'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Final public routes only. Retired paths (/portfolio, /blog, /process,
+  // /growth-readiness, /assessment, /reviews, /before-after, /pricing, /faq) redirect and are deliberately absent;
+  // /growth-review/received is a noindex confirmation state and is absent too.
   const staticRoutes = [
     { route: '', priority: 1, changeFrequency: 'weekly' as const },
 
-    { route: '/about', priority: 0.85, changeFrequency: 'monthly' as const },
-
     { route: '/services', priority: 0.9, changeFrequency: 'monthly' as const },
 
-    { route: '/pricing', priority: 0.88, changeFrequency: 'monthly' as const },
+    { route: '/work', priority: 0.88, changeFrequency: 'monthly' as const },
 
-    { route: '/portfolio', priority: 0.88, changeFrequency: 'monthly' as const },
+    { route: '/how-we-work', priority: 0.8, changeFrequency: 'monthly' as const },
 
-    {
-      route: '/before-after',
-      priority: 0.82,
-      changeFrequency: 'monthly' as const,
-    },
+    { route: '/insights', priority: 0.82, changeFrequency: 'weekly' as const },
 
-    { route: '/process', priority: 0.75, changeFrequency: 'monthly' as const },
+    { route: '/about', priority: 0.85, changeFrequency: 'monthly' as const },
 
-    { route: '/blog', priority: 0.82, changeFrequency: 'weekly' as const },
-
-    { route: '/reviews', priority: 0.82, changeFrequency: 'monthly' as const },
-
-    { route: '/faq', priority: 0.72, changeFrequency: 'monthly' as const },
+    { route: '/growth-review', priority: 0.9, changeFrequency: 'monthly' as const },
 
     { route: '/contact', priority: 0.9, changeFrequency: 'monthly' as const },
 
@@ -38,45 +32,37 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { route: '/cookies', priority: 0.35, changeFrequency: 'yearly' as const },
   ]
 
-  const [{ data: portfolioItems }, { data: services }, { data: blogPosts }] =
-    await Promise.all([
-      supabase
-        .from('portfolio_items')
-        .select('slug')
-        .eq('is_active', true),
+  const [{ data: portfolioItems }, { data: blogPosts }] = await Promise.all([
+    supabase
+      .from('portfolio_items')
+      .select('slug')
+      .eq('is_active', true),
 
-      supabase
-        .from('services')
-        .select('slug')
-        .eq('is_active', true),
+    supabase
+      .from('blog_posts')
+      .select('slug, updated_at, published_at')
+      .eq('status', 'published'),
+  ])
 
-      supabase
-        .from('blog_posts')
-        .select('slug, updated_at, published_at')
-        .eq('status', 'published'),
-    ])
+  // Capability detail pages are static content (one per capability), not CMS rows.
+  const serviceRoutes = Object.keys(CAPABILITY_DETAILS).map((slug) => ({
+    url: `${baseUrl}/services/${slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'monthly' as const,
+    priority: 0.84,
+  }))
 
-  const portfolioRoutes =
+  const workRoutes =
     portfolioItems
       ?.filter((item) => item.slug)
       .map((item) => ({
-        url: `${baseUrl}/portfolio/${item.slug}`,
+        url: `${baseUrl}/work/${item.slug}`,
         lastModified: new Date(),
         changeFrequency: 'monthly' as const,
         priority: 0.85,
       })) || []
 
-  const serviceRoutes =
-    services
-      ?.filter((service) => service.slug)
-      .map((service) => ({
-        url: `${baseUrl}/services/${service.slug}`,
-        lastModified: new Date(),
-        changeFrequency: 'monthly' as const,
-        priority: 0.84,
-      })) || []
-
-  const blogRoutes =
+  const insightRoutes =
     blogPosts
       ?.filter((post) => post.slug)
       .map((post) => {
@@ -84,7 +70,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         // exists, omit lastModified rather than emit the crawl time as a fake date.
         const lastMod = post.updated_at || post.published_at
         return {
-          url: `${baseUrl}/blog/${post.slug}`,
+          url: `${baseUrl}/insights/${post.slug}`,
           ...(lastMod ? { lastModified: new Date(lastMod) } : {}),
           changeFrequency: 'weekly' as const,
           priority: 0.78,
@@ -100,7 +86,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
 
     ...serviceRoutes,
-    ...portfolioRoutes,
-    ...blogRoutes,
+    ...workRoutes,
+    ...insightRoutes,
   ]
 }

@@ -49,7 +49,7 @@ export function ReceivedState() {
           <h1 className={styles.neutralTitle}>{RECEIVED.neutralTitle}</h1>
           <p className={styles.neutralBody}>{RECEIVED.neutralBody}</p>
           <p className={styles.neutralExplain}>{RECEIVED.neutralExplain}</p>
-          <SiteButton href="/rebuild-growth-review" variant="conversion" size="lg" arrow className={styles.neutralCta}>
+          <SiteButton href="/growth-review" variant="conversion" size="lg" arrow className={styles.neutralCta}>
             Start the Growth Review
           </SiteButton>
         </div>
@@ -95,10 +95,10 @@ export function ReceivedState() {
         <p className={styles.receivedBody}>{RECEIVED.need}</p>
 
         <div className={styles.receivedLinks}>
-          <SiteLinkArrow href="/rebuild-how-we-work" className="min-h-[44px]">
+          <SiteLinkArrow href="/how-we-work" className="min-h-[44px]">
             How We Work
           </SiteLinkArrow>
-          <SiteLinkArrow href="/rebuild-home" className="min-h-[44px]">
+          <SiteLinkArrow href="/" className="min-h-[44px]">
             Back to homepage
           </SiteLinkArrow>
         </div>

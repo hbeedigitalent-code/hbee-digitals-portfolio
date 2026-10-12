@@ -75,7 +75,7 @@ export default function OnboardingThankYouPage() {
                 Return to Homepage
               </Link>
               <Link
-                href="/growth-readiness"
+                href="/growth-review"
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white transition-all hover:opacity-90"
               >
                 Growth Readiness

@@ -140,9 +140,9 @@ export default function Footer() {
       title: 'COMPANY',
       links: [
         { label: 'About Us', href: '/about' },
-        { label: 'Portfolio', href: '/portfolio' },
+        { label: 'Portfolio', href: '/work' },
         { label: 'FAQ', href: '/faq' },
-        { label: 'Blog', href: '/blog' },
+        { label: 'Blog', href: '/insights' },
         { label: 'Contact', href: '/contact' },
       ],
     },
@@ -320,7 +320,7 @@ export default function Footer() {
           <p>{footerData?.copyright_text || `© ${new Date().getFullYear()} ${brandName}. All rights reserved.`}</p>
 
           <div className="flex flex-wrap justify-center gap-3">
-            <Link href="/portfolio" className="hover:text-[var(--accent)]">Portfolio</Link>
+            <Link href="/work" className="hover:text-[var(--accent)]">Portfolio</Link>
             <Link href="/before-after" className="hover:text-[var(--accent)]">Before & After</Link>
             <Link href="/reviews" className="hover:text-[var(--accent)]">Reviews</Link>
             <Link href="/pricing" className="hover:text-[var(--accent)]">Pricing</Link>

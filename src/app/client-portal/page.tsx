@@ -111,7 +111,7 @@ const GROWTH_STATE_COPY: Record<string, { text: string; href: string; cta: strin
   },
   no_assessment: {
     text: 'Complete the Growth Readiness Assessment and we will prepare your Growth Profile.',
-    href: '/growth-readiness',
+    href: '/growth-review',
     cta: 'Start assessment',
   },
 }

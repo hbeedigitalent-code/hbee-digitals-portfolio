@@ -1,12 +1,13 @@
 /**
- * Public-site navigation, owned by the rebuild.
+ * Public-site navigation.
  *
- * Targets are the owner-approved FUTURE URLs. /work, /how-we-work, /insights
- * and /growth-review do not exist yet; they are built in later phases, and the
- * redirects from /portfolio, /process and /blog are added only at launch. Until
- * then these links 404 in the local preview — that is expected.
+ * Final public routes: /services, /work, /how-we-work, /insights, /about,
+ * /contact, with /growth-review as the primary call to action. The legacy
+ * /portfolio, /blog, /process, /growth-readiness and /assessment routes
+ * redirect to these (next.config.js).
  *
- * Client Portal points at the existing, unchanged /client-login.
+ * Client Portal points at the existing /client-login, which hands off to
+ * /client-portal.
  */
 
 export interface SiteLink {
@@ -20,8 +21,7 @@ export const PRIMARY_NAV: SiteLink[] = [
   { label: 'How We Work', href: '/how-we-work' },
   { label: 'Insights', href: '/insights' },
   { label: 'About', href: '/about' },
-  // Phase 17: a regular destination. /contact already exists in production.
-  { label: 'Contact', href: '/contact' },
+    { label: 'Contact', href: '/contact' },
 ]
 
 export const UTILITY_NAV: SiteLink = { label: 'Client Portal', href: '/client-login' }
