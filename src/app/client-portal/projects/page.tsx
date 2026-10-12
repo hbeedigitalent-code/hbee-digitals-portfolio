@@ -122,9 +122,6 @@ export default function ClientProjectsPage() {
             <Plus aria-hidden="true" />
             Request new project
           </Link>
-          <Link href="/client-onboarding" className={styles.secondary}>
-            Full onboarding
-          </Link>
         </div>
       </header>
 

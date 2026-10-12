@@ -1,6 +1,6 @@
 // src/app/client-portal/notifications/page.tsx
 //
-// Client-portal notification inbox. Batch N2-E.
+// Client-portal notification inbox. Batch N2-E; presentation refined in Phase 18.7.
 //
 // Authorization is NOT re-implemented here. This page sits under
 // /client-portal/*, so middleware.ts already enforces an authenticated session
@@ -12,12 +12,19 @@
 //
 // Internal fields (recipient_id, user_id, user_type, idempotency_key,
 // is_legacy) are not returned by the API and are never rendered.
+//
+// Phase 18.7: the list/unread/mark-read/mark-all-read behaviour is unchanged. The one functional
+// tightening is that a notification's `link` is followed only if it is a same-origin portal path
+// (safeNotificationLink); anything else is ignored, so a stored external or script link can never
+// become a navigation target. Notifications are informational — none is treated as a task.
 
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import SvgIcon from '@/components/ui/SvgIcon'
+import { SupportError, SupportLoading } from '@/components/client-portal/SupportState'
+import { formatDateTime, safeNotificationLink } from '@/lib/client-portal/support-display'
+import styles from '@/components/client-portal/support.module.css'
 
 interface ClientNotification {
   id: string
@@ -32,26 +39,19 @@ interface ClientNotification {
   read_at: string | null
 }
 
-const FOCUS_RING =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-page)]'
-
-function formatTimestamp(iso: string): string {
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleString()
-}
-
 export default function ClientNotificationsPage() {
   const router = useRouter()
   const [notifications, setNotifications] = useState<ClientNotification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pendingId, setPendingId] = useState<string | null>(null)
 
   const fetchNotifications = useCallback(async () => {
     setLoading(true)
     setError(null)
+    setLoadFailed(false)
     try {
       const response = await fetch('/api/notifications', { credentials: 'same-origin' })
       const payload = await response.json().catch(() => null)
@@ -61,7 +61,7 @@ export default function ClientNotificationsPage() {
           'Error fetching notifications:',
           payload?.error || `Request failed with status ${response.status}`
         )
-        setError('Could not load notifications. Please refresh and try again.')
+        setLoadFailed(true)
         setNotifications([])
         return
       }
@@ -70,7 +70,7 @@ export default function ClientNotificationsPage() {
       if (typeof payload.unreadCount === 'number') setUnreadCount(payload.unreadCount)
     } catch (err) {
       console.error('Error:', err)
-      setError('Could not load notifications. Please refresh and try again.')
+      setLoadFailed(true)
       setNotifications([])
     } finally {
       setLoading(false)
@@ -82,8 +82,10 @@ export default function ClientNotificationsPage() {
   }, [fetchNotifications])
 
   async function handleSelect(notification: ClientNotification) {
+    const destination = safeNotificationLink(notification.link)
+
     if (notification.read_at) {
-      if (notification.link) router.push(notification.link)
+      if (destination) router.push(destination)
       return
     }
 
@@ -118,7 +120,7 @@ export default function ClientNotificationsPage() {
       return
     }
 
-    if (notification.link) router.push(notification.link)
+    if (destination) router.push(destination)
   }
 
   async function handleMarkAll() {
@@ -148,54 +150,50 @@ export default function ClientNotificationsPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
-      </div>
-    )
+  if (loading) return <SupportLoading />
+  if (loadFailed) {
+    return <SupportError message="Could not load notifications. Please refresh and try again." onRetry={fetchNotifications} />
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className={styles.page}>
+      <header className={styles.head}>
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Notifications</h1>
-          <p className="text-sm text-[var(--text-secondary)]">
-            {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
+          <p className={styles.eyebrow}>
+            <span aria-hidden="true" className={styles.node} />
+            Notifications
           </p>
+          <h1 className={styles.h1}>Updates from Hbee</h1>
+          <p className={styles.lead}>{unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}</p>
         </div>
         {unreadCount > 0 && (
-          <button
-            type="button"
-            onClick={handleMarkAll}
-            className={`rounded-full border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-section)] transition ${FOCUS_RING}`}
-          >
+          <button type="button" onClick={handleMarkAll} className={`${styles.secondary} ${styles.markAll}`}>
             Mark all as read
           </button>
         )}
-      </div>
+      </header>
 
       {error && (
-        <p role="alert" className="text-sm text-red-500">
+        <p role="alert" className={styles.err}>
           {error}
         </p>
       )}
 
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
-        {notifications.length === 0 && !error ? (
-          <div className="flex min-h-[240px] flex-col items-center justify-center p-6 text-center">
-            <SvgIcon name="bell" size={40} color="var(--text-muted)" />
-            <p className="mt-3 font-medium text-[var(--text-primary)]">No notifications yet</p>
-            <p className="text-sm text-[var(--text-muted)]">
-              Updates about your projects, files and invoices will appear here.
-            </p>
+      {notifications.length === 0 ? (
+        <section className={`${styles.panel} ${styles.center}`}>
+          <div className={styles.centerBody}>
+            <h2>No notifications yet</h2>
+            <p>Updates about your projects, files and invoices will appear here.</p>
           </div>
-        ) : (
-          <ul className="divide-y divide-[var(--border)]">
+        </section>
+      ) : (
+        <section className={styles.panel} aria-label="Notifications">
+          <ul className={styles.list}>
             {notifications.map((notification) => {
               const isUnread = !notification.read_at
-              const actionable = isUnread || !!notification.link
+              const destination = safeNotificationLink(notification.link)
+              const actionable = isUnread || !!destination
+              const when = formatDateTime(notification.created_at)
 
               return (
                 <li key={notification.id}>
@@ -203,41 +201,32 @@ export default function ClientNotificationsPage() {
                     type="button"
                     disabled={!actionable || pendingId === notification.id}
                     onClick={() => handleSelect(notification)}
-                    className={`block w-full p-4 text-left transition hover:bg-[var(--bg-section)] disabled:cursor-default disabled:hover:bg-transparent ${FOCUS_RING} ${
-                      isUnread ? 'bg-[var(--accent-subtle)]' : ''
-                    }`}
+                    className={`${styles.notif} ${isUnread ? styles.unread : ''}`}
                   >
-                    <div className="flex items-start gap-3">
-                      <span
-                        aria-hidden="true"
-                        className={`mt-2 h-2 w-2 flex-shrink-0 rounded-full ${
-                          isUnread ? 'bg-[var(--accent-orange)]' : 'bg-transparent'
-                        }`}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p
-                          className={`text-sm text-[var(--text-primary)] ${
-                            isUnread ? 'font-semibold' : 'font-medium'
-                          }`}
-                        >
-                          {notification.title}
-                          <span className="sr-only">{isUnread ? ' (unread)' : ' (read)'}</span>
-                        </p>
-                        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                    <span aria-hidden="true" className={styles.dot} />
+                    <span style={{ minWidth: 0, flex: 1 }}>
+                      <span className={styles.itemTitle} style={{ display: 'block' }}>
+                        {notification.title}
+                        <span className="sr-only">{isUnread ? ' (unread)' : ' (read)'}</span>
+                      </span>
+                      {notification.message && (
+                        <span className={styles.itemText} style={{ display: 'block' }}>
                           {notification.message}
-                        </p>
-                        <p className="mt-1.5 text-xs text-[var(--text-muted)]">
-                          {formatTimestamp(notification.created_at)}
-                        </p>
-                      </div>
-                    </div>
+                        </span>
+                      )}
+                      {when && (
+                        <span className={styles.itemMeta} style={{ display: 'flex' }}>
+                          {when}
+                        </span>
+                      )}
+                    </span>
                   </button>
                 </li>
               )
             })}
           </ul>
-        )}
-      </div>
+        </section>
+      )}
     </div>
   )
 }

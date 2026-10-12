@@ -1,145 +1,119 @@
 // src/app/client-portal/invoices/page.tsx
+//
+// Invoices (Phase 18.7). Read-only. Reads ONE session-bound endpoint, /api/client-portal/invoices,
+// which returns the caller's own invoices (owned via their projects) as an allow-list; it replaces
+// the browser-side project_invoices.select('*'). Only stored fields are shown. There is no payment
+// processing, no card entry, no invented payment status and no invoice PDF. If an invoice carries a
+// stored payment link, it is offered only when it is a plain https URL.
+
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@/lib/supabase-client'
-import SvgIcon from '@/components/ui/SvgIcon'
-import EmptyState from '@/components/client-portal/EmptyState'
-import StatusPill from '@/components/ui/StatusPill'
+import { useCallback, useEffect, useState } from 'react'
+import { ExternalLink } from 'lucide-react'
+import { SupportAmbiguous, SupportError, SupportLoading } from '@/components/client-portal/SupportState'
+import { formatAmount, formatDay, humanStatus } from '@/lib/client-portal/support-display'
+import { formatProjectDate } from '@/lib/client-portal/projects-display'
+import styles from '@/components/client-portal/support.module.css'
 
-interface Invoice {
+interface PortalInvoice {
   id: string
-  invoice_number: string
-  amount: number
-  currency: string
-  status: string
-  due_date: string
-  payment_link: string | null
-  created_at: string
+  number: string | null
+  amount: number | string | null
+  currency: string | null
+  status: string | null
+  dueDate: string | null
+  issuedAt: string | null
+  projectName: string | null
+  paymentLink: string | null
 }
 
-export default function ClientInvoicesPage() {
-  const supabase = createClientComponentClient()
-  const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [loading, setLoading] = useState(true)
+type LoadState = 'loading' | 'ready' | 'ambiguous' | 'error'
 
-  useEffect(() => {
-    fetchInvoices()
+export default function ClientInvoicesPage() {
+  const [state, setState] = useState<LoadState>('loading')
+  const [invoices, setInvoices] = useState<PortalInvoice[]>([])
+
+  const load = useCallback(async () => {
+    setState('loading')
+    try {
+      const response = await fetch('/api/client-portal/invoices', { credentials: 'same-origin' })
+      if (response.status === 409) {
+        setState('ambiguous')
+        return
+      }
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !Array.isArray(payload?.invoices)) {
+        setState('error')
+        return
+      }
+      setInvoices(payload.invoices as PortalInvoice[])
+      setState('ready')
+    } catch (err) {
+      console.error('Error:', err)
+      setState('error')
+    }
   }, [])
 
-  async function fetchInvoices() {
-    setLoading(true)
+  useEffect(() => {
+    load()
+  }, [load])
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const { data: clientData } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (clientData) {
-        // project_invoices has no client_id column — it is owned via
-        // project_invoices.project_id -> projects.id -> projects.client_id.
-        // Resolve this client's own project ids first so a failed or empty
-        // project lookup can never fall through to an unscoped read.
-        const { data: myProjects, error: projectsError } = await supabase
-          .from('projects')
-          .select('id')
-          .eq('client_id', clientData.id)
-
-        const projectIds = projectsError ? [] : (myProjects || []).map((p) => p.id)
-
-        if (projectIds.length > 0) {
-          const { data: invoiceData } = await supabase
-            .from('project_invoices')
-            .select('*')
-            .in('project_id', projectIds)
-            .order('created_at', { ascending: false })
-          setInvoices(invoiceData || [])
-        } else {
-          setInvoices([])
-        }
-      }
-    }
-
-    setLoading(false)
-  }
-
-  if (loading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
-      </div>
-    )
-  }
+  if (state === 'loading') return <SupportLoading />
+  if (state === 'ambiguous') return <SupportAmbiguous what="invoices" />
+  if (state === 'error') return <SupportError message="We could not load your invoices. Please try again in a moment." onRetry={load} />
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Invoices</h1>
-        <p className="text-[var(--text-muted)]">View and manage your invoices</p>
-      </div>
+    <div className={styles.page}>
+      <header>
+        <p className={styles.eyebrow}>
+          <span aria-hidden="true" className={styles.node} />
+          Invoices
+        </p>
+        <h1 className={styles.h1}>Your invoices</h1>
+        <p className={styles.lead}>Invoices issued for your projects, as recorded by Hbee.</p>
+      </header>
 
       {invoices.length === 0 ? (
-        <EmptyState
-          title="No invoices yet"
-          description="Your invoices will appear here once they're generated."
-          icon="pricing"
-        />
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
-          <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="border-b border-[var(--border)] bg-[var(--bg-section)]">
-              <tr className="text-left text-xs font-medium uppercase tracking-wider text-[var(--text-muted)]">
-                <th className="px-4 py-3">Invoice #</th>
-                <th className="px-4 py-3 hidden sm:table-cell">Date</th>
-                <th className="px-4 py-3 hidden md:table-cell">Due Date</th>
-                <th className="px-4 py-3">Amount</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border)]">
-              {invoices.map((invoice) => (
-                <tr key={invoice.id} className="hover:bg-[var(--bg-section)] transition">
-                  <td className="px-4 py-3">
-                    <span className="font-medium text-[var(--text-primary)]">{invoice.invoice_number}</span>
-                  </td>
-                  <td className="px-4 py-3 hidden sm:table-cell text-sm text-[var(--text-muted)]">
-                    {new Date(invoice.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 hidden md:table-cell text-sm text-[var(--text-muted)]">
-                    {new Date(invoice.due_date).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 font-semibold text-[var(--text-primary)]">
-                    {invoice.currency || 'USD'} ${invoice.amount?.toFixed(2)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusPill status={invoice.status || 'pending'} />
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {invoice.payment_link ? (
-                      <a
-                        href={invoice.payment_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-sm text-[var(--accent-orange)] hover:underline"
-                      >
-                        Pay Now
-                        <SvgIcon name="external" size={14} color="var(--accent-orange)" />
-                      </a>
-                    ) : (
-                      <span className="text-sm text-[var(--text-muted)]">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <section className={`${styles.panel} ${styles.center}`}>
+          <div className={styles.centerBody}>
+            <h2>No invoices yet</h2>
+            <p>Invoices for your projects will appear here once they have been issued.</p>
           </div>
-        </div>
+        </section>
+      ) : (
+        <section className={styles.panel} aria-label="Your invoices">
+          <ul className={styles.list}>
+            {invoices.map((i) => {
+              const amount = formatAmount(i.amount, i.currency)
+              const status = humanStatus(i.status)
+              const issued = formatDay(i.issuedAt)
+              // due_date is a calendar date, not an instant: formatted without any timezone shift.
+              const due = formatProjectDate(i.dueDate)
+              return (
+                <li key={i.id} className={styles.item}>
+                  <div style={{ minWidth: 0 }}>
+                    <p className={styles.itemTitle}>{i.number ? `Invoice ${i.number}` : 'Invoice'}</p>
+                    <div className={styles.itemMeta}>
+                      {i.projectName && <span>Project: {i.projectName}</span>}
+                      {issued && <span>Issued {issued}</span>}
+                      {due && <span>Due {due}</span>}
+                    </div>
+                  </div>
+                  <div className={styles.endCol}>
+                    {amount ? <span className={styles.amount}>{amount}</span> : <span className={styles.muted}>Amount not set</span>}
+                    {status && <span className={styles.chip}>{status}</span>}
+                    {i.paymentLink && (
+                      <a href={i.paymentLink} target="_blank" rel="noopener noreferrer" className={styles.link}>
+                        Payment link
+                        <ExternalLink aria-hidden="true" width={14} height={14} />
+                      </a>
+                    )}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
       )}
     </div>
   )

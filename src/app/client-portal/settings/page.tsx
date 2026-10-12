@@ -1,83 +1,150 @@
 // src/app/client-portal/settings/page.tsx
+//
+// Profile settings (Phase 18.7). Reads and saves through ONE session-bound endpoint,
+// /api/client-portal/settings (GET / PATCH), which scopes to the caller's own clients row and only
+// ever writes the fields shown here: name, business, WhatsApp, website, country and the three
+// notification preferences. It replaces the browser-side clients.select('*') / clients.update(...).
+//
+// The profile photo is still uploaded by the browser to the existing `client-portal` bucket
+// (unchanged — that bucket is public today and is recorded for the final security pass); the
+// resulting URL is then saved through the same endpoint, which accepts only this user's own upload.
+// There is no team access, password change, storage or account-deletion UI because the backend has
+// none of those.
+
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClientComponentClient } from '@/lib/supabase-client'
-import SvgIcon from '@/components/ui/SvgIcon'
+import { SupportAmbiguous, SupportError, SupportLoading } from '@/components/client-portal/SupportState'
+import { formatDay } from '@/lib/client-portal/support-display'
+import styles from '@/components/client-portal/support.module.css'
+
+interface Profile {
+  fullName: string
+  businessName: string
+  email: string
+  whatsapp: string
+  websiteUrl: string
+  country: string
+  profileImage: string | null
+  createdAt: string | null
+  reference: string | null
+}
+
+interface Preferences {
+  emailNotifications: boolean
+  projectUpdates: boolean
+  marketingEmails: boolean
+}
+
+type LoadState = 'loading' | 'ready' | 'ambiguous' | 'error'
+
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024
+
+function Switch({ id, title, desc, checked, onChange }: { id: string; title: string; desc: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className={styles.switchRow}>
+      <div className={styles.switchText}>
+        <p id={id} className={styles.switchTitle}>
+          {title}
+        </p>
+        <p className={styles.switchDesc}>{desc}</p>
+      </div>
+      <label className={styles.switch}>
+        <input type="checkbox" aria-labelledby={id} checked={checked} onChange={(e) => onChange(e.target.checked)} />
+        <span className={styles.track} aria-hidden="true" />
+      </label>
+    </div>
+  )
+}
 
 export default function ClientSettingsPage() {
-  const supabase = createClientComponentClient()
-  const [client, setClient] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const [state, setState] = useState<LoadState>('loading')
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [form, setForm] = useState({ fullName: '', businessName: '', whatsapp: '', websiteUrl: '', country: '' })
+  const [prefs, setPrefs] = useState<Preferences>({ emailNotifications: true, projectUpdates: true, marketingEmails: false })
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [formData, setFormData] = useState({
-    full_name: '',
-    business_name: '',
-    email: '',
-    whatsapp: '',
-    website_url: '',
-    country: '',
-    profile_image: '',
-    notification_preferences: {
-      email_notifications: true,
-      project_updates: true,
-      marketing_emails: false,
-    }
-  })
-
-  useEffect(() => {
-    fetchClient()
+  const apply = useCallback((payload: { profile: Profile; preferences: Preferences }) => {
+    setProfile(payload.profile)
+    setForm({
+      fullName: payload.profile.fullName,
+      businessName: payload.profile.businessName,
+      whatsapp: payload.profile.whatsapp,
+      websiteUrl: payload.profile.websiteUrl,
+      country: payload.profile.country,
+    })
+    setPrefs(payload.preferences)
   }, [])
 
-  async function fetchClient() {
-    setLoading(true)
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const { data: clientData } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (clientData) {
-        setClient(clientData)
-        setFormData({
-          full_name: clientData.full_name || '',
-          business_name: clientData.business_name || '',
-          email: clientData.email || '',
-          whatsapp: clientData.whatsapp || '',
-          website_url: clientData.website_url || '',
-          country: clientData.country || '',
-          profile_image: clientData.profile_image || '',
-          notification_preferences: {
-            email_notifications: clientData.email_notifications !== false,
-            project_updates: clientData.project_updates !== false,
-            marketing_emails: clientData.marketing_emails || false,
-          }
-        })
-      } else {
-        console.warn('⚠️ No client profile found for user:', user.id)
+  const load = useCallback(async () => {
+    setState('loading')
+    try {
+      const response = await fetch('/api/client-portal/settings', { credentials: 'same-origin' })
+      if (response.status === 409) {
+        setState('ambiguous')
+        return
       }
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.profile) {
+        setState('error')
+        return
+      }
+      apply(payload)
+      setState('ready')
+    } catch (err) {
+      console.error('Error:', err)
+      setState('error')
     }
+  }, [apply])
 
-    setLoading(false)
+  useEffect(() => {
+    load()
+  }, [load])
+
+  async function patch(body: Record<string, unknown>): Promise<{ ok: true } | { ok: false; error: string }> {
+    const response = await fetch('/api/client-portal/settings', {
+      method: 'PATCH',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const payload = await response.json().catch(() => null)
+    if (!response.ok || !payload?.profile) return { ok: false, error: payload?.error || 'Failed to update. Please try again.' }
+    apply(payload)
+    window.dispatchEvent(new Event('clientProfileUpdate'))
+    return { ok: true }
   }
 
   async function handleProfileImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file || !client) return
+    if (!file || !profile) return
+
+    if (!file.type.startsWith('image/')) {
+      setMessage({ type: 'error', text: 'Please choose an image file.' })
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      setMessage({ type: 'error', text: 'That image is too large. Please choose one under 5 MB.' })
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
 
     setUploading(true)
     setMessage(null)
 
     try {
+      // Created on demand: only the avatar upload talks to Supabase from the browser.
+      const supabase = createClientComponentClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not signed in')
+
       const fileExt = file.name.split('.').pop()
-      const fileName = `${client.user_id}-${Date.now()}.${fileExt}`
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`
       const filePath = `profile-images/${fileName}`
 
       const { error: uploadError } = await supabase.storage
@@ -90,18 +157,10 @@ export default function ClientSettingsPage() {
         .from('client-portal')
         .getPublicUrl(filePath)
 
-      const { error: updateError } = await supabase
-        .from('clients')
-        .update({ profile_image: urlData.publicUrl })
-        .eq('user_id', client.user_id)
+      const result = await patch({ profile_image: urlData.publicUrl })
+      if (!result.ok) throw new Error(result.error)
 
-      if (updateError) throw updateError
-
-      setFormData({ ...formData, profile_image: urlData.publicUrl })
       setMessage({ type: 'success', text: 'Profile image updated successfully!' })
-      
-      await fetchClient()
-      window.dispatchEvent(new Event('clientProfileUpdate'))
     } catch (error) {
       console.error('Upload error:', error)
       setMessage({ type: 'error', text: 'Failed to upload image. Please try again.' })
@@ -117,25 +176,21 @@ export default function ClientSettingsPage() {
     setMessage(null)
 
     try {
-      const { error } = await supabase
-        .from('clients')
-        .update({
-          full_name: formData.full_name,
-          business_name: formData.business_name,
-          whatsapp: formData.whatsapp,
-          website_url: formData.website_url,
-          country: formData.country,
-          email_notifications: formData.notification_preferences.email_notifications,
-          project_updates: formData.notification_preferences.project_updates,
-          marketing_emails: formData.notification_preferences.marketing_emails,
-        })
-        .eq('user_id', client.user_id)
-
-      if (error) throw error
-
+      const result = await patch({
+        full_name: form.fullName,
+        business_name: form.businessName,
+        whatsapp: form.whatsapp,
+        website_url: form.websiteUrl,
+        country: form.country,
+        email_notifications: prefs.emailNotifications,
+        project_updates: prefs.projectUpdates,
+        marketing_emails: prefs.marketingEmails,
+      })
+      if (!result.ok) {
+        setMessage({ type: 'error', text: result.error })
+        return
+      }
       setMessage({ type: 'success', text: 'Profile updated successfully!' })
-      await fetchClient()
-      window.dispatchEvent(new Event('clientProfileUpdate'))
     } catch (error) {
       console.error('Update error:', error)
       setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' })
@@ -144,267 +199,153 @@ export default function ClientSettingsPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
-      </div>
-    )
-  }
+  if (state === 'loading') return <SupportLoading />
+  if (state === 'ambiguous') return <SupportAmbiguous what="settings" />
+  if (state === 'error' || !profile) return <SupportError message="We could not load your settings. Please try again in a moment." onRetry={load} />
 
-  const avatarLetter = formData.full_name ? formData.full_name.charAt(0).toUpperCase() : 'C'
+  const avatarLetter = (form.fullName || profile.fullName).trim().charAt(0).toUpperCase() || 'C'
+  const since = formatDay(profile.createdAt)
+
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-black text-[var(--text-primary)]">Profile Settings</h2>
-        <p className="text-sm text-[var(--text-secondary)]">Manage your account information and preferences.</p>
-      </div>
+    <div className={styles.page}>
+      <header>
+        <p className={styles.eyebrow}>
+          <span aria-hidden="true" className={styles.node} />
+          Settings
+        </p>
+        <h1 className={styles.h1}>Profile settings</h1>
+        <p className={styles.lead}>Manage your account information and preferences.</p>
+      </header>
 
       {message && (
-        <div className={`rounded-xl border p-4 text-sm font-bold ${
-          message.type === 'error' 
-            ? 'border-red-500/20 bg-red-500/10 text-red-400' 
-            : 'border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)]'
-        }`}>
+        <div role={message.type === 'error' ? 'alert' : 'status'} className={message.type === 'error' ? styles.err : styles.ok}>
           {message.text}
         </div>
       )}
 
-      {/* Profile Photo */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <h3 className="mb-4 flex items-center gap-2 text-lg font-black text-[var(--text-primary)]">
-          <SvgIcon name="user" size={18} color="var(--accent)" />
-          Profile Photo
-        </h3>
-        <div className="flex items-center gap-6">
-          <div className="relative">
-            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-[var(--accent)] text-4xl font-bold text-white overflow-hidden">
-              {formData.profile_image ? (
-                <img
-                  src={formData.profile_image}
-                  alt="Profile"
-                  className="h-full w-full rounded-full object-cover"
-                />
-              ) : (
-                avatarLetter
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              aria-label="Change profile photo"
-              className="absolute -bottom-1 -right-1 rounded-full bg-[var(--accent)] p-2 text-white hover:opacity-80 disabled:opacity-50 transition"
-            >
-              <SvgIcon name="edit" size={16} color="white" />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleProfileImageUpload}
-              className="hidden"
-            />
+      {/* Profile photo */}
+      <section className={styles.panel} aria-labelledby="set-photo">
+        <p className={styles.eyebrow}>
+          <span aria-hidden="true" className={styles.node} />
+          Profile photo
+        </p>
+        <h2 id="set-photo" className="sr-only">
+          Profile photo
+        </h2>
+        <div className={styles.avatarRow}>
+          <span className={styles.avatar} aria-hidden="true">
+            {profile.profileImage ? <img src={profile.profileImage} alt="" /> : avatarLetter}
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <p className={styles.h2} style={{ marginTop: 0 }}>
+              {profile.fullName || 'Client'}
+            </p>
+            <p className={styles.sub}>{profile.email}</p>
           </div>
-          <div>
-            <p className="text-lg font-medium text-[var(--text-primary)]">{formData.full_name || 'Client'}</p>
-            <p className="text-sm text-[var(--text-muted)]">{formData.email}</p>
-            {uploading && <p className="text-sm text-[var(--text-muted)] mt-1">Uploading...</p>}
-            <p className="text-xs text-[var(--text-muted)] mt-2">Click the edit icon to change your profile photo</p>
-          </div>
+          <button type="button" className={styles.secondary} onClick={() => fileInputRef.current?.click()} disabled={uploading} aria-label="Change profile photo">
+            {uploading ? 'Uploading…' : 'Change photo'}
+          </button>
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleProfileImageUpload} className="hidden" />
         </div>
-      </div>
+      </section>
 
-      {/* Personal Information */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <h3 className="mb-4 flex items-center gap-2 text-lg font-black text-[var(--text-primary)]">
-          <SvgIcon name="profile" size={18} color="var(--accent)" />
-          Personal Information
-        </h3>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-5 md:grid-cols-2">
-            <div>
-              <label htmlFor="settings-full-name" className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Full Name</label>
-              <input
-                id="settings-full-name"
-                value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                placeholder="Your full name"
-              />
+      {/* One form: personal information + notification preferences, saved together as before */}
+      <form onSubmit={handleSubmit} className={styles.form}>
+        <section className={styles.panel} aria-labelledby="set-personal">
+          <p className={styles.eyebrow}>
+            <span aria-hidden="true" className={styles.node} />
+            Personal information
+          </p>
+          <h2 id="set-personal" className="sr-only">
+            Personal information
+          </h2>
+          <div className={`${styles.fields} ${styles.two}`} style={{ marginTop: '1rem' }}>
+            <div className={styles.field}>
+              <label htmlFor="settings-full-name" className={styles.label}>
+                Full name
+              </label>
+              <input id="settings-full-name" className={styles.input} value={form.fullName} maxLength={120} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="Your full name" />
             </div>
-            <div>
-              <label htmlFor="settings-business-name" className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Business Name</label>
-              <input
-                id="settings-business-name"
-                value={formData.business_name}
-                onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                placeholder="Your business name"
-              />
+            <div className={styles.field}>
+              <label htmlFor="settings-business-name" className={styles.label}>
+                Business name
+              </label>
+              <input id="settings-business-name" className={styles.input} value={form.businessName} maxLength={160} onChange={(e) => setForm({ ...form, businessName: e.target.value })} placeholder="Your business name" />
             </div>
-            <div>
-              <label htmlFor="settings-email" className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Email Address</label>
-              <input
-                id="settings-email"
-                value={formData.email}
-                disabled
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-2.5 text-[var(--text-muted)] cursor-not-allowed"
-              />
-              <p className="mt-1 text-xs text-[var(--text-muted)]">Email cannot be changed</p>
+            <div className={styles.field}>
+              <label htmlFor="settings-email" className={styles.label}>
+                Email address
+              </label>
+              <input id="settings-email" className={styles.input} value={profile.email} disabled readOnly />
+              <p className={styles.hint}>Email cannot be changed</p>
             </div>
-            <div>
-              <label htmlFor="settings-whatsapp" className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">WhatsApp</label>
-              <input
-                id="settings-whatsapp"
-                value={formData.whatsapp}
-                onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                placeholder="+1 234 567 8900"
-              />
+            <div className={styles.field}>
+              <label htmlFor="settings-whatsapp" className={styles.label}>
+                WhatsApp
+              </label>
+              <input id="settings-whatsapp" className={styles.input} value={form.whatsapp} maxLength={40} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} placeholder="+1 234 567 8900" inputMode="tel" />
             </div>
-            <div>
-              <label htmlFor="settings-website" className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Website</label>
-              <input
-                id="settings-website"
-                value={formData.website_url}
-                onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                placeholder="https://yourstore.com"
-              />
+            <div className={styles.field}>
+              <label htmlFor="settings-website" className={styles.label}>
+                Website
+              </label>
+              <input id="settings-website" className={styles.input} value={form.websiteUrl} maxLength={300} onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })} placeholder="https://yourstore.com" inputMode="url" />
             </div>
-            <div>
-              <label htmlFor="settings-country" className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Country</label>
-              <input
-                id="settings-country"
-                value={formData.country}
-                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                placeholder="Your country"
-              />
+            <div className={styles.field}>
+              <label htmlFor="settings-country" className={styles.label}>
+                Country
+              </label>
+              <input id="settings-country" className={styles.input} value={form.country} maxLength={80} onChange={(e) => setForm({ ...form, country: e.target.value })} placeholder="Your country" />
             </div>
           </div>
-          <div className="mt-6 flex gap-3 pt-6 border-t border-[var(--border)]">
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-full bg-[var(--accent)] px-8 py-2.5 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
-            >
-              {saving ? 'Saving...' : 'Save Changes'}
+        </section>
+
+        <section className={styles.panel} aria-labelledby="set-notifications">
+          <p className={styles.eyebrow}>
+            <span aria-hidden="true" className={styles.node} />
+            Notification preferences
+          </p>
+          <h2 id="set-notifications" className="sr-only">
+            Notification preferences
+          </h2>
+          <div style={{ marginTop: '0.5rem' }}>
+            <Switch id="notif-email-notifications" title="Email notifications" desc="Receive updates about your projects via email" checked={prefs.emailNotifications} onChange={(v) => setPrefs({ ...prefs, emailNotifications: v })} />
+            <Switch id="notif-project-updates" title="Project updates" desc="Get notified when your projects are updated" checked={prefs.projectUpdates} onChange={(v) => setPrefs({ ...prefs, projectUpdates: v })} />
+            <Switch id="notif-marketing-emails" title="Marketing emails" desc="Receive marketing and promotional emails" checked={prefs.marketingEmails} onChange={(v) => setPrefs({ ...prefs, marketingEmails: v })} />
+          </div>
+          <div className={styles.actions} style={{ marginTop: '0.75rem' }}>
+            <button type="submit" disabled={saving} className={styles.primary}>
+              {saving ? 'Saving…' : 'Save changes'}
             </button>
           </div>
-        </form>
-      </div>
+        </section>
+      </form>
 
-      {/* Notification Preferences */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <h3 className="mb-4 flex items-center gap-2 text-lg font-black text-[var(--text-primary)]">
-          <SvgIcon name="bell" size={18} color="var(--accent)" />
-          Notification Preferences
-        </h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+      {/* Account facts: only real fields */}
+      <section className={styles.panel} aria-labelledby="set-account">
+        <p className={styles.eyebrow}>
+          <span aria-hidden="true" className={styles.node} />
+          Account
+        </p>
+        <h2 id="set-account" className="sr-only">
+          Account
+        </h2>
+        <dl className={styles.facts}>
+          {since && (
             <div>
-              <p id="notif-email-notifications" className="font-medium text-[var(--text-primary)]">Email Notifications</p>
-              <p className="text-sm text-[var(--text-muted)]">Receive updates about your projects via email</p>
+              <dt>Member since</dt>
+              <dd>{since}</dd>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                aria-labelledby="notif-email-notifications"
-                checked={formData.notification_preferences.email_notifications}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  notification_preferences: {
-                    ...formData.notification_preferences,
-                    email_notifications: e.target.checked
-                  }
-                })}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-[var(--bg-section)] peer-focus:ring-2 peer-focus:ring-[var(--accent)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--accent)]"></div>
-            </label>
-          </div>
-          <div className="flex items-center justify-between">
+          )}
+          {profile.reference && (
             <div>
-              <p id="notif-project-updates" className="font-medium text-[var(--text-primary)]">Project Updates</p>
-              <p className="text-sm text-[var(--text-muted)]">Get notified when your projects are updated</p>
+              <dt>Account reference</dt>
+              <dd style={{ fontFamily: 'ui-monospace, monospace' }}>{profile.reference}</dd>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                aria-labelledby="notif-project-updates"
-                checked={formData.notification_preferences.project_updates}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  notification_preferences: {
-                    ...formData.notification_preferences,
-                    project_updates: e.target.checked
-                  }
-                })}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-[var(--bg-section)] peer-focus:ring-2 peer-focus:ring-[var(--accent)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--accent)]"></div>
-            </label>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p id="notif-marketing-emails" className="font-medium text-[var(--text-primary)]">Marketing Emails</p>
-              <p className="text-sm text-[var(--text-muted)]">Receive marketing and promotional emails</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                aria-labelledby="notif-marketing-emails"
-                checked={formData.notification_preferences.marketing_emails}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  notification_preferences: {
-                    ...formData.notification_preferences,
-                    marketing_emails: e.target.checked
-                  }
-                })}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-[var(--bg-section)] peer-focus:ring-2 peer-focus:ring-[var(--accent)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--accent)]"></div>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      {/* Account Information */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <h3 className="mb-4 flex items-center gap-2 text-lg font-black text-[var(--text-primary)]">
-          <SvgIcon name="security" size={18} color="var(--accent)" />
-          Account Information
-        </h3>
-        <div className="grid gap-5 md:grid-cols-2">
-          <div>
-            <p className="text-sm font-bold text-[var(--text-secondary)]">Account Status</p>
-            <div className="mt-1 flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
-              <span className="font-medium text-[var(--text-primary)]">Active</span>
-            </div>
-          </div>
-          <div>
-            <p className="text-sm font-bold text-[var(--text-secondary)]">Member Since</p>
-            <p className="mt-1 font-medium text-[var(--text-primary)]">
-              {client?.created_at ? new Date(client.created_at).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              }) : 'Recently'}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm font-bold text-[var(--text-secondary)]">Account ID</p>
-            <p className="mt-1 font-mono text-sm text-[var(--text-primary)]">
-              {client?.id?.slice(0, 8) || 'N/A'}
-            </p>
-          </div>
-        </div>
-      </div>
+          )}
+        </dl>
+      </section>
     </div>
   )
 }

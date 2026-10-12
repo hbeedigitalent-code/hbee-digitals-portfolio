@@ -1,12 +1,18 @@
 // src/app/client-portal/project-request/page.tsx
+//
+// New project request (Phase 18.7: presentation and copy only). The client lookup, the redirects
+// and the form's submission behaviour are unchanged. The old "Full onboarding" link pointed at the
+// public new-client onboarding form, which is not an option for an existing portal client, so it
+// is replaced by a plain route to contact Hbee.
 'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@/lib/supabase-client'
 import { ProjectRequestForm } from '@/components/client-portal/ProjectRequestForm'
+import { SupportLoading } from '@/components/client-portal/SupportState'
 import Link from 'next/link'
-import SvgIcon from '@/components/ui/SvgIcon'
+import styles from '@/components/client-portal/support.module.css'
 
 export default function ProjectRequestPage() {
   const router = useRouter()
@@ -23,7 +29,7 @@ export default function ProjectRequestPage() {
   useEffect(() => {
     async function fetchClient() {
       const { data: { user } } = await supabase.auth.getUser()
-      
+
       if (!user) {
         router.push('/client-login')
         return
@@ -48,35 +54,27 @@ export default function ProjectRequestPage() {
     fetchClient()
   }, [router, supabase])
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
-      </div>
-    )
-  }
+  if (loading) return <SupportLoading />
 
   if (!clientData) {
     return null
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-black text-[var(--text-primary)]">Request New Project</h1>
-        <p className="text-sm text-[var(--text-muted)]">
-          Submit a quick project request. Our team will review and get back to you.
+    <div className={styles.page}>
+      <header>
+        <p className={styles.eyebrow}>
+          <span aria-hidden="true" className={styles.node} />
+          New request
         </p>
-      </div>
+        <h1 className={styles.h1}>Request a new project</h1>
+        <p className={styles.lead}>
+          Tell Hbee what you&rsquo;d like to work on
+          {clientData.business_name ? ` for ${clientData.business_name}` : ''}. The project will appear in your portal once you submit.
+        </p>
+      </header>
 
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        <div className="mb-4 flex items-center gap-2">
-          <span className="rounded-full bg-[var(--accent)]/10 px-2.5 py-1 text-xs font-medium text-[var(--accent)]">
-            Quick Request
-          </span>
-          <span className="text-xs text-[var(--text-muted)]">3 simple steps</span>
-        </div>
-
+      <section className={styles.panel} aria-label="Project request form">
         <ProjectRequestForm
           clientId={clientData.id}
           userId={clientData.user_id}
@@ -85,19 +83,14 @@ export default function ProjectRequestPage() {
           email={clientData.email}
           onCancel={() => router.push('/client-portal/projects')}
         />
-      </div>
+      </section>
 
-      <div className="text-center">
-        <p className="text-sm text-[var(--text-muted)]">
-          Need to provide more details?{' '}
-          <Link
-            href="/client-onboarding"
-            className="text-[var(--accent)] hover:underline"
-          >
-            Use full onboarding
-          </Link>
-        </p>
-      </div>
+      <p className={styles.quiet}>
+        Prefer to talk it through first?{' '}
+        <Link href="/contact" className={styles.link} style={{ display: 'inline-flex' }}>
+          Contact Hbee
+        </Link>
+      </p>
     </div>
   )
 }

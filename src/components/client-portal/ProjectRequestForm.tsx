@@ -1,10 +1,19 @@
 // src/components/client-portal/ProjectRequestForm.tsx
+//
+// Project request form. Submission behaviour is UNCHANGED (Phase 18.7 is presentation + copy):
+// the same validation, the same three writes (project_requests insert, projects insert,
+// request -> project link), the same failure messages and the same redirect to /client-portal/projects.
+//
+// The form collects ONLY what the flow persists: title, service and description. (Business name,
+// timeline, priority and budget were removed in Phase 18.7 because this flow never stored them.)
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { Check } from 'lucide-react'
 import { createClientComponentClient } from '@/lib/supabase-client'
-import SvgIcon from '@/components/ui/SvgIcon'
+import styles from './support.module.css'
 
 interface ProjectRequestFormProps {
   clientId: string
@@ -29,29 +38,14 @@ const services = [
   'Other'
 ]
 
-const timelines = [
-  'Immediate (1-2 weeks)',
-  'Short term (1 month)',
-  'Medium term (2-3 months)',
-  'Long term (3-6 months)',
-  'Flexible'
-]
-
-const priorities = [
-  { value: 'Low', label: 'Low', color: 'bg-blue-100 text-blue-700' },
-  { value: 'Medium', label: 'Medium', color: 'bg-yellow-100 text-yellow-700' },
-  { value: 'High', label: 'High', color: 'bg-orange-100 text-orange-700' },
-  { value: 'Urgent', label: 'Urgent', color: 'bg-red-100 text-red-700' },
-]
-
-export function ProjectRequestForm({ 
-  clientId, 
-  userId, 
-  clientName, 
-  businessName, 
-  email, 
-  onSuccess, 
-  onCancel 
+export function ProjectRequestForm({
+  clientId,
+  userId,
+  clientName,
+  businessName,
+  email,
+  onSuccess,
+  onCancel
 }: ProjectRequestFormProps) {
   const router = useRouter()
   const supabase = createClientComponentClient()
@@ -64,12 +58,8 @@ export function ProjectRequestForm({
 
   const [formData, setFormData] = useState({
     project_title: '',
-    business_name: businessName || '',
     service_needed: '',
     description: '',
-    preferred_timeline: '',
-    priority: 'Medium',
-    budget_range: '',
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -101,10 +91,8 @@ export function ProjectRequestForm({
     try {
       // 1. Insert the project request. Only the columns that actually exist
       // on project_requests are written (id, client_id, project_id, title,
-      // description, status, created_at). The extra fields this form
-      // collects — business name, service, timeline, priority, budget — are
-      // NOT persisted here in this batch; service and description are still
-      // captured on the projects row below.
+      // description, status, created_at). Service is captured on the projects
+      // row below.
       const { data: requestRow, error: requestError } = await supabase
         .from('project_requests')
         .insert({
@@ -193,238 +181,118 @@ export function ProjectRequestForm({
 
   if (success) {
     return (
-      <div className="text-center py-8">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-          <SvgIcon name="check" size={32} color="#16a34a" />
-        </div>
-        <h2 className="text-xl font-bold text-[var(--text-primary)]">Project Request Submitted! ✅</h2>
-        <p className="mt-2 text-[var(--text-muted)]">
-          Your project request has been submitted and is pending review.
-        </p>
-        <p className="mt-4 text-sm text-[var(--text-muted)]">
-          Status: <span className="font-medium text-yellow-600 dark:text-yellow-400">Pending Review</span>
-        </p>
-        {linkWarning && (
-          <p className="mx-auto mt-4 max-w-sm rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-3 text-sm text-yellow-600 dark:text-yellow-400">
-            {linkWarning}
+      <div className={styles.center} role="status">
+        <div className={styles.centerBody}>
+          <span className={styles.tick} aria-hidden="true">
+            <Check strokeWidth={2.5} />
+          </span>
+          <h2>Request received</h2>
+          <p>
+            Your project has been added to your portal with the status <strong>Pending Review</strong>. Hbee will review it from there.
           </p>
-        )}
+          {linkWarning && <p className={styles.warn}>{linkWarning}</p>}
+          <Link href="/client-portal/projects" className={styles.secondary}>
+            Go to your projects
+          </Link>
+          <p className={styles.hint}>Taking you to your projects…</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-[var(--text-primary)]">Quick Project Request</h2>
-          <p className="text-sm text-[var(--text-muted)]">Submit a quick project request in 3 simple steps</p>
-        </div>
-        {onCancel && (
-          <button
-            onClick={onCancel}
-            className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
-          >
-            Cancel
-          </button>
-        )}
-      </div>
-
+    <form onSubmit={handleSubmit} className={styles.form} noValidate={false}>
       {error && (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
+        <div role="alert" className={styles.err}>
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Step 1: Project Details */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent)] text-xs font-bold text-white">1</span>
-            <h3 className="font-semibold text-[var(--text-primary)]">Project Details</h3>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">
-                Project Title <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="project_title"
-                value={formData.project_title}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                placeholder="e.g., Ecommerce Website Redesign"
-                required
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">
-                Business Name
-              </label>
-              <input
-                type="text"
-                name="business_name"
-                value={formData.business_name}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                placeholder="Your business name"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">
-              Service Needed <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="service_needed"
-              value={formData.service_needed}
-              onChange={handleChange}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              required
-            >
-              <option value="">Select a service</option>
-              {services.map((service) => (
-                <option key={service} value={service}>{service}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">
-              Project Description <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows={3}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              placeholder="Briefly describe what you need..."
-              required
-            />
-          </div>
+      {/* Step 1: Project details */}
+      <section className={styles.fields} aria-labelledby="pr-step-1">
+        <div className={styles.stepHead}>
+          <span className={styles.stepNo}>1</span>
+          <h3 id="pr-step-1" className={styles.h2} style={{ marginTop: 0 }}>
+            Project details
+          </h3>
         </div>
-
-        {/* Step 2: Timeline & Priority */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent)] text-xs font-bold text-white">2</span>
-            <h3 className="font-semibold text-[var(--text-primary)]">Timeline & Priority</h3>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">
-                Preferred Timeline <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="preferred_timeline"
-                value={formData.preferred_timeline}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                required
-              >
-                <option value="">Select timeline</option>
-                {timelines.map((timeline) => (
-                  <option key={timeline} value={timeline}>{timeline}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">
-                Priority
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {priorities.map((p) => (
-                  <button
-                    key={p.value}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, priority: p.value })}
-                    className={`rounded-lg border p-2 text-sm font-medium transition ${
-                      formData.priority === p.value
-                        ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
-                        : 'border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-muted)] hover:border-[var(--accent)]'
-                    }`}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--text-primary)]">
-              Budget Range (Optional)
-            </label>
-            <input
-              type="text"
-              name="budget_range"
-              value={formData.budget_range}
-              onChange={handleChange}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              placeholder="e.g., $5,000 - $10,000"
-            />
-          </div>
+        <div className={styles.field}>
+          <label htmlFor="pr-title" className={styles.label}>
+            Project title <span className={styles.req}>*</span>
+          </label>
+          <input
+            id="pr-title"
+            type="text"
+            name="project_title"
+            value={formData.project_title}
+            onChange={handleChange}
+            className={styles.input}
+            placeholder="e.g., Ecommerce website redesign"
+            required
+          />
         </div>
+        <div className={styles.field}>
+          <label htmlFor="pr-service" className={styles.label}>
+            Service needed <span className={styles.req}>*</span>
+          </label>
+          <select id="pr-service" name="service_needed" value={formData.service_needed} onChange={handleChange} className={styles.select} required>
+            <option value="">Select a service</option>
+            {services.map((service) => (
+              <option key={service} value={service}>{service}</option>
+            ))}
+          </select>
+        </div>
+        <div className={styles.field}>
+          <label htmlFor="pr-description" className={styles.label}>
+            Project description <span className={styles.req}>*</span>
+          </label>
+          <textarea
+            id="pr-description"
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            rows={4}
+            className={styles.textarea}
+            placeholder="Briefly describe what you need…"
+            required
+          />
+        </div>
+      </section>
 
-        {/* Step 3: Review & Submit */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent)] text-xs font-bold text-white">3</span>
-            <h3 className="font-semibold text-[var(--text-primary)]">Review & Submit</h3>
+      {/* Step 2: Review & submit — only values that are actually submitted */}
+      <section className={styles.fields} aria-labelledby="pr-step-2">
+        <div className={styles.stepHead}>
+          <span className={styles.stepNo}>2</span>
+          <h3 id="pr-step-2" className={styles.h2} style={{ marginTop: 0 }}>
+            Review &amp; submit
+          </h3>
+        </div>
+        <dl className={styles.summary}>
+          <div>
+            <dt>Project</dt>
+            <dd>{formData.project_title || 'Not provided'}</dd>
           </div>
-
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-4">
-            <div className="grid gap-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-[var(--text-muted)]">Project:</span>
-                <span className="font-medium text-[var(--text-primary)]">{formData.project_title || 'Not provided'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[var(--text-muted)]">Service:</span>
-                <span className="font-medium text-[var(--text-primary)]">{formData.service_needed || 'Not selected'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[var(--text-muted)]">Timeline:</span>
-                <span className="font-medium text-[var(--text-primary)]">{formData.preferred_timeline || 'Not selected'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[var(--text-muted)]">Priority:</span>
-                <span className={`font-medium ${
-                  formData.priority === 'Urgent' ? 'text-red-500' :
-                  formData.priority === 'High' ? 'text-orange-500' :
-                  formData.priority === 'Medium' ? 'text-yellow-500' :
-                  'text-blue-500'
-                }`}>
-                  {formData.priority || 'Medium'}
-                </span>
-              </div>
-            </div>
+          <div>
+            <dt>Service</dt>
+            <dd>{formData.service_needed || 'Not selected'}</dd>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
-          >
-            {loading ? 'Submitting...' : 'Submit Project Request'}
+          <div>
+            <dt>Description</dt>
+            <dd>{formData.description.trim() ? (formData.description.trim().length > 140 ? formData.description.trim().slice(0, 139) + '…' : formData.description.trim()) : 'Not provided'}</dd>
+          </div>
+        </dl>
+        <p className={styles.sub}>When you submit, the project is added to your portal with the status Pending Review.</p>
+        <div className={styles.actions}>
+          <button type="submit" disabled={loading} className={styles.primary}>
+            {loading ? 'Submitting…' : 'Submit project request'}
           </button>
-
           {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="w-full rounded-full border border-[var(--border)] px-6 py-2.5 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--bg-section)]"
-            >
+            <button type="button" onClick={onCancel} className={styles.secondary}>
               Cancel
             </button>
           )}
         </div>
-      </form>
-    </div>
+      </section>
+    </form>
   )
 }
