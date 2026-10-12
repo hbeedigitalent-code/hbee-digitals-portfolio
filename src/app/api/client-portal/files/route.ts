@@ -92,12 +92,13 @@ export async function GET() {
 
     const projects = (projectsRes.data || []) as Array<{ id: string; project_name: string | null; project_id: string | null; status: string | null }>
 
+    // Live shape of project_deliverables (verified in production): id, project_id, title,
+    // description, file_url, version, uploaded_at. There is NO status and NO created_at column.
     let deliverables: Array<{
       id: string
       title: string | null
       description: string | null
       version: string | null
-      status: string | null
       uploaded_at: string | null
       project_id: string | null
       file_url: string | null
@@ -108,13 +109,17 @@ export async function GET() {
     if (projectIds.length > 0) {
       const delRes = await adminClient
         .from('project_deliverables')
-        .select('id, title, description, version, status, uploaded_at, project_id, file_url')
+        .select('id, title, description, version, uploaded_at, project_id, file_url')
         .in('project_id', projectIds)
-        .order('uploaded_at', { ascending: false })
+        .order('uploaded_at', { ascending: false, nullsFirst: false })
         .limit(100)
       if (delRes.error) {
+        // A genuine failure — distinct from an empty result, which is a successful [].
+        // The code and message name the database problem (never request data).
         deliverablesUnavailable = true
-        console.error('[client-portal/files] deliverables query failed')
+        console.error(
+          `[client-portal/files] deliverables query failed: ${String(delRes.error.code ?? 'no-code')} ${String(delRes.error.message ?? '').slice(0, 200)}`,
+        )
       } else {
         deliverables = delRes.data || []
       }
@@ -140,7 +145,6 @@ export async function GET() {
         title: d.title,
         description: d.description,
         version: d.version,
-        status: d.status,
         uploadedAt: d.uploaded_at,
         projectId: d.project_id,
         // Only whether a download exists. The link itself never leaves the server except

@@ -184,9 +184,9 @@ function ConfirmationContent() {
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
           <Link
             href="/client-login"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent-orange)] px-8 py-3 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] hover:scale-[1.02]"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent-orange)] px-8 py-3 text-sm font-semibold text-[var(--cta-text)] transition hover:bg-[var(--orange-600)] hover:scale-[1.02]"
           >
-            <SvgIcon name="log-in" size={18} color="white" />
+            <SvgIcon name="log-in" size={18} color="var(--cta-text)" />
             Log In Now
           </Link>
           <Link
@@ -217,7 +217,7 @@ function ConfirmationContent() {
       <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
         <button
           onClick={handleResendConfirmation}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent-orange)] px-8 py-3 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] hover:scale-[1.02]"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent-orange)] px-8 py-3 text-sm font-semibold text-[var(--cta-text)] transition hover:bg-[var(--orange-600)] hover:scale-[1.02]"
         >
           <SvgIcon name="email" size={18} color="white" />
           Resend Confirmation
@@ -245,7 +245,7 @@ function ConfirmationContent() {
 export default function ClientConfirmationPage() {
   return (
     <>
-      <main className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-[var(--bg-page)] px-4 py-20">
+      <main className="flex flex-1 items-center justify-center px-4 py-12">
         <div className="w-full max-w-lg rounded-3xl border border-[var(--border)] bg-[var(--bg-card)] p-8 md:p-12 shadow-[var(--shadow-lg)]">
           <Suspense fallback={
             <div className="flex justify-center items-center py-12">

@@ -28,7 +28,7 @@ interface DashboardData {
   activeWork: { history: boolean; projects: ActiveProject[] }
   activity: ActivityItem[]
   files: Array<{ id: string; name: string | null; type: string | null; size: number | null; uploadedAt: string | null }>
-  deliverables: Array<{ id: string; title: string | null; status: string | null; version: string | null; uploadedAt: string | null }>
+  deliverables: Array<{ id: string; title: string | null; version: string | null; uploadedAt: string | null }>
   proposal: ProposalCard | null
   unavailable: string[]
 }
@@ -460,7 +460,7 @@ export default function ClientPortalHome() {
                   <li key={d.id} className={styles.row}>
                     <span className={styles.rowMain}>
                       {d.title || 'Deliverable'}
-                      {(d.status || d.version) && <span className={styles.rowSub}>{[d.status, d.version && `Version ${d.version}`].filter(Boolean).join(' · ')}</span>}
+                      {d.version && <span className={styles.rowSub}>{`Version ${d.version}`}</span>}
                     </span>
                     <span className={styles.rowEnd}>{ago(d.uploadedAt)}</span>
                   </li>

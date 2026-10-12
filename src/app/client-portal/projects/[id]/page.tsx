@@ -59,7 +59,6 @@ interface Deliverable {
   title: string | null
   description: string | null
   version: string | null
-  status: string | null
   uploadedAt: string | null
   hasFile: boolean
 }
@@ -400,7 +399,7 @@ export default function ClientProjectDetailPage() {
                       <p className={styles.itemTitle}>{d.title || 'Deliverable'}</p>
                       {d.description && <p className={styles.itemSub}>{d.description}</p>}
                       <p className={styles.itemSub}>
-                        {[d.status && statusLabel(d.status), d.version && `Version ${d.version}`, formatDate(d.uploadedAt)].filter(Boolean).join(' · ')}
+                        {[d.version && `Version ${d.version}`, formatDate(d.uploadedAt)].filter(Boolean).join(' · ')}
                       </p>
                     </div>
                     {d.hasFile && (

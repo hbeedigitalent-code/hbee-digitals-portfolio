@@ -10,6 +10,12 @@
   height: 100dvh;
   overflow: hidden;
   background: var(--hb-cloud);
+  /* A containing block for position:absolute descendants. Without one, a visually-hidden
+     (.sr-only, position:absolute) heading deep in a page positions against <body>,
+     escapes this shell's overflow:hidden and stretches the DOCUMENT taller than the
+     viewport — the page then scrolls and the plain body background shows beneath the
+     shell. */
+  position: relative;
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────── */
@@ -246,6 +252,9 @@
 .content {
   flex: 1;
   overflow-y: auto;
+  /* Absolutely positioned page content (sr-only headings, visually-hidden inputs) stays
+     inside, and scrolls with, the content canvas instead of leaking to the document. */
+  position: relative;
   padding: 1.25rem 1rem;
   background-color: var(--hb-cloud);
   background-image:

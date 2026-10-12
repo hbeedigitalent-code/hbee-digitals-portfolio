@@ -94,15 +94,15 @@ function LoginContent() {
         <div className="flex justify-center mb-4">
           <SvgIcon name="logo" size={48} color="var(--accent-orange)" />
         </div>
-        <h1 className="text-2xl font-bold text-white">Client Portal</h1>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Client Portal</h1>
         <p className="mt-2 text-[var(--text-muted)]">Sign in to access your projects</p>
       </div>
 
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card-dark)] p-6">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
         {resetSent ? (
           <div className="text-center py-4">
             <SvgIcon name="email" size={48} color="var(--accent-lime)" className="mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-white">Check Your Email</h3>
+            <h3 className="text-lg font-semibold text-[var(--text-primary)]">Check Your Email</h3>
             <p className="mt-2 text-[var(--text-muted)]">
               We've sent password reset instructions to <strong>{email}</strong>
             </p>
@@ -123,12 +123,12 @@ function LoginContent() {
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-white">Email Address</label>
+                <label className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">Email Address</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
                   placeholder="you@email.com"
                   required
                 />
@@ -136,20 +136,20 @@ function LoginContent() {
 
               {!showReset && (
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-white">Password</label>
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--text-primary)]">Password</label>
                   <div className="relative">
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-navy-mid)] px-4 py-3 text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)] pr-12"
+                      className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)] pr-12"
                       placeholder="••••••••"
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white transition"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? (
@@ -172,7 +172,7 @@ function LoginContent() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-full bg-[var(--accent-orange)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] disabled:opacity-50"
+                  className="w-full rounded-full bg-[var(--accent-orange)] px-6 py-3 text-sm font-semibold text-[var(--cta-text)] transition hover:bg-[var(--orange-600)] disabled:opacity-50"
                 >
                   {loading ? 'Signing in...' : 'Sign In'}
                 </button>
@@ -181,7 +181,7 @@ function LoginContent() {
                   type="button"
                   onClick={handleResetPassword}
                   disabled={loading}
-                  className="w-full rounded-full bg-[var(--accent-orange)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] disabled:opacity-50"
+                  className="w-full rounded-full bg-[var(--accent-orange)] px-6 py-3 text-sm font-semibold text-[var(--cta-text)] transition hover:bg-[var(--orange-600)] disabled:opacity-50"
                 >
                   {loading ? 'Sending...' : 'Send Reset Link'}
                 </button>
@@ -224,7 +224,7 @@ function LoginContent() {
 export default function ClientLoginPage() {
   return (
     <>
-      <main className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-[var(--bg-navy)] px-4 pt-28 pb-12">
+      <main className="flex flex-1 items-center justify-center px-4 py-12">
         <Suspense fallback={
           <div className="flex justify-center items-center">
             <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />

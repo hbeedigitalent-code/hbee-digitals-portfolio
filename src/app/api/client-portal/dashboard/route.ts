@@ -177,7 +177,7 @@ export async function GET() {
         'deliverables',
         await adminClient
           .from('project_deliverables')
-          .select('id, title, status, version, uploaded_at, project_id')
+          .select('id, title, version, uploaded_at, project_id')
           .in('project_id', projectIds)
           .order('uploaded_at', { ascending: false })
           .limit(5),
@@ -211,7 +211,6 @@ export async function GET() {
       deliverables: deliverables.map((d) => ({
         id: d.id,
         title: d.title,
-        status: d.status,
         version: d.version,
         uploadedAt: d.uploaded_at,
       })),

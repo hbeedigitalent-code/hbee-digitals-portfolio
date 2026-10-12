@@ -56,7 +56,7 @@ export default function ClientResetPasswordPage() {
   if (success) {
     return (
       <>
-        <main className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-[var(--bg-page)] px-4 pt-28 pb-12">
+        <main className="flex flex-1 items-center justify-center px-4 py-12">
           <motion.div
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -86,7 +86,7 @@ export default function ClientResetPasswordPage() {
 
   return (
     <>
-      <main className="flex min-h-[calc(100vh-200px)] items-center justify-center bg-[var(--bg-page)] px-4 pt-28 pb-12">
+      <main className="flex flex-1 items-center justify-center px-4 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -172,11 +172,11 @@ export default function ClientResetPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-full bg-[var(--accent-orange)] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[var(--orange-600)] hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full rounded-full bg-[var(--accent-orange)] px-6 py-3 text-sm font-semibold text-[var(--cta-text)] transition hover:bg-[var(--orange-600)] hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--cta-text)] border-t-transparent" />
                     Resetting...
                   </span>
                 ) : (

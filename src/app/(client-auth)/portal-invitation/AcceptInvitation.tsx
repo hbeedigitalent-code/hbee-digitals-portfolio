@@ -27,7 +27,7 @@ export function AcceptInvitation({ className, secondaryClassName }: { className:
   if (state === 'done') {
     return (
       <div className="mt-6" role="status">
-        <p className="text-white">Your account is connected.</p>
+        <p className="text-[var(--text-primary)]">Your account is connected.</p>
         <Link href="/client-portal" className={`${className} mt-4`}>Open your client portal</Link>
       </div>
     )
@@ -57,7 +57,7 @@ export function AcceptInvitation({ className, secondaryClassName }: { className:
       </button>
       {state === 'error' && (
         <div className="mt-4" role="alert">
-          <p className="text-sm text-white">{message}</p>
+          <p className="text-sm text-[var(--text-primary)]">{message}</p>
           <Link href="/contact" className={`${secondaryClassName} mt-4`}>Contact Hbee</Link>
         </div>
       )}

@@ -110,7 +110,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
         .limit(5),
       adminClient
         .from('project_deliverables')
-        .select('id, title, description, version, status, uploaded_at, file_url')
+        .select('id, title, description, version, uploaded_at, file_url')
         .eq('project_id', project.id)
         .order('uploaded_at', { ascending: false })
         .limit(10),
@@ -158,7 +158,6 @@ export async function GET(_request: Request, { params }: { params: { id: string 
         title: d.title,
         description: d.description || null,
         version: d.version || null,
-        status: d.status || null,
         uploadedAt: d.uploaded_at || null,
         hasFile: typeof d.file_url === 'string' && d.file_url.trim().length > 0,
       })),

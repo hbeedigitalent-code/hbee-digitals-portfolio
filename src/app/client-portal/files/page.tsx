@@ -51,7 +51,6 @@ interface PortalDeliverable {
   title: string | null
   description: string | null
   version: string | null
-  status: string | null
   uploadedAt: string | null
   projectId: string | null
   hasFile: boolean
@@ -65,11 +64,6 @@ const INACTIVE_PROJECT_STATUSES = ['Completed', 'Archived']
 
 // Sentinel <select> value meaning "not tied to a specific project".
 const GENERAL_VALUE = ''
-
-function statusText(value: string | null): string | null {
-  const t = (value || '').replace(/[_-]+/g, ' ').trim()
-  return t ? t.charAt(0).toUpperCase() + t.slice(1) : null
-}
 
 export default function ClientFilesPage() {
   const [state, setState] = useState<LoadState>('loading')
@@ -489,7 +483,6 @@ export default function ClientFilesPage() {
           </h2>
           <ul className={styles.dels}>
             {deliverables.map((d) => {
-              const status = statusText(d.status)
               const project = d.projectId ? projectLabel(d.projectId, projects) : null
               const date = formatDate(d.uploadedAt)
               return (
@@ -498,7 +491,6 @@ export default function ClientFilesPage() {
                     <p className={styles.delTitle}>{d.title || 'Deliverable'}</p>
                     {d.description && <p className={styles.delDesc}>{d.description}</p>}
                     <div className={styles.delMeta}>
-                      {status && <span className={styles.status}>{status}</span>}
                       {d.version && <span>Version {d.version}</span>}
                       {project && <span>{project}</span>}
                       {date && <span>{date}</span>}

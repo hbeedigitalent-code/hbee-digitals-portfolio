@@ -272,7 +272,6 @@ export interface FileRow {
 export interface DeliverableRow {
   id: string
   title: string | null
-  status: string | null
   version: string | null
   uploaded_at: string | null
   project_id: string | null
