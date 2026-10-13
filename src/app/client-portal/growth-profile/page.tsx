@@ -24,7 +24,8 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { BarChart3, Check, Download, Search, ShoppingCart } from 'lucide-react'
 import SvgIcon from '@/components/ui/SvgIcon'
-import { HbeeModuleStandalone } from '@/components/site/module/HbeeModule'
+import { HbeeModuleGlyph, HbeeModuleStandalone } from '@/components/site/module/HbeeModule'
+import { HbeeModuleGroup } from '@/components/site/module/HbeeModuleGroup'
 import styles from './growth-profile.module.css'
 
 type ProfileState =
@@ -77,23 +78,38 @@ function Eyebrow({ children }: { children: ReactNode }) {
   )
 }
 
-/** Shared shell for every non-ready state. Copy and actions are unchanged from before. */
+/**
+ * Shared shell for every non-ready state.
+ *
+ * `modules` is used only for the legitimate "no profile yet" states (not connected, no
+ * assessment, under review, not available). It shows the Hbee Module system in its
+ * FRAGMENTED form — modules apart, no connectors, no orange — because no profile exists
+ * and nothing here may suggest one does. Failure states keep the plain warning icon.
+ */
 function EmptyState({
   icon,
   title,
   children,
   action,
+  modules = false,
 }: {
   icon: string
   title: string
   children: ReactNode
   action?: ReactNode
+  modules?: boolean
 }) {
   return (
     <div className={`${styles.panel} ${styles.state}`}>
-      <span className={styles.stateIcon}>
-        <SvgIcon name={icon} size={28} color="var(--hb-blue)" />
-      </span>
+      {modules ? (
+        <div className={styles.stateModules} aria-hidden="true">
+          <HbeeModuleGroup state="fragmented" motion="settle" showLabels={false} idPrefix={`gp-${icon}`} label="Hbee system, not yet connected" />
+        </div>
+      ) : (
+        <span className={styles.stateIcon}>
+          <SvgIcon name={icon} size={28} color="var(--hb-blue)" />
+        </span>
+      )}
       <h2 className={styles.stateTitle}>{title}</h2>
       <div className={styles.stateBody}>{children}</div>
       {action && <div className={styles.stateActions}>{action}</div>}
@@ -161,6 +177,7 @@ export default function GrowthProfilePage() {
   if (state === 'not_connected') {
     return (
       <EmptyState
+        modules
         icon="growth-profile"
         title="Your Growth Profile is not connected yet"
         action={
@@ -180,7 +197,7 @@ export default function GrowthProfilePage() {
         </p>
         <p>
           Get in touch and we will connect it for you. If you have completed the
-          Growth Readiness Assessment, mention the email address you used.
+          Growth Review, mention the email address you used.
         </p>
       </EmptyState>
     )
@@ -232,16 +249,17 @@ export default function GrowthProfilePage() {
   if (state === 'no_assessment') {
     return (
       <EmptyState
+        modules
         icon="growth-readiness"
-        title="Complete your assessment"
+        title="Complete your Growth Review"
         action={
           <Link href="/growth-review" className={styles.primary}>
-            Start Assessment
+            Start the Growth Review
           </Link>
         }
       >
         <p>
-          Complete the Hbee Growth Readiness Assessment and we will review your
+          Complete the Hbee Growth Review and we will review your
           business, identify your priorities, and prepare your Growth Profile.
         </p>
       </EmptyState>
@@ -251,6 +269,7 @@ export default function GrowthProfilePage() {
   if (state === 'under_review') {
     return (
       <EmptyState
+        modules
         icon="clock"
         title="Your assessment is with our team"
         action={
@@ -271,6 +290,7 @@ export default function GrowthProfilePage() {
   if (state === 'not_available') {
     return (
       <EmptyState
+        modules
         icon="growth-profile"
         title="No Growth Profile available"
         action={
@@ -414,7 +434,10 @@ export default function GrowthProfilePage() {
               return (
                 <li key={p.key} className={`${styles.pillar} ${isLow ? styles.pillarLow : ''}`}>
                   <div className={styles.pillarTop}>
-                    <span className={styles.pillarName}>{p.label}</span>
+                    <span className={styles.pillarName}>
+                      <HbeeModuleGlyph size={18} signal={isLow ? 'signal' : 'none'} />
+                      {p.label}
+                    </span>
                     <span className={styles.pillarScore}>
                       {p.value}
                       <small>/100</small>

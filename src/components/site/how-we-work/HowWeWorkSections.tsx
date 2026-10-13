@@ -287,13 +287,13 @@ function PortalPreview() {
           ))}
         </nav>
         <div className={styles.portalMain}>
-          <p className={styles.portalTitle}>Dashboard</p>
+          <p className={styles.portalTitle}>Overview</p>
           <div className={styles.portalStats}>
             {[
               ['Active projects', '1'],
               ['Pending requests', '1'],
-              ['Uploaded files', '6'],
-              ['Deliverables', '3'],
+              ['Files & deliverables', '6'],
+              ['Open proposals', '1'],
             ].map(([k, v]) => (
               <div key={k} className={styles.portalStat}>
                 <span>{v}</span>

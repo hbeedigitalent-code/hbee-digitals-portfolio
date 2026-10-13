@@ -5,17 +5,18 @@
    ═════════════════════════════════════════════════════════════════ */
 
 .shell {
+  /* The shell IS the viewport rectangle: pinned to all four edges, so it cannot be taller
+     than the window (no 100vh / 100dvh to disagree with a mobile toolbar), and it takes
+     no space in the document — the document has nothing of its own to scroll.
+     The pale grid canvas (.content) fills the shell; .content owns the vertical scroll.
+     overflow:clip (hidden as the fallback) clips without creating a scroll container, so
+     focus, scrollIntoView and router scroll-restoration can never scroll the shell itself. */
+  position: fixed;
+  inset: 0;
   display: flex;
-  height: 100vh;
-  height: 100dvh;
   overflow: hidden;
+  overflow: clip;
   background: var(--hb-cloud);
-  /* A containing block for position:absolute descendants. Without one, a visually-hidden
-     (.sr-only, position:absolute) heading deep in a page positions against <body>,
-     escapes this shell's overflow:hidden and stretches the DOCUMENT taller than the
-     viewport — the page then scrolls and the plain body background shows beneath the
-     shell. */
-  position: relative;
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────── */
@@ -252,6 +253,8 @@
 .content {
   flex: 1;
   overflow-y: auto;
+  /* Scroll chaining / elastic overscroll at the end of a page must not reach the document. */
+  overscroll-behavior: contain;
   /* Absolutely positioned page content (sr-only headings, visually-hidden inputs) stays
      inside, and scrolls with, the content canvas instead of leaking to the document. */
   position: relative;

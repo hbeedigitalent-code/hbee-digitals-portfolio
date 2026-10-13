@@ -70,6 +70,19 @@ function getServiceRoleClient() {
   return serviceRoleClient
 }
 
+/**
+ * Server-side only. Names the stage that failed and the database's own error code and
+ * message (they describe the problem — a missing column, a permission, a timeout — and
+ * carry no request data). Nothing here is ever returned to the browser, so the response
+ * stays a generic failure while the log says exactly which query to look at.
+ */
+function logStage(stage: string, error: unknown) {
+  const e = error as { code?: string; message?: string } | null
+  console.error(
+    `[client-portal/growth-profile] ${stage} failed: code=${e?.code ?? 'n/a'} message=${String(e?.message ?? 'n/a').slice(0, 200)}`,
+  )
+}
+
 /** Coerce a stored score into a number the UI can render, or null. */
 function toScore(value: unknown): number | null {
   const n = Number(value)
@@ -126,11 +139,7 @@ export async function GET() {
       .limit(2)
 
     if (clientError) {
-      console.error(
-        `[client-portal/growth-profile] client lookup failed (code=${
-          (clientError as { code?: string }).code ?? 'n/a'
-        })`,
-      )
+      logStage('client lookup (clients.id, merchant_id)', clientError)
       return NextResponse.json({ error: 'Failed to load your profile' }, { status: 500 })
     }
 
@@ -158,11 +167,17 @@ export async function GET() {
 
     // Has this merchant submitted anything at all? Existence only — no status
     // is read from here, and nothing about the review is disclosed.
-    const { data: anyAssessment } = await adminClient
+    const { data: anyAssessment, error: assessmentError } = await adminClient
       .from('growth_assessments')
       .select('id')
       .eq('merchant_id', merchantId)
       .limit(1)
+
+    if (assessmentError) {
+      // A failed read is a failure — it is NOT the truthful state "no assessment".
+      logStage('assessment existence (growth_assessments)', assessmentError)
+      return NextResponse.json({ error: 'Failed to load your profile' }, { status: 500 })
+    }
 
     if (!anyAssessment || anyAssessment.length === 0) {
       return NextResponse.json({ state: 'no_assessment' })
@@ -191,11 +206,7 @@ export async function GET() {
 
     if (decisionError) {
       // A gate that cannot answer "yes" is never read as "yes".
-      console.error(
-        '[growth-profile] decision lookup failed (code=' +
-          ((decisionError as { code?: string }).code ?? 'n/a') +
-          ') — withholding',
-      )
+      logStage('decision lookup (growth_program_decisions) — withholding as under_review', decisionError)
       return NextResponse.json({ state: 'under_review' })
     }
 
@@ -246,11 +257,7 @@ export async function GET() {
       .maybeSingle()
 
     if (profileError) {
-      console.error(
-        `[client-portal/growth-profile] profile read failed (code=${
-          (profileError as { code?: string }).code ?? 'n/a'
-        })`,
-      )
+      logStage('profile read (growth_profiles)', profileError)
       return NextResponse.json({ error: 'Failed to load your profile' }, { status: 500 })
     }
 
@@ -285,8 +292,12 @@ export async function GET() {
       .eq('id', profile.assessment_id)
       .maybeSingle()
 
+    if (boundError) {
+      logStage('assessment binding read (growth_assessments)', boundError)
+      return NextResponse.json({ error: 'Failed to load your profile' }, { status: 500 })
+    }
+
     if (
-      boundError ||
       !boundAssessment ||
       String(boundAssessment.merchant_id) !== String(merchantId)
     ) {
@@ -297,13 +308,16 @@ export async function GET() {
     }
 
     // Latest PDF, if one exists. file_url only — no storage path, no row.
-    const { data: pdfRows } = await adminClient
+    const { data: pdfRows, error: pdfError } = await adminClient
       .from('growth_profile_pdfs')
       .select('file_url, uploaded_at')
       .eq('growth_profile_id', profile.id)
       .eq('is_latest', true)
       .order('uploaded_at', { ascending: false })
       .limit(1)
+
+    // The PDF is optional: a failed read omits the download, never the profile.
+    if (pdfError) logStage('latest PDF read (growth_profile_pdfs) — profile still returned', pdfError)
 
     const pdfUrl =
       typeof pdfRows?.[0]?.file_url === 'string' ? pdfRows[0].file_url : null
@@ -331,7 +345,7 @@ export async function GET() {
       },
     })
   } catch (error) {
-    console.error('❌ Client growth profile error:', error)
+    logStage('unhandled exception', error)
     return NextResponse.json({ error: 'Failed to load your profile' }, { status: 500 })
   }
 }

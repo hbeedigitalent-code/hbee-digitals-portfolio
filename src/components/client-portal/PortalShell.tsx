@@ -181,7 +181,7 @@ export function PortalShell({ client, onLogout, pathOverride, children }: Portal
   const firstName = (client.full_name || '').trim().split(/\s+/)[0] || 'Account'
 
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} data-portal-shell="">
       <aside className={styles.sidebar}>
         <SidebarBody client={client} path={path} onLogout={onLogout} />
       </aside>

@@ -17,6 +17,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { ArrowRight, BarChart3, Check, Search, ShieldCheck, ShoppingCart, Repeat } from 'lucide-react'
 import { HbeeModuleStandalone } from '@/components/site/module/HbeeModule'
+import { HbeeModuleGroup } from '@/components/site/module/HbeeModuleGroup'
 import type { ActiveProject, ActivityItem, AttentionItem, CurrentPriority, GrowthSnapshot, PillarKey, ProposalCard } from '@/lib/client-portal/dashboard'
 import styles from './dashboard.module.css'
 
@@ -104,15 +105,20 @@ function ArrowLink({ href, children }: { href: string; children: ReactNode }) {
 }
 
 const GROWTH_STATE_COPY: Record<string, { text: string; href: string; cta: string }> = {
+  not_connected: {
+    text: 'Your portal account is not connected to a Growth Profile yet.',
+    href: '/client-portal/growth-profile',
+    cta: 'View Growth Profile',
+  },
   under_review: {
     text: 'Your assessment is with our team. Your Growth Profile appears here once the review is complete.',
     href: '/client-portal/growth-profile',
     cta: 'View Growth Profile',
   },
   no_assessment: {
-    text: 'Complete the Growth Readiness Assessment and we will prepare your Growth Profile.',
+    text: 'Complete the Growth Review and we will prepare your Growth Profile.',
     href: '/growth-review',
-    cta: 'Start assessment',
+    cta: 'Start the Growth Review',
   },
 }
 const GROWTH_STATE_DEFAULT = {
@@ -194,18 +200,28 @@ export default function ClientPortalHome() {
     <div className={styles.page}>
       {/* 1 — Client context */}
       <header className={styles.hello}>
-        <Eyebrow>Client Portal</Eyebrow>
-        <h1>
-          {greeting(new Date())}
-          {firstName ? (
-            <>
-              , <em>{firstName}.</em>
-            </>
-          ) : (
-            '.'
-          )}
-        </h1>
-        <p className={styles.lead}>Here&rsquo;s where your growth work currently stands.</p>
+        <div className={styles.helloText}>
+          <Eyebrow>Client Portal</Eyebrow>
+          <h1>
+            {greeting(new Date())}
+            {firstName ? (
+              <>
+                , <em>{firstName}.</em>
+              </>
+            ) : (
+              '.'
+            )}
+          </h1>
+          <p className={styles.lead}>Here&rsquo;s where your growth work currently stands.</p>
+        </div>
+        {/* Brand anchor: Brand · Experience · Technology · Creative · Discovery · Growth, connected.
+            Decorative and static; shown where there is room for it. */}
+        <div className={styles.helloModule}>
+          <div aria-hidden="true">
+            <HbeeModuleGroup motion="settle" showLabels={false} idPrefix="portal-home" label="Brand, Experience, Technology, Creative, Discovery and Growth, connected" />
+          </div>
+          <p className={styles.helloCaption}>Brand · Experience · Technology · Creative · Discovery · Growth</p>
+        </div>
       </header>
 
       {data.unavailable.length > 0 && (
@@ -327,7 +343,13 @@ export default function ClientPortalHome() {
           ) : unavailable.has('projects') ? (
             <p className={styles.quiet}>We could not load your projects just now.</p>
           ) : (
-            <p className={styles.quiet}>No active projects right now. When Hbee starts work with you, it will appear here.</p>
+            <div className={styles.emptyWork}>
+              <p className={styles.quiet}>No active projects right now. When Hbee starts work with you, it will appear here.</p>
+              {/* Brand signature only: the connected module system. No sequence, no stage, no project data. */}
+              <div className={styles.emptyModule} aria-hidden="true">
+                <HbeeModuleGroup motion="settle" showLabels={false} idPrefix="portal-work" label="Hbee system" />
+              </div>
+            </div>
           )}
           {data.activeWork.history && data.activeWork.projects.length > 0 && (
             <p className={styles.histNote}>There is no active project at the moment — this is your most recent completed one.</p>

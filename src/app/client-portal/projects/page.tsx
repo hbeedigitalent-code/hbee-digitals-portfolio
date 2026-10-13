@@ -19,6 +19,7 @@ import {
   statusTone,
   type ProjectFilter,
 } from '@/lib/client-portal/projects-display'
+import { HbeeModuleGroup } from '@/components/site/module/HbeeModuleGroup'
 import styles from './projects.module.css'
 
 interface PortalProject {
@@ -116,6 +117,10 @@ export default function ClientProjectsPage() {
             Your work with Hbee, <em>in progress.</em>
           </h1>
           <p className={styles.lead}>Every project, its current status and how far along it is.</p>
+        </div>
+        {/* Brand signature only: the connected module system. It says nothing about any project. */}
+        <div className={styles.heroModule} aria-hidden="true">
+          <HbeeModuleGroup motion="settle" showLabels={false} idPrefix="portal-projects" label="Hbee system" />
         </div>
         <div className={styles.heroActions}>
           <Link href="/client-portal/project-request" className={styles.primary}>

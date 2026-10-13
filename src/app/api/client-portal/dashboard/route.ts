@@ -66,7 +66,11 @@ async function loadGrowth(): Promise<{ state: string; profile: ReleasedProfile |
     const res = await getGrowthProfile()
     const payload: any = await res.json().catch(() => null)
     if (res.status === 409) return { state: payload?.state === 'inconsistent' ? 'inconsistent' : 'ambiguous', profile: null }
-    if (!res.ok) return { state: 'error', profile: null }
+    if (!res.ok) {
+      // The Growth Profile route logs its own stage; this line says the dashboard saw it fail.
+      console.error(`[client-portal/dashboard] growth profile route answered HTTP ${res.status}`)
+      return { state: 'error', profile: null }
+    }
     if (payload?.state === 'ready' && payload.profile) {
       const p = payload.profile
       return {
@@ -109,7 +113,9 @@ export async function GET() {
       .limit(2)
 
     if (clientError) {
-      console.error('[client-portal/dashboard] client lookup failed')
+      console.error(
+        `[client-portal/dashboard] client lookup failed: code=${(clientError as { code?: string }).code ?? 'n/a'} message=${String((clientError as { message?: string }).message ?? 'n/a').slice(0, 200)}`,
+      )
       return NextResponse.json({ error: 'Failed to load your dashboard' }, { status: 500 })
     }
     if (!clientRows || clientRows.length === 0) {
@@ -126,7 +132,13 @@ export async function GET() {
     const rows = <T,>(label: string, result: { data: T[] | null; error: unknown }): T[] => {
       if (result.error) {
         unavailable.push(label)
-        console.error(`[client-portal/dashboard] ${label} query failed`)
+        // Server-side only: the section name plus the database's own code and message, so the
+        // exact failing dependency can be read from the logs. The browser only learns that the
+        // section (a fixed label) was unavailable.
+        const e = result.error as { code?: string; message?: string }
+        console.error(
+          `[client-portal/dashboard] ${label} query failed: code=${e.code ?? 'n/a'} message=${String(e.message ?? 'n/a').slice(0, 200)}`,
+        )
         return []
       }
       return result.data || []

@@ -94,8 +94,8 @@ export const PORTAL_BENEFITS: { name: string; text: string; basis: string }[] = 
   },
   {
     name: 'Keep important work together',
-    text: 'Upload and download project files, and access deliverables in one place.',
-    basis: 'files (upload / signed download), deliverables',
+    text: 'Upload and download project files, and access deliverables in one place through Files.',
+    basis: 'files + deliverables (both inside Files: upload / signed download)',
   },
   {
     name: 'Review what needs attention',
@@ -110,7 +110,7 @@ export const PORTAL_BENEFITS: { name: string; text: string; basis: string }[] = 
 ]
 
 /** The real portal sidebar labels (src/app/client-portal/layout.tsx), in order. */
-export const PORTAL_NAV = ['Dashboard', 'Growth Profile', 'Projects', 'Proposals', 'Files', 'Requests', 'Deliverables', 'Invoices', 'Settings']
+export const PORTAL_NAV = ['Overview', 'Growth Profile', 'Projects', 'Proposals', 'Files', 'Requests', 'Invoices', 'Settings']
 
 export const HOW_CTA = {
   eyebrow: 'Ready to find what should move next',

@@ -12,6 +12,19 @@
 .node { width: 0.75rem; height: 0.4375rem; flex: none; border-radius: 2px 999px 999px 2px; background: var(--hb-orange); }
 
 /* ── Greeting ─────────────────────────────────────────────────── */
+.hello { display: grid; gap: 1rem; }
+.helloText { min-width: 0; }
+/* The Hbee Module system as a restrained anchor beside the greeting — never a hero. */
+.helloModule { display: none; width: 9rem; justify-self: end; padding-top: 1rem; }
+@media (min-width: 900px) {
+  .hello { grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 2rem; }
+  .helloModule { display: block; }
+}
+@media (min-width: 1280px) { .helloModule { width: 10rem; } }
+.helloCaption { margin: 0.375rem 0 0; font-size: 0.625rem; font-weight: 600; letter-spacing: 0.12em; line-height: 1.5; text-align: center; text-transform: uppercase; color: var(--hb-muted); }
+.emptyWork { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; }
+.emptyModule { display: none; width: 5.5rem; flex: none; }
+@media (min-width: 640px) { .emptyModule { display: block; } }
 .hello h1 { margin-top: 0.75rem; font-family: var(--hb-font-display); font-size: clamp(1.875rem, 1.4rem + 2vw, 3rem); font-weight: 800; line-height: 1.05; letter-spacing: -0.03em; color: var(--hb-ink); }
 .hello h1 em { font-style: normal; color: var(--hb-blue); }
 .hello .lead { margin-top: 0.625rem; font-size: 1.0625rem; line-height: 1.55; color: var(--hb-slate); }

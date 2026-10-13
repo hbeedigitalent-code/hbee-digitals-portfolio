@@ -82,3 +82,33 @@ html :where([data-surface='portal']) nav {
   -webkit-backdrop-filter: none;
   border: 0;
 }
+
+
+/* ── Document lock ───────────────────────────────────────────────
+   While the portal shell is mounted the DOCUMENT must not scroll or bounce: the shell is
+   pinned to the viewport and its content area owns vertical scrolling. Elastic overscroll
+   (macOS / iOS) and any stray overflow would otherwise reveal the page behind the shell.
+   The backdrop is Cloud, the portal canvas, never the dark global theme colour. */
+html:has([data-portal-shell]) {
+  overflow: hidden;
+  overscroll-behavior: none;
+  background-color: #f7f9fc; /* --hb-cloud */
+}
+html:has([data-portal-shell]) body {
+  overflow: hidden;
+  overscroll-behavior: none;
+  background-color: #f7f9fc;
+}
+
+/* ── Typography: the public site's foundation ────────────────────
+   The public site applies Manrope to every heading through
+   html :where([data-surface='site']) :is(h1…h6) (site-tokens.css), and Inter to everything
+   else. That heading rule is scoped to the site surface, so inside the portal only the
+   headings whose own CSS happened to name the display face were Manrope — every other
+   heading fell through to the global Inter body font. Same rule, same specificity (0,0,2:
+   beats the global element rules, still loses to any class that sets its own font), for
+   the portal and the client-auth shell. Weights are unchanged and stay inside the loaded
+   Manrope range (500-800). */
+html :where([data-surface='portal']) :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--hb-font-display);
+}

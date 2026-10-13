@@ -168,6 +168,12 @@ interface HbeeModuleGroupProps {
    * No drawing, no travelling signal. Same gate as `hero`.
    */
   motion?: 'reveal' | 'hero' | 'settle'
+  /**
+   * Print the module names on the faces (default). The word labels are sized for a figure of
+   * roughly 300px or more; a small figure (the Client Portal's compact uses) sets this to
+   * false and shows icon-only modules, with the names carried by real text elsewhere.
+   */
+  showLabels?: boolean
   className?: string
 }
 
@@ -177,6 +183,7 @@ export function HbeeModuleGroup({
   idPrefix = 'system',
   state = 'connected',
   motion = 'reveal',
+  showLabels = true,
   className,
 }: HbeeModuleGroupProps) {
   const connected = state === 'connected'
@@ -264,7 +271,7 @@ export function HbeeModuleGroup({
               const s = SLOTS[i]
               return (
                 <li key={item.label} className={styles.slot} style={slotStyle(s, i + 1)}>
-                  <HbeeModule label={item.label} icon={item.icon} sweep={s.sweep} glass={s.glass} signal={connected && s.signal} />
+                  <HbeeModule label={showLabels ? item.label : undefined} icon={item.icon} sweep={s.sweep} glass={s.glass} signal={connected && s.signal} />
                 </li>
               )
             })}
