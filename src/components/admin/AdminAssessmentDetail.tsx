@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { AssessmentWithMerchant } from '@/lib/services/assessment-service'
 import SvgIcon from '@/components/ui/SvgIcon'
 import { getClassificationColor, getStatusColor } from '@/lib/scoring/hgri-scoring'
+import { displayGrowthClassification } from '@/lib/growth-classification'
 
 interface AdminAssessmentDetailProps {
   assessment: AssessmentWithMerchant
@@ -291,8 +292,8 @@ export function AdminAssessmentDetail({ assessment, statusOptions }: AdminAssess
           <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
             <h3 className="mb-4 font-semibold text-[var(--text-primary)]">Classification</h3>
             <div className="text-center">
-              <span className={`inline-block rounded-full px-6 py-3 text-lg font-bold text-white ${getClassificationColor(assessment.classification)}`}>
-                {assessment.classification}
+              <span className={`inline-block rounded-full px-6 py-3 text-lg font-bold text-white ${getClassificationColor(displayGrowthClassification(assessment.classification))}`}>
+                {displayGrowthClassification(assessment.classification)}
               </span>
               <div className="mt-2 text-sm text-[var(--text-muted)]">
                 Based on {assessment.hgri_score}/100 score

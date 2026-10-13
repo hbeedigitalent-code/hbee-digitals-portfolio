@@ -8,6 +8,7 @@ import Link from 'next/link'
 import StatusBadge from '@/components/ui/StatusBadge'
 import SvgIcon from '@/components/ui/SvgIcon'
 import Button from '@/components/ui/Button'
+import { displayGrowthClassification } from '@/lib/growth-classification'
 
 interface PageProps {
   params: {
@@ -116,8 +117,8 @@ export default function AdminGrowthProfileDetailPage({ params }: PageProps) {
     )
   }
 
-  const classificationColor = getClassificationColor(profile.growth_classification)
-  const emoji = classificationEmojis[profile.growth_classification] || '📈'
+  const classificationColor = getClassificationColor(displayGrowthClassification(profile.growth_classification))
+  const emoji = classificationEmojis[displayGrowthClassification(profile.growth_classification)] || '📈'
 
   return (
     <div className="space-y-6">
@@ -175,7 +176,7 @@ export default function AdminGrowthProfileDetailPage({ params }: PageProps) {
                 <div className="flex items-center gap-3">
                   <span className="text-3xl">{emoji}</span>
                   <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${classificationColor}`}>
-                    {profile.growth_classification}
+                    {displayGrowthClassification(profile.growth_classification)}
                   </span>
                 </div>
                 <p className="mt-2 text-[var(--text-secondary)]">{profile.summary}</p>

@@ -16,6 +16,7 @@
 import { NextResponse } from 'next/server'
 import { requireActiveAdmin, queryFailure, ADMIN_UUID_RE } from '@/lib/admin-api-auth'
 import { buildAssessmentAnswers } from '@/lib/admin/assessment-answers'
+import { toDatabaseGrowthClassification } from '@/lib/growth-classification'
 
 // The assessment is read with an explicit column list (it was `*`): exactly
 // what the two review screens use, plus raw_answers_json, which is converted
@@ -116,7 +117,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       updates.review_notes = body.review_notes.slice(0, 10000)
     }
     if (typeof body.growth_classification === 'string' && body.growth_classification.trim()) {
-      updates.growth_classification = body.growth_classification.trim().slice(0, 120)
+      // growth_reviews accepts only the database values ("Foundation", not "Foundation Stage").
+      const dbClassification = toDatabaseGrowthClassification(body.growth_classification)
+      if (!dbClassification) {
+        console.error('[admin/growth-reviews PATCH] unsupported growth_classification refused')
+        return NextResponse.json({ error: 'Invalid growth classification' }, { status: 400 })
+      }
+      updates.growth_classification = dbClassification
     }
     for (const field of [
       'hgri_score',

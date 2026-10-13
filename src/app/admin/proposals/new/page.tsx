@@ -8,6 +8,7 @@ import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
 import Button from '@/components/ui/Button'
 import StatusBadge from '@/components/ui/StatusBadge'
+import { displayGrowthClassification } from '@/lib/growth-classification'
 
 interface Merchant {
   id: string
@@ -319,7 +320,7 @@ export default function AdminProposalsNewPage() {
                 <option value="">No growth profile</option>
                 {profiles.map((profile) => (
                   <option key={profile.id} value={profile.id}>
-                    HGRI: {profile.hgri_score} - {profile.growth_classification}
+                    HGRI: {profile.hgri_score} - {displayGrowthClassification(profile.growth_classification)}
                   </option>
                 ))}
               </select>

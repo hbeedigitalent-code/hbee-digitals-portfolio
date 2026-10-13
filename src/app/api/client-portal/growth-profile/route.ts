@@ -26,6 +26,7 @@
 
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { displayGrowthClassification } from '@/lib/growth-classification'
 
 
 // ---------------------------------------------------------------------------
@@ -334,7 +335,7 @@ export async function GET() {
         hgri_score: toScore(profile.hgri_score),
         growth_classification:
           typeof profile.growth_classification === 'string'
-            ? profile.growth_classification
+            ? displayGrowthClassification(profile.growth_classification)
             : null,
         pillars: safePillars(profile.profile_data),
         recommendations: safeStringList(profile.profile_data?.recommendations),

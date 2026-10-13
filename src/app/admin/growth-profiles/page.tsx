@@ -7,6 +7,7 @@ import Link from 'next/link'
 import StatusBadge from '@/components/ui/StatusBadge'
 import SvgIcon from '@/components/ui/SvgIcon'
 import Button from '@/components/ui/Button'
+import { displayGrowthClassification } from '@/lib/growth-classification'
 
 export default function AdminGrowthProfilesPage() {
   const [profiles, setProfiles] = useState<any[]>([])
@@ -233,7 +234,7 @@ export default function AdminGrowthProfilesPage() {
                          email.toLowerCase().includes(search.toLowerCase())
                 })
                 .map((profile) => {
-                  const classificationColor = getClassificationColor(profile.growth_classification)
+                  const classificationColor = getClassificationColor(displayGrowthClassification(profile.growth_classification))
                   return (
                     <tr key={profile.id} className="border-b border-[var(--border)] hover:bg-[var(--bg-card-hover)] transition-colors last:border-0">
                       <td className="px-4 py-4">
@@ -246,7 +247,7 @@ export default function AdminGrowthProfilesPage() {
                       </td>
                       <td className="px-4 py-4">
                         <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${classificationColor}`}>
-                          {profile.growth_classification || 'N/A'}
+                          {displayGrowthClassification(profile.growth_classification) || 'N/A'}
                         </span>
                       </td>
                       <td className="px-4 py-4">

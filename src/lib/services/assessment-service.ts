@@ -2,6 +2,7 @@
 // No 'use client' needed - server-side service
 
 import { GrowthAssessment, Merchant } from '@/types/growth-readiness'
+import { storedClassificationsForFilter } from '@/lib/growth-classification'
 
 // Lazy initialize Supabase client
 let supabaseAdmin: any = null
@@ -81,7 +82,10 @@ export async function getAssessments(filters?: AdminFilters): Promise<{
     query = query.eq('status', filters.status)
   }
   if (filters?.classification) {
-    query = query.eq('classification', filters.classification)
+    // The filter offers display names; stored rows use the database value once reviewed.
+    const stored = storedClassificationsForFilter(filters.classification)
+    // An unknown value matches nothing — it is never coerced into a band.
+    query = stored ? query.in('classification', stored) : query.eq('classification', filters.classification)
   }
   if (filters?.industry) {
     query = query.eq('merchant.industry', filters.industry)

@@ -31,6 +31,7 @@ import {
   resolveClientIdByMerchantId,
 } from '@/lib/notifications/createNotification'
 import { requireActiveAdmin, queryFailure, ADMIN_UUID_RE } from '@/lib/admin-api-auth'
+import { toDatabaseGrowthClassification } from '@/lib/growth-classification'
 
 // Session, user-bound 2FA, the privileged client and active-admin membership
 // all come from requireActiveAdmin() now, so this module no longer builds its
@@ -39,7 +40,6 @@ const UUID_RE = ADMIN_UUID_RE
 
 const MAX_TITLE = 200
 const MAX_SUMMARY = 4000
-const MAX_CLASSIFICATION = 120
 const MAX_PROFILE_DATA_BYTES = 100_000
 
 /**
@@ -146,10 +146,16 @@ export async function POST(request: Request) {
 
     // Bounded, matching the cap PATCH /api/admin/growth-reviews/[id] applies to
     // the same column.
-    const classification =
+    // growth_profiles accepts only the database values ("Foundation", not "Foundation Stage").
+    const classification = toDatabaseGrowthClassification(
       typeof body.growth_classification === 'string' && body.growth_classification.trim()
-        ? body.growth_classification.trim().slice(0, MAX_CLASSIFICATION)
-        : 'Growth Potential'
+        ? body.growth_classification
+        : 'Growth Potential',
+    )
+    if (!classification) {
+      console.error('[admin/growth-profiles POST] unsupported growth_classification refused')
+      return NextResponse.json({ error: 'Invalid growth classification' }, { status: 400 })
+    }
 
     const summary =
       typeof body.summary === 'string' ? body.summary.slice(0, MAX_SUMMARY) : ''

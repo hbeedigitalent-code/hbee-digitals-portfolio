@@ -1,4 +1,9 @@
 // src/lib/admin/review-prefill.ts
+import {
+  DISPLAY_CLASSIFICATIONS,
+  toDisplayGrowthClassification,
+  type DisplayClassification,
+} from '@/lib/growth-classification'
 //
 // The assessment → human-review PREFILL boundary (Phase 16.7).
 //
@@ -30,8 +35,8 @@ export const PILLAR_KEYS = [
 export type PillarKey = (typeof PILLAR_KEYS)[number]
 
 /** The four canonical HGRI classifications, in the names the admin and clients see. */
-export const CLASSIFICATIONS = ['Foundation Stage', 'Growth Potential', 'Growth Ready', 'Scale Ready'] as const
-export type Classification = (typeof CLASSIFICATIONS)[number]
+export const CLASSIFICATIONS = DISPLAY_CLASSIFICATIONS
+export type Classification = DisplayClassification
 export const DEFAULT_CLASSIFICATION: Classification = 'Growth Potential'
 
 /** One assessment pillar (0–20) as a review value (0–100). Non-numeric → 0. */
@@ -46,10 +51,7 @@ export function assessmentPillarToReview(value: unknown): number {
  * The older plain "Foundation" is the same band as "Foundation Stage".
  */
 export function canonicalClassification(value: unknown): Classification | null {
-  if (typeof value !== 'string') return null
-  const v = value.trim()
-  if (v === 'Foundation') return 'Foundation Stage'
-  return (CLASSIFICATIONS as readonly string[]).includes(v) ? (v as Classification) : null
+  return toDisplayGrowthClassification(value)
 }
 
 interface ReviewLike {

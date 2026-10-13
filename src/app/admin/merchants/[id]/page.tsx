@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import StatusBadge from '@/components/ui/StatusBadge'
 import SvgIcon from '@/components/ui/SvgIcon'
 import Button from '@/components/ui/Button'
+import { displayGrowthClassification } from '@/lib/growth-classification'
 
 interface PageProps {
   params: {
@@ -222,7 +223,7 @@ export default function AdminMerchantDetailPage({ params }: PageProps) {
                         {profile.title || 'Growth Profile'}
                       </p>
                       <p className="text-xs text-[var(--text-muted)]">
-                        {profile.growth_classification} • {profile.hgri_score} points
+                        {displayGrowthClassification(profile.growth_classification)} • {profile.hgri_score} points
                       </p>
                     </div>
                     <Link href={`/admin/growth-profiles/${profile.id}`}>

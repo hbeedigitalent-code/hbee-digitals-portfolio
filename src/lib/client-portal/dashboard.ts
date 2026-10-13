@@ -10,6 +10,7 @@
 // none of those exist in the backend.
 
 import { isProposalActionable } from './proposal-display'
+import { displayGrowthClassification } from '@/lib/growth-classification'
 import { parseProgress } from './projects-display'
 
 export const PILLAR_ORDER = ['visibility', 'conversion', 'retention', 'authority', 'scalability'] as const
@@ -97,7 +98,7 @@ export function deriveSnapshot(profile: ReleasedProfile): GrowthSnapshot {
   const pillars = profilePillars(profile)
   return {
     score: typeof profile.hgri_score === 'number' ? profile.hgri_score : null,
-    classification: profile.growth_classification,
+    classification: displayGrowthClassification(profile.growth_classification),
     pillars,
     lowestKey: lowestPillar(pillars)?.key ?? null,
   }

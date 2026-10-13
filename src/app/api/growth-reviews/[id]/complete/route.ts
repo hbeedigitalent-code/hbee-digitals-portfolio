@@ -38,6 +38,7 @@ import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { ADMIN_2FA_COOKIE_NAME, verifyAdmin2FACookie } from '@/lib/admin-2fa-cookie'
+import { toDatabaseGrowthClassification } from '@/lib/growth-classification'
 import {
   createNotification,
   resolveClientIdByMerchantId,
@@ -65,6 +66,22 @@ function getPrivilegedClient() {
   })
 
   return privilegedClient
+}
+
+/**
+ * Server-side diagnostic for a failed stage: the stage name, the assessment id, and the
+ * database's own error code and message (capped). Nothing here is returned to the browser,
+ * and it never logs request bodies, scores, notes, cookies, tokens or credentials. The
+ * database's `details` / `hint` are deliberately NOT logged: for a constraint violation
+ * they echo the failing row, which holds the merchant's data.
+ */
+function logCompleteFailure(stage: string, assessmentId: string | null, error: unknown) {
+  const e = error as { code?: string; message?: string } | null
+  console.error(
+    `[growth-reviews/complete] ${stage} failed assessment=${assessmentId ?? 'n/a'} code=${e?.code ?? 'n/a'} message=${String(
+      e?.message ?? 'n/a',
+    ).slice(0, 300)}`,
+  )
 }
 
 type AuthResult = { ok: true; userId: string } | { ok: false; response: NextResponse }
@@ -188,11 +205,7 @@ export async function POST(
       .maybeSingle()
 
     if (reviewLoadError) {
-      console.error(
-        `[growth-reviews/complete] review load failed (code=${
-          (reviewLoadError as { code?: string }).code ?? 'n/a'
-        })`,
-      )
+      logCompleteFailure(`review load (growth_reviews ${id})`, null, reviewLoadError)
       return NextResponse.json({ error: 'Failed to load review' }, { status: 500 })
     }
 
@@ -294,7 +307,25 @@ export async function POST(
       .maybeSingle()
 
     const merchantName = merchant?.business_name || 'Business'
-    const classification = growth_classification || 'Growth Potential'
+    // The admin form works in DISPLAY names ("Foundation Stage"); the live growth_profiles and
+    // growth_reviews check constraints accept the DATABASE values ("Foundation"). Both RPC
+    // payloads and every mirror below carry the database value. An unknown value is refused
+    // here rather than guessed into a band or sent to the database to fail.
+    const isBlank =
+      growth_classification === undefined ||
+      growth_classification === null ||
+      (typeof growth_classification === 'string' && growth_classification.trim() === '')
+    const classification = !isBlank
+      ? toDatabaseGrowthClassification(growth_classification)
+      : toDatabaseGrowthClassification('Growth Potential')
+    if (!classification) {
+      console.error(
+        `[growth-reviews/complete] unsupported growth_classification refused assessment=${assessment_id} value=${JSON.stringify(
+          String(growth_classification).slice(0, 60),
+        )}`,
+      )
+      return NextResponse.json({ error: 'Invalid growth classification' }, { status: 400 })
+    }
 
     const { data: completion, error: completeError } = await supabase.rpc(
       'complete_growth_review',
@@ -321,11 +352,8 @@ export async function POST(
     )
 
     if (completeError) {
-      console.error(
-        `[growth-reviews/complete] failed (code=${
-          (completeError as { code?: string }).code ?? 'n/a'
-        })`,
-      )
+      // THE stage behind {"error":"Failed to complete review"}: the complete_growth_review() call.
+      logCompleteFailure('complete_growth_review rpc', assessment_id, completeError)
       return NextResponse.json({ error: 'Failed to complete review' }, { status: 500 })
     }
 
@@ -358,7 +386,7 @@ export async function POST(
           { status: 409 },
         )
       }
-      console.error(`[growth-reviews/complete] refused: ${reason}`)
+      console.error(`[growth-reviews/complete] complete_growth_review refused assessment=${assessment_id} reason=${reason.slice(0, 120)}`)
       return NextResponse.json({ error: 'Failed to complete review' }, { status: 500 })
     }
 
@@ -386,10 +414,7 @@ export async function POST(
       .eq('id', id)
 
     if (detailError) {
-      console.error(
-        `[growth-reviews/${id}/complete] review completed but its notes/scores were not saved ` +
-          `(code=${(detailError as { code?: string }).code ?? 'n/a'})`,
-      )
+      logCompleteFailure('review notes/scores update (completion already committed)', assessment_id, detailError)
     }
 
     // The client notification. NOTE the wording: the profile has been PREPARED.
@@ -440,7 +465,7 @@ export async function POST(
     })
 
   } catch (error) {
-    console.error('Complete review error:', error)
+    logCompleteFailure('unhandled exception', params?.id ? `review:${params.id}` : null, error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { AssessmentWithMerchant } from '@/lib/services/assessment-service'
 import SvgIcon from '@/components/ui/SvgIcon'
 import { getClassificationColor, getStatusColor } from '@/lib/scoring/hgri-scoring'
+import { displayGrowthClassification } from '@/lib/growth-classification'
 
 interface AdminAssessmentListProps {
   assessments: AssessmentWithMerchant[]
@@ -236,8 +237,8 @@ export function AdminAssessmentList({
                       <span className="text-xs text-[var(--text-muted)]">/100</span>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
-                      <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium text-white ${getClassificationColor(assessment.classification)}`}>
-                        {assessment.classification}
+                      <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium text-white ${getClassificationColor(displayGrowthClassification(assessment.classification))}`}>
+                        {displayGrowthClassification(assessment.classification)}
                       </span>
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
