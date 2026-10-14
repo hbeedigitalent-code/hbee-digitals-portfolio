@@ -6,9 +6,15 @@
 -- anything the migration creates.
 -- A table or policy missing from a result means "does not exist", not "unprotected".
 --
--- EXPECTED BEFORE
+-- EXPECTED BEFORE (the live production shape, PostgreSQL 17+ with MAINTAIN)
 --   V3  PUBLIC holds NO privileges on either table (the migration aborts otherwise).
---       anon / authenticated hold the inspected sets (see the forward script header).
+--       projects          anon: SELECT                         authenticated: DELETE, INSERT, MAINTAIN, SELECT, UPDATE
+--       project_requests  anon: DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+--                         authenticated: the same eight privileges
+--       service_role (both tables): DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE; whatever it
+--       shows BEFORE must be identical AFTER.
+--   V9  MAINTAIN held: projects.authenticated = true; project_requests.anon = true and .authenticated = true;
+--       projects.anon = false; service_role = true on both.
 --   V7  prints the exact live CREATE POLICY text of the three policies the migration drops.
 --   V8  prints policyname, permissive, roles, cmd, qual and with_check of those three policies, and whether each
 --       matches the shape the forward migration asserts (matches_expected_shape must be true on all three):
@@ -17,6 +23,9 @@
 --         project_requests  "Allow clients to link their own project requests"     UPDATE TO authenticated (USING = WITH CHECK)
 --
 -- EXPECTED AFTER
+--   V9  MAINTAIN held = FALSE for anon and authenticated on BOTH tables (all four rows), and service_role = the same
+--       value as BEFORE (true) on both tables. This is the check that must never be skipped: MAINTAIN (VACUUM / ANALYZE /
+--       CLUSTER / REINDEX / REFRESH MATERIALIZED VIEW / LOCK TABLE) is not governed by RLS.
 --   V1  rls_enabled = true on both tables.
 --   V2  projects: projects_admin_all, projects_client_read_own, projects_public_read_published.
 --       project_requests: "Allow service role to manage project requests" and
@@ -78,7 +87,7 @@ JOIN   pg_namespace n ON n.oid = c.relnamespace,
        LATERAL aclexplode(c.relacl) a
 WHERE  n.nspname = 'public' AND c.relname IN ('projects', 'project_requests')
 AND    (a.grantee = 0 OR pg_get_userbyid(a.grantee) IN ('anon', 'authenticated'))
-AND    a.privilege_type::text IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'TRIGGER', 'REFERENCES')
+AND    a.privilege_type::text IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'TRIGGER', 'REFERENCES', 'MAINTAIN')
 ORDER  BY c.relname, role_name, a.privilege_type;
 
 
@@ -144,3 +153,21 @@ JOIN  (VALUES
   ON  e.tbl = p.tablename AND e.pol = p.policyname
 WHERE  p.schemaname = 'public'
 ORDER  BY p.tablename, p.policyname;
+
+
+-- V9. MAINTAIN, stated explicitly for every browser role and for service_role. ------------------------------------
+--     MAINTAIN (PostgreSQL 17+) permits VACUUM, ANALYZE, CLUSTER, REINDEX, REFRESH MATERIALIZED VIEW and LOCK TABLE,
+--     and row-level security does not apply to those operations. This reads the ACL directly, so it also runs (and
+--     shows false) on a server older than 17, where the privilege does not exist.
+--     AFTER hardening: maintain_held must be false on all four anon / authenticated rows and unchanged for service_role.
+SELECT t.tablename,
+       r.role_name,
+       coalesce(bool_or(a.privilege_type::text = 'MAINTAIN'), false) AS maintain_held,
+       CASE WHEN r.role_name = 'service_role' THEN 'must be unchanged (stays true if it was true before)'
+            ELSE 'must be FALSE after hardening' END AS expectation
+FROM   (VALUES ('projects'), ('project_requests')) AS t(tablename)
+CROSS  JOIN (VALUES ('anon'), ('authenticated'), ('service_role')) AS r(role_name)
+LEFT   JOIN pg_class c      ON c.relname = t.tablename AND c.relnamespace = 'public'::regnamespace
+LEFT   JOIN LATERAL aclexplode(c.relacl) a ON pg_get_userbyid(a.grantee) = r.role_name
+GROUP  BY t.tablename, r.role_name
+ORDER  BY t.tablename, r.role_name;

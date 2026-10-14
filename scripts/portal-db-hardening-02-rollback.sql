@@ -14,9 +14,10 @@
 --     public.project_requests  "Allow clients to insert their own project requests"    INSERT  TO public (policy role PUBLIC)
 --     public.project_requests  "Allow clients to link their own project requests"      UPDATE  TO authenticated (USING and WITH CHECK)
 --   privileges
---     projects          : INSERT, DELETE to authenticated
---     project_requests  : ALL (DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE) to anon;
---                         DELETE, INSERT, REFERENCES, TRIGGER, TRUNCATE, UPDATE to authenticated
+--     projects          : INSERT, DELETE, MAINTAIN to authenticated
+--     project_requests  : ALL (DELETE, INSERT, MAINTAIN, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE) to anon;
+--                         DELETE, INSERT, MAINTAIN, REFERENCES, TRIGGER, TRUNCATE, UPDATE to authenticated
+--   MAINTAIN exists on PostgreSQL 17+ only; on an older server nothing is restored for it (the live database is 17+).
 --   Not touched: RLS flags, retained policies, service_role, PUBLIC, schemas, data.
 --
 -- POLICY TEXT: the three policies are recreated exactly as inspected in live pg_policies. The verification script
@@ -89,7 +90,7 @@ BEGIN
   SELECT count(*) INTO v_count
   FROM   pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace, LATERAL aclexplode(c.relacl) a
   WHERE  n.nspname = 'public' AND c.relname IN ('projects', 'project_requests') AND a.grantee = 0
-  AND    a.privilege_type::text IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'TRIGGER', 'REFERENCES');
+  AND    a.privilege_type::text IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'TRIGGER', 'REFERENCES', 'MAINTAIN');
   IF v_count <> 0 THEN
     RAISE EXCEPTION 'ABORT (nothing changed): PUBLIC holds mutating privileges on these tables; the state is not the hardened state.';
   END IF;
@@ -135,6 +136,17 @@ GRANT DELETE, INSERT ON TABLE public.projects TO authenticated;
 GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE public.project_requests TO anon;
 GRANT DELETE, INSERT, REFERENCES, TRIGGER, TRUNCATE, UPDATE         ON TABLE public.project_requests TO authenticated;
 
+-- MAINTAIN (PostgreSQL 17+), restored exactly where the live database had it: authenticated on projects, and
+-- anon + authenticated on project_requests. Dynamic SQL only so the script still runs where the name does not exist.
+DO $$
+BEGIN
+  IF current_setting('server_version_num')::integer >= 170000 THEN
+    EXECUTE 'GRANT MAINTAIN ON TABLE public.projects TO authenticated';
+    EXECUTE 'GRANT MAINTAIN ON TABLE public.project_requests TO anon, authenticated';
+  END IF;
+END
+$$;
+
 
 -- ── D. Reconcile the restored state ───────────────────────────────────────────────────────────────
 DO $$
@@ -144,6 +156,8 @@ DECLARE
   v_acl    text;
   v_before text;
   v_after  text;
+  v_expected text;
+  v_pg17   boolean := current_setting('server_version_num')::integer >= 170000;
 BEGIN
   -- D1. The three policies exist again with the inspected live shape (permissive, command, roles, USING, WITH CHECK).
   FOR v_rec IN SELECT * FROM (VALUES
@@ -180,18 +194,19 @@ BEGIN
     RAISE EXCEPTION 'ABORT: a pre-existing policy changed during the rollback.';
   END IF;
 
-  -- D3. Privileges are the original inspected sets again.
+  -- D3. Privileges are the original inspected sets again (the live BEFORE shape, MAINTAIN included on PostgreSQL 17+).
   FOR v_rec IN SELECT * FROM (VALUES
       ('projects',         'anon',          'SELECT'),
-      ('projects',         'authenticated', 'DELETE,INSERT,SELECT,UPDATE'),
-      ('project_requests', 'anon',          'DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE'),
-      ('project_requests', 'authenticated', 'DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE')
+      ('projects',         'authenticated', 'DELETE,INSERT,MAINTAIN,SELECT,UPDATE'),
+      ('project_requests', 'anon',          'DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE'),
+      ('project_requests', 'authenticated', 'DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE')
     ) AS t(tbl, role_name, expected) LOOP
     SELECT coalesce(string_agg(a.privilege_type::text, ',' ORDER BY a.privilege_type::text), '') INTO v_acl
     FROM   pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace, LATERAL aclexplode(c.relacl) a
     WHERE  n.nspname = 'public' AND c.relname = v_rec.tbl AND pg_get_userbyid(a.grantee) = v_rec.role_name;
-    IF v_acl <> v_rec.expected THEN
-      RAISE EXCEPTION 'ABORT: % holds [%] on public.% after the rollback (expected [%]).', v_rec.role_name, v_acl, v_rec.tbl, v_rec.expected;
+    v_expected := CASE WHEN v_pg17 THEN v_rec.expected ELSE replace(v_rec.expected, 'MAINTAIN,', '') END;
+    IF v_acl <> v_expected THEN
+      RAISE EXCEPTION 'ABORT: % holds [%] on public.% after the rollback (expected [%]).', v_rec.role_name, v_acl, v_rec.tbl, v_expected;
     END IF;
   END LOOP;
 

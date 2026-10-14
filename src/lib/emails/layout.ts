@@ -132,6 +132,35 @@ export function requireEmailOrigin(): string {
   return origin
 }
 
+// ---------------------------------------------------------------------------
+// The logo — one path, shared by both renderers (renderEmailHtml here and renderHbeeEmailHtml in
+// hbee-email.ts).
+//
+// VERSIONED FILENAME, NOT A QUERY STRING. Mail clients and image proxies (Gmail's, Yahoo's) cache
+// remote images by URL, including older and failed fetches, so replacing the bytes behind an
+// existing path does not reach messages whose image was already cached. The corrected transparent
+// artwork therefore lives at a new path; the earlier /email/hbee-logo.png is left in place so mail
+// already delivered keeps resolving. To change the artwork again, add -v3 and change only this line.
+//
+// /public/email/hbee-logo-v2.png: 128x128 RGBA PNG (true alpha, no white matte on the edges),
+// cropped to the mark, rendered from the canonical /public/svgs/logo.svg. Email clients do not
+// reliably render SVG, hence a PNG.
+// ---------------------------------------------------------------------------
+export const EMAIL_LOGO_PATH = '/email/hbee-logo-v2.png'
+
+/**
+ * The logo is a permanent public brand asset, so its host is FIXED to the canonical apex and is
+ * deliberately NOT read from NEXT_PUBLIC_SITE_URL: a preview deployment, localhost or a www origin
+ * must never put a vercel.app / localhost / www image address into an email. Links and buttons are a
+ * different matter and still use the configured origin through emailUrl().
+ */
+export const EMAIL_LOGO_ORIGIN = 'https://hbeedigitals.com'
+
+/** Always `https://hbeedigitals.com/email/hbee-logo-v2.png`, whatever the environment. */
+export function emailLogoUrl(): string {
+  return `${EMAIL_LOGO_ORIGIN}${EMAIL_LOGO_PATH}`
+}
+
 /** Any leading `scheme:` — http, https, javascript, data, mailto, anything. */
 const HAS_SCHEME = /^[a-z][a-z0-9+.-]*:/i
 
@@ -305,7 +334,7 @@ function renderCtaHtml(cta: { label: string; url: string }): string {
 }
 
 export function renderEmailHtml(options: EmailLayoutOptions): string {
-  const logoSrc = emailUrl('/email/hbee-logo.png')
+  const logoSrc = emailLogoUrl()
   const siteHref = requireEmailOrigin()
 
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">

@@ -1,12 +1,17 @@
 -- ═════════════════════════════════════════════════════════════════════════════════════════════
 --
---   !!  DO NOT APPLY BEFORE THE REBUILT CLIENT PORTAL IS DEPLOYED.  !!
+--   !!  OPERATIONAL GATE. APPLY ONLY AFTER ALL OF THE FOLLOWING ARE TRUE:  !!
 --
---   Current production (`main`) still performs DIRECT BROWSER WRITES to `projects` and
---   `project_requests` (ProjectRequestForm and the inline "New Request" form on /client-portal/requests).
---   Applying this migration while that code is live BREAKS client project requests.
---   Apply only after the rebuilt portal (POST /api/client-portal/project-requests, server-side request
---   form, /api/client-portal/requests) is serving production traffic.
+--     1. the rebuilt Client Portal is deployed and serving production traffic (requests are created through
+--        POST /api/client-portal/project-requests and read through /api/client-portal/requests; nothing in the
+--        portal writes `projects` or `project_requests` from the browser);
+--     2. the production portal smoke test has passed;
+--     3. the portal invitation smoke test has passed;
+--     4. portal-db-hardening-03-verify-readonly.sql, run against production, matches the EXPECTED BEFORE state
+--        described in that script.
+--
+--   Applying this migration while any browser code still writes these tables directly would break client
+--   project requests. If the before-state check does not match, STOP: the script's own preflight would abort anyway.
 --
 -- ═════════════════════════════════════════════════════════════════════════════════════════════
 -- Hbee Growth OS — Portal database privilege hardening (Phase 18.9)  ·  FORWARD MIGRATION
@@ -21,8 +26,16 @@
 --   public.project_requests  "Allow clients to link their own project requests"      UPDATE  TO authenticated
 --
 -- REVOKES (browser roles only)
---   projects          : INSERT, DELETE from authenticated
---   project_requests  : ALL from anon; DELETE, INSERT, REFERENCES, TRIGGER, TRUNCATE, UPDATE from authenticated
+--   projects          : INSERT, DELETE, MAINTAIN from authenticated
+--   project_requests  : ALL (including MAINTAIN) from anon;
+--                       DELETE, INSERT, MAINTAIN, REFERENCES, TRIGGER, TRUNCATE, UPDATE from authenticated
+--
+-- MAINTAIN (PostgreSQL 17+) is the table privilege that allows VACUUM, ANALYZE, CLUSTER, REINDEX,
+-- REFRESH MATERIALIZED VIEW and LOCK TABLE. Row-level security does not apply to those maintenance
+-- operations, so no policy limits them, and no Hbee browser flow needs them. The live database
+-- grants MAINTAIN to anon / authenticated, so it is revoked here. service_role keeps MAINTAIN.
+-- On a server older than PostgreSQL 17 the privilege does not exist; the script then expects and
+-- revokes nothing for it (the live production database is 17+, so MAINTAIN is checked strictly there).
 --
 -- KEEPS
 --   projects          : anon SELECT; authenticated SELECT and UPDATE (the admin image tool still updates
@@ -59,6 +72,8 @@ DECLARE
   v_names  text;
   v_actual text;
   v_acl    text;
+  v_expected text;
+  v_pg17   boolean := current_setting('server_version_num')::integer >= 170000;
 BEGIN
   -- A1. Both tables exist as ordinary tables with row-level security enabled.
   FOR v_rec IN SELECT unnest(ARRAY['projects', 'project_requests']) AS tbl LOOP
@@ -140,25 +155,27 @@ BEGIN
 
   -- A5. Privileges: the browser roles hold EXACTLY the inspected sets (so the revokes below, and the rollback,
   --     are exact). PUBLIC must hold nothing mutating or dangerous (it is never revoked here).
+  -- The live BEFORE shape, MAINTAIN included (PostgreSQL 17+). On an older server the same lists apply without it.
   FOR v_rec IN SELECT * FROM (VALUES
       ('projects',         'anon',          'SELECT'),
-      ('projects',         'authenticated', 'DELETE,INSERT,SELECT,UPDATE'),
-      ('project_requests', 'anon',          'DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE'),
-      ('project_requests', 'authenticated', 'DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE')
+      ('projects',         'authenticated', 'DELETE,INSERT,MAINTAIN,SELECT,UPDATE'),
+      ('project_requests', 'anon',          'DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE'),
+      ('project_requests', 'authenticated', 'DELETE,INSERT,MAINTAIN,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE')
     ) AS t(tbl, role_name, expected) LOOP
     SELECT coalesce(string_agg(a.privilege_type::text, ',' ORDER BY a.privilege_type::text), '') INTO v_acl
     FROM   pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace, LATERAL aclexplode(c.relacl) a
     WHERE  n.nspname = 'public' AND c.relname = v_rec.tbl AND pg_get_userbyid(a.grantee) = v_rec.role_name;
-    IF v_acl <> v_rec.expected THEN
+    v_expected := CASE WHEN v_pg17 THEN v_rec.expected ELSE replace(v_rec.expected, 'MAINTAIN,', '') END;
+    IF v_acl <> v_expected THEN
       RAISE EXCEPTION 'ABORT (nothing changed): % holds [%] on public.% but this migration was written for [%]. Review the live grants and revise.',
-        v_rec.role_name, v_acl, v_rec.tbl, v_rec.expected;
+        v_rec.role_name, v_acl, v_rec.tbl, v_expected;
     END IF;
   END LOOP;
 
   SELECT count(*), string_agg(c.relname || ':' || a.privilege_type, ', ') INTO v_count, v_names
   FROM   pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace, LATERAL aclexplode(c.relacl) a
   WHERE  n.nspname = 'public' AND c.relname IN ('projects', 'project_requests') AND a.grantee = 0
-  AND    a.privilege_type::text IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'TRIGGER', 'REFERENCES');
+  AND    a.privilege_type::text IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'TRIGGER', 'REFERENCES', 'MAINTAIN');
   IF v_count <> 0 THEN
     RAISE EXCEPTION 'ABORT (nothing changed): PostgreSQL PUBLIC holds privileges on these tables (%). This migration deliberately does not revoke PUBLIC on assumption; add an explicit, reviewed PUBLIC revoke if intended.', v_names;
   END IF;
@@ -196,6 +213,18 @@ REVOKE DELETE, INSERT ON TABLE public.projects FROM authenticated;
 
 REVOKE ALL ON TABLE public.project_requests FROM anon;
 REVOKE DELETE, INSERT, REFERENCES, TRIGGER, TRUNCATE, UPDATE ON TABLE public.project_requests FROM authenticated;
+
+-- MAINTAIN (PostgreSQL 17+): VACUUM / ANALYZE / CLUSTER / REINDEX / REFRESH MATERIALIZED VIEW / LOCK TABLE.
+-- Revoked from the browser roles only; service_role is not touched. Dynamic SQL only so the script still runs
+-- on a server where the privilege name does not exist; on PostgreSQL 17+ these statements execute.
+DO $$
+BEGIN
+  IF current_setting('server_version_num')::integer >= 170000 THEN
+    EXECUTE 'REVOKE MAINTAIN ON TABLE public.projects FROM authenticated';
+    EXECUTE 'REVOKE MAINTAIN ON TABLE public.project_requests FROM anon, authenticated';
+  END IF;
+END
+$$;
 
 
 -- ── C. Post-change assertions (a failure rolls the whole migration back) ──────────────────────────────
