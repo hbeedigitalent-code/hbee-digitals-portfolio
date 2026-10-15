@@ -9,6 +9,7 @@ import StatusBadge from '@/components/ui/StatusBadge'
 import SvgIcon from '@/components/ui/SvgIcon'
 import Button from '@/components/ui/Button'
 import { displayGrowthClassification } from '@/lib/growth-classification'
+import { formatDateOrDash, formatDateOrNull } from '@/lib/safe-date'
 
 interface PageProps {
   params: {
@@ -134,7 +135,7 @@ export default function AdminGrowthProfileDetailPage({ params }: PageProps) {
             </h1>
           </div>
           <p className="text-[var(--text-secondary)]">
-            {merchant?.business_name} • Generated {new Date(profile.created_at).toLocaleDateString()}
+            {merchant?.business_name} • Generated {formatDateOrDash(profile.created_at)}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -332,12 +333,16 @@ export default function AdminGrowthProfileDetailPage({ params }: PageProps) {
               </div>
               <div className="flex items-center justify-between">
                 <dt className="text-[var(--text-muted)]">Created</dt>
-                <dd className="text-[var(--text-secondary)]">{new Date(profile.created_at).toLocaleDateString()}</dd>
+                <dd className="text-[var(--text-secondary)]">{formatDateOrDash(profile.created_at)}</dd>
               </div>
-              <div className="flex items-center justify-between">
-                <dt className="text-[var(--text-muted)]">Updated</dt>
-                <dd className="text-[var(--text-secondary)]">{new Date(profile.updated_at).toLocaleDateString()}</dd>
-              </div>
+              {/* growth_profiles has no update timestamp in the detail response (the API selects created_at only), so the
+                  row appears only when a real, valid one is supplied. Nothing is substituted for it. */}
+              {formatDateOrNull(profile.updated_at) && (
+                <div className="flex items-center justify-between">
+                  <dt className="text-[var(--text-muted)]">Updated</dt>
+                  <dd className="text-[var(--text-secondary)]">{formatDateOrNull(profile.updated_at)}</dd>
+                </div>
+              )}
             </dl>
           </div>
 
