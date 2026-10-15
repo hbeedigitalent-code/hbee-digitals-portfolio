@@ -122,10 +122,10 @@ export async function sendGrowthProgramApprovedEmail(data: GrowthProgramApproved
   return deliver(
     'growth-program-approved',
     async () => {
-      const { html, text, attachments } = renderGrowthProgramApprovedEmail(data)
+      const { html, text } = renderGrowthProgramApprovedEmail(data)
       const replyTo = configuredReplyTo()
       return resend.emails.send(
-        { from: emailFrom(), ...(replyTo ? { replyTo: replyTo.header } : {}), to: data.email, subject, html, text, attachments },
+        { from: emailFrom(), ...(replyTo ? { replyTo: replyTo.header } : {}), to: data.email, subject, html, text },
         // Provider-side de-duplication, keyed on the decision itself (unchanged).
         { idempotencyKey: `growth-program-approved:${data.decisionId}` },
       )

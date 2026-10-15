@@ -60,7 +60,7 @@ export async function sendAdminOnboardingNotification(
   ]
 
   return deliver('admin-onboarding', async () => {
-    const { html, text, attachments } = renderEmail({
+    const { html, text } = renderEmail({
       preheader: `New onboarding submission ${projectId} from ${businessName || 'a client'}.`,
       eyebrow: 'Internal notification',
       heading: 'New onboarding submission',
@@ -81,7 +81,6 @@ export async function sendAdminOnboardingNotification(
         subject: `New onboarding submission — ${projectId}`,
         html,
         text,
-        attachments,
       },
       // Provider-side idempotency. Resend de-duplicates on this key, so a
       // retry of the same logical send cannot deliver a second copy. Its

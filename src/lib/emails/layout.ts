@@ -27,7 +27,6 @@
 //     client with images off still shows the brand name.
 //   - Buttons are table-based, so they render as a filled block in Outlook.
 
-import { EMAIL_LOGO_PNG_BASE64 } from '@/lib/emails/logo-asset'
 
 /** Characters that must never reach an email body unescaped. */
 const HTML_ESCAPES: Record<string, string> = {
@@ -171,8 +170,9 @@ export function emailLogoUrl(): string {
 // RFC 5322 limits a line of a message to 998 characters, and a hop that does not honour (or re-encode) a longer line
 // may wrap, truncate or otherwise mangle it. The table-based templates are written as a few very long lines (the header
 // row was 1,030 characters and sits right at that limit; the body row was over 2,600), and the logo <img> is inside
-// that header line. A received message whose header read `<img src="cid:hbee-logo-v3<td valign="middle" …` is what a
-// mangled over-long line looks like, and the logo then fails whether it is remote or inline.
+// that header line. Gmail "Show original" of a message sent that way showed damaged markup around the logo, and the
+// logo then failed. After folding, the body and layout rendered correctly. The logo is a remote https image on the
+// canonical host (an inline Content-ID attachment was tried and Gmail showed it as an ordinary attachment instead).
 //
 // foldHtmlLines() puts a newline after every STRUCTURAL tag (table, tr, td, p, div, headings, lists) that is
 // immediately followed by another tag, on any line over the limit. A newline between block-level tags is insignificant
@@ -192,45 +192,6 @@ export function foldHtmlLines(html: string, max: number = EMAIL_HTML_MAX_LINE): 
       return line.replace(STRUCTURAL_BOUNDARY, '$1\n')
     })
     .join('\n')
-}
-
-// ---------------------------------------------------------------------------
-// INLINE (Content-ID) LOGO.
-//
-// A remote https image still showed as a broken image with its alt text in Gmail mobile in real production mail,
-// although the URL loads, is a valid PNG, and is served publicly with no redirect or blocking header. The cause of the
-// remote failure is unproven. An inline attachment removes the dependency entirely: the PNG travels inside the message
-// as a multipart/related part, the HTML references it as `cid:hbee-logo-v3`, and the client never has to fetch (or be
-// permitted to fetch) anything. The installed resend@6.12 supports this (Attachment.contentId, "sent as an inline
-// attachment ... referenced in the HTML using the cid: prefix").
-//
-// Every shared renderer returns `attachments` next to `html` and `text`; every send site passes them to Resend.
-// The remote URL above is kept as the documented public location of the same file, not used in the HTML.
-// ---------------------------------------------------------------------------
-export const EMAIL_LOGO_CID = 'hbee-logo-v3'
-
-/** The value of the logo <img src>. */
-export function emailLogoSrc(): string {
-  return `cid:${EMAIL_LOGO_CID}`
-}
-
-export interface EmailInlineAttachment {
-  filename: string
-  content: Buffer
-  contentType: string
-  contentId: string
-}
-
-/** The logo as an inline attachment, ready for the Resend `attachments` array. */
-export function emailLogoAttachments(): EmailInlineAttachment[] {
-  return [
-    {
-      filename: 'hbee-logo-v3.png',
-      content: Buffer.from(EMAIL_LOGO_PNG_BASE64, 'base64'),
-      contentType: 'image/png',
-      contentId: EMAIL_LOGO_CID,
-    },
-  ]
 }
 
 /** Any leading `scheme:` — http, https, javascript, data, mailto, anything. */
@@ -406,7 +367,7 @@ function renderCtaHtml(cta: { label: string; url: string }): string {
 }
 
 function buildEmailHtml(options: EmailLayoutOptions): string {
-  const logoSrc = emailLogoSrc()
+  const logoSrc = emailLogoUrl()
   const siteHref = requireEmailOrigin()
 
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -559,8 +520,8 @@ export function renderEmailText(options: EmailLayoutOptions): string {
 }
 
 /** Both bodies at once. Templates spread this straight into resend.emails.send. */
-export function renderEmail(options: EmailLayoutOptions): { html: string; text: string; attachments: EmailInlineAttachment[] } {
-  return { html: renderEmailHtml(options), text: renderEmailText(options), attachments: emailLogoAttachments() }
+export function renderEmail(options: EmailLayoutOptions): { html: string; text: string } {
+  return { html: renderEmailHtml(options), text: renderEmailText(options) }
 }
 
 // ---------------------------------------------------------------------------

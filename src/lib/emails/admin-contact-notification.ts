@@ -90,9 +90,9 @@ export async function sendAdminContactNotification(
     // Rendering stays INSIDE deliver(): building links can raise a configuration
     // error, which must be reported, not thrown at the caller.
     async () => {
-      const { html, text, attachments } = renderAdminContactNotification(input)
+      const { html, text } = renderAdminContactNotification(input)
       return resend.emails.send(
-        { from: emailFrom(), to: adminEmail, subject, html, text, attachments },
+        { from: emailFrom(), to: adminEmail, subject, html, text },
         input.submissionId
           ? { idempotencyKey: `admin-contact-notification:${input.submissionId}` }
           : undefined,
@@ -116,7 +116,7 @@ export function adminContactSubject(input: AdminContactNotificationInput): strin
 export function renderAdminContactNotification(input: AdminContactNotificationInput) {
   if (input.enquiry) {
     const { subject, preheader, blocks } = enquiryContent({ ...input, enquiry: input.enquiry })
-    const { html, text, attachments } = renderEmail({
+    const { html, text } = renderEmail({
       preheader,
       eyebrow: 'New contact enquiry',
       heading: 'New contact enquiry',
@@ -126,7 +126,7 @@ export function renderAdminContactNotification(input: AdminContactNotificationIn
       reason: 'You are receiving this because a visitor sent a message through the Contact page.',
       supportEmail: supportEmail(),
     })
-    return { subject, html, text, attachments }
+    return { subject, html, text }
   }
 
   const label = input.isConsultation ? 'Consultation' : 'Inquiry'
@@ -151,7 +151,7 @@ export function renderAdminContactNotification(input: AdminContactNotificationIn
     },
   ]
 
-  const { html, text, attachments } = renderEmail({
+  const { html, text } = renderEmail({
     preheader: `${label} from ${input.fullName}`,
     eyebrow: `New ${label.toLowerCase()}`,
     heading: `New ${label.toLowerCase()}`,
@@ -163,5 +163,5 @@ export function renderAdminContactNotification(input: AdminContactNotificationIn
     reason: 'You are receiving this because a visitor submitted the contact form.',
     supportEmail: supportEmail(),
   })
-  return { subject, html, text, attachments }
+  return { subject, html, text }
 }

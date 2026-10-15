@@ -80,10 +80,10 @@ export async function sendGrowthProgramDeclinedEmail(data: GrowthProgramDeclined
   return deliver(
     'growth-program-declined',
     async () => {
-      const { html, text, attachments } = renderGrowthProgramDeclinedEmail(data)
+      const { html, text } = renderGrowthProgramDeclinedEmail(data)
       const replyTo = configuredReplyTo()
       return resend.emails.send(
-        { from: emailFrom(), ...(replyTo ? { replyTo: replyTo.header } : {}), to: data.email, subject, html, text, attachments },
+        { from: emailFrom(), ...(replyTo ? { replyTo: replyTo.header } : {}), to: data.email, subject, html, text },
         { idempotencyKey: `growth-program-declined:${data.decisionId}` },
       )
     },

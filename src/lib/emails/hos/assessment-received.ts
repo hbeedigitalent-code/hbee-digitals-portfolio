@@ -107,7 +107,7 @@ export async function sendAssessmentReceivedEmail(data: EmailData): Promise<Emai
   return deliver(
     'assessment-received',
     async () => {
-      const { subject, html, text, attachments } = renderAssessmentReceivedEmail(data)
+      const { subject, html, text } = renderAssessmentReceivedEmail(data)
       const replyTo = configuredReplyTo()
 
       // Returned, not awaited-and-discarded: deliver() inspects the provider
@@ -120,7 +120,6 @@ export async function sendAssessmentReceivedEmail(data: EmailData): Promise<Emai
           subject,
           html,
           text,
-          attachments,
         },
         // Provider-side idempotency. Resend de-duplicates on this key, so a
         // retry of the same logical send cannot deliver a second copy. Its
