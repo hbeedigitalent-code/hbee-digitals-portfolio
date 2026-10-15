@@ -140,13 +140,15 @@ export function requireEmailOrigin(): string {
 // remote images by URL, including older and failed fetches, so replacing the bytes behind an
 // existing path does not reach messages whose image was already cached. The corrected transparent
 // artwork therefore lives at a new path; the earlier /email/hbee-logo.png is left in place so mail
-// already delivered keeps resolving. To change the artwork again, add -v3 and change only this line.
+// already delivered keeps resolving. To change the artwork again, add -v4 and change only this line.
+// (-v2 was cropped flush to the mark and read as boxed; it stays only for mail already sent.)
 //
-// /public/email/hbee-logo-v2.png: 128x128 RGBA PNG (true alpha, no white matte on the edges),
-// cropped to the mark, rendered from the canonical /public/svgs/logo.svg. Email clients do not
+// /public/email/hbee-logo-v3.png: 192x192 RGBA PNG (true alpha, no white matte on the edges). The mark is
+// the canonical /public/svgs/logo.png (512px), resized once, centred, and occupying ~76% of the canvas, so it
+// has ~12% transparent breathing room on every side and never touches an edge. Email clients do not
 // reliably render SVG, hence a PNG.
 // ---------------------------------------------------------------------------
-export const EMAIL_LOGO_PATH = '/email/hbee-logo-v2.png'
+export const EMAIL_LOGO_PATH = '/email/hbee-logo-v3.png'
 
 /**
  * The logo is a permanent public brand asset, so its host is FIXED to the canonical apex and is
@@ -156,7 +158,7 @@ export const EMAIL_LOGO_PATH = '/email/hbee-logo-v2.png'
  */
 export const EMAIL_LOGO_ORIGIN = 'https://hbeedigitals.com'
 
-/** Always `https://hbeedigitals.com/email/hbee-logo-v2.png`, whatever the environment. */
+/** Always `https://hbeedigitals.com/email/hbee-logo-v3.png`, whatever the environment. */
 export function emailLogoUrl(): string {
   return `${EMAIL_LOGO_ORIGIN}${EMAIL_LOGO_PATH}`
 }
