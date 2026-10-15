@@ -23,6 +23,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import SvgIcon from '@/components/ui/SvgIcon'
+import PortalInvitationBlock from '@/components/admin/PortalInvitationBlock'
+import { invitationPanelMode } from '@/lib/portal-invitation-state'
 
 /** Exactly the values growth_program_decisions.decision permits. */
 const DECISIONS = [
@@ -254,6 +256,9 @@ export default function ProgramDecisionPanel({ assessmentId, onRecorded }: Props
   const linkage = state?.linkage
   const current = state?.current
   const clientState = linkage?.client_link_state
+  // The server's own record of the invitation (portal_invitations), not a browser guess.
+  const invitation = state?.invitation
+  const inviteMode = invitationPanelMode(clientState, invitation)
 
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 space-y-5">
@@ -299,7 +304,9 @@ export default function ProgramDecisionPanel({ assessmentId, onRecorded }: Props
                 ? 'More than one client is linked to this merchant'
                 : clientState === 'no_merchant'
                   ? 'No merchant to link to'
-                  : 'No portal account linked'
+                  : inviteMode === 'invitation_open'
+                    ? 'Invitation sent, waiting for the merchant to accept'
+                    : 'No portal account linked'
           }
         />
         <Row
@@ -317,14 +324,18 @@ export default function ProgramDecisionPanel({ assessmentId, onRecorded }: Props
       {clientState !== 'linked' && (
         <div className="rounded-xl border border-[var(--warning)]/30 bg-[var(--warning-subtle)] p-4 space-y-3">
           <p className="text-sm font-semibold text-[var(--warning)]">
-            Approving cannot release the profile yet
+            {inviteMode === 'invitation_open'
+              ? 'Waiting for the merchant to accept their invitation'
+              : 'Approving cannot release the profile yet'}
           </p>
           <p className="text-xs text-[var(--text-secondary)]">
             {clientState === 'ambiguous'
               ? 'More than one portal account is linked to this merchant. Resolve that first — nothing is merged automatically.'
               : clientState === 'no_merchant'
                 ? 'This assessment is not linked to a merchant record, so there is nothing to link a client to.'
-                : 'No portal account is linked to this merchant, so there is nobody to release the profile to. Choose the correct existing client below and link it deliberately.'}
+                : inviteMode === 'invitation_open'
+                  ? 'A portal invitation is open. The profile is released to the merchant once they accept it and their account is connected.'
+                  : 'No portal account is linked to this merchant, so there is nobody to release the profile to. Invite the merchant below, or choose the correct existing client and link it deliberately.'}
           </p>
 
           {/* THE LINKING ACTION.
@@ -336,23 +347,12 @@ export default function ProgramDecisionPanel({ assessmentId, onRecorded }: Props
               account. The link is made only when they accept while signed in with
               the invited, verified email. Idempotent: re-sending reuses the open
               invitation. */}
-          {clientState === 'no_client' && (
-            <div className="space-y-2 rounded-lg border border-[var(--border)] p-3">
-              <p className="text-xs font-medium text-[var(--text-muted)]">Invite the merchant to the client portal</p>
-              <button
-                type="button"
-                onClick={sendInvitation}
-                disabled={busy !== null}
-                className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-card)]"
-              >
-                {busy === 'invite' ? 'Sending…' : 'Send portal invitation'}
-              </button>
-              <p className="text-xs text-[var(--text-muted)]">
-                Emails a personal link to the merchant&apos;s address. Their account is connected only
-                when they accept it signed in with that address. Once connected, record the decision.
-              </p>
-            </div>
-          )}
+          <PortalInvitationBlock
+            clientState={clientState}
+            invitation={invitation}
+            busy={busy !== null}
+            onSend={sendInvitation}
+          />
           {clientState === 'no_client' && (
             <div className="space-y-2">
               <label htmlFor="link-client" className="block text-xs font-medium text-[var(--text-muted)]">

@@ -32,6 +32,13 @@
 import { NextResponse } from 'next/server'
 import { requireActiveAdmin, queryFailure, ADMIN_UUID_RE } from '@/lib/admin-api-auth'
 import { enqueueEmail, outboxKey, deliverQueuedEvent } from '@/lib/emails/outbox'
+import { invitationEventKey } from '@/lib/portal-invitations'
+import {
+  emailStatusFromOutbox,
+  NO_INVITATION,
+  summariseInvitation,
+  type InvitationSummary,
+} from '@/lib/portal-invitation-state'
 
 export const dynamic = 'force-dynamic'
 
@@ -160,6 +167,33 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       profileForThisAssessment = profileRow || null
     }
 
+    // ---- INVITATION STATE (read-only). The latest invitation row for this merchant is the source of truth for
+    // "has one been issued", read from portal_invitations itself, and its email's outbox status says whether the email
+    // actually went. Selected by explicit column: token_hash is never read, and summariseInvitation() whitelists what
+    // leaves the server, so no token, hash or id reaches the browser.
+    let invitation: InvitationSummary = NO_INVITATION
+    if (merchantId) {
+      const { data: invRow, error: invError } = await db
+        .from('portal_invitations')
+        .select('id, email, created_at, expires_at, consumed_at, revoked_at')
+        .eq('merchant_id', merchantId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (invError) {
+        console.error(`[decision] invitation state read failed (code=${(invError as { code?: string }).code ?? 'n/a'})`)
+      } else if (invRow) {
+        let emailStatus = emailStatusFromOutbox(null)
+        const { data: evt } = await db
+          .from('email_events')
+          .select('status')
+          .eq('event_key', invitationEventKey(String((invRow as { id: unknown }).id)))
+          .maybeSingle()
+        if (evt) emailStatus = emailStatusFromOutbox((evt as { status: unknown }).status)
+        invitation = summariseInvitation(invRow as Record<string, unknown>, emailStatus)
+      }
+    }
+
     return NextResponse.json({
       assessment: {
         id: assessment.id,
@@ -173,6 +207,8 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       },
       decisions: history,
       current: history[0] || null,
+      // Whether a portal invitation exists, and its lifecycle. Secret-free by construction.
+      invitation,
       // Everything the decision UI needs to explain the current state without
       // guessing. `canReleaseOnApproval` mirrors exactly what the client Growth
       // Profile endpoint requires, so the admin is never told an approval will
