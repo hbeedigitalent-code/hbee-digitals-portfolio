@@ -30,7 +30,7 @@
 //     it, so the sender stays identifiable with images blocked.
 //   - Absolute https URLs only (via emailUrl / requireEmailOrigin).
 
-import { emailLogoAttachments, emailLogoSrc, emailUrl, escapeHtml, requireEmailOrigin, type EmailInlineAttachment } from '@/lib/emails/layout'
+import { emailLogoAttachments, emailLogoSrc, emailUrl, escapeHtml, foldHtmlLines, requireEmailOrigin, type EmailInlineAttachment } from '@/lib/emails/layout'
 
 // ---------------------------------------------------------------------------
 // Tokens — the approved Hbee brand palette, verbatim.
@@ -311,7 +311,7 @@ function renderBlockHtml(block: HbeeEmailBlock): string {
 }
 
 /** EmailShell: the full document. */
-export function renderHbeeEmailHtml(options: HbeeEmailOptions): string {
+function buildHbeeEmailHtml(options: HbeeEmailOptions): string {
   const siteHref = requireEmailOrigin()
   const logoSrc = emailLogoSrc()
 
@@ -402,6 +402,11 @@ function renderBlockText(block: HbeeEmailBlock): string {
     case 'divider':
       return '\n---\n'
   }
+}
+
+/** The full HTML document, with no line longer than the mail-safe limit (see foldHtmlLines in layout.ts). */
+export function renderHbeeEmailHtml(options: HbeeEmailOptions): string {
+  return foldHtmlLines(buildHbeeEmailHtml(options))
 }
 
 export function renderHbeeEmailText(options: HbeeEmailOptions): string {

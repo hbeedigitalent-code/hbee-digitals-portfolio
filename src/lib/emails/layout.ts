@@ -166,6 +166,35 @@ export function emailLogoUrl(): string {
 }
 
 // ---------------------------------------------------------------------------
+// MAIL-SAFE LINE LENGTH.
+//
+// RFC 5322 limits a line of a message to 998 characters, and a hop that does not honour (or re-encode) a longer line
+// may wrap, truncate or otherwise mangle it. The table-based templates are written as a few very long lines (the header
+// row was 1,030 characters and sits right at that limit; the body row was over 2,600), and the logo <img> is inside
+// that header line. A received message whose header read `<img src="cid:hbee-logo-v3<td valign="middle" …` is what a
+// mangled over-long line looks like, and the logo then fails whether it is remote or inline.
+//
+// foldHtmlLines() puts a newline after every STRUCTURAL tag (table, tr, td, p, div, headings, lists) that is
+// immediately followed by another tag, on any line over the limit. A newline between block-level tags is insignificant
+// whitespace in HTML, so nothing renders differently, and it never falls inside a tag, an attribute value or a text run.
+// ---------------------------------------------------------------------------
+export const EMAIL_HTML_MAX_LINE = 400
+
+const STRUCTURAL_BOUNDARY = /(<\/?(?:table|tbody|thead|tfoot|tr|td|th|p|div|h[1-6]|ul|ol|li)\b[^>]*>)(?=<)/gi
+
+export function foldHtmlLines(html: string, max: number = EMAIL_HTML_MAX_LINE): string {
+  return html
+    .split('\n')
+    .map((line) => {
+      if (line.length <= max) return line
+      // A run of text with no tags at all (the preheader padding): break at spaces, which HTML treats like a newline.
+      if (!line.includes('<')) return line.replace(new RegExp('(.{1,' + (max - 20) + '}) ', 'g'), '$1\n')
+      return line.replace(STRUCTURAL_BOUNDARY, '$1\n')
+    })
+    .join('\n')
+}
+
+// ---------------------------------------------------------------------------
 // INLINE (Content-ID) LOGO.
 //
 // A remote https image still showed as a broken image with its alt text in Gmail mobile in real production mail,
@@ -376,7 +405,7 @@ function renderCtaHtml(cta: { label: string; url: string }): string {
   )
 }
 
-export function renderEmailHtml(options: EmailLayoutOptions): string {
+function buildEmailHtml(options: EmailLayoutOptions): string {
   const logoSrc = emailLogoSrc()
   const siteHref = requireEmailOrigin()
 
@@ -497,6 +526,11 @@ function renderBlockText(block: EmailBlock): string {
     case 'divider':
       return '\n---\n'
   }
+}
+
+/** The full HTML document, with no line longer than the mail-safe limit (see foldHtmlLines). */
+export function renderEmailHtml(options: EmailLayoutOptions): string {
+  return foldHtmlLines(buildEmailHtml(options))
 }
 
 export function renderEmailText(options: EmailLayoutOptions): string {
