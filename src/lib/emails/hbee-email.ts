@@ -30,7 +30,7 @@
 //     it, so the sender stays identifiable with images blocked.
 //   - Absolute https URLs only (via emailUrl / requireEmailOrigin).
 
-import { emailLogoUrl, emailUrl, escapeHtml, requireEmailOrigin } from '@/lib/emails/layout'
+import { emailLogoAttachments, emailLogoSrc, emailUrl, escapeHtml, requireEmailOrigin, type EmailInlineAttachment } from '@/lib/emails/layout'
 
 // ---------------------------------------------------------------------------
 // Tokens — the approved Hbee brand palette, verbatim.
@@ -313,7 +313,7 @@ function renderBlockHtml(block: HbeeEmailBlock): string {
 /** EmailShell: the full document. */
 export function renderHbeeEmailHtml(options: HbeeEmailOptions): string {
   const siteHref = requireEmailOrigin()
-  const logoSrc = emailLogoUrl()
+  const logoSrc = emailLogoSrc()
 
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" dir="ltr">
@@ -418,6 +418,6 @@ export function renderHbeeEmailText(options: HbeeEmailOptions): string {
 }
 
 /** Both bodies at once — spread into the provider payload. */
-export function renderHbeeEmail(options: HbeeEmailOptions): { html: string; text: string } {
-  return { html: renderHbeeEmailHtml(options), text: renderHbeeEmailText(options) }
+export function renderHbeeEmail(options: HbeeEmailOptions): { html: string; text: string; attachments: EmailInlineAttachment[] } {
+  return { html: renderHbeeEmailHtml(options), text: renderHbeeEmailText(options), attachments: emailLogoAttachments() }
 }

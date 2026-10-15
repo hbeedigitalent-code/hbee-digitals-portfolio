@@ -64,7 +64,7 @@ export async function sendContactConfirmation(
   return deliver(
     'contact-confirmation',
     async () => {
-      const { html, text } = renderEmail({
+      const { html, text, attachments } = renderEmail({
         preheader: isConsultation
           ? 'We have your consultation request.'
           : 'We have your enquiry.',
@@ -87,6 +87,7 @@ export async function sendContactConfirmation(
           subject,
           html,
           text,
+          attachments,
         },
         submissionId
           ? { idempotencyKey: `contact-confirmation:${submissionId}` }

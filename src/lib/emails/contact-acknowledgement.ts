@@ -98,10 +98,10 @@ export async function sendContactAcknowledgementEmail(data: ContactAcknowledgeme
   return deliver(
     'contact-acknowledgement',
     async () => {
-      const { html, text } = renderContactAcknowledgementEmail(data)
+      const { html, text, attachments } = renderContactAcknowledgementEmail(data)
       const replyTo = configuredReplyTo()
       return resend.emails.send(
-        { from: emailFrom(), ...(replyTo ? { replyTo: replyTo.header } : {}), to: data.email, subject: CONTACT_ACK_SUBJECT, html, text },
+        { from: emailFrom(), ...(replyTo ? { replyTo: replyTo.header } : {}), to: data.email, subject: CONTACT_ACK_SUBJECT, html, text, attachments },
         data.idempotencyKey ? { idempotencyKey: `contact-acknowledgement:${data.idempotencyKey}` } : undefined,
       )
     },

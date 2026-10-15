@@ -63,7 +63,7 @@ export async function sendOnboardingConfirmation(
   ]
 
   return deliver('onboarding-confirmation', async () => {
-    const { html, text } = renderEmail({
+    const { html, text, attachments } = renderEmail({
       preheader: `We have your project details. Reference ${projectId}.`,
       eyebrow: 'Onboarding received',
       heading: 'Your project details have been received',
@@ -85,6 +85,7 @@ export async function sendOnboardingConfirmation(
         subject: `Project details received — ${projectId}`,
         html,
         text,
+        attachments,
       },
       // Provider-side idempotency. Resend de-duplicates on this key, so a
       // retry of the same logical send cannot deliver a second copy. Its

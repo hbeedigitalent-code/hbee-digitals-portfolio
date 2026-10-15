@@ -27,6 +27,8 @@
 //     client with images off still shows the brand name.
 //   - Buttons are table-based, so they render as a filled block in Outlook.
 
+import { EMAIL_LOGO_PNG_BASE64 } from '@/lib/emails/logo-asset'
+
 /** Characters that must never reach an email body unescaped. */
 const HTML_ESCAPES: Record<string, string> = {
   '&': '&amp;',
@@ -161,6 +163,45 @@ export const EMAIL_LOGO_ORIGIN = 'https://hbeedigitals.com'
 /** Always `https://hbeedigitals.com/email/hbee-logo-v3.png`, whatever the environment. */
 export function emailLogoUrl(): string {
   return `${EMAIL_LOGO_ORIGIN}${EMAIL_LOGO_PATH}`
+}
+
+// ---------------------------------------------------------------------------
+// INLINE (Content-ID) LOGO.
+//
+// A remote https image still showed as a broken image with its alt text in Gmail mobile in real production mail,
+// although the URL loads, is a valid PNG, and is served publicly with no redirect or blocking header. The cause of the
+// remote failure is unproven. An inline attachment removes the dependency entirely: the PNG travels inside the message
+// as a multipart/related part, the HTML references it as `cid:hbee-logo-v3`, and the client never has to fetch (or be
+// permitted to fetch) anything. The installed resend@6.12 supports this (Attachment.contentId, "sent as an inline
+// attachment ... referenced in the HTML using the cid: prefix").
+//
+// Every shared renderer returns `attachments` next to `html` and `text`; every send site passes them to Resend.
+// The remote URL above is kept as the documented public location of the same file, not used in the HTML.
+// ---------------------------------------------------------------------------
+export const EMAIL_LOGO_CID = 'hbee-logo-v3'
+
+/** The value of the logo <img src>. */
+export function emailLogoSrc(): string {
+  return `cid:${EMAIL_LOGO_CID}`
+}
+
+export interface EmailInlineAttachment {
+  filename: string
+  content: Buffer
+  contentType: string
+  contentId: string
+}
+
+/** The logo as an inline attachment, ready for the Resend `attachments` array. */
+export function emailLogoAttachments(): EmailInlineAttachment[] {
+  return [
+    {
+      filename: 'hbee-logo-v3.png',
+      content: Buffer.from(EMAIL_LOGO_PNG_BASE64, 'base64'),
+      contentType: 'image/png',
+      contentId: EMAIL_LOGO_CID,
+    },
+  ]
 }
 
 /** Any leading `scheme:` — http, https, javascript, data, mailto, anything. */
@@ -336,7 +377,7 @@ function renderCtaHtml(cta: { label: string; url: string }): string {
 }
 
 export function renderEmailHtml(options: EmailLayoutOptions): string {
-  const logoSrc = emailLogoUrl()
+  const logoSrc = emailLogoSrc()
   const siteHref = requireEmailOrigin()
 
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -484,8 +525,8 @@ export function renderEmailText(options: EmailLayoutOptions): string {
 }
 
 /** Both bodies at once. Templates spread this straight into resend.emails.send. */
-export function renderEmail(options: EmailLayoutOptions): { html: string; text: string } {
-  return { html: renderEmailHtml(options), text: renderEmailText(options) }
+export function renderEmail(options: EmailLayoutOptions): { html: string; text: string; attachments: EmailInlineAttachment[] } {
+  return { html: renderEmailHtml(options), text: renderEmailText(options), attachments: emailLogoAttachments() }
 }
 
 // ---------------------------------------------------------------------------

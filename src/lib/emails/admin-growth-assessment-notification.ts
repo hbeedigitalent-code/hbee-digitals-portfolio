@@ -55,7 +55,7 @@ export async function sendAdminGrowthAssessmentNotification(
   ]
 
   return deliver('admin-growth-assessment', async () => {
-    const { html, text } = renderEmail({
+    const { html, text, attachments } = renderEmail({
       preheader: `New assessment from ${businessName || 'a merchant'} awaiting review.`,
       eyebrow: 'Internal notification',
       heading: 'New Growth Readiness Assessment',
@@ -76,6 +76,7 @@ export async function sendAdminGrowthAssessmentNotification(
         subject: `New assessment — ${businessName || 'Unknown business'}`,
         html,
         text,
+        attachments,
       },
       // Provider-side idempotency. Resend de-duplicates on this key, so a
       // retry of the same logical send cannot deliver a second copy. Its

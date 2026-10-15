@@ -97,10 +97,10 @@ export async function sendPortalInvitationEmail(data: PortalInvitationData): Pro
       if (!token) {
         throw new EmailConfigurationError('invitation_secret_missing', 'The invitation token cannot be derived on this server.')
       }
-      const { html, text } = renderPortalInvitationEmail(data, token)
+      const { html, text, attachments } = renderPortalInvitationEmail(data, token)
       const replyTo = configuredReplyTo()
       return resend.emails.send(
-        { from: emailFrom(), ...(replyTo ? { replyTo: replyTo.header } : {}), to: data.email, subject: PORTAL_INVITATION_SUBJECT, html, text },
+        { from: emailFrom(), ...(replyTo ? { replyTo: replyTo.header } : {}), to: data.email, subject: PORTAL_INVITATION_SUBJECT, html, text, attachments },
         { idempotencyKey: `portal-invitation:${data.invitationId}` },
       )
     },
