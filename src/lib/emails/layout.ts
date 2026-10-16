@@ -397,12 +397,11 @@ ${'&#8199;&#65279;&#847; '.repeat(30)}
 
     <!-- Header -->
     <tr>
-      <td align="center" style="padding:8px 0 20px;">
+      <td align="center" bgcolor="${C.card}" style="padding:20px 32px;background-color:${C.card};border:1px solid #DDE6F2;">
         <a href="${escapeHtml(siteHref)}" target="_blank" rel="noopener" style="text-decoration:none;">
-          <img src="${escapeHtml(logoSrc)}" width="44" height="44" alt="Hbee Digitals"
-               style="display:block;margin:0 auto 10px;width:44px;height:44px;border:0;outline:none;text-decoration:none;" />
-          <span style="font-family:${FONT};font-size:18px;font-weight:800;color:${C.navy};letter-spacing:-0.01em;">Hbee&nbsp;Digitals</span>
+          <img src="${escapeHtml(logoSrc)}" width="56" height="56" alt="Hbee Digitals" style="display:block;margin:0 auto;width:56px;height:56px;border:0;outline:none;text-decoration:none;" />
         </a>
+        <p style="margin:8px 0 0;font-family:${FONT};font-size:13px;line-height:18px;font-weight:600;letter-spacing:0.02em;color:#475569;">Hbee Digitals</p>
       </td>
     </tr>
 

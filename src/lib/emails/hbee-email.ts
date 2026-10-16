@@ -26,8 +26,8 @@
 //   - Every coloured surface carries both bgcolor and background-color, so
 //     clients that rewrite colours (dark mode) keep text and surface paired.
 //   - No web fonts, SVG, background images, flexbox, grid or animation.
-//   - The logo is an <img> with real alt text AND a live-text wordmark beside
-//     it, so the sender stays identifiable with images blocked.
+//   - The centered PNG mark has explicit dimensions and meaningful alt text.
+//     A small live-text brand label keeps the header branded with images blocked.
 //   - Absolute https URLs only (via emailUrl / requireEmailOrigin).
 
 import { emailLogoUrl, emailUrl, escapeHtml, foldHtmlLines, requireEmailOrigin } from '@/lib/emails/layout'
@@ -196,7 +196,8 @@ function emailCallout(text: string, title?: string): string {
 }
 
 function secondaryLink(label: string, url: string): string {
-  return `<p style="margin:0 0 20px;font-family:${BODY};font-size:15px;line-height:1.5;"><a href="${escapeHtml(emailUrl(url))}" target="_blank" rel="noopener" style="color:${C.royalBlue};font-weight:700;text-decoration:underline;">${escapeHtml(label)}&nbsp;&rarr;</a></p>`
+  // A typographic chevron stays inside the link and needs no image or geometry.
+  return `<p style="margin:0 0 20px;font-family:${BODY};font-size:15px;line-height:1.5;"><a href="${escapeHtml(emailUrl(url))}" target="_blank" rel="noopener" style="color:${C.royalBlue};font-weight:700;text-decoration:underline;">${escapeHtml(label)}&nbsp;<span aria-hidden="true" style="font-size:18px;line-height:1;">&#8250;</span></a></p>`
 }
 
 function emailDivider(): string {
@@ -236,14 +237,11 @@ function statusPanel(status: NonNullable<HbeeEmailOptions['status']>): string {
 
 function emailHeader(siteHref: string, logoSrc: string): string {
   return (
-    `<tr><td bgcolor="${C.royalBlue}" height="4" style="height:4px;background-color:${C.royalBlue};border-radius:14px 14px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>` +
-    `<tr><td bgcolor="${C.white}" class="hb-pad" style="padding:22px 32px 18px;background-color:${C.white};border-left:1px solid ${C.softBorder};border-right:1px solid ${C.softBorder};border-bottom:1px solid ${C.softBorder};">` +
+    `<tr><td align="center" bgcolor="${C.white}" style="padding:20px 32px;background-color:${C.white};border:1px solid ${C.softBorder};">` +
     `<a href="${escapeHtml(siteHref)}" target="_blank" rel="noopener" style="text-decoration:none;">` +
-    `<table ${TABLE} style="border-collapse:collapse;"><tr>` +
-    `<td valign="middle" style="padding-right:10px;"><img src="${escapeHtml(logoSrc)}" width="32" height="32" alt="Hbee Digitals" style="display:block;width:32px;height:32px;border:0;outline:none;text-decoration:none;" /></td>` +
-    `<td valign="middle" style="font-family:${DISPLAY};font-size:18px;line-height:1;font-weight:700;letter-spacing:-0.01em;color:${C.night};">Hbee&nbsp;Digitals</td>` +
-    `</tr></table>` +
-    `</a>` +
+    `<img src="${escapeHtml(logoSrc)}" width="56" height="56" alt="Hbee Digitals" style="display:block;margin:0 auto;width:56px;height:56px;border:0;outline:none;text-decoration:none;" />` +
+    `</a>\n` +
+    `<p style="margin:8px 0 0;font-family:${BODY};font-size:13px;line-height:18px;font-weight:600;letter-spacing:0.02em;color:${C.slate};">Hbee Digitals</p>` +
     `</td></tr>`
   )
 }
