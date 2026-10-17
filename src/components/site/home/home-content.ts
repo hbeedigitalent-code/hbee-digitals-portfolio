@@ -51,6 +51,7 @@ export const STAGES: { name: string; text: string }[] = [
 ]
 
 export interface Capability {
+  slug: string
   name: string
   /** DRAFT — the business purpose, stated before any deliverable. */
   purpose: string
@@ -71,11 +72,13 @@ export const CAPABILITY_GROUPS: CapabilityGroup[] = [
     summary: 'What the business stands on.',
     capabilities: [
       {
+        slug: 'brand-positioning',
         name: 'Brand & Positioning',
         purpose: 'Make it obvious who you are for and why you are the right choice.',
         deliverables: ['Positioning & messaging', 'Brand identity', 'Offer architecture'],
       },
       {
+        slug: 'digital-systems',
         name: 'Digital Systems',
         purpose: 'Give the business a reliable foundation to operate and grow on.',
         deliverables: ['Websites & platforms', 'Integrations & automation', 'Analytics & tracking'],
@@ -87,11 +90,13 @@ export const CAPABILITY_GROUPS: CapabilityGroup[] = [
     summary: 'How the right people find and believe you.',
     capabilities: [
       {
+        slug: 'creative-ugc',
         name: 'Creative & UGC',
         purpose: 'Create the assets that make people stop, understand and believe.',
         deliverables: ['Campaign creative', 'UGC & creator content', 'Product content'],
       },
       {
+        slug: 'discovery-traffic',
         name: 'Discovery & Traffic',
         purpose: 'Put the business in front of the people most likely to buy.',
         deliverables: ['Search & SEO', 'Paid media', 'Content distribution'],
@@ -103,11 +108,13 @@ export const CAPABILITY_GROUPS: CapabilityGroup[] = [
     summary: 'Where interest becomes lasting value.',
     capabilities: [
       {
+        slug: 'commerce-experience',
         name: 'Commerce Experience',
         purpose: 'Remove the friction between interest and purchase.',
         deliverables: ['Storefront & Shopify UX', 'Product & checkout experience', 'Conversion optimization'],
       },
       {
+        slug: 'retention-growth',
         name: 'Retention & Growth',
         purpose: 'Turn first purchases into long-term customer value.',
         deliverables: ['Email & lifecycle', 'Loyalty & subscriptions', 'Customer insight'],

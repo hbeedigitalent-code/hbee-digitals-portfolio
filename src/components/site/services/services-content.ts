@@ -6,9 +6,8 @@
  * Copy supplied in the Phase 4 brief is used verbatim. Copy marked DRAFT was
  * written for this phase and needs owner sign-off.
  *
- * Capability slugs match the anchors the Services mega-menu already targets
- * (/services#brand-positioning …), so the menu lands on the right entry once
- * this page replaces /services at launch.
+ * Capability slugs identify both their detail routes and the retained
+ * overview anchors (/services#brand-positioning …).
  */
 
 export type CapabilityIcon = 'brand' | 'systems' | 'creative' | 'discovery' | 'commerce' | 'retention'

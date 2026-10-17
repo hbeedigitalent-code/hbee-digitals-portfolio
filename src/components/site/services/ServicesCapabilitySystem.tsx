@@ -31,8 +31,7 @@ const ICONS: Record<CapabilityIcon, ReactNode> = {
  * <1024: groups stack in order; capabilities become compact rows (two
  * side by side from 768px).
  *
- * Capabilities are NOT links in this phase (no detail routes exist yet).
- * Each carries the id the Services mega-menu already targets.
+ * Each entry links to its existing detail page and retains its overview anchor.
  */
 export function ServicesCapabilitySystem() {
   return (
@@ -79,6 +78,9 @@ export function ServicesCapabilitySystem() {
                       {cap.name}
                     </h4>
                     <p className={cn(styles.capPurpose, 'text-[0.9375rem] leading-relaxed text-hb-fg-body')}>{cap.purpose}</p>
+                    <SiteLinkArrow href={`/services/${cap.slug}`} className="col-span-2 mt-2 min-h-[44px] text-[0.875rem]">
+                      Explore capability<span className="sr-only">: {cap.name}</span>
+                    </SiteLinkArrow>
                   </li>
                 ))}
               </ul>

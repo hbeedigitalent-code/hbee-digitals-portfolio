@@ -2,8 +2,8 @@
  * Capability-detail content — DESIGN-CONTROLLED copy (CMS policy: hybrid).
  *
  * One structured object per capability drives the whole detail template
- * (CapabilityDetailPage). Brand & Positioning is the first instance; the
- * other five are added here later, without touching the page structure.
+ * (CapabilityDetailPage). All six approved capabilities use the same page
+ * structure, with names and groups from the Services capability system.
  *
  * Names, slugs, groups and icons are NOT repeated here: they come from the
  * approved Services capability system (SERVICE_GROUPS), so the detail page

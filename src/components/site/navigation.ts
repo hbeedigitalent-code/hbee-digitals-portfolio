@@ -10,6 +10,8 @@
  * /client-portal.
  */
 
+import { SERVICE_GROUPS } from './services/services-content'
+
 export interface SiteLink {
   label: string
   href: string
@@ -35,9 +37,8 @@ export const PRIMARY_CTA: SiteLink = { label: 'Start Growth Review', href: '/gro
 
    Shaped like the data a CMS loader would return, so Work and Insight
    categories (and later a real featured project/article) can be supplied
-   dynamically without touching SiteDesktopNav / SiteNav. Capability, stage
-   and category targets point into the future route space and are
-   placeholders until those routes and slugs are decided. */
+   dynamically without touching SiteDesktopNav / SiteNav. Capability entries
+   use the existing detail routes; stage entries target overview anchors. */
 
 export interface NavMenuLink extends SiteLink {
   description?: string
@@ -94,24 +95,24 @@ export const NAV_MENUS: Record<string, NavMenu> = {
         title: 'Foundation',
         layout: 'stack',
         links: [
-          { label: 'Brand & Positioning', href: '/services#brand-positioning', description: 'Who you are for, and why you.' },
-          { label: 'Digital Systems', href: '/services#digital-systems', description: 'The platform the business runs on.' },
+          { label: 'Brand & Positioning', href: '/services/brand-positioning', description: 'Who you are for, and why you.' },
+          { label: 'Digital Systems', href: '/services/digital-systems', description: 'The platform the business runs on.' },
         ],
       },
       {
         title: 'Activation',
         layout: 'stack',
         links: [
-          { label: 'Creative & UGC', href: '/services#creative-ugc', description: 'Assets that earn attention and belief.' },
-          { label: 'Discovery & Traffic', href: '/services#discovery-traffic', description: 'Reach the people most likely to buy.' },
+          { label: 'Creative & UGC', href: '/services/creative-ugc', description: 'Assets that earn attention and belief.' },
+          { label: 'Discovery & Traffic', href: '/services/discovery-traffic', description: 'Reach the people most likely to buy.' },
         ],
       },
       {
         title: 'Growth',
         layout: 'stack',
         links: [
-          { label: 'Commerce Experience', href: '/services#commerce-experience', description: 'Less friction between interest and purchase.' },
-          { label: 'Retention & Growth', href: '/services#retention-growth', description: 'Value that lasts past the first order.' },
+          { label: 'Commerce Experience', href: '/services/commerce-experience', description: 'Less friction between interest and purchase.' },
+          { label: 'Retention & Growth', href: '/services/retention-growth', description: 'Value that lasts past the first order.' },
         ],
       },
     ],
@@ -211,15 +212,10 @@ export const NAV_MENUS: Record<string, NavMenu> = {
   },
 }
 
-/** Approved capability architecture. Slugs/targets are decided in the capability phase. */
-export const CAPABILITIES: string[] = [
-  'Brand & Positioning',
-  'Commerce Experience',
-  'Creative & UGC',
-  'Digital Systems',
-  'Discovery & Traffic',
-  'Retention & Growth',
-]
+/** Footer links follow the approved six-capability system and its group order. */
+export const CAPABILITIES: SiteLink[] = SERVICE_GROUPS.flatMap((group) =>
+  group.capabilities.map((capability) => ({ label: capability.name, href: `/services/${capability.slug}` })),
+)
 
 export interface FooterColumn {
   title: string
@@ -231,7 +227,7 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
   { title: 'Explore', links: PRIMARY_NAV.filter((link) => link.href !== '/contact') },
   {
     title: 'Capabilities',
-    links: CAPABILITIES.map((label) => ({ label, href: '/services' })),
+    links: CAPABILITIES,
   },
   {
     title: 'Work with us',

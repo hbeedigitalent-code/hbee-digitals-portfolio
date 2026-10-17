@@ -18,8 +18,8 @@ import styles from './capability.module.css'
  * related capabilities as nodes, each with its group and what this
  * capability gives it. CONNECT plays once when revealed.
  *
- * The related nodes are NOT links: their detail pages do not exist yet.
- * The section's single link returns to the full system on the Services page.
+ * Related capability names link to their existing detail pages; the overview
+ * link still returns to the full system on the Services page.
  */
 export function CapabilitySystemFit({ detail, name }: { detail: CapabilityDetail; name: string }) {
   const fit = detail.systemFit
@@ -61,7 +61,9 @@ export function CapabilitySystemFit({ detail, name }: { detail: CapabilityDetail
                 </span>
                 <div className="min-w-0">
                   <h3 className="font-hb-display text-[1.0625rem] font-semibold leading-snug tracking-[-0.01em] text-hb-fg">
-                    {capability.name}
+                    <SiteLinkArrow href={`/services/${capability.slug}`} className="min-h-[44px]">
+                      {capability.name}
+                    </SiteLinkArrow>
                     <span className="sr-only">, </span>
                     <span className={styles.fitGroup}>{group.name}</span>
                   </h3>

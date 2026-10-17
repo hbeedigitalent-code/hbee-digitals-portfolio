@@ -1,4 +1,5 @@
 import { ALL_WORK_HREF, CONTACT_HREF, GROWTH_REVIEW_HREF } from '@/lib/site/routes'
+import { CAPABILITY_GROUPS } from '../home/home-content'
 import { HbeeModuleGlyph } from '../module/HbeeModule'
 import { SiteReveal } from '../motion/SiteReveal'
 import { SiteButton, SiteLinkArrow } from '../primitives/SiteButton'
@@ -53,6 +54,9 @@ export function CapabilityOpportunity({ detail }: { detail: CapabilityDetail }) 
 
 export function CapabilityApproach({ detail, name }: { detail: CapabilityDetail; name: string }) {
   const a = detail.approach
+  // Reuse the existing homepage material rather than inventing a second service list.
+  const deliverables = CAPABILITY_GROUPS.flatMap((group) => group.capabilities)
+    .find((capability) => capability.slug === detail.slug)?.deliverables ?? []
   return (
     <SiteSection id="what-we-do" tone="cloud" aria-labelledby="capability-approach-title" className={styles.anchor}>
       <SiteGrid className="gap-y-12">
@@ -70,6 +74,16 @@ export function CapabilityApproach({ detail, name }: { detail: CapabilityDetail;
             <SiteLinkArrow href="/how-we-work" className="mt-4 min-h-[44px]">
               Our approach
             </SiteLinkArrow>
+            {deliverables.length > 0 && (
+              <div className="mt-6 border-l-2 border-hb-structure-soft pl-5">
+                <h3 className="font-hb-display text-base font-semibold text-hb-fg">Typical deliverables</h3>
+                <ul className="mt-3 space-y-2 text-[0.9375rem] leading-relaxed text-hb-fg-body">
+                  {deliverables.map((deliverable) => (
+                    <li key={deliverable}>{deliverable}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </SiteReveal>
         </div>
 

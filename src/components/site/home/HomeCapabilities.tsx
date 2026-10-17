@@ -54,7 +54,11 @@ export function HomeCapabilities() {
             <div className="mt-8 flex flex-1 flex-col divide-y divide-[color:var(--hb-border)] border-l-2 border-[color:var(--hb-structure-soft)] pl-5 md:pl-6">
               {group.capabilities.map((cap) => (
                 <div key={cap.name} className="py-7 first:pt-0 last:pb-0 md:py-6">
-                  <h4 className="font-hb-display text-[1.25rem] font-semibold leading-snug tracking-[-0.015em] text-hb-fg">{cap.name}</h4>
+                  <h4 className="font-hb-display text-[1.25rem] font-semibold leading-snug tracking-[-0.015em] text-hb-fg">
+                    <SiteLinkArrow href={`/services/${cap.slug}`} className="min-h-[44px]">
+                      {cap.name}
+                    </SiteLinkArrow>
+                  </h4>
                   <p className="mt-2 text-[0.9375rem] leading-relaxed text-hb-ink">{cap.purpose}</p>
                   <ul className="mt-3 flex flex-col gap-1 text-[0.875rem] leading-snug text-hb-fg-body">
                     {cap.deliverables.map((d) => (
