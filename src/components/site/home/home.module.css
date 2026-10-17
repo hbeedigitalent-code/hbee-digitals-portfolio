@@ -87,12 +87,23 @@
   .eyebrowLineHang { padding-left: calc(0.875rem + 1.125rem); }
 }
 
-/* Hero visual: ~5% more presence on large desktop only. Scaled from a left-of-centre
-   origin so it grows into the page margin, not into the text column. */
-@media (min-width: 1440px) {
-  .heroVisual > * {
-    transform: scale(1.05);
-    transform-origin: 35% 50%;
+/* Homepage only: slightly broader desktop composition, aligned toward the copy.
+   Its compact lower row keeps the painted modules inside 98 stage units;
+   retain header/top clearance and a finite cap instead of scaling or clipping. */
+@media (min-width: 1024px) {
+  .heroVisual > figure {
+    --hero-module-offset: clamp(1rem, 2.2vw, 2rem);
+    width: calc(100% - var(--hero-module-offset));
+    max-width: 600px;
+    max-width: min(600px, calc((100svh - var(--hb-header-height) - 2rem) * 100 / 98));
+    margin-left: var(--hero-module-offset);
+    margin-right: auto;
+  }
+}
+@media (min-width: 1024px) and (max-height: 720px) {
+  .heroVisual > figure {
+    max-width: 500px;
+    max-width: min(600px, calc((100svh - var(--hb-header-height) - 2rem) * 100 / 98));
   }
 }
 
@@ -233,8 +244,8 @@
 /* ── Short desktop viewports (e.g. a 1366×768 laptop at 100% zoom, whose
    browser content area is only ~620–650px tall) ─────────────────────────
    Threshold: ≥1024px wide AND ≤720px tall. Normal/tall desktop (768px+),
-   tablet and phones are untouched. Spacing only — the H1, copy and the
-   cluster keep their size; the cluster may run below the fold. */
+   tablet and phones are untouched. Text spacing only below; the homepage
+   illustration's independent viewport-aware width budget is defined above. */
 .heroLayout,
 .heroText { /* hooks for the rule below */ }
 @media (min-width: 1024px) and (max-height: 720px) {

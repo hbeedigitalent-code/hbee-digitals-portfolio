@@ -129,6 +129,7 @@ interface HbeeSpineProps {
   signal?: boolean
   /** Unique per page — prefixes the SVG gradient ids. */
   idPrefix: string
+  appearance?: 'module' | 'brand'
 }
 
 /**
@@ -136,7 +137,13 @@ interface HbeeSpineProps {
  * and ties the system together. It is the module glyph (shell + stem)
  * extruded along Z, so the system's backbone is literally Hbee geometry.
  */
-export function HbeeSpine({ signal = true, idPrefix }: HbeeSpineProps) {
+export function HbeeSpine({ signal = true, idPrefix, appearance = 'module' }: HbeeSpineProps) {
+  if (appearance === 'brand') {
+    return <div className={cn(styles.spine, styles.brandSpine)} aria-hidden="true">
+      {Array.from({ length: 8 }, (_, n) => <span key={n} className={styles.brandDepth} style={{ '--i': 8 - n } as CSSProperties} />)}
+      <img src="/svgs/logo.png" alt="" width={512} height={512} className={styles.brandFace} decoding="async" />
+    </div>
+  }
   const g = MODULE_GEOMETRY
   const gradId = `hbspine-${idPrefix}`
   const layers = 10

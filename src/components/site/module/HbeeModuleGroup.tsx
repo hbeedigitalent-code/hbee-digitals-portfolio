@@ -174,6 +174,10 @@ interface HbeeModuleGroupProps {
    * false and shows icon-only modules, with the names carried by real text elsewhere.
    */
   showLabels?: boolean
+  /** Homepage can use the existing full brand asset; other surfaces keep their spine. */
+  spine?: 'module' | 'brand'
+  /** Desktop-only homepage spacing; shared/tablet/phone geometry stays unchanged. */
+  composition?: 'default' | 'homeHero'
   className?: string
 }
 
@@ -184,6 +188,8 @@ export function HbeeModuleGroup({
   state = 'connected',
   motion = 'reveal',
   showLabels = true,
+  spine = 'module',
+  composition = 'default',
   className,
 }: HbeeModuleGroupProps) {
   const connected = state === 'connected'
@@ -263,7 +269,7 @@ export function HbeeModuleGroup({
           </svg>
 
           <div className={styles.slot} style={slotStyle(SPINE, 0)} aria-hidden="true">
-            <HbeeSpine idPrefix={idPrefix} signal={connected} />
+            <HbeeSpine idPrefix={idPrefix} signal={connected} appearance={spine} />
           </div>
 
           <ul className={styles.stageList}>
@@ -311,7 +317,7 @@ export function HbeeModuleGroup({
   )
 
   if (hero) {
-    return <figure className={cn(styles.figure, styles.heroMotion, className)}>{content}</figure>
+    return <figure className={cn(styles.figure, styles.heroMotion, composition === 'homeHero' && styles.homeComposition, className)}>{content}</figure>
   }
 
   if (motion === 'settle') {

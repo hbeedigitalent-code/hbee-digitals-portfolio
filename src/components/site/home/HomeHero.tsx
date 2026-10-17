@@ -74,12 +74,14 @@ export function HomeHero() {
           </div>
         </div>
 
-        <div className={`col-span-4 md:col-span-8 lg:col-span-6 lg:mt-5 xl:col-span-7 ${styles.heroVisual}`}>
+        <div className={`col-span-4 md:col-span-8 lg:col-span-6 xl:col-span-7 ${styles.heroVisual}`}>
           <HbeeModuleGroup
             idPrefix="hero"
             motion="hero"
+            spine="brand"
+            composition="homeHero"
             label="The Hbee system: Brand, Experience, Technology, Creative, Discovery and Growth, connected."
-            className="mx-auto max-w-[680px] lg:max-w-none"
+            className="mx-auto max-w-[680px]"
           />
         </div>
       </SiteGrid>
