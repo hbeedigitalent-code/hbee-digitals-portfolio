@@ -2,627 +2,225 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import ImageUpload from '@/components/ImageUpload'
-import Link from 'next/link'
+import PortfolioGallery from '@/components/admin/PortfolioGallery'
+import {
+  EMPTY_PORTFOLIO, loadPortfolioEditor, portfolioPayload, portfolioPublicHref, portfolioErrorMessage, slugify,
+  validatePortfolio, validPortfolioImage, validWorkSlug, type PortfolioEditor, type PortfolioErrors,
+} from '@/lib/admin/portfolio-editor'
 
-type PortfolioForm = {
-  id?: string
-  title: string
-  slug: string
-  client_name: string
-  category: string
-  project_type: string
-  description: string
-  image_url: string
-  metric_label: string
-  metric_value: string
-  industry: string
-  technology: string
-  website_url: string
-  brief: string
-  results_summary: string
-  before_image: string
-  after_image: string
-  gallery_images: string
-  result_metrics: string
-  display_order: number
-  featured: boolean
-  is_active: boolean
-  is_before_after: boolean
-  // Case study specific fields
-  challenge: string
-  solution: string
-  results: string
-  technologies_used: string
-  testimonial: string
-  seo_title: string
-  seo_description: string
-  case_study_content: string
+const inputClass = 'mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)]'
+const actionClass = 'rounded-full border border-[var(--border)] px-5 py-3 text-sm font-bold text-[var(--text-primary)] disabled:opacity-50'
+type TextKey = { [K in keyof PortfolioEditor]: PortfolioEditor[K] extends string ? K : never }[keyof PortfolioEditor]
+
+function Field({ name, label, value, onChange, error, hint, rows, required, type = 'text' }: {
+  name: string; label: string; value: string; onChange: (value: string) => void
+  error?: string; hint?: string; rows?: number; required?: boolean; type?: string
+}) {
+  const props = { id: `portfolio-${name}`, value, required, onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value), className: inputClass, 'aria-invalid': Boolean(error), 'aria-describedby': error || hint ? `portfolio-${name}-help` : undefined }
+  return (
+    <div>
+      <label htmlFor={props.id} className="block text-sm font-black text-[var(--text-secondary)]">{label}{required ? ' *' : ''}</label>
+      {rows ? <textarea {...props} rows={rows} /> : <input {...props} type={type} />}
+      {(error || hint) && <p id={`portfolio-${name}-help`} className={`mt-1 text-xs ${error ? 'text-red-500' : 'text-[var(--text-muted)]'}`}>{error || hint}</p>}
+    </div>
+  )
 }
 
-const defaultForm: PortfolioForm = {
-  title: '',
-  slug: '',
-  client_name: '',
-  category: '',
-  project_type: '',
-  description: '',
-  image_url: '',
-  metric_label: '',
-  metric_value: '',
-  industry: '',
-  technology: '',
-  website_url: '',
-  brief: '',
-  results_summary: '',
-  before_image: '',
-  after_image: '',
-  gallery_images: '[]',
-  result_metrics: '[]',
-  display_order: 0,
-  featured: false,
-  is_active: true,
-  is_before_after: false,
-  challenge: '',
-  solution: '',
-  results: '',
-  technologies_used: '[]',
-  testimonial: '',
-  seo_title: '',
-  seo_description: '',
-  case_study_content: '',
-}
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-}
-
-function formatJson(value: any) {
-  try {
-    return JSON.stringify(value || [], null, 2)
-  } catch {
-    return '[]'
-  }
-}
-
-function parseJson(value: string) {
-  try {
-    return JSON.parse(value || '[]')
-  } catch {
-    throw new Error('Invalid JSON format')
-  }
+function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+  return <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-6 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6"><h2 id={`${id}-title`} className="mb-5 text-xl font-black text-[var(--text-primary)]">{title}</h2><div className="space-y-5">{children}</div></section>
 }
 
 export default function EditPortfolioPage() {
   const params = useParams()
   const router = useRouter()
   const id = params?.id as string
-
-  const [form, setForm] = useState<PortfolioForm>(defaultForm)
+  const [form, setForm] = useState<PortfolioEditor>(EMPTY_PORTFOLIO)
   const [loading, setLoading] = useState(true)
+  const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
+  const [errors, setErrors] = useState<PortfolioErrors>({})
+  const [dirty, setDirty] = useState(false)
+  const [savedSlug, setSavedSlug] = useState('')
+  const [savedActive, setSavedActive] = useState(false)
+  const [technologiesText, setTechnologiesText] = useState('')
 
   useEffect(() => {
-    if (id) fetchItem()
+    let cancelled = false
+    setLoading(true)
+    setLoaded(false)
+    setErrorMessage('')
+    async function fetchItem() {
+      try {
+        const { data, error } = await supabase.from('portfolio_items').select('*').eq('id', id).single()
+        if (error) throw error
+        if (!data) throw new Error('Portfolio item not found.')
+        const next = loadPortfolioEditor(data)
+        if (!cancelled) {
+          setForm(next)
+          setTechnologiesText(next.technologies_used.join('\n'))
+          setSavedSlug(next.slug)
+          setSavedActive(next.is_active)
+          setDirty(false)
+          setLoaded(true)
+        }
+      } catch (error) {
+        if (!cancelled) setErrorMessage(portfolioErrorMessage(error, 'Unable to load this portfolio item. No changes have been saved.'))
+      } finally { if (!cancelled) setLoading(false) }
+    }
+    if (id) void fetchItem()
+    return () => { cancelled = true }
   }, [id])
 
-  async function fetchItem() {
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('portfolio_items')
-      .select('*')
-      .eq('id', id)
-      .single()
-
-    if (error) {
-      setErrorMessage(error.message)
-      setLoading(false)
-      return
-    }
-
-    if (data) {
-      setForm({
-        id: data.id,
-        title: data.title || data.client_name || '',
-        slug: data.slug || '',
-        client_name: data.client_name || data.title || '',
-        category: data.category || '',
-        project_type: data.project_type || '',
-        description: data.description || '',
-        image_url: data.image_url || '',
-        metric_label: data.metric_label || '',
-        metric_value: data.metric_value || '',
-        industry: data.industry || '',
-        technology: data.technology || '',
-        website_url: data.website_url || '',
-        brief: data.brief || '',
-        results_summary: data.results_summary || '',
-        before_image: data.before_image || '',
-        after_image: data.after_image || '',
-        gallery_images: formatJson(data.gallery_images),
-        result_metrics: formatJson(data.result_metrics),
-        display_order: data.display_order || 0,
-        featured: data.featured || false,
-        is_active: data.is_active ?? true,
-        is_before_after: data.is_before_after || false,
-        challenge: data.challenge || '',
-        solution: data.solution || '',
-        results: data.results || '',
-        technologies_used: formatJson(data.technologies_used),
-        testimonial: data.testimonial || '',
-        seo_title: data.seo_title || '',
-        seo_description: data.seo_description || '',
-        case_study_content: data.case_study_content || '',
-      })
-    }
-    setLoading(false)
-  }
-
-  function updateField<K extends keyof PortfolioForm>(key: K, value: PortfolioForm[K]) {
+  function updateField<K extends keyof PortfolioEditor>(key: K, value: PortfolioEditor[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
+    setDirty(true)
+    setMessage('')
+    setErrors((prev) => ({ ...prev, [key]: undefined }))
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setSaving(true)
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (saving || !loaded) return
+    const validation = validatePortfolio(form)
+    setErrors(validation)
     setMessage('')
+    if (Object.keys(validation).length) { setErrorMessage('Check the highlighted fields before saving.'); return }
+    setSaving(true)
     setErrorMessage('')
-
     try {
-      const payload = {
-        title: form.title,
-        slug: form.slug || slugify(form.title || form.client_name),
-        client_name: form.client_name || form.title,
-        category: form.category,
-        project_type: form.project_type,
-        description: form.description,
-        image_url: form.image_url,
-        metric_label: form.metric_label,
-        metric_value: form.metric_value,
-        industry: form.industry,
-        technology: form.technology,
-        website_url: form.website_url,
-        brief: form.brief,
-        results_summary: form.results_summary,
-        before_image: form.before_image,
-        after_image: form.after_image,
-        gallery_images: parseJson(form.gallery_images),
-        result_metrics: parseJson(form.result_metrics),
-        display_order: Number(form.display_order) || 0,
-        featured: form.featured,
-        is_active: form.is_active,
-        is_before_after: form.is_before_after,
-        challenge: form.challenge,
-        solution: form.solution,
-        results: form.results,
-        technologies_used: parseJson(form.technologies_used),
-        testimonial: form.testimonial,
-        seo_title: form.seo_title,
-        seo_description: form.seo_description,
-        case_study_content: form.case_study_content,
-        updated_at: new Date().toISOString(),
-      }
-
-      const { error } = await supabase
-        .from('portfolio_items')
-        .update(payload)
-        .eq('id', id)
-
-      if (error) {
-        setErrorMessage(error.message)
-        setSaving(false)
-        return
-      }
-
-      setMessage('Portfolio item updated successfully.')
-      setTimeout(() => router.push('/admin/portfolio'), 1500)
-    } catch (error: any) {
-      setErrorMessage(error.message || 'Something went wrong.')
-    }
-
-    setSaving(false)
+      const payload = { ...portfolioPayload(form), updated_at: new Date().toISOString() }
+      const { data, error } = await supabase.from('portfolio_items').update(payload).eq('id', id).select('id').single()
+      if (error) throw error
+      if (!data) throw new Error('The item was not saved. Reload and try again.')
+      setDirty(false)
+      setSavedSlug(form.slug)
+      setSavedActive(form.is_active)
+      setMessage('Portfolio item saved. Public pages may take time to refresh.')
+    } catch (error) {
+      setErrorMessage(portfolioErrorMessage(error, 'Unable to save this portfolio item.'))
+    } finally { setSaving(false) }
   }
 
   async function deleteItem() {
-    if (!confirm('Delete this portfolio item permanently?')) return
-
-    const { error } = await supabase.from('portfolio_items').delete().eq('id', id)
-
-    if (error) {
-      setErrorMessage(error.message)
-      return
-    }
-
-    router.push('/admin/portfolio')
+    if (saving || !confirm('Delete this portfolio item permanently?')) return
+    setSaving(true)
+    setErrorMessage('')
+    try {
+      const { error } = await supabase.from('portfolio_items').delete().eq('id', id)
+      if (error) throw error
+      router.push('/admin/portfolio')
+    } catch (error) {
+      setErrorMessage(portfolioErrorMessage(error, 'Unable to delete this portfolio item.'))
+    } finally { setSaving(false) }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
-      </div>
-    )
+  function field(key: TextKey, label: string, options: { hint?: string; rows?: number; required?: boolean; type?: string } = {}) {
+    return <Field name={key} label={label} value={form[key]} onChange={(value) => updateField(key, key === 'slug' ? slugify(value) : value)} error={errors[key]} {...options} />
   }
+
+  if (loading) return <p role="status" className="py-20 text-center text-[var(--text-muted)]">Loading portfolio item…</p>
+  if (!loaded) return <div className="space-y-5"><p role="alert" className="text-red-500">{errorMessage}</p><Link href="/admin/portfolio" className={actionClass}>Back to portfolio</Link></div>
 
   return (
-    <main className="min-h-screen text-white">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">
-              Admin / Portfolio / Edit
-            </p>
-            <h1 className="text-4xl font-black tracking-[-0.05em] text-[var(--text-primary)]">
-              Edit Portfolio Item
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--text-secondary)]">
-              Update project details, case study content, SEO, and visibility settings.
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={deleteItem}
-              className="rounded-full border border-red-500/30 bg-red-500/10 px-6 py-3 text-sm font-black text-red-400 transition hover:bg-red-500/20"
-            >
-              Delete Item
-            </button>
-            <Link
-              href="/admin/portfolio"
-              className="rounded-full border border-[var(--border)] bg-[var(--bg-section)] px-6 py-3 text-sm font-black text-[var(--text-primary)] transition hover:border-[var(--accent)]/25"
-            >
-              Cancel
-            </Link>
-          </div>
+    <div className="mx-auto max-w-5xl space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="mb-2 text-xs font-black uppercase tracking-widest text-[var(--accent)]">Admin / Portfolio / Edit</p>
+          <h1 className="text-3xl font-black text-[var(--text-primary)]">Edit Portfolio Item</h1>
+          <p className="mt-2 text-sm text-[var(--text-muted)]">Manage the existing public work entry, story, images and SEO.</p>
         </div>
-
-        {message && (
-          <div className="mb-6 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-5 py-4 text-sm font-bold text-[var(--accent)]">
-            {message}
-          </div>
-        )}
-
-        {errorMessage && (
-          <div className="mb-6 rounded-2xl border border-red-400/25 bg-red-400/10 px-5 py-4 text-sm font-bold text-red-300">
-            {errorMessage}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Basic Information Section */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-            <h2 className="mb-5 text-xl font-black text-[var(--text-primary)]">Basic Information</h2>
-            <div className="grid gap-5 lg:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">Project Title *</label>
-                <input
-                  type="text"
-                  required
-                  value={form.title}
-                  onChange={(e) => updateField('title', e.target.value)}
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">Slug *</label>
-                <input
-                  type="text"
-                  required
-                  value={form.slug}
-                  onChange={(e) => updateField('slug', slugify(e.target.value))}
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                />
-                <p className="mt-1 text-xs text-[var(--text-muted)]">URL: /portfolio/{form.slug || '...'}</p>
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-5 lg:grid-cols-3">
-              <div>
-                <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">Client Name</label>
-                <input
-                  type="text"
-                  value={form.client_name}
-                  onChange={(e) => updateField('client_name', e.target.value)}
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">Category</label>
-                <input
-                  type="text"
-                  value={form.category}
-                  onChange={(e) => updateField('category', e.target.value)}
-                  placeholder="Fashion, E-commerce, Healthcare"
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">Project Type</label>
-                <input
-                  type="text"
-                  value={form.project_type}
-                  onChange={(e) => updateField('project_type', e.target.value)}
-                  placeholder="Shopify Redesign + CRO"
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                />
-              </div>
-            </div>
-
-            <div className="mt-5">
-              <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">Short Description</label>
-              <textarea
-                rows={3}
-                value={form.description}
-                onChange={(e) => updateField('description', e.target.value)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-              />
-            </div>
-          </div>
-
-          {/* Images Section */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-            <h2 className="mb-5 text-xl font-black text-[var(--text-primary)]">Project Images</h2>
-            <div className="grid gap-5 lg:grid-cols-2">
-              <ImageUpload
-                label="Main Image"
-                currentImage={form.image_url}
-                folder="portfolio"
-                onUpload={(url) => updateField('image_url', url)}
-              />
-              <div className="grid gap-5">
-                <div>
-                  <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">Metric Value</label>
-                  <input
-                    type="text"
-                    value={form.metric_value}
-                    onChange={(e) => updateField('metric_value', e.target.value)}
-                    placeholder="+38%"
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">Metric Label</label>
-                  <input
-                    type="text"
-                    value={form.metric_label}
-                    onChange={(e) => updateField('metric_label', e.target.value)}
-                    placeholder="Conversion Lift"
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-5 lg:grid-cols-2">
-              <ImageUpload
-                label="Before Image"
-                currentImage={form.before_image}
-                folder="portfolio-before-after"
-                onUpload={(url) => updateField('before_image', url)}
-              />
-              <ImageUpload
-                label="After Image"
-                currentImage={form.after_image}
-                folder="portfolio-before-after"
-                onUpload={(url) => updateField('after_image', url)}
-              />
-            </div>
-          </div>
-
-          {/* Case Study Content Section */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-            <h2 className="mb-5 text-xl font-black text-[var(--text-primary)]">Case Study Content</h2>
-            <div className="space-y-5">
-              <div>
-                <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">The Brief / Challenge</label>
-                <textarea
-                  rows={6}
-                  value={form.brief}
-                  onChange={(e) => updateField('brief', e.target.value)}
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                  placeholder="Describe the problem or challenge the client faced..."
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">The Solution</label>
-                <textarea
-                  rows={6}
-                  value={form.solution || ''}
-                  onChange={(e) => updateField('solution', e.target.value)}
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                  placeholder="Describe your approach and solution..."
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">Results & Impact</label>
-                <textarea
-                  rows={6}
-                  value={form.results || form.results_summary || ''}
-                  onChange={(e) => updateField('results', e.target.value)}
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                  placeholder="Describe the measurable results and impact..."
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">Client Testimonial</label>
-                <textarea
-                  rows={4}
-                  value={form.testimonial || ''}
-                  onChange={(e) => updateField('testimonial', e.target.value)}
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                  placeholder='"Client feedback about working with us..."'
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Technologies & Metrics Section */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-            <h2 className="mb-5 text-xl font-black text-[var(--text-primary)]">Technologies & Metrics</h2>
-            <div className="grid gap-5 lg:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">Industry</label>
-                <input
-                  type="text"
-                  value={form.industry}
-                  onChange={(e) => updateField('industry', e.target.value)}
-                  placeholder="E-commerce, Healthcare, Real Estate"
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">Technology Stack</label>
-                <input
-                  type="text"
-                  value={form.technology}
-                  onChange={(e) => updateField('technology', e.target.value)}
-                  placeholder="Shopify, React, Supabase, Tailwind"
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                />
-              </div>
-            </div>
-
-            <div className="mt-5">
-              <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">Technologies Used (JSON)</label>
-              <textarea
-                rows={4}
-                value={form.technologies_used}
-                onChange={(e) => updateField('technologies_used', e.target.value)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 font-mono text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                placeholder='["Shopify", "Klaviyo", "Supabase"]'
-              />
-            </div>
-
-            <div className="mt-5">
-              <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">Gallery Images (JSON)</label>
-              <textarea
-                rows={4}
-                value={form.gallery_images}
-                onChange={(e) => updateField('gallery_images', e.target.value)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 font-mono text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                placeholder='["/image-1.jpg", "/image-2.jpg"]'
-              />
-            </div>
-
-            <div className="mt-5">
-              <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">Result Metrics (JSON)</label>
-              <textarea
-                rows={5}
-                value={form.result_metrics}
-                onChange={(e) => updateField('result_metrics', e.target.value)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 font-mono text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                placeholder='[{"label":"Conversion Lift","value":"+38%"},{"label":"Speed Score","value":"91"}]'
-              />
-            </div>
-          </div>
-
-          {/* SEO Settings Section */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-            <h2 className="mb-5 text-xl font-black text-[var(--text-primary)]">SEO Settings</h2>
-            <div className="space-y-5">
-              <div>
-                <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">SEO Title</label>
-                <input
-                  type="text"
-                  value={form.seo_title}
-                  onChange={(e) => updateField('seo_title', e.target.value)}
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                  placeholder="Case Study: Client Name | Hbee Digitals"
-                />
-                <p className="mt-1 text-xs text-[var(--text-muted)]">Recommended: 50-60 characters</p>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">SEO Description</label>
-                <textarea
-                  rows={3}
-                  value={form.seo_description}
-                  onChange={(e) => updateField('seo_description', e.target.value)}
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                  placeholder="Learn how Hbee Digitals helped Client Name achieve +150% growth through strategic digital transformation..."
-                />
-                <p className="mt-1 text-xs text-[var(--text-muted)]">Recommended: 150-160 characters</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Visibility Settings Section */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-            <h2 className="mb-5 text-xl font-black text-[var(--text-primary)]">Visibility & Settings</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div>
-                <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">Display Order</label>
-                <input
-                  type="number"
-                  value={form.display_order}
-                  onChange={(e) => updateField('display_order', parseInt(e.target.value) || 0)}
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-black text-[var(--text-secondary)]">Website URL</label>
-                <input
-                  type="url"
-                  value={form.website_url}
-                  onChange={(e) => updateField('website_url', e.target.value)}
-                  placeholder="https://example.com"
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                />
-              </div>
-              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3">
-                <input
-                  type="checkbox"
-                  checked={form.featured}
-                  onChange={(e) => updateField('featured', e.target.checked)}
-                  className="h-5 w-5"
-                />
-                <span className="text-sm font-bold text-[var(--text-secondary)]">Featured on Homepage</span>
-              </label>
-              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3">
-                <input
-                  type="checkbox"
-                  checked={form.is_active}
-                  onChange={(e) => updateField('is_active', e.target.checked)}
-                  className="h-5 w-5"
-                />
-                <span className="text-sm font-bold text-[var(--text-secondary)]">Active / Visible</span>
-              </label>
-              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3">
-                <input
-                  type="checkbox"
-                  checked={form.is_before_after}
-                  onChange={(e) => updateField('is_before_after', e.target.checked)}
-                  className="h-5 w-5"
-                />
-                <span className="text-sm font-bold text-[var(--text-secondary)]">Show in Before/After</span>
-              </label>
-            </div>
-          </div>
-
-          <div className="flex gap-4 pb-10">
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-[var(--accent)] px-8 py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] disabled:opacity-50"
-            >
-              {saving ? 'Saving...' : 'Update Portfolio Item'}
-            </button>
-            <Link
-              href="/admin/portfolio"
-              className="inline-flex min-h-[52px] items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-section)] px-8 py-3 text-sm font-black text-[var(--text-primary)] transition hover:border-[var(--accent)]/25"
-            >
-              Cancel
-            </Link>
-          </div>
-        </form>
+        <div className="flex flex-wrap gap-3">
+          {savedActive && validWorkSlug(savedSlug) && <Link href={portfolioPublicHref(savedSlug)} target="_blank" rel="noopener noreferrer" className={actionClass}>View saved /work page</Link>}
+          <Link href="/admin/portfolio" className={actionClass}>Back to portfolio</Link>
+        </div>
       </div>
-    </main>
+      <nav aria-label="Portfolio editor sections" className="flex flex-wrap gap-4 text-sm font-bold text-[var(--accent)]">
+        {['basics', 'story', 'media', 'visibility', 'seo'].map((section) => <a key={section} href={`#${section}`} className="capitalize underline underline-offset-4">{section}</a>)}
+      </nav>
+      {message && <p role="status" className="rounded-xl border border-[var(--accent)]/20 p-4 text-sm text-[var(--accent)]">{message}</p>}
+      {errorMessage && <p role="alert" className="rounded-xl border border-red-500/20 p-4 text-sm text-red-500">{errorMessage}</p>}
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
+        <fieldset disabled={saving} className="min-w-0 space-y-6">
+          <Section id="basics" title="Basics">
+            <div className="grid gap-5 lg:grid-cols-2">
+              {field('title', 'Project title', { required: true })}
+              {field('client_name', 'Client name', { hint: 'Shown as the client; the project title is used when this is blank.' })}
+              {field('slug', 'Slug', { required: true, hint: `URL: /work/${form.slug || '…'}. Changing a saved slug changes its public URL; no redirect is created here.` })}
+              {field('category', 'Category', { hint: 'Free-text grouping on /work. No capability assignment.' })}
+              {field('industry', 'Industry', { hint: 'Free text. Used as a category fallback when category is blank.' })}
+              {field('project_type', 'Project type', { hint: 'Displayed as entered; this does not assign Hbee capabilities.' })}
+            </div>
+            {field('description', 'Short description', { rows: 3 })}
+            <Field name="technologies_used" label="Technologies used" rows={4} value={technologiesText} onChange={(value) => {
+              setTechnologiesText(value)
+              updateField('technologies_used', value.split('\n').map((item) => item.trim()).filter(Boolean))
+            }} hint="One per line. These labels appear on homepage Selected Work (up to three); they are not verified Hbee service or capability assignments." />
+          </Section>
+
+          <Section id="story" title="Story">
+            <p className="text-sm text-[var(--text-muted)]">Plain text is used publicly; markup is stripped. Empty optional sections are omitted.</p>
+            {field('brief', 'Project context / brief', { rows: 4, hint: 'Shown as context when it adds to the short description.' })}
+            {field('challenge', 'Challenge', { rows: 4, hint: 'Shown as “The challenge” and used first for homepage project context.' })}
+            {field('solution', 'Solution', { rows: 4 })}
+            {field('results_summary', 'Public results summary (primary)', { rows: 4, hint: 'This takes precedence over legacy results below. Edit this field to change an existing public summary. Unsupported numeric claims are suppressed publicly.' })}
+            {field('results', 'Legacy results (fallback)', { rows: 4, hint: 'Shown only when the primary summary has no public text. To remove the public outcome entirely, clear both fields. Existing stored values are preserved unless you edit them.' })}
+          </Section>
+
+          <Section id="media" title="Media">
+            <p className="text-sm text-[var(--text-muted)]">Use existing HTTPS image URLs, local /paths, or the existing public image uploader. Uploads use the project-images bucket.</p>
+            <p className="text-sm text-[var(--text-muted)]">If the main image is blank, the public page retains its existing featured-image / after-image fallback. This editor leaves any legacy featured image untouched.</p>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="space-y-4">
+                <ImageUpload key={`cover-${form.image_url}`} label="Upload main / cover image" currentImage={validPortfolioImage(form.image_url) ? form.image_url : ''} folder="portfolio" contain onUpload={(url) => updateField('image_url', url)} />
+                {field('image_url', 'Main / cover image URL')}
+              </div>
+              <div className="space-y-4">
+                <ImageUpload key={`before-${form.before_image}`} label="Upload before image" currentImage={validPortfolioImage(form.before_image) ? form.before_image : ''} folder="portfolio-before-after" contain onUpload={(url) => updateField('before_image', url)} />
+                {field('before_image', 'Before image URL')}
+              </div>
+              <div className="space-y-4">
+                <ImageUpload key={`after-${form.after_image}`} label="Upload after image" currentImage={validPortfolioImage(form.after_image) ? form.after_image : ''} folder="portfolio-before-after" contain onUpload={(url) => updateField('after_image', url)} />
+                {field('after_image', 'After image URL')}
+              </div>
+            </div>
+            <p className="text-sm text-[var(--text-muted)]">The public comparison requires two distinct images, with neither already used as the cover. An unpaired before image is omitted.</p>
+            <h3 className="text-lg font-black text-[var(--text-primary)]">Gallery images</h3>
+            <PortfolioGallery images={form.gallery_images} onChange={(images) => updateField('gallery_images', images)} />
+            {errors.gallery_images && <p role="alert" className="text-sm text-red-500">{errors.gallery_images}</p>}
+          </Section>
+
+          <Section id="visibility" title="Visibility & ordering">
+            <div className="grid gap-5 lg:grid-cols-2">
+              {field('website_url', 'Website URL (optional)', { type: 'url', hint: 'Use HTTPS. Leave blank to omit the external website link when no legacy URL fallback is stored.' })}
+              <Field name="display_order" label="Display order" value={String(form.display_order)} type="number" error={errors.display_order} hint="Lower numbers appear first within featured and non-featured groups." onChange={(value) => updateField('display_order', value.trim() === '' ? NaN : Number(value))} />
+            </div>
+            <div className="flex flex-wrap gap-5">
+              {(['featured', 'is_active', 'is_before_after'] as const).map((key) => <label key={key} className="flex items-center gap-3 text-sm font-bold text-[var(--text-secondary)]"><input type="checkbox" checked={form[key]} onChange={(e) => updateField(key, e.target.checked)} className="h-5 w-5 accent-[var(--accent)]" />{key === 'featured' ? 'Featured' : key === 'is_active' ? 'Active / publicly visible' : 'Legacy before/after flag'}</label>)}
+            </div>
+            <p className="text-sm text-[var(--text-muted)]">Featured entries appear first. Visibility controls public inclusion. The legacy before/after flag is preserved; /work uses the actual image pair.</p>
+            <details className="rounded-xl border border-[var(--border)] p-4">
+              <summary className="cursor-pointer text-sm font-bold text-[var(--text-secondary)]">Homepage result label</summary>
+              <p className="my-3 text-sm text-[var(--text-muted)]">Existing homepage metric fields. Enter evidence-backed claims only; /work detail continues to suppress numeric outcome text.</p>
+              <div className="grid gap-5 lg:grid-cols-2">{field('metric_value', 'Metric value')}{field('metric_label', 'Metric label')}</div>
+            </details>
+          </Section>
+
+          <Section id="seo" title="SEO">
+            {field('seo_title', 'SEO title', { hint: 'Optional. Falls back to the client name on the public work page.' })}
+            {field('seo_description', 'SEO description', { rows: 3, hint: 'Optional. Falls back to the short description, then the existing default.' })}
+          </Section>
+        </fieldset>
+        <div className="flex flex-wrap items-center gap-4 pb-10">
+          <button type="submit" disabled={saving || !dirty} className="rounded-full bg-[var(--accent)] px-8 py-3 text-sm font-black text-[var(--btn-primary-text)] disabled:opacity-50">{saving ? 'Saving…' : 'Save portfolio item'}</button>
+          <span role="status" className="text-sm text-[var(--text-muted)]">{saving ? 'Saving changes…' : dirty ? 'Unsaved changes' : 'No unsaved changes'}</span>
+          <button type="button" disabled={saving} onClick={deleteItem} className="rounded-full border border-red-500/30 px-5 py-3 text-sm font-bold text-red-500 disabled:opacity-50">Delete item</button>
+        </div>
+      </form>
+    </div>
   )
 }

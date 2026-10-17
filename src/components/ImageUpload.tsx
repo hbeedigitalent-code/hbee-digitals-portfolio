@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useId } from 'react'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
 
@@ -9,9 +9,11 @@ interface ImageUploadProps {
   currentImage?: string
   folder?: string
   label?: string
+  contain?: boolean
 }
 
-export default function ImageUpload({ onUpload, currentImage, folder = 'projects', label = 'Upload Image' }: ImageUploadProps) {
+export default function ImageUpload({ onUpload, currentImage, folder = 'projects', label = 'Upload Image', contain = false }: ImageUploadProps) {
+  const inputId = useId()
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview] = useState(currentImage || '')
   const [error, setError] = useState<string | null>(null)
@@ -78,7 +80,7 @@ export default function ImageUpload({ onUpload, currentImage, folder = 'projects
 
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-medium text-gray-700">{label}</label>
+      <label htmlFor={inputId} className="block text-sm font-medium text-[var(--text-secondary)]">{label}</label>
       
       {/* Preview */}
       {preview && (
@@ -87,9 +89,13 @@ export default function ImageUpload({ onUpload, currentImage, folder = 'projects
             src={preview}
             alt="Preview"
             fill
-            className="object-cover"
+            unoptimized
+            sizes="128px"
+            className={contain ? 'object-contain' : 'object-cover'}
           />
           <button
+            type="button"
+            aria-label={`Remove ${label}`}
             onClick={() => {
               setPreview('')
               onUpload('')
@@ -112,11 +118,11 @@ export default function ImageUpload({ onUpload, currentImage, folder = 'projects
           accept="image/*"
           onChange={handleChange}
           className="hidden"
-          id="image-upload"
+          id={inputId}
           disabled={uploading}
         />
         <label
-          htmlFor="image-upload"
+          htmlFor={inputId}
           className="cursor-pointer block"
         >
           {uploading ? (
