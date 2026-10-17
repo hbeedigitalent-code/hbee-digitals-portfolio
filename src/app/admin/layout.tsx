@@ -49,6 +49,7 @@ const navItems = [
   { name: 'Insights', href: '/admin/blog', icon: 'blog' },
   { name: 'Comments', href: '/admin/comments', icon: 'messages' },
   { name: 'FAQs', href: '/admin/faqs', icon: 'faq' },
+  { name: 'Trusted Brands', href: '/admin/trust', icon: 'security' },
   { name: 'Testimonials', href: '/admin/testimonials', icon: 'star' },
   { name: 'Hero Section', href: '/admin/hero', icon: 'hero' },
   { name: 'About Page', href: '/admin/about', icon: 'about' },

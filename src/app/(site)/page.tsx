@@ -3,6 +3,8 @@ import { pageMetadata } from '@/lib/site/seo'
 
 import { HomeHero } from '@/components/site/home/HomeHero'
 import { HomeBridge } from '@/components/site/home/HomeBridge'
+import { HomeTrustedBrands } from '@/components/site/home/HomeTrustedBrands'
+import { getHomepageBrands } from '@/lib/site/trusted-brands-data'
 import { HomeProblem } from '@/components/site/home/HomeProblem'
 import { HomeConditions } from '@/components/site/home/HomeConditions'
 import { HomeGrowthSystem } from '@/components/site/home/HomeGrowthSystem'
@@ -35,12 +37,13 @@ export const metadata: Metadata = pageMetadata({
 
 export default async function HomePage() {
 
-  const [work, quotes, posts] = await Promise.all([getFeaturedWork(3), getHomepageProof(2), getHomepageInsights(3)])
+  const [work, quotes, posts, brands] = await Promise.all([getFeaturedWork(3), getHomepageProof(2), getHomepageInsights(3), getHomepageBrands()])
 
   return (
     <>
       <HomeHero />
       <HomeBridge />
+      <HomeTrustedBrands brands={brands} />
       <HomeProblem />
       <HomeConditions />
       <HomeGrowthSystem />
