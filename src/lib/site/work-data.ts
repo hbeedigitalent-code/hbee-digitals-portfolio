@@ -10,7 +10,7 @@
  *   slug rule that excludes the known mislabelled row (slug `portfolio`,
  *   Taltis project stored as "Voltix"). No second validation rule.
  * - Nothing is inferred. Fields the CMS does not hold — or holds without
- *   verification — are left out: no metrics, no capability attribution, no
+ *   verification — are left out: no metrics, no inferred capability attribution, no
  *   client-vs-concept flag, no "Hbee role" (`project_type` is shown only as
  *   the project type the editor entered).
  * - Never throws. A failed read returns an empty result (landing) or null
@@ -25,6 +25,7 @@ import { cache } from 'react'
 import { supabase } from '@/lib/supabase'
 import { absoluteUrl } from '@/lib/blog-utils'
 import { imageUrl, isValidPortfolioSlug, text, truncate, type Row } from './home-data'
+import type { PortfolioMedia } from '@/lib/portfolio-creative'
 
 if (typeof window !== 'undefined') {
   throw new Error('src/lib/site/work-data.ts is server-only')
@@ -183,6 +184,7 @@ export interface WorkImage {
   alt: string
   /** Set only for genuine before/after media. */
   label?: 'Before' | 'After'
+  creative?: PortfolioMedia
 }
 
 export interface WorkDetail {
@@ -227,7 +229,7 @@ function list(value: unknown): unknown[] {
 }
 
 /** Pure: one portfolio row → detail model, or null when it can't be shown. */
-export function toWorkDetail(row: Row): WorkDetail | null {
+export function toWorkDetail(row: Row, typedMedia: PortfolioMedia[] = []): WorkDetail | null {
   const slug = text(row.slug)
   if (!isValidPortfolioSlug(slug)) return null
   const client = clientOf(row)
@@ -251,11 +253,17 @@ export function toWorkDetail(row: Row): WorkDetail | null {
   const pair = before && after && before !== after && before !== heroSrc && after !== heroSrc ? ([before, after] as const) : undefined
   if (pair) pair.forEach((s) => seen.add(s))
   const gallery: WorkImage[] = []
-  const extra = [imageUrl(row.featured_image), pair ? undefined : after, ...list(row.gallery_images).map(imageUrl)]
+  const visibleMedia = typedMedia.filter((item) => item.is_visible).sort((a, b) => a.display_order - b.display_order || a.id.localeCompare(b.id))
+  const extra = [imageUrl(row.featured_image), pair ? undefined : after, ...(visibleMedia.length ? [] : list(row.gallery_images).map(imageUrl))]
   extra.forEach((src) => {
     const s = take(src)
     if (s) gallery.push({ src: s, alt: `${client} — project image ${gallery.length + 1}` })
   })
+  visibleMedia.forEach((creative) => {
+    const src = take(imageUrl(creative.image_url))
+    if (src) gallery.push({ src, alt: text(creative.alt_text) || `${client} — project image`, creative })
+  })
+  const heroCreative = visibleMedia.find((item) => item.image_url === heroSrc)
 
   return {
     slug,
@@ -270,7 +278,7 @@ export function toWorkDetail(row: Row): WorkDetail | null {
     constraint: text(row.challenge),
     approach: text(row.solution),
     outcome: outcomeText && !/\d/.test(outcomeText) ? outcomeText : undefined,
-    heroImage: heroSrc ? { src: heroSrc, alt: `${client} — project preview` } : undefined,
+    heroImage: heroSrc ? { src: heroSrc, alt: text(heroCreative?.alt_text) || `${client} — project preview`, creative: heroCreative } : undefined,
     gallery,
     beforeAfter: pair
       ? [
@@ -293,7 +301,9 @@ export async function getWorkDetail(slug: string): Promise<WorkDetail | null> {
       .limit(1)
       .maybeSingle()
     if (error || !data) return null
-    return toWorkDetail(data as Row)
+    // Lazy import keeps the legacy path independent of schema-dependent reads.
+    const { getPortfolioMedia } = await import('./portfolio-creative-data')
+    return toWorkDetail(data as Row, await getPortfolioMedia(String(data.id)))
   } catch {
     return null
   }

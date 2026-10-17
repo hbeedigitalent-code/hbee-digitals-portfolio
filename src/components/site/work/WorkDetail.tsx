@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { mediaPresentation } from '@/lib/portfolio-creative'
 import { cn } from '@/lib/cn'
 import type { WorkDetail, WorkImage } from '@/lib/site/work-data'
 import { HbeeModuleGlyph } from '../module/HbeeModule'
@@ -107,7 +108,7 @@ function WorkDetailHero({ detail }: { detail: WorkDetail }) {
             </SiteButton>
           </div>
         </div>
-        {image && (
+        {image?.creative ? <SiteReveal motion="focus"><EvidenceImage image={image} /></SiteReveal> : image && (
           <SiteReveal motion="focus" className={styles.caseHeroMedia}>
             <SiteImage src={image.src} alt={image.alt} sizes="(min-width: 1024px) 52vw, 100vw" priority className={styles.mediaImage} />
           </SiteReveal>
@@ -195,6 +196,17 @@ function WorkApproach({ detail }: { detail: WorkDetail }) {
 /* ── 06 — Evidence: real media beyond the hero image (before/after first) ── */
 
 function EvidenceImage({ image, wide }: { image: WorkImage; wide?: boolean }) {
+  if (image.creative) {
+    const presentation = mediaPresentation(image.creative)
+    return (
+      <figure className={styles.evidenceItem}>
+        <div className={cn(styles.creativeFrame, presentation.artwork && styles.creativeArtwork)} style={{ aspectRatio: presentation.ratio }}>
+          <img src={image.src} alt={image.alt} loading="lazy" className={styles.creativeImage} style={{ objectFit: presentation.fit }} />
+        </div>
+        {image.creative.caption && <figcaption className={styles.evidenceLabel}>{image.creative.caption}</figcaption>}
+      </figure>
+    )
+  }
   return (
     <figure className={cn(styles.evidenceItem, wide && styles.evidenceWide)}>
       <div className={styles.media}>

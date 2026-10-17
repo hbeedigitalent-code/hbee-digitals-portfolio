@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import ImageUpload from '@/components/ImageUpload'
 import PortfolioGallery from '@/components/admin/PortfolioGallery'
+import PortfolioCreativeMedia from '@/components/admin/PortfolioCreativeMedia'
+import { portfolioCreativeEnabled } from '@/lib/portfolio-creative'
 import {
   EMPTY_PORTFOLIO, loadPortfolioEditor, portfolioPayload, portfolioPublicHref, portfolioErrorMessage, slugify,
   validatePortfolio, validPortfolioImage, validWorkSlug, type PortfolioEditor, type PortfolioErrors,
@@ -213,6 +215,9 @@ export default function EditPortfolioPage() {
           <Section id="seo" title="SEO">
             {field('seo_title', 'SEO title', { hint: 'Optional. Falls back to the client name on the public work page.' })}
             {field('seo_description', 'SEO description', { rows: 3, hint: 'Optional. Falls back to the short description, then the existing default.' })}
+          </Section>
+          <Section id="creative-media" title="Creative media & capabilities">
+            {portfolioCreativeEnabled() ? <PortfolioCreativeMedia portfolioId={id} disabled={saving} /> : <p className="text-sm text-[var(--text-muted)]">Typed creative assets and explicit capability assignments are awaiting the approved database rollout. The existing gallery remains available above.</p>}
           </Section>
         </fieldset>
         <div className="flex flex-wrap items-center gap-4 pb-10">

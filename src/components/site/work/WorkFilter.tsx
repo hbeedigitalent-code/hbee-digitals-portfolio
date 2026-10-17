@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { cn } from '@/lib/cn'
+import { workCategoryFromQuery } from '@/lib/site/work-filter'
 import { SiteChevron } from '../primitives/SiteIcons'
 import styles from './work.module.css'
 
@@ -30,6 +31,21 @@ export function WorkFilter({ categories, total, children }: { categories: WorkFi
   const count = active === 'all' ? total : categories.find((c) => c.key === active)?.count ?? 0
 
   useEffect(() => {
+    const sync = () => setActive(workCategoryFromQuery(new URLSearchParams(window.location.search).get('category'), categories))
+    sync()
+    window.addEventListener('popstate', sync)
+    return () => window.removeEventListener('popstate', sync)
+  }, [categories])
+
+  function selectCategory(key: string) {
+    setActive(key)
+    const url = new URL(window.location.href)
+    if (key === 'all') url.searchParams.delete('category')
+    else url.searchParams.set('category', key)
+    window.history.pushState(null, '', url)
+  }
+
+  useEffect(() => {
     const root = listRef.current
     if (!root) return
     root.querySelectorAll<HTMLElement>('[data-work-item]').forEach((el) => {
@@ -50,7 +66,7 @@ export function WorkFilter({ categories, total, children }: { categories: WorkFi
               key={o.key}
               type="button"
               aria-pressed={active === o.key}
-              onClick={() => setActive(o.key)}
+              onClick={() => selectCategory(o.key)}
               className={cn(styles.filterButton, active === o.key && styles.filterButtonActive)}
             >
               {o.label}
@@ -65,7 +81,7 @@ export function WorkFilter({ categories, total, children }: { categories: WorkFi
 
         <label className={styles.filterSelectWrap}>
           <span className="sr-only">Filter work by category</span>
-          <select value={active} onChange={(e) => setActive(e.target.value)} className={styles.filterSelect}>
+          <select value={active} onChange={(e) => selectCategory(e.target.value)} className={styles.filterSelect}>
             {options.map((o) => (
               <option key={o.key} value={o.key}>
                 {o.label} ({o.count})

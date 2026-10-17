@@ -166,3 +166,13 @@ rewritten from its output. Findings and remediation are tracked in
 The remaining work this unblocks: replacing the call-site inventory above with
 verified schema — columns, types, foreign keys and constraints — and recording
 the RLS posture of all 64 tables rather than the three currently covered.
+
+## Proposed Phase C portfolio extension (not applied)
+
+Creative-media/capability schema artifacts are prepared, not executed. The live
+`gallery_images` SQL type remains unverified; its legacy field is unchanged.
+See [the evidence, model decision and rollout gates](portfolio-creative-phase-c.md).
+Application access to the proposed child tables and revision-checked save RPC
+remains behind a default-off flag until owner-reviewed schema, RLS and storage
+verification is complete. Once applied, database constraints, revision triggers
+and RLS operate independently of that flag.

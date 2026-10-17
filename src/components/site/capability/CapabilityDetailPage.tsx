@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import type { WorkItem } from '@/lib/site/work-data'
 import { CAPABILITY_DETAILS, capabilityIdentity } from './capability-content'
 import { CapabilityHero } from './CapabilityHero'
 import { CapabilityApproach, CapabilityCta, CapabilityOpportunity, CapabilityWork } from './CapabilitySections'
@@ -15,7 +16,7 @@ import { CapabilitySystemFit } from './CapabilitySystemFit'
  * Server component throughout; client code is limited to the shared
  * SiteNav and SiteReveal triggers.
  */
-export function CapabilityDetailPage({ slug }: { slug: string }) {
+export function CapabilityDetailPage({ slug, work = [] }: { slug: string; work?: WorkItem[] }) {
   const detail = CAPABILITY_DETAILS[slug]
   const identity = capabilityIdentity(slug)
   if (!detail || !identity) notFound()
@@ -26,7 +27,7 @@ export function CapabilityDetailPage({ slug }: { slug: string }) {
       <CapabilityHero detail={detail} name={name} />
       <CapabilityOpportunity detail={detail} />
       <CapabilityApproach detail={detail} name={name} />
-      <CapabilityWork detail={detail} />
+      <CapabilityWork detail={detail} work={work} />
       <CapabilitySystemFit detail={detail} name={name} />
       <CapabilityCta detail={detail} />
     </>

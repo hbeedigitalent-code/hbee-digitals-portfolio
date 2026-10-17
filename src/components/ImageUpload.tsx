@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useCallback, useId } from 'react'
+import { useState, useCallback, useId, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
+import { portfolioUploadExtension } from '@/lib/portfolio-upload'
 
 interface ImageUploadProps {
   onUpload: (url: string) => void
@@ -10,36 +11,30 @@ interface ImageUploadProps {
   folder?: string
   label?: string
   contain?: boolean
+  disabled?: boolean
+  onUploadingChange?: (uploading: boolean) => void
 }
 
-export default function ImageUpload({ onUpload, currentImage, folder = 'projects', label = 'Upload Image', contain = false }: ImageUploadProps) {
+export default function ImageUpload({ onUpload, currentImage, folder = 'projects', label = 'Upload Image', contain = false, disabled = false, onUploadingChange }: ImageUploadProps) {
   const inputId = useId()
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview] = useState(currentImage || '')
   const [error, setError] = useState<string | null>(null)
+  const uploadPending = useRef(false)
 
   const uploadImage = useCallback(async (file: File) => {
-    if (!file) return
+    if (!file || disabled || uploadPending.current) return
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setError('Please upload an image file')
-      return
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Image must be less than 5MB')
-      return
-    }
-
+    uploadPending.current = true
+    onUploadingChange?.(true)
     setUploading(true)
     setError(null)
 
     try {
-      // Create unique file name
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+      const fileExt = await portfolioUploadExtension(file)
+      if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(folder)) throw new Error('Invalid portfolio upload folder.')
+      // Never reuse user-supplied filenames or file extensions.
+      const fileName = `${Date.now()}-${crypto.randomUUID()}.${fileExt}`
       const filePath = `${folder}/${fileName}`
 
       // Upload to Supabase Storage
@@ -59,9 +54,11 @@ export default function ImageUpload({ onUpload, currentImage, folder = 'projects
     } catch (err: any) {
       setError(err.message || 'Upload failed')
     } finally {
+      uploadPending.current = false
+      onUploadingChange?.(false)
       setUploading(false)
     }
-  }, [folder, onUpload])
+  }, [folder, onUpload, disabled, onUploadingChange])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -95,6 +92,7 @@ export default function ImageUpload({ onUpload, currentImage, folder = 'projects
           />
           <button
             type="button"
+            disabled={disabled || uploading}
             aria-label={`Remove ${label}`}
             onClick={() => {
               setPreview('')
@@ -115,11 +113,11 @@ export default function ImageUpload({ onUpload, currentImage, folder = 'projects
       >
         <input
           type="file"
-          accept="image/*"
+          accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
           onChange={handleChange}
           className="hidden"
           id={inputId}
-          disabled={uploading}
+          disabled={disabled || uploading}
         />
         <label
           htmlFor={inputId}
@@ -139,7 +137,7 @@ export default function ImageUpload({ onUpload, currentImage, folder = 'projects
                 Click or drag & drop to upload
               </p>
               <p className="text-xs text-gray-400 mt-1">
-                PNG, JPG, GIF up to 5MB
+                PNG, JPEG, WebP, GIF or AVIF up to 5MB
               </p>
             </div>
           )}

@@ -384,6 +384,9 @@
 @media (min-width: 768px) { .evidenceGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .evidenceGridSingle { grid-template-columns: minmax(0, 1fr); }
 .evidenceItem { margin: 0; }
+.creativeFrame { position: relative; overflow: hidden; background: var(--hb-white); border: 1px solid var(--hb-border); border-radius: var(--hb-radius-md); }
+.creativeArtwork { padding: clamp(1.5rem, 5vw, 3rem); }
+.creativeImage { display: block; width: 100%; height: 100%; }
 .evidenceItem .media { border-radius: var(--hb-radius-md) var(--hb-radius-md) 24px var(--hb-radius-md); }
 @media (min-width: 768px) { .evidenceWide { grid-column: 1 / -1; } .evidenceWide .media { aspect-ratio: 16 / 8; } }
 .evidenceLabel {

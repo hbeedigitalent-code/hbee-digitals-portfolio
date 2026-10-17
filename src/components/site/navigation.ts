@@ -137,7 +137,7 @@ export const NAV_MENUS: Record<string, NavMenu> = {
           { label: 'Beauty', href: '/work?category=beauty' },
           { label: 'Food & Beverage', href: '/work?category=food-beverage' },
           { label: 'Technology', href: '/work?category=technology' },
-          { label: 'Concepts & Explorations', href: '/work?type=concept' },
+          { label: 'Concepts & Explorations', href: '/work#work-collection' },
         ],
       },
     ],

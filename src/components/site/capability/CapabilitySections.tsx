@@ -1,4 +1,5 @@
 import { ALL_WORK_HREF, CONTACT_HREF, GROWTH_REVIEW_HREF } from '@/lib/site/routes'
+import type { WorkItem } from '@/lib/site/work-data'
 import { CAPABILITY_GROUPS } from '../home/home-content'
 import { HbeeModuleGlyph } from '../module/HbeeModule'
 import { SiteReveal } from '../motion/SiteReveal'
@@ -111,13 +112,9 @@ export function CapabilityApproach({ detail, name }: { detail: CapabilityDetail;
   )
 }
 
-/* ── 04 — Real work (Deep Navy) ──
-   portfolio_items holds no verified project → capability relationship, so
-   no project is attributed to this capability. The section always renders
-   its compact honest state until that relationship exists (see the Phase 5
-   report for the proposed data model). */
+/* Explicit published assignments only; the safe empty state remains. */
 
-export function CapabilityWork({ detail }: { detail: CapabilityDetail }) {
+export function CapabilityWork({ detail, work = [] }: { detail: CapabilityDetail; work?: WorkItem[] }) {
   return (
     <SiteSection tone="deep" spacing="compact" aria-labelledby="capability-work-title">
       <SiteGrid className="items-end gap-y-10">
@@ -131,7 +128,7 @@ export function CapabilityWork({ detail }: { detail: CapabilityDetail }) {
             </SiteDisplayHeading>
           </SiteReveal>
           <SiteReveal index={2}>
-            <p className="mt-5 max-w-[34rem] leading-relaxed text-hb-fg-body">{detail.work.empty}</p>
+            {work.length ? <ul className="mt-5 space-y-4">{work.slice(0, 3).map((item) => <li key={item.id}><SiteLinkArrow href={item.href} className="min-h-[44px]">{item.title ? `${item.client} — ${item.title}` : item.client}</SiteLinkArrow></li>)}</ul> : <p className="mt-5 max-w-[34rem] leading-relaxed text-hb-fg-body">{detail.work.empty}</p>}
           </SiteReveal>
         </div>
         <SiteReveal index={3} className="col-span-4 md:col-span-8 lg:col-span-4 lg:justify-self-end">
