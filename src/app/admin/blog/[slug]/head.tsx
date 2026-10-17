@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { insightCanonical } from '@/lib/blog-utils'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://hbeedigitals.com'
 
@@ -41,7 +42,7 @@ export default async function Head({ params }: { params: { slug: string } }) {
     'Practical ecommerce growth, conversion optimization, and digital strategy insights from Hbee Digitals.'
 
   const image = absoluteUrl(post?.og_image || post?.featured_image)
-  const canonical = post?.canonical_url || `${siteUrl}/blog/${params.slug}`
+  const canonical = insightCanonical(params.slug, post?.canonical_url)
 
   return (
     <>

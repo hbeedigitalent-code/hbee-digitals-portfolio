@@ -1,6 +1,8 @@
 'use client'
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { insightFilterState, insightFilterUrl } from '@/lib/site/insights-filter'
 import { cn } from '@/lib/cn'
 import styles from './insights.module.css'
 
@@ -20,10 +22,32 @@ export interface BrowserTopic {
  *   data-view="filtered-only"  the lead article's grid copy (hidden in the default view)
  */
 export function InsightsBrowser({ topics, total, children }: { topics: BrowserTopic[]; total: number; children: ReactNode }) {
+  return <Suspense fallback={children}><InsightsBrowserControls topics={topics} total={total}>{children}</InsightsBrowserControls></Suspense>
+}
+
+function InsightsBrowserControls({ topics, total, children }: { topics: BrowserTopic[]; total: number; children: ReactNode }) {
+  const searchParams = useSearchParams()
+  const searchKey = searchParams?.toString() || ''
   const [query, setQuery] = useState('')
   const [topic, setTopic] = useState('all')
   const [count, setCount] = useState(total)
   const listRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const sync = () => {
+      const state = insightFilterState(new URLSearchParams(window.location.search), topics)
+      setQuery(state.query); setTopic(state.topic)
+    }
+    sync()
+    window.addEventListener('popstate', sync)
+    return () => window.removeEventListener('popstate', sync)
+  }, [searchKey, topics])
+
+  function updateFilters(nextTopic: string, nextQuery: string, replace = false) {
+    setTopic(nextTopic); setQuery(nextQuery)
+    const url = insightFilterUrl(window.location.href, nextTopic, nextQuery)
+    window.history[replace ? 'replaceState' : 'pushState'](null, '', url)
+  }
 
   useEffect(() => {
     const root = listRef.current
@@ -47,7 +71,7 @@ export function InsightsBrowser({ topics, total, children }: { topics: BrowserTo
       if (!el.hidden) n++
     })
     setCount(n)
-  }, [query, topic])
+  }, [query, topic, children])
 
   const options = [{ key: 'all', label: 'All topics', count: total }, ...topics]
 
@@ -63,7 +87,7 @@ export function InsightsBrowser({ topics, total, children }: { topics: BrowserTo
           <input
             type="search"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => updateFilters(topic, e.target.value, true)}
             placeholder="Search insights"
             className={styles.searchInput}
           />
@@ -75,7 +99,7 @@ export function InsightsBrowser({ topics, total, children }: { topics: BrowserTo
                 key={o.key}
                 type="button"
                 aria-pressed={topic === o.key}
-                onClick={() => setTopic(o.key)}
+                onClick={() => updateFilters(o.key, query)}
                 className={cn(styles.topic, topic === o.key && styles.topicActive)}
               >
                 {o.label}
@@ -99,8 +123,7 @@ export function InsightsBrowser({ topics, total, children }: { topics: BrowserTo
             type="button"
             className={styles.reset}
             onClick={() => {
-              setQuery('')
-              setTopic('all')
+              updateFilters('all', '')
             }}
           >
             Clear search and topics

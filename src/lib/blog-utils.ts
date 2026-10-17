@@ -126,14 +126,45 @@ export function addHeadingIds(html: string): { html: string; toc: TocHeading[] }
  * Average reading speed: 200 words per minute
  */
 export function estimateReadTime(html: string): string {
-  if (!html) return '3 min'
+  if (!html) return '1 min read'
 
   // Strip HTML tags to count words
   const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
   const wordCount = text.split(' ').filter((word) => word.length > 0).length
-  const minutes = Math.ceil(wordCount / 200)
+  const minutes = Math.max(1, Math.ceil(wordCount / 200))
 
   return `${minutes} min read`
+}
+
+/** Valid stored reading time wins; labels outside this shape use the estimator. */
+export function validReadTime(value: unknown): string | undefined {
+  const raw = typeof value === 'string' || typeof value === 'number' ? String(value).trim() : ''
+  const match = /^([1-9]\d*)\s*(?:min(?:ute)?s?)?(?:\s+read)?$/i.exec(raw)
+  return match && Number.isSafeInteger(Number(match[1])) ? `${Number(match[1])} min read` : undefined
+}
+
+/** Tags are the current public topic model; categories are a separate legacy table. */
+export function insightTags(value: unknown): string[] {
+  let list = value
+  if (typeof list === 'string') {
+    const raw = list
+    try { list = JSON.parse(raw) } catch { list = raw.split(',') }
+  }
+  if (!Array.isArray(list)) return []
+  return list.filter((tag): tag is string => typeof tag === 'string')
+    .map((tag) => tag.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim()).filter(Boolean)
+}
+
+export function insightHref(slug: string) { return `/insights/${slug}` }
+
+/** Same public canonical rule: own Insights URL, or a deliberate external cross-post. */
+export function insightCanonical(slug: string, stored?: string) {
+  const own = `${SITE_URL}${insightHref(slug)}`
+  if (!stored?.trim()) return own
+  try {
+    const url = new URL(stored.trim(), SITE_URL)
+    return /(^|\.)hbeedigitals\.com$/i.test(url.hostname) ? own : url.toString()
+  } catch { return own }
 }
 
 /**

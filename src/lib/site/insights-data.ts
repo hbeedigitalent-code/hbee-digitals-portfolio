@@ -21,7 +21,7 @@
 import { cache } from 'react'
 
 import { supabase } from '@/lib/supabase'
-import { absoluteUrl, addHeadingIds, cleanBlogHtml, estimateReadTime, SITE_URL } from '@/lib/blog-utils'
+import { absoluteUrl, addHeadingIds, cleanBlogHtml, estimateReadTime, insightCanonical, insightTags, validReadTime, SITE_URL } from '@/lib/blog-utils'
 import { sanitizeBlogHtml } from '@/lib/sanitize-blog-html'
 import { imageUrl, text, truncate, type Row } from './home-data'
 
@@ -98,17 +98,7 @@ function topicKey(tag: string) {
 }
 
 function tagsOf(row: Row): string[] {
-  let list: unknown = row.tags
-  if (typeof list === 'string') {
-    const raw = list
-    try {
-      list = JSON.parse(raw)
-    } catch {
-      list = raw.split(',')
-    }
-  }
-  if (!Array.isArray(list)) return []
-  return list.map(text).filter((t): t is string => Boolean(t))
+  return insightTags(row.tags)
 }
 
 function bodyText(html: string) {
@@ -116,8 +106,8 @@ function bodyText(html: string) {
 }
 
 function readTimeOf(row: Row, rawContent?: string): ReadTime | undefined {
-  const stored = text(row.read_time)
-  if (stored) return { label: /read/i.test(stored) ? stored : `${stored} read`, estimated: false }
+  const stored = validReadTime(row.read_time)
+  if (stored) return { label: stored, estimated: false }
   if (rawContent && bodyText(rawContent).split(' ').filter(Boolean).length >= 50) {
     return { label: estimateReadTime(rawContent), estimated: true }
   }
@@ -287,15 +277,7 @@ export interface InsightSeo {
  * site's retired /blog/ path would contradict the redirect, so it is ignored.
  */
 function canonicalOf(row: Row, slug: string) {
-  const own = `${SITE_URL}/insights/${slug}`
-  const stored = text(row.canonical_url)
-  if (!stored) return own
-  try {
-    const u = new URL(stored, SITE_URL)
-    return /(^|\.)hbeedigitals\.com$/i.test(u.hostname) ? own : u.toString()
-  } catch {
-    return own
-  }
+  return insightCanonical(slug, text(row.canonical_url))
 }
 
 const loadInsightSeo = cache(async (slug: string): Promise<InsightSeo | null> => {

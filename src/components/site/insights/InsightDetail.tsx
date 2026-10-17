@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { InsightArticleBody } from './InsightArticleBody'
 import { cn } from '@/lib/cn'
 import type { InsightDetail } from '@/lib/site/insights-data'
 import { SiteReveal } from '../motion/SiteReveal'
@@ -26,7 +27,7 @@ export function InsightDetailPage({ detail }: { detail: InsightDetail }) {
           <div className={cn(styles.articleGrid, hasToc && styles.articleGridToc, hasRelated && styles.articleGridRelated, !hasToc && !hasRelated && styles.articleGridLean)}>
             {hasToc && <ArticleToc detail={detail} />}
             {detail.html ? (
-              <article className={styles.prose} aria-labelledby="insight-title" dangerouslySetInnerHTML={{ __html: detail.html }} />
+              <InsightArticleBody html={detail.html} />
             ) : null}
             {hasRelated && <RelatedInsights detail={detail} />}
           </div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import BlogPostEditor from '@/components/admin/BlogPostEditor'
+import { insightTags } from '@/lib/blog-utils'
 
 type EditorPost = {
   id: string
@@ -18,7 +19,6 @@ type EditorPost = {
   tags?: string[]
   status?: string
   is_featured?: boolean
-  featured_badge?: string
   seo_title?: string
   seo_description?: string
   focus_keyword?: string
@@ -27,8 +27,6 @@ type EditorPost = {
   og_image?: string
   canonical_url?: string
   read_time?: string
-  cta_text?: string
-  cta_link?: string
   published_at?: string | null
 }
 
@@ -40,13 +38,12 @@ function normalizePost(data: any): EditorPost {
     excerpt: data.excerpt || '',
     content: data.content || '',
     featured_image: data.featured_image || '',
-    featured_image_alt: data.featured_image_alt || '',
+    featured_image_alt: data.featured_image_alt ?? data.alt_text ?? '',
     alt_text: data.alt_text || '',
-    author: data.author || 'Habeeb Ismaila',
-    tags: Array.isArray(data.tags) ? data.tags : [],
+    author: data.author || '',
+    tags: insightTags(data.tags),
     status: data.status || 'draft',
     is_featured: Boolean(data.is_featured),
-    featured_badge: data.featured_badge || 'Featured Insight',
     seo_title: data.seo_title || '',
     seo_description: data.seo_description || '',
     focus_keyword: data.focus_keyword || '',
@@ -55,8 +52,6 @@ function normalizePost(data: any): EditorPost {
     og_image: data.og_image || '',
     canonical_url: data.canonical_url || '',
     read_time: data.read_time || '',
-    cta_text: data.cta_text || '',
-    cta_link: data.cta_link || '',
     published_at: data.published_at || null,
   }
 }
@@ -66,6 +61,7 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
 
   const [post, setPost] = useState<EditorPost | undefined>(undefined)
   const [loading, setLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
     async function loadPost() {
@@ -83,8 +79,8 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
         .single()
 
       if (error || !data) {
-        console.error('Error fetching post:', error)
-        router.push('/admin/blog')
+        setErrorMessage(error?.message || 'Article not found.')
+        setLoading(false)
         return
       }
 
@@ -95,6 +91,7 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
     loadPost()
   }, [params.id, router])
 
+  if (errorMessage) return <p role="alert" className="p-6 text-red-500">{errorMessage}</p>
   if (loading || !post) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center bg-[var(--bg-page)]">

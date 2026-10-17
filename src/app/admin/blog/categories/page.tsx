@@ -212,10 +212,10 @@ export default function AdminBlogCategoriesPage() {
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-black tracking-[-0.02em] text-[var(--text-primary)]">
-              Blog Categories
+              Legacy Blog Categories
             </h1>
             <p className="text-sm text-[var(--text-muted)]">
-              Manage categories for organizing your blog posts
+              Legacy records only. Public Insights topics come from each article’s tags; changes here do not change public topics.
             </p>
           </div>
 
@@ -224,7 +224,7 @@ export default function AdminBlogCategoriesPage() {
             className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-5 py-2.5 text-sm font-semibold text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
           >
             <SvgIcon name="chevron-left" size={16} color="var(--text-muted)" />
-            Back to Blog
+            Back to Insights editor list
           </Link>
         </div>
 
@@ -344,7 +344,7 @@ export default function AdminBlogCategoriesPage() {
                     </td>
                     <td className="px-4 py-4">
                       <span className="text-xs text-[var(--text-muted)]">
-                        /blog?tag={cat.slug}
+                        Legacy slug: {cat.slug} (not a public topic URL)
                       </span>
                     </td>
                     <td className="px-4 py-4">

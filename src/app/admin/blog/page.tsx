@@ -1,11 +1,13 @@
 // src/app/admin/blog/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import SvgIcon from '@/components/ui/SvgIcon'
+import { insightHref } from '@/lib/blog-utils'
+import { insightPublicationLabel, writeInsightPost } from '@/lib/admin/insights-editor'
 
 interface BlogPost {
   id: string
@@ -16,7 +18,6 @@ interface BlogPost {
   tags: string[] | null
   status: string
   is_featured: boolean
-  featured_badge: string | null
   read_time: string | null
   published_at: string | null
   updated_at: string | null
@@ -34,6 +35,8 @@ export default function AdminBlogPage() {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all')
   const [actionMessage, setActionMessage] = useState('')
   const [user, setUser] = useState<unknown>(null)
+  const [busy, setBusy] = useState(false)
+  const actionPending = useRef(false)
 
   // Auth check
   useEffect(() => {
@@ -55,12 +58,12 @@ export default function AdminBlogPage() {
       const { data, error } = await supabase
         .from('blog_posts')
         .select(
-          'id, title, slug, excerpt, featured_image, tags, status, is_featured, featured_badge, read_time, published_at, updated_at, og_image'
+          'id, title, slug, excerpt, featured_image, tags, status, is_featured, read_time, published_at, updated_at, og_image'
         )
         .order('updated_at', { ascending: false })
 
       if (error) {
-        console.error('Error fetching posts:', error)
+        setActionMessage(`Error loading articles: ${error.message}`)
       } else {
         setPosts(data || [])
         setFilteredPosts(data || [])
@@ -98,70 +101,53 @@ export default function AdminBlogPage() {
 
   // Toggle publish status
   async function togglePublish(id: string, currentStatus: string) {
+    if (actionPending.current) return
+    actionPending.current = true; setBusy(true)
     const newStatus = currentStatus === 'published' ? 'draft' : 'published'
-    const { error } = await supabase
-      .from('blog_posts')
-      .update({
-        status: newStatus,
-        published_at:
-          newStatus === 'published' ? new Date().toISOString() : null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-
-    if (error) {
-      setActionMessage(`Error: ${error.message}`)
-    } else {
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.id === id
-            ? {
-                ...p,
-                status: newStatus,
-                published_at:
-                  newStatus === 'published' ? new Date().toISOString() : null,
-              }
-            : p
-        )
-      )
+    try {
+      const saved = await writeInsightPost(supabase, id, {}, newStatus)
+      setPosts((prev) => prev.map((post) => post.id === id ? { ...post, ...saved } : post))
       setActionMessage(
         newStatus === 'published' ? 'Post published!' : 'Post moved to drafts'
       )
-      setTimeout(() => setActionMessage(''), 3000)
-    }
+    } catch (error) { setActionMessage(`Error: ${error && typeof error === 'object' && 'message' in error ? String(error.message) : 'Publication change failed.'}`) }
+    finally { actionPending.current = false; setBusy(false) }
   }
 
   // Toggle featured
   async function toggleFeatured(id: string, current: boolean) {
-    const { error } = await supabase
-      .from('blog_posts')
-      .update({ is_featured: !current, updated_at: new Date().toISOString() })
-      .eq('id', id)
+    if (actionPending.current) return
+    actionPending.current = true; setBusy(true)
+    try {
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .update({ is_featured: !current, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select('id,is_featured').single()
 
-    if (error) {
-      setActionMessage(`Error: ${error.message}`)
-    } else {
+      if (error) throw error
+      if (!data) throw new Error('Featured state was not saved.')
       setPosts((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, is_featured: !current } : p))
+        prev.map((p) => (p.id === id ? { ...p, is_featured: data.is_featured } : p))
       )
       setActionMessage(!current ? 'Post featured!' : 'Removed from featured')
-      setTimeout(() => setActionMessage(''), 3000)
-    }
+    } catch (error) { setActionMessage(`Error: ${error && typeof error === 'object' && 'message' in error ? String(error.message) : 'Featured change failed.'}`) }
+    finally { actionPending.current = false; setBusy(false) }
   }
 
   // Delete post
   async function deletePost(id: string) {
+    if (actionPending.current) return
     if (!confirm('Are you sure you want to delete this post? This cannot be undone.')) return
-
-    const { error } = await supabase.from('blog_posts').delete().eq('id', id)
-
-    if (error) {
-      setActionMessage(`Error: ${error.message}`)
-    } else {
+    actionPending.current = true; setBusy(true)
+    try {
+      const { data, error } = await supabase.from('blog_posts').delete().eq('id', id).select('id').single()
+      if (error) throw error
+      if (!data) throw new Error('Article was not deleted.')
       setPosts((prev) => prev.filter((p) => p.id !== id))
       setActionMessage('Post deleted')
-      setTimeout(() => setActionMessage(''), 3000)
-    }
+    } catch (error) { setActionMessage(`Error: ${error && typeof error === 'object' && 'message' in error ? String(error.message) : 'Delete failed.'}`) }
+    finally { actionPending.current = false; setBusy(false) }
   }
 
   if (loading) {
@@ -179,7 +165,7 @@ export default function AdminBlogPage() {
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-black tracking-[-0.02em] text-[var(--text-primary)]">
-              Blog Posts
+              Insights
             </h1>
             <p className="text-sm text-[var(--text-muted)]">
               {posts.length} total post{posts.length !== 1 ? 's' : ''} &middot;{' '}
@@ -200,7 +186,7 @@ export default function AdminBlogPage() {
 
         {/* Action message */}
         {actionMessage && (
-          <div className="mb-4 rounded-xl bg-[var(--accent-lime)]/10 px-4 py-3 text-sm font-semibold text-[var(--accent-lime)]">
+          <div role={actionMessage.startsWith('Error') ? 'alert' : 'status'} className="mb-4 rounded-xl bg-[var(--accent-lime)]/10 px-4 py-3 text-sm font-semibold text-[var(--accent-lime)]">
             {actionMessage}
           </div>
         )}
@@ -247,7 +233,7 @@ export default function AdminBlogPage() {
                   <th className="px-4 py-3">Post</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">OG</th>
-                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">Publication date</th>
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -274,11 +260,11 @@ export default function AdminBlogPage() {
                             {post.title}
                           </p>
                           <p className="text-xs text-[var(--text-muted)]">
-                            /blog/{post.slug}
+                            {insightHref(post.slug)}
                           </p>
-                          {post.is_featured && post.featured_badge && (
+                          {post.is_featured && (
                             <span className="mt-1 inline-block rounded bg-[var(--accent-lime)]/10 px-2 py-0.5 text-[10px] font-bold text-[var(--accent-lime)]">
-                              {post.featured_badge}
+                              Featured
                             </span>
                           )}
                         </div>
@@ -316,14 +302,7 @@ export default function AdminBlogPage() {
 
                     <td className="px-4 py-4">
                       <div className="text-xs text-[var(--text-muted)]">
-                        {post.published_at && (
-                          <span>
-                            {new Date(post.published_at).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                            })}
-                          </span>
-                        )}
+                        <span>{insightPublicationLabel(post.published_at)}</span>
                         {post.read_time && (
                           <span className="ml-2">| {post.read_time}</span>
                         )}
@@ -332,14 +311,15 @@ export default function AdminBlogPage() {
 
                     <td className="px-4 py-4">
                       <div className="flex items-center justify-end gap-1">
-                        <Link
-                          href={`/blog/${post.slug}`}
+                        {post.status === 'published' && <Link
+                          href={insightHref(post.slug)}
                           target="_blank"
+                          rel="noopener noreferrer"
                           className="rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-[var(--bg-page)] hover:text-[var(--accent)]"
                           title="View"
                         >
                           <SvgIcon name="link" size={16} color="currentColor" />
-                        </Link>
+                        </Link>}
 
                         <Link
                           href={`/admin/blog/edit/${post.id}`}
@@ -350,6 +330,7 @@ export default function AdminBlogPage() {
                         </Link>
 
                         <button
+                          disabled={busy}
                           onClick={() => togglePublish(post.id, post.status)}
                           className="rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-[var(--bg-page)] hover:text-[var(--accent-lime)]"
                           title={post.status === 'published' ? 'Unpublish' : 'Publish'}
@@ -362,6 +343,7 @@ export default function AdminBlogPage() {
                         </button>
 
                         <button
+                          disabled={busy}
                           onClick={() => toggleFeatured(post.id, post.is_featured)}
                           className={`rounded-lg p-2 transition hover:bg-[var(--bg-page)] ${
                             post.is_featured
@@ -374,6 +356,7 @@ export default function AdminBlogPage() {
                         </button>
 
                         <button
+                          disabled={busy}
                           onClick={() => deletePost(post.id)}
                           className="rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-500"
                           title="Delete"

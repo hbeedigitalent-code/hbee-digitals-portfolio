@@ -224,12 +224,12 @@ export default function AdminCommentsPage() {
 
                   {/* Post reference */}
                   <Link
-                    href={`/blog/${comment.post_slug}`}
+                    href={`/insights/${comment.post_slug}`}
                     target="_blank"
                     className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent)] hover:underline"
                   >
                     <SvgIcon name="link" size={14} color="var(--accent)" />
-                    on /blog/{comment.post_slug}
+                    on /insights/{comment.post_slug}
                   </Link>
 
                   {/* Comment content */}
