@@ -7,6 +7,7 @@ import { SiteReveal } from '../motion/SiteReveal'
 import { SiteButton, SiteLinkArrow } from '../primitives/SiteButton'
 import { SiteGrid } from '../primitives/SiteContainer'
 import { SiteImage } from '../primitives/SiteImage'
+import { TestimonialQuote } from '../proof/TestimonialQuote'
 import { SiteSection } from '../primitives/SiteSection'
 import { SiteDisplayHeading, SiteEyebrow, SiteLede } from '../primitives/SiteTypography'
 import { FINAL_CTA, PRINCIPLES } from './home-content'
@@ -38,52 +39,17 @@ export function HomeDiagnosticSection() {
   )
 }
 
-/* ── 10 — Proof (real testimonials only; omitted when there are none) ── */
+/* ── 10 — Visible, nonempty testimonials; omitted when there are none ── */
 
 export function HomeProof({ quotes }: { quotes: ProofQuote[] }) {
   if (quotes.length === 0) return null
   return (
     <SiteSection tone="cloud" aria-labelledby="home-proof-title">
-      <SiteReveal>
-        <SiteEyebrow>Proof</SiteEyebrow>
-      </SiteReveal>
-      <SiteReveal index={1}>
-        <SiteDisplayHeading id="home-proof-title" size="h2" className="mt-6 max-w-[44rem]">
-          Different businesses. <span className="block text-hb-blue">Same principle: solve the right constraint first.</span>
-        </SiteDisplayHeading>
-      </SiteReveal>
+      <SiteEyebrow>Client feedback</SiteEyebrow>
+      <SiteDisplayHeading id="home-proof-title" size="h2" className="mt-6 max-w-[44rem]">What clients say</SiteDisplayHeading>
 
       <div className={cn('mt-14 grid gap-[var(--hb-grid-gap)]', quotes.length > 1 && 'lg:grid-cols-2')}>
-        {quotes.map((q, i) => (
-          <SiteReveal key={q.id} index={i}>
-            <figure className="flex h-full flex-col rounded-[var(--hb-radius-xs)] rounded-br-[var(--hb-radius-sweep)] border border-hb-border bg-hb-white p-8 md:p-10">
-              <svg aria-hidden="true" viewBox="0 0 44 32" className={styles.quoteMark} focusable="false">
-                <path d="M0 32V19Q0 5 13 0l3 5Q8 9 8 17h8v15Zm24 0V19q0-14 13-19l3 5q-8 4-8 12h8v15Z" fill="currentColor" />
-              </svg>
-              <blockquote
-                className={cn(
-                  'mt-6 flex-1 font-hb-display font-medium leading-[1.45] tracking-[-0.01em] text-hb-fg',
-                  quotes.length > 1 ? 'text-[1.25rem]' : 'text-[1.5rem] lg:text-[1.75rem]',
-                )}
-              >
-                <p>{q.quote}</p>
-              </blockquote>
-              <figcaption className="mt-8 flex items-center gap-4 border-t border-hb-border pt-6">
-                {q.avatar && (
-                  <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-hb-mist">
-                    <SiteImage src={q.avatar} alt="" sizes="48px" />
-                  </span>
-                )}
-                <span>
-                  <span className="block font-semibold text-hb-fg">{q.name}</span>
-                  {(q.role || q.company) && (
-                    <span className="block text-[0.875rem] text-hb-fg-body">{[q.role, q.company].filter(Boolean).join(', ')}</span>
-                  )}
-                </span>
-              </figcaption>
-            </figure>
-          </SiteReveal>
-        ))}
+        {quotes.map(q => <TestimonialQuote key={q.id} quote={q} />)}
       </div>
     </SiteSection>
   )

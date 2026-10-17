@@ -11,6 +11,8 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { testimonialQuote, type ProofQuote } from '@/lib/testimonials'
+export type { ProofQuote } from '@/lib/testimonials'
 
 /**
  * Which slugs may become a case-study URL. Mirrors isValidPortfolioSlug in
@@ -135,15 +137,6 @@ export async function getFeaturedWork(limit = 3): Promise<FeaturedWork[]> {
 
 /* ── Proof ──────────────────────────────────────────────────── */
 
-export interface ProofQuote {
-  id: string
-  quote: string
-  name: string
-  role?: string
-  company?: string
-  avatar?: string
-}
-
 export async function getHomepageProof(limit = 2): Promise<ProofQuote[]> {
   try {
     const { data, error } = await supabase
@@ -155,20 +148,7 @@ export async function getHomepageProof(limit = 2): Promise<ProofQuote[]> {
     if (error || !data) return []
 
     return (data as Row[])
-      .map((row): ProofQuote | null => {
-        const quote = text(row.content)
-        const name = text(row.name)
-        // A substantial proof moment needs a real quote and a real name.
-        if (!quote || quote.length < 40 || !name) return null
-        return {
-          id: String(row.id),
-          quote,
-          name,
-          role: text(row.position) ?? text(row.role),
-          company: text(row.company),
-          avatar: imageUrl(row.image_url) ?? imageUrl(row.avatar_url),
-        }
-      })
+      .map((row) => testimonialQuote(row))
       .filter((q): q is ProofQuote => q !== null)
       .slice(0, limit)
   } catch {

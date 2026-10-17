@@ -94,7 +94,7 @@ export default function AdminTrustPage() {
     <form onSubmit={save}>
       <fieldset disabled={busy} className="min-w-0 space-y-5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5 disabled:opacity-70">
         <label className="flex items-center gap-3 text-sm font-semibold"><input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} />Trust section visible on website</label>
-        <p className="text-xs text-[var(--text-muted)]">This is the existing section visibility switch; it also controls the legacy Reviews &amp; Trust section. Each brand has its own visibility below.</p>
+        <p className="text-xs text-[var(--text-muted)]">Controls trusted brands and the legacy Reviews &amp; Trust section. Homepage testimonials use their own visibility in Testimonials and are independent of this switch. Each brand also has its own visibility below.</p>
         <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-bold">Brand logos ({logos.length})</h2><button type="button" onClick={() => setLogos(previous => [...previous, { name: '', logo: '', active: true }])} className={buttonClass}>Add brand</button></div>
         {!logos.length && <p className="rounded-lg border border-dashed border-[var(--border)] p-6 text-sm text-[var(--text-muted)]">No brands yet. Add a brand and its logo to begin. An empty collection displays no public band.</p>}
         {logos.map((row, index) => <div key={index} className="grid gap-4 border-t border-[var(--border)] pt-5 sm:grid-cols-[128px_1fr_auto]">
