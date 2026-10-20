@@ -51,6 +51,7 @@ BEGIN
   ALTER TABLE public.newsletter_subscribers ENABLE ROW LEVEL SECURITY;
   ALTER TABLE public.newsletter_subscribers FORCE ROW LEVEL SECURITY;
   GRANT SELECT,INSERT,UPDATE,DELETE ON TABLE public.newsletter_subscribers TO service_role;
+  GRANT EXECUTE ON FUNCTION public.newsletter_subscriber_identity(text) TO service_role;
   FOR item IN SELECT oid,rolname FROM pg_roles WHERE rolname IN ('anon','authenticated') LOOP
     IF has_table_privilege(item.oid,target,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
       OR has_any_column_privilege(item.oid,target,'SELECT,INSERT,UPDATE,REFERENCES')

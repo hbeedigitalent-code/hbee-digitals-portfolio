@@ -181,11 +181,16 @@ SET LOCAL lock_timeout = '5s';
 SET LOCAL statement_timeout = '120s';
 DO $cutover$
 DECLARE
-  compatible_application_cutover_confirmed boolean := false; -- OWNER MUST CONFIRM.
+  -- Confirmed by the owner after deployment of 09a69cc and the documented
+  -- admin/2FA, API-denial, capture-OFF and storefront runtime checks.
+  compatible_application_cutover_confirmed boolean := true;
   -- Map EACH reviewed browser-callable SECURITY DEFINER signature to the exact
-  -- md5(pg_get_functiondef(oid)) returned by 00. NO wildcard approval.
-  -- Example syntax only: '{"public.some_reviewed_routine(uuid)":"<actual hash>"}'
-  reviewed_security_definer_hashes jsonb := '{}'::jsonb;
+  -- md5(pg_get_functiondef(oid)) returned by the authoritative production review.
+  -- Keys are explicitly schema-qualified below; NO wildcard approval.
+  reviewed_security_definer_hashes jsonb := '{"public.current_client_id()":"298d2fb4275c92b8b24f4ad3a2a0ba8d","public.increment_blog_view(uuid)":"a1bb0427d93116b48eed7b86e0dd1f06","public.is_active_admin()":"ff158b21fdc826346db24a298bf7bf5f"}'::jsonb;
+  expected_identity_rpc_hash text := '7ff011c458b629e471f3629f7d389e1a';
+  expected_legacy_row_count bigint := 14;
+  expected_legacy_projection_fingerprint text := 'b9ec19e5467d2ceb0c42d7531cc1ee67';
   target oid := 'public.newsletter_subscribers'::regclass;
   before_count bigint;
   after_count bigint;
@@ -245,7 +250,13 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_proc p WHERE p.oid = 'public.newsletter_subscriber_identity(text)'::regprocedure
       AND NOT p.prosecdef AND p.provolatile = 's'
       AND p.proconfig @> ARRAY['search_path=pg_catalog, pg_temp']
-      AND md5(pg_get_functiondef(p.oid)) = evidence->>'identity_rpc_hash')
+      AND md5(pg_get_functiondef(p.oid)) = expected_identity_rpc_hash
+      AND evidence->>'identity_rpc_hash' = expected_identity_rpc_hash
+      AND has_function_privilege('service_role',p.oid,'EXECUTE')
+      AND NOT has_function_privilege('anon',p.oid,'EXECUTE')
+      AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE')
+      AND NOT EXISTS (SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) x
+        WHERE x.grantee NOT IN (p.proowner,(SELECT oid FROM pg_roles WHERE rolname = 'service_role'))))
     OR NOT EXISTS (SELECT 1 FROM pg_index i JOIN pg_class idx ON idx.oid = i.indexrelid
       JOIN pg_am am ON am.oid = idx.relam WHERE i.indrelid = target
       AND i.indexrelid = 'public.newsletter_subscribers_email_normalized_key'::regclass
@@ -290,7 +301,8 @@ BEGIN
           AND (has_table_privilege(reachable.oid,c.oid,'SELECT') OR has_any_column_privilege(reachable.oid,c.oid,'SELECT')))) THEN
     RAISE EXCEPTION 'Browser-accessible dependent view/materialized view requires separate review';
   END IF;
-  FOR item IN SELECT p.oid,p.oid::regprocedure::text AS signature,md5(pg_get_functiondef(p.oid)) AS body_hash
+  FOR item IN SELECT p.oid,format('%I.%I(%s)',n.nspname,p.proname,oidvectortypes(p.proargtypes)) AS signature,
+      md5(pg_get_functiondef(p.oid)) AS body_hash
     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
     WHERE p.prokind IN ('f','p') AND p.prosecdef AND n.nspname NOT IN ('pg_catalog','information_schema')
       AND n.nspname NOT LIKE 'pg_toast%' AND n.nspname NOT LIKE 'pg_temp%'
@@ -301,8 +313,13 @@ BEGIN
       RAISE EXCEPTION 'Unreviewed browser-callable SECURITY DEFINER routine: % (hash %)',item.signature,item.body_hash;
     END IF;
   END LOOP;
-  SELECT count(*),md5(coalesce(string_agg(md5(to_jsonb(t)::text),'' ORDER BY id),''))
+  SELECT count(*),md5(coalesce(string_agg(md5((to_jsonb(t) - ARRAY[
+      'consent_given_at','consent_source','consent_version'])::text),'' ORDER BY id),''))
     INTO before_count,before_fingerprint FROM public.newsletter_subscribers t;
+  IF (before_count,before_fingerprint) IS DISTINCT FROM
+      (expected_legacy_row_count,expected_legacy_projection_fingerprint) THEN
+    RAISE EXCEPTION 'Subscriber legacy projection drifted from authoritative Stage B evidence';
+  END IF;
 
   REVOKE ALL PRIVILEGES ON TABLE public.newsletter_subscribers FROM PUBLIC,anon,authenticated;
   SELECT string_agg(quote_ident(attname),',' ORDER BY attnum) INTO columns_sql
@@ -316,6 +333,7 @@ BEGIN
   ALTER TABLE public.newsletter_subscribers ENABLE ROW LEVEL SECURITY;
   ALTER TABLE public.newsletter_subscribers FORCE ROW LEVEL SECURITY;
   GRANT SELECT,INSERT,UPDATE,DELETE ON TABLE public.newsletter_subscribers TO service_role;
+  GRANT EXECUTE ON FUNCTION public.newsletter_subscriber_identity(text) TO service_role;
   -- All other preexisting service_role privileges remain; none are revoked.
 
   FOR item IN SELECT oid,rolname FROM pg_roles WHERE rolname IN ('anon','authenticated') LOOP
@@ -337,14 +355,15 @@ BEGIN
     OR NOT EXISTS (SELECT 1 FROM pg_class WHERE oid = target AND relrowsecurity AND relforcerowsecurity) THEN
     RAISE EXCEPTION 'Expected ENABLE + FORCE RLS with zero policies';
   END IF;
-  SELECT count(*),md5(coalesce(string_agg(md5(to_jsonb(t)::text),'' ORDER BY id),''))
+  SELECT count(*),md5(coalesce(string_agg(md5((to_jsonb(t) - ARRAY[
+      'consent_given_at','consent_source','consent_version'])::text),'' ORDER BY id),''))
     INTO after_count,after_fingerprint FROM public.newsletter_subscribers t;
   IF (before_count,before_fingerprint) IS DISTINCT FROM (after_count,after_fingerprint) THEN
     RAISE EXCEPTION 'Subscriber rows changed during access cutover; transaction aborted';
   END IF;
   evidence := jsonb_set(evidence,'{stage_b}',jsonb_build_object('row_count',after_count,
-    'before_count',before_count,'before_fingerprint',before_fingerprint,
-    'row_fingerprint',after_fingerprint,'checked_at_utc',statement_timestamp(),'unchanged_during_cutover',true,
+    'before_count',before_count,'before_legacy_projection_fingerprint',before_fingerprint,
+    'legacy_projection_fingerprint',after_fingerprint,'checked_at_utc',statement_timestamp(),'unchanged_during_cutover',true,
     'reviewed_security_definer_hashes',reviewed_security_definer_hashes));
   EXECUTE format('COMMENT ON INDEX public.newsletter_subscribers_email_normalized_key IS %L',evidence::text);
 END $cutover$;

@@ -56,8 +56,19 @@ for (const name of ['01-forward', '03-verify']) {
 }
 assert.doesNotMatch(preparation, /DROP POLICY|ENABLE ROW LEVEL SECURITY|REVOKE ALL PRIVILEGES ON TABLE/i,
   'old admin access remains until reviewed compatible application deployment');
-assert.match(cutover, /compatible_application_cutover_confirmed boolean := false/);
-assert.match(cutover, /reviewed_security_definer_hashes jsonb := '\{\}'::jsonb/);
+assert.match(cutover, /compatible_application_cutover_confirmed boolean := true/);
+for (const [signature, hash] of Object.entries({
+  'public.current_client_id()': '298d2fb4275c92b8b24f4ad3a2a0ba8d',
+  'public.increment_blog_view(uuid)': 'a1bb0427d93116b48eed7b86e0dd1f06',
+  'public.is_active_admin()': 'ff158b21fdc826346db24a298bf7bf5f',
+})) {
+  assert.ok(cutover.includes(`"${signature}":"${hash}"`), `missing reviewed SECURITY DEFINER hash: ${signature}`);
+}
+assert.match(cutover, /expected_identity_rpc_hash text := '7ff011c458b629e471f3629f7d389e1a'/);
+assert.match(cutover, /expected_legacy_row_count bigint := 14/);
+assert.match(cutover, /expected_legacy_projection_fingerprint text := 'b9ec19e5467d2ceb0c42d7531cc1ee67'/);
+assert.match(cutover, /format\('%I\.%I\(%s\)',n\.nspname,p\.proname,oidvectortypes\(p\.proargtypes\)\)/,
+  'SECURITY DEFINER allowlist keys must be deterministically schema-qualified');
 assert.match(cutover, /LOCK TABLE public\.site_settings IN ACCESS EXCLUSIVE MODE/,
   'capture settings cannot change while the cutover gate is checked');
 for (const name of ['01-forward', '03-verify']) {
@@ -87,6 +98,7 @@ for (const name of ['01-forward', '02-rollback']) {
   assert.match(sql, /ENABLE ROW LEVEL SECURITY/);
   assert.match(sql, /FORCE ROW LEVEL SECURITY/);
   assert.match(sql, /GRANT SELECT,INSERT,UPDATE,DELETE ON TABLE public\.newsletter_subscribers TO service_role/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.newsletter_subscriber_identity\(text\) TO service_role/);
   assert.doesNotMatch(sql, /CREATE POLICY/i, 'default-deny model has zero policies');
   assert.match(sql, /before_count,before_fingerprint/);
   assert.match(sql, /after_count,after_fingerprint/);
@@ -94,5 +106,12 @@ for (const name of ['01-forward', '02-rollback']) {
   assert.match(sql, /ACCESS EXCLUSIVE MODE/);
   assert.match(sql, /NOTIFY pgrst, 'reload schema'/);
 }
+const verifier = withoutComments(files['03-verify']);
+assert.match(verifier, /to_jsonb\(t\) - ARRAY\[\s*'consent_given_at','consent_source','consent_version'\]/,
+  'verifier must use the schema-stable legacy subscriber projection');
+assert.doesNotMatch(verifier, /string_agg\(md5\(to_jsonb\(t\)::text\)/,
+  'verifier must not compare a Stage-A-sensitive full-row fingerprint');
+assert.match(verifier, /'b9ec19e5467d2ceb0c42d7531cc1ee67'/,
+  'verifier must pin the authoritative legacy projection fingerprint');
 assert.ok(fs.existsSync(path.join(root, 'docs/newsletter-security-review.md')), 'owner rollout context exists');
 console.log('Newsletter SQL static safety contracts passed. SQL was not parsed or executed.');

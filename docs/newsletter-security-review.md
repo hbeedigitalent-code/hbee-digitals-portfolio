@@ -1,7 +1,8 @@
 # Newsletter security reconciliation — OWNER REVIEW ONLY
 
-Nothing in this plan has been executed against a database. Capture remains disabled.
-This supersedes the earlier illustrative SQL in `footer-newsletter-phase-2.md`.
+Stage A has been applied and verified in production. Stage B and the safe-containment
+rollback have not been executed. Capture remains disabled. This supersedes the earlier
+illustrative SQL in `footer-newsletter-phase-2.md`.
 
 ## Final authoritative evidence and remaining preflight checks
 
@@ -11,6 +12,10 @@ present. There are zero `lower(btrim(email))` duplicate groups. `anon` and
 `authenticated` are neither superusers nor RLS-bypass roles; `service_role` is a
 non-superuser with `BYPASSRLS=true`. Existing policies/grants include unrestricted
 anonymous UPDATE and authenticated SELECT and therefore require the stage-B cutover.
+The authoritative post-Stage-A subscriber evidence is 14 rows (9 active, 5 bounced,
+zero unsubscribed/NULL/other statuses) with legacy-projection fingerprint
+`b9ec19e5467d2ceb0c42d7531cc1ee67`. The projection removes only the three nullable
+Stage-A consent fields, so it is comparable with the pre-Stage-A row shape.
 
 Stage A now records those exact owner/RLS/role facts as fail-closed guards:
 
@@ -65,6 +70,13 @@ in the cutover allowlist; dependent browser-accessible views block cutover. Cata
 text searches cannot prove arbitrary dynamic SQL safe. No unrelated function's ACL
 is silently modified to make the verifier pass.
 
+The final production allowlist pins `current_client_id()` to
+`298d2fb4275c92b8b24f4ad3a2a0ba8d`, `increment_blog_view(uuid)` to
+`a1bb0427d93116b48eed7b86e0dd1f06`, and `is_active_admin()` to
+`ff158b21fdc826346db24a298bf7bf5f`. Keys are deterministically schema-qualified in
+the guard. The SECURITY INVOKER identity RPC is separately pinned to
+`7ff011c458b629e471f3629f7d389e1a`; it is not admitted to the definer allowlist.
+
 ## Data decisions
 
 - Keep exact UNIQUE(email), add UNIQUE(lower(btrim(email))). Do not drop either
@@ -99,25 +111,22 @@ is silently modified to make the verifier pass.
 
 ## Owner-controlled rollout and rollback
 
-1. Run/read 00 separately. Fill the expected RLS flags in stage A from authoritative
-   output; review all dependent functions/views, role attributes, exact constraint,
-   row fingerprint and settings. Unknown/colliding objects block execution.
-2. Stage A of 01 is additive preparation only (one transaction): lock/recheck duplicates,
-   add NULL columns, normalized index, server-only RPC; prove original row fingerprint
-   unchanged. Old browser admin access is still present during this staging interval.
-3. Deploy the reviewed compatible application with capture still OFF. Test admin gate,
-   normalized lookup, unsubscribing and campaign counts in the owner-controlled environment.
-4. Only then confirm the stage B application-cutover guard and reviewed routine signatures,
-   and run stage B (separate transaction). This closes grants and replaces policies with
-   default deny. Do not run the complete file blindly: two transactions are intentional
-   to avoid breaking an old deployed browser-admin release.
+1. Stage A of 01 has already completed: its NULL columns, normalized index and
+   server-only RPC are present, and its evidence reports unchanged historical rows.
+2. Commit `09a69cc46ceb02beb34943ae2c24937f5bd8fdfb` is deployed with capture OFF;
+   the protected admin page, public routes and unauthenticated API denial were verified.
+3. Immediately before owner execution, run/read 00 separately to detect any new drift.
+4. Then confirm the stage B application-cutover guard and run only stage B. Its pinned
+   row/routine evidence closes grants and replaces policies with default deny. Do not
+   rerun Stage A or run the complete file blindly; the two transactions are intentional.
 5. Run 03, review all FAIL/REVIEW results, perform authenticated runtime checks as admin
    and ordinary user; only later separately authorize newsletter activation.
 
-Both stages lock writes and compare counts plus original-row fingerprints before/after;
-the normalized index comment records aggregate evidence, never subscriber values.
-03 can compare the cutover fingerprint while capture/admin writes are quiescent. A later
-legitimate write changes that fingerprint; distinguish that from migration DML.
+Both stages lock writes and compare counts plus row fingerprints before/after; Stage B
+also requires the authoritative 14-row legacy projection before making access changes.
+The normalized-index comment records aggregate evidence, never subscriber values. 03
+recomputes the same schema-stable legacy projection. A later legitimate write changes
+that fingerprint; distinguish that from migration DML.
 
 02 is a **safe access/application rollback**, retaining the hardened perimeter and the
 last compatible server-mediated application. It intentionally does NOT restore known

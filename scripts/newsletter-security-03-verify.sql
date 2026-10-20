@@ -128,7 +128,9 @@ SELECT 'identity RPC server-only SECURITY INVOKER' AS check_name,
          AND NOT has_function_privilege('authenticated',p.oid,'EXECUTE')
          AND NOT EXISTS (SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) x
            WHERE x.grantee NOT IN (p.proowner,(SELECT oid FROM pg_roles WHERE rolname = 'service_role')))
-         AND md5(pg_get_functiondef(p.oid)) = (obj_description('public.newsletter_subscribers_email_normalized_key'::regclass,'pg_class')::jsonb)->>'identity_rpc_hash'
+         AND md5(pg_get_functiondef(p.oid)) = '7ff011c458b629e471f3629f7d389e1a'
+         AND (obj_description('public.newsletter_subscribers_email_normalized_key'::regclass,'pg_class')::jsonb)->>'identity_rpc_hash'
+           = '7ff011c458b629e471f3629f7d389e1a'
          THEN 'PASS' ELSE 'FAIL' END AS result,
        p.oid::regprocedure AS signature,pg_get_userbyid(p.proowner) AS owner,p.proconfig,p.proacl
 FROM pg_proc p WHERE p.oid = 'public.newsletter_subscriber_identity(text)'::regprocedure;
@@ -156,8 +158,13 @@ FROM surface s JOIN pg_class c ON c.oid = s.oid WHERE c.relkind IN ('v','m')
 WITH evidence AS (
   SELECT obj_description('public.newsletter_subscribers_email_normalized_key'::regclass,'pg_class')::jsonb AS value
 ), current_snapshot AS (
-  SELECT count(*) AS row_count,md5(coalesce(string_agg(md5(to_jsonb(t)::text),'' ORDER BY id),'')) AS fingerprint
+  -- Remove only the three Stage-A fields so this reproduces the authoritative
+  -- pre-Stage-A row projection instead of changing when nullable columns exist.
+  SELECT count(*) AS row_count,md5(coalesce(string_agg(md5((to_jsonb(t) - ARRAY[
+    'consent_given_at','consent_source','consent_version'])::text),'' ORDER BY id),'')) AS legacy_projection_fingerprint
   FROM public.newsletter_subscribers t
+), expected AS (
+  SELECT 14::bigint AS row_count,'b9ec19e5467d2ceb0c42d7531cc1ee67'::text AS legacy_projection_fingerprint
 )
 SELECT 'subscriber-row preservation evidence' AS check_name,
        CASE WHEN e.value->>'artifact' IS DISTINCT FROM 'Hbee newsletter security v1'
@@ -166,19 +173,26 @@ SELECT 'subscriber-row preservation evidence' AS check_name,
            OR e.value->'stage_a'->>'before_count' IS DISTINCT FROM e.value->'stage_a'->>'row_count'
            OR e.value->'stage_a'->>'before_fingerprint' IS DISTINCT FROM e.value->'stage_a'->>'row_fingerprint'
            OR e.value->'stage_b'->>'before_count' IS DISTINCT FROM e.value->'stage_b'->>'row_count'
-           OR e.value->'stage_b'->>'before_fingerprint' IS DISTINCT FROM e.value->'stage_b'->>'row_fingerprint'
+           OR e.value->'stage_b'->>'before_legacy_projection_fingerprint' IS DISTINCT FROM e.value->'stage_b'->>'legacy_projection_fingerprint'
            THEN 'FAIL: missing/inconsistent stage evidence'
-         WHEN (e.value->'stage_b'->>'row_count')::bigint = s.row_count
-           AND e.value->'stage_b'->>'row_fingerprint' = s.fingerprint THEN 'PASS: cutover snapshot still matches'
+         WHEN (e.value->'stage_b'->>'row_count')::bigint = x.row_count
+           AND e.value->'stage_b'->>'legacy_projection_fingerprint' = x.legacy_projection_fingerprint
+           AND s.row_count = x.row_count
+           AND s.legacy_projection_fingerprint = x.legacy_projection_fingerprint
+           THEN 'PASS: authoritative legacy projection and cutover snapshot match'
          ELSE 'REVIEW: current data differs; distinguish legitimate later writes from migration evidence' END AS result,
-       e.value AS migration_aggregate_evidence,s.row_count AS current_row_count,s.fingerprint AS current_fingerprint
-FROM evidence e CROSS JOIN current_snapshot s;
+       e.value AS migration_aggregate_evidence,s.row_count AS current_row_count,
+       s.legacy_projection_fingerprint AS current_legacy_projection_fingerprint,
+       x.row_count AS expected_row_count,x.legacy_projection_fingerprint AS expected_legacy_projection_fingerprint
+FROM evidence e CROSS JOIN current_snapshot s CROSS JOIN expected x;
 
 WITH evidence AS (
   SELECT obj_description('public.newsletter_subscribers_email_normalized_key'::regclass,'pg_class')::jsonb AS value
 )
-SELECT p.oid::regprocedure::text AS signature,md5(pg_get_functiondef(p.oid)) AS current_definition_hash,
-       CASE WHEN e.value->'stage_b'->'reviewed_security_definer_hashes'->>(p.oid::regprocedure::text)
+SELECT format('%I.%I(%s)',n.nspname,p.proname,oidvectortypes(p.proargtypes)) AS signature,
+       md5(pg_get_functiondef(p.oid)) AS current_definition_hash,
+       CASE WHEN e.value->'stage_b'->'reviewed_security_definer_hashes'->>
+           format('%I.%I(%s)',n.nspname,p.proname,oidvectortypes(p.proargtypes))
            = md5(pg_get_functiondef(p.oid)) THEN 'PASS: exact reviewed body'
          ELSE 'FAIL: browser-callable SECURITY DEFINER is unreviewed or changed' END AS result
 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace CROSS JOIN evidence e
