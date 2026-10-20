@@ -1,0 +1,53 @@
+.footer { position: relative; isolation: isolate; overflow: hidden; padding-block: 3rem 1.5rem; }
+.boundary { position: absolute; inset: 0 0 auto; width: 100%; height: 1.5rem; color: var(--hb-blue); opacity: 0.8; pointer-events: none; }
+.top { display: grid; gap: 2rem; }
+.brand { display: flex; flex-direction: column; align-items: flex-start; gap: 1.25rem; min-width: 0; }
+.brand p { max-width: 22rem; font-size: 0.9375rem; line-height: 1.6; }
+.contact { font-size: 0.875rem; color: var(--hb-link); overflow-wrap: anywhere; transition: color 180ms ease; }
+.contact:hover, .contact:focus-visible { color: var(--hb-fg); }
+.newsletter { min-width: 0; border-top: 1px solid var(--hb-border); padding-top: 1.5rem; }
+.eyebrow { display: flex; align-items: center; gap: 0.625rem; font-size: 0.6875rem; font-weight: 600; line-height: 1.4; letter-spacing: 0.14em; text-transform: uppercase; color: var(--hb-fg-body); }
+.eyebrow span { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--hb-orange); }
+.newsletter h2 { margin-top: 1rem; font-family: var(--hb-font-display); font-size: clamp(1.375rem, 1rem + 0.6vw, 1.75rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.025em; color: var(--hb-fg); }
+.newsletter > p:not(.eyebrow) { margin-top: 1rem; font-size: 0.875rem; line-height: 1.6; }
+.newsletter .comingSoon { color: var(--hb-fg-muted); }
+.desktopNav { display: none; }
+.mobileNav details { border-block-start: 1px solid var(--hb-border); }
+.mobileNav details:last-child { border-block-end: 1px solid var(--hb-border); }
+.mobileNav summary { display: flex; align-items: center; justify-content: space-between; min-height: 3.25rem; cursor: pointer; list-style: none; color: var(--hb-fg); font-weight: 600; }
+.mobileNav summary::-webkit-details-marker { display: none; }
+.mobileNav summary svg { transition: transform 180ms ease; }
+.mobileNav details[open] summary svg { transform: rotate(180deg); }
+.mobileNav .links { padding-block: 0 1rem; }
+.links { display: grid; gap: 0.125rem; margin-top: 0.75rem; list-style: none; }
+.link { display: inline-flex; align-items: center; min-height: 2.5rem; font-size: 0.875rem; line-height: 1.4; color: var(--hb-fg-body); transition: color 180ms ease; }
+.link:hover, .link:focus-visible { color: var(--hb-fg); }
+.wordmark { margin-top: clamp(1.25rem, 2vw, 2rem); width: 100%; text-align: center; font-family: var(--hb-font-display); font-size: clamp(2rem, 11vw, 10rem); font-weight: 700; font-style: normal; line-height: 1.15; letter-spacing: -0.045em; color: var(--hb-orange); opacity: 0.4; white-space: nowrap; }
+.character { display: inline-block; white-space: pre; opacity: 1; transform: none; }
+:global([data-motion-ready]) .wordmark[data-wordmark='idle'] .character, .wordmark[data-wordmark='waiting'] .character { opacity: 0; transform: translateY(6px); }
+.wordmark[data-wordmark='revealed'] .character { animation: wordmark-letter 380ms var(--hb-ease) calc(var(--wordmark-index) * 42ms) both; }
+@keyframes wordmark-letter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.social { display: flex; flex-wrap: wrap; gap: 0.75rem; list-style: none; }
+.bottom { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 2rem; margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid var(--hb-border); font-size: 0.75rem; color: var(--hb-fg-muted); }
+.bottom ul { display: flex; flex-wrap: wrap; gap: 1.25rem; list-style: none; }
+.bottom .link { font-size: 0.75rem; }
+.motif { position: absolute; pointer-events: none; right: -2rem; top: -2rem; width: min(24rem, 65%); z-index: -1; color: var(--hb-electric); opacity: 0.12; }
+@media (min-width: 768px) and (max-width: 1023px) {
+  .top { grid-template-columns: 1fr 1fr; }
+  .newsletter { border-top: 0; border-left: 1px solid var(--hb-border); padding: 0 0 0 2rem; }
+  .mobileNav { grid-column: 1 / -1; }
+}
+@media (min-width: 1024px) {
+  .top { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.8fr); gap: 2rem; }
+  .newsletter { border-top: 0; border-left: 1px solid var(--hb-border); padding: 0 0 0 1.5rem; }
+  .desktopNav { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr); gap: 1.25rem; border-left: 1px solid var(--hb-border); padding-left: 1.5rem; }
+  .mobileNav { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .link, .contact, .character, .motif, .mobileNav summary svg { transition: none; }
+  .wordmark .character { animation: none !important; opacity: 1 !important; transform: none !important; }
+  .motif { transform: none !important; }
+}

@@ -37,7 +37,7 @@ export const metadata: Metadata = pageMetadata({
 
 export default async function HomePage() {
 
-  const [work, quotes, posts, brands] = await Promise.all([getFeaturedWork(3), getHomepageProof(2), getHomepageInsights(3), getHomepageBrands()])
+  const [work, quotes, posts, brands] = await Promise.all([getFeaturedWork(3), getHomepageProof(3), getHomepageInsights(3), getHomepageBrands()])
 
   return (
     <>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { normalizedEmail } from '@/lib/footer-settings'
 
 // PUBLIC ROUTE — deliberately NOT admin-gated. Recipients follow the
 // unsubscribe link from an email with no session, and that must keep working.
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
     const campaignId = request.nextUrl.searchParams.get('campaign')
 
     if (!email) {
-      return htmlResponse('Email Required', 'We could not process your unsubscribe request because no email address was provided.')
+      return htmlResponse('Email Required', 'We could not process your unsubscribe request because no email address was provided.', 400)
     }
 
     if (!supabase) {
@@ -40,20 +41,29 @@ export async function GET(request: NextRequest) {
         'We could not process your request because of a server configuration problem. ' +
           'You have NOT been unsubscribed. Please email hello@hbeedigitals.com and we ' +
           'will remove you manually.',
+        503,
       )
     }
 
-    const cleanEmail = email.toLowerCase().trim()
+    const cleanEmail = normalizedEmail(email)
+    if (!cleanEmail) return htmlResponse('Valid Email Required', 'Please use the unsubscribe link supplied in your email.', 400)
+    // Resolve the same normalized identity as the unique index without changing
+    // historical email spelling or granting a public database lookup.
+    const identity = await supabase.rpc('newsletter_subscriber_identity', { p_email: email.replace(/^ +| +$/g, '') }).returns<Array<{ id: string; status: string | null }>>().maybeSingle()
+    if (identity.error) return htmlResponse('We Could Not Complete Your Request', 'Something went wrong and you have NOT been unsubscribed. Please try again or contact Hbee Digitals.', 503)
+    if (!identity.data?.id) return htmlResponse('No Subscription Found', 'There is no newsletter subscription for this address. No changes were needed.')
     const now = new Date().toISOString()
 
     // The result IS inspected. A failure here must not render a success page.
-    const { error: unsubscribeError } = await supabase
+    const { data: changed, error: unsubscribeError } = await supabase
       .from('newsletter_subscribers')
       .update({
         status: 'unsubscribed',
         updated_at: now,
       })
-      .eq('email', cleanEmail)
+      .eq('id', identity.data.id)
+      .select('id')
+      .maybeSingle()
 
     if (unsubscribeError) {
       console.error(
@@ -63,8 +73,10 @@ export async function GET(request: NextRequest) {
         'We Could Not Complete Your Request',
         'Something went wrong and you have NOT been unsubscribed. Please email ' +
           'hello@hbeedigitals.com and we will remove you manually.',
+        503,
       )
     }
+    if (!changed?.id) return htmlResponse('No Subscription Found', 'There is no newsletter subscription for this address. No changes were needed.', 404)
 
     // Best-effort telemetry. The unsubscribe itself has already persisted, so a
     // failure here is logged but must not tell the recipient it did not work.
@@ -95,12 +107,13 @@ export async function GET(request: NextRequest) {
 
     return htmlResponse(
       'Something Went Wrong',
-      'We could not complete your unsubscribe request. Please try again or contact Hbee Digitals.'
+      'We could not complete your unsubscribe request. Please try again or contact Hbee Digitals.',
+      500,
     )
   }
 }
 
-function htmlResponse(title: string, message: string) {
+function htmlResponse(title: string, message: string, status = 200) {
   return new NextResponse(
     `
 <!DOCTYPE html>
@@ -138,7 +151,7 @@ function htmlResponse(title: string, message: string) {
 </html>
     `,
     {
-      status: 200,
+      status,
       headers: {
         'Content-Type': 'text/html',
       },

@@ -48,7 +48,7 @@ export function HomeProof({ quotes }: { quotes: ProofQuote[] }) {
       <SiteEyebrow>Client feedback</SiteEyebrow>
       <SiteDisplayHeading id="home-proof-title" size="h2" className="mt-6 max-w-[44rem]">What clients say</SiteDisplayHeading>
 
-      <div className={cn('mt-14 grid gap-[var(--hb-grid-gap)]', quotes.length > 1 && 'lg:grid-cols-2')}>
+      <div className={cn('mt-10 grid gap-[var(--hb-grid-gap)]', quotes.length === 1 ? 'max-w-4xl' : quotes.length === 2 ? 'lg:grid-cols-2' : 'md:grid-cols-2 xl:grid-cols-3')}>
         {quotes.map(q => <TestimonialQuote key={q.id} quote={q} />)}
       </div>
     </SiteSection>

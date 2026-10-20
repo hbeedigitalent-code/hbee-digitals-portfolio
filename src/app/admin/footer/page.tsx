@@ -1,456 +1,101 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { fetchSiteSettings, SITE_SETTINGS_KEY } from '@/lib/site-settings'
+import { SOCIAL_NETWORKS, footerSitePayload, networkFor, parseSocialProfiles, readNewsletterSettings, socialProfilesPayload, type NewsletterSettings, type SocialProfile } from '@/lib/footer-settings'
 
-interface FooterLink {
-  label: string
-  href: string
-}
+const input = 'w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-2.5'
+const card = 'space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6'
+const button = 'rounded-full bg-[var(--accent)] px-6 py-3 font-bold text-[var(--btn-primary-text)] disabled:opacity-50'
 
-interface FooterColumn {
-  title: string
-  links: FooterLink[]
-}
-
-interface SocialLink {
-  platform: string
-  url: string
-  icon: string
-  is_active?: boolean
-}
-
-interface FooterSettings {
-  id?: string
-  logo_text: string
-  copyright_text: string
-  columns: FooterColumn[]
-  social_links: SocialLink[]
-}
-
-const defaultFooter: FooterSettings = {
-  logo_text: 'Hbee Digitals',
-  copyright_text: `© ${new Date().getFullYear()} Hbee Digitals. All rights reserved.`,
-  columns: [
-    {
-      title: 'Services',
-      links: [
-        { label: 'Website Development', href: '/services' },
-        { label: 'Ecommerce Solutions', href: '/services' },
-        { label: 'Shopify Optimization', href: '/services' },
-        { label: 'Brand Strategy', href: '/services' },
-      ],
-    },
-    {
-      title: 'Company',
-      links: [
-        { label: 'About Us', href: '/about' },
-        { label: 'Portfolio', href: '/portfolio' },
-        { label: 'Process', href: '/process' },
-        { label: 'FAQ', href: '/faq' },
-        { label: 'Contact', href: '/contact' },
-      ],
-    },
-    {
-      title: 'Legal',
-      links: [
-        { label: 'Privacy Policy', href: '/privacy' },
-        { label: 'Terms of Service', href: '/terms' },
-        { label: 'Cookie Policy', href: '/cookies' },
-      ],
-    },
-  ],
-  social_links: [],
-}
-
+/** Reuse the existing settings rows; never save code-owned navigation or legacy branding. */
 export default function AdminFooterPage() {
-  const [form, setForm] = useState<FooterSettings>(defaultFooter)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState('')
-
+  const [site, setSite] = useState<Record<string, unknown> | null>(null), [footerId, setFooterId] = useState<string | null>(null)
+  const [contact, setContact] = useState(''), [description, setDescription] = useState('')
+  const [newsletter, setNewsletter] = useState<NewsletterSettings>(() => readNewsletterSettings(null))
+  const [social, setSocial] = useState<SocialProfile[]>([])
+  const [loading, setLoading] = useState(true), [saving, setSaving] = useState(''), [message, setMessage] = useState(''), [loadError, setLoadError] = useState('')
   useEffect(() => {
-    async function fetchFooter() {
-      const { data } = await supabase
-        .from('footer_settings')
-        .select('*')
-        .limit(1)
-        .maybeSingle()
-
-      if (data) {
-        setForm({
-          ...defaultFooter,
-          ...data,
-          columns: data.columns || defaultFooter.columns,
-          social_links: data.social_links || [],
-        })
-      }
-
-      setLoading(false)
+    let mounted = true
+    async function load() {
+      try {
+        const [siteResult, footer] = await Promise.all([fetchSiteSettings(), supabase.from('footer_settings').select('id,social_links').limit(2).maybeSingle()])
+        if (!mounted) return
+        if (!siteResult.error && siteResult.data) {
+          setSite(siteResult.data); setContact(typeof siteResult.data.contact_email === 'string' ? siteResult.data.contact_email : '')
+          setDescription(typeof siteResult.data.footer_description === 'string' ? siteResult.data.footer_description : '')
+          setNewsletter(readNewsletterSettings(siteResult.data.newsletter_settings))
+        } else setLoadError('Canonical site settings could not be loaded. Brand/newsletter saving is disabled.')
+        if (!footer.error && footer.data) {
+          const rows = parseSocialProfiles(footer.data.social_links)
+          setSocial([...rows, ...SOCIAL_NETWORKS.filter(platform => !rows.some(row => networkFor(row.platform) === platform)).map(platform => ({ platform, url: '', is_active: false }))])
+          setFooterId(footer.data.id)
+        } else setLoadError(previous => `${previous} Existing footer settings could not be loaded. Social saving is disabled.`)
+      } catch { if (mounted) setLoadError('Settings could not be loaded safely. Reload before editing.') }
+      finally { if (mounted) setLoading(false) }
     }
-
-    fetchFooter()
+    void load()
+    return () => { mounted = false }
   }, [])
-
-  function updateColumnTitle(index: number, title: string) {
-    const columns = [...form.columns]
-    columns[index].title = title
-    setForm({ ...form, columns })
+  const supportsNewsletter = Boolean(site && Object.prototype.hasOwnProperty.call(site, 'newsletter_settings'))
+  function setSocialField(index: number, patch: Partial<SocialProfile>) { setSocial(rows => rows.map((row, i) => i === index ? { ...row, ...patch } : row)) }
+  async function saveSite(event: FormEvent) {
+    event.preventDefault()
+    if (!site || saving) return
+    setSaving('site'); setMessage('')
+    try {
+      const payload = footerSitePayload(contact, description, supportsNewsletter ? newsletter : undefined)
+      const result = await supabase.from('site_settings').update(payload).eq('settings_key', SITE_SETTINGS_KEY).select('settings_key').single()
+      if (result.error || !result.data) throw Error('Settings were not saved. Please retry; your entries are preserved.')
+      setSite({ ...site, ...payload }); setMessage('Brand/newsletter settings saved. Public settings revalidate every 60 seconds; reload after refresh to review.')
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Save failed. Your entries are preserved.') }
+    finally { setSaving('') }
   }
-
-  function updateFooterLink(
-    columnIndex: number,
-    linkIndex: number,
-    field: keyof FooterLink,
-    value: string
-  ) {
-    const columns = [...form.columns]
-    columns[columnIndex].links[linkIndex][field] = value
-    setForm({ ...form, columns })
+  async function saveSocial(event: FormEvent) {
+    event.preventDefault()
+    if (!footerId || saving) return
+    setSaving('social'); setMessage('')
+    try {
+      const result = await supabase.from('footer_settings').update(socialProfilesPayload(social)).eq('id', footerId).select('id').single()
+      if (result.error || !result.data) throw Error('Social profiles were not saved. Please retry; your entries are preserved.')
+      setMessage('Social profiles saved.')
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Save failed. Your entries are preserved.') }
+    finally { setSaving('') }
   }
-
-  function addFooterLink(columnIndex: number) {
-    const columns = [...form.columns]
-    columns[columnIndex].links.push({ label: 'New Link', href: '/' })
-    setForm({ ...form, columns })
-  }
-
-  function removeFooterLink(columnIndex: number, linkIndex: number) {
-    const columns = [...form.columns]
-    columns[columnIndex].links = columns[columnIndex].links.filter(
-      (_, index) => index !== linkIndex
-    )
-    setForm({ ...form, columns })
-  }
-
-  function addColumn() {
-    setForm({
-      ...form,
-      columns: [...form.columns, { title: 'New Column', links: [] }],
-    })
-  }
-
-  function removeColumn(index: number) {
-    setForm({
-      ...form,
-      columns: form.columns.filter((_, i) => i !== index),
-    })
-  }
-
-  function updateSocial(
-    index: number,
-    field: keyof SocialLink,
-    value: string | boolean
-  ) {
-    const social_links = [...form.social_links]
-    social_links[index] = {
-      ...social_links[index],
-      [field]: value,
-    }
-    setForm({ ...form, social_links })
-  }
-
-  function addSocial() {
-    setForm({
-      ...form,
-      social_links: [
-        ...form.social_links,
-        {
-          platform: 'Instagram',
-          url: '',
-          icon: 'instagram',
-          is_active: true,
-        },
-      ],
-    })
-  }
-
-  function removeSocial(index: number) {
-    setForm({
-      ...form,
-      social_links: form.social_links.filter((_, i) => i !== index),
-    })
-  }
-
-  async function handleSave() {
-    setSaving(true)
-    setMessage('')
-
-    const payload = {
-      logo_text: form.logo_text,
-      copyright_text: form.copyright_text,
-      columns: form.columns,
-      social_links: form.social_links,
-      updated_at: new Date().toISOString(),
-    }
-
-    if (form.id) {
-      const { error } = await supabase
-        .from('footer_settings')
-        .update(payload)
-        .eq('id', form.id)
-
-      if (error) {
-        setMessage(`Save failed: ${error.message}`)
-      } else {
-        setMessage('Footer settings updated successfully.')
-      }
-    } else {
-      const { data, error } = await supabase
-        .from('footer_settings')
-        .insert(payload)
-        .select()
-        .single()
-
-      if (error) {
-        setMessage(`Save failed: ${error.message}`)
-      } else {
-        setForm({ ...form, id: data.id })
-        setMessage('Footer settings created successfully.')
-      }
-    }
-
-    setSaving(false)
-  }
-
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-[#07111F] px-5 py-10 text-white">
-        Loading footer settings...
-      </main>
-    )
-  }
-
-  return (
-    <main className="min-h-screen bg-[#07111F] px-5 py-10 text-white sm:px-6 md:px-10">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-8">
-          <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-[#39D97A]">
-            Admin / Footer
-          </p>
-
-          <h1 className="text-4xl font-black tracking-[-0.05em]">
-            Manage Footer Content
-          </h1>
-
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-white/55">
-            Control footer columns, legal links, contact links, and social icons from here.
-          </p>
-        </div>
-
-        {message && (
-          <div className="mb-6 rounded-2xl border border-[#39D97A]/20 bg-[#39D97A]/10 px-5 py-4 text-sm font-bold text-[#39D97A]">
-            {message}
-          </div>
-        )}
-
-        <div className="space-y-6">
-          <AdminCard title="Brand Footer Text">
-            <Input
-              label="Footer Brand Text"
-              value={form.logo_text}
-              onChange={(value) => setForm({ ...form, logo_text: value })}
-            />
-
-            <Input
-              label="Copyright Text"
-              value={form.copyright_text}
-              onChange={(value) => setForm({ ...form, copyright_text: value })}
-            />
-          </AdminCard>
-
-          <AdminCard title="Footer Columns">
-            <div className="space-y-6">
-              {form.columns.map((column, columnIndex) => (
-                <div
-                  key={columnIndex}
-                  className="rounded-2xl border border-[#1E314A] bg-[#07111F] p-4"
-                >
-                  <div className="mb-4 flex items-center justify-between gap-3">
-                    <Input
-                      label="Column Title"
-                      value={column.title}
-                      onChange={(value) => updateColumnTitle(columnIndex, value)}
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => removeColumn(columnIndex)}
-                      className="mt-7 rounded-full border border-red-500/30 px-4 py-2 text-xs font-black text-red-300"
-                    >
-                      Remove
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {column.links.map((link, linkIndex) => (
-                      <div
-                        key={linkIndex}
-                        className="grid gap-3 rounded-xl border border-[#1E314A] bg-[#0E1B2D] p-3 md:grid-cols-[1fr_1fr_auto]"
-                      >
-                        <Input
-                          label="Label"
-                          value={link.label}
-                          onChange={(value) =>
-                            updateFooterLink(columnIndex, linkIndex, 'label', value)
-                          }
-                        />
-
-                        <Input
-                          label="Href"
-                          value={link.href}
-                          onChange={(value) =>
-                            updateFooterLink(columnIndex, linkIndex, 'href', value)
-                          }
-                        />
-
-                        <button
-                          type="button"
-                          onClick={() => removeFooterLink(columnIndex, linkIndex)}
-                          className="mt-7 rounded-full border border-red-500/30 px-4 py-2 text-xs font-black text-red-300"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => addFooterLink(columnIndex)}
-                    className="mt-4 rounded-full border border-[#39D97A]/25 px-4 py-2 text-xs font-black text-[#39D97A]"
-                  >
-                    + Add Link
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <button
-              type="button"
-              onClick={addColumn}
-              className="mt-5 rounded-full bg-[#39D97A] px-5 py-2.5 text-sm font-black text-[#06101F]"
-            >
-              + Add Column
-            </button>
-          </AdminCard>
-
-          <AdminCard title="Social Icons">
-            <p className="mb-4 text-sm leading-7 text-white/55">
-              Only active social icons with real URLs will show in the footer. Leave inactive
-              ones hidden until the real page is ready.
-            </p>
-
-            <div className="space-y-4">
-              {form.social_links.map((social, index) => (
-                <div
-                  key={index}
-                  className="grid gap-3 rounded-2xl border border-[#1E314A] bg-[#07111F] p-4 md:grid-cols-[1fr_1fr_1fr_auto]"
-                >
-                  <Input
-                    label="Platform"
-                    value={social.platform}
-                    onChange={(value) => updateSocial(index, 'platform', value)}
-                  />
-
-                  <Input
-                    label="URL"
-                    value={social.url}
-                    onChange={(value) => updateSocial(index, 'url', value)}
-                  />
-
-                  <Input
-                    label="Icon Name"
-                    value={social.icon}
-                    onChange={(value) => updateSocial(index, 'icon', value)}
-                  />
-
-                  <div className="flex items-end gap-3">
-                    <label className="flex items-center gap-2 rounded-xl border border-[#1E314A] px-3 py-2 text-sm font-bold text-white/70">
-                      <input
-                        type="checkbox"
-                        checked={social.is_active !== false}
-                        onChange={(e) =>
-                          updateSocial(index, 'is_active', e.target.checked)
-                        }
-                        className="accent-[#39D97A]"
-                      />
-                      Active
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={() => removeSocial(index)}
-                      className="rounded-full border border-red-500/30 px-4 py-2 text-xs font-black text-red-300"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <button
-              type="button"
-              onClick={addSocial}
-              className="mt-5 rounded-full border border-[#39D97A]/25 px-5 py-2.5 text-sm font-black text-[#39D97A]"
-            >
-              + Add Social Icon
-            </button>
-          </AdminCard>
-
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-[#39D97A] px-8 py-3 text-sm font-black text-[#06101F] transition hover:scale-[1.02] hover:bg-[#C6F135] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {saving ? 'Saving...' : 'Save Footer Settings'}
-          </button>
-        </div>
-      </div>
-    </main>
-  )
-}
-
-function AdminCard({
-  title,
-  children,
-}: {
-  title: string
-  children: React.ReactNode
-}) {
-  return (
-    <section className="rounded-[2rem] border border-[#1E314A] bg-[#0E1B2D] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.22)] sm:p-6">
-      <h2 className="mb-5 text-xl font-black tracking-[-0.035em] text-white">
-        {title}
-      </h2>
-
-      <div>{children}</div>
-    </section>
-  )
-}
-
-function Input({
-  label,
-  value,
-  onChange,
-}: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-}) {
-  return (
-    <div>
-      <label className="mb-2 block text-sm font-bold text-white/70">
-        {label}
-      </label>
-
-      <input
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-2xl border border-[#1E314A] bg-[#07111F] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-[#39D97A]/40"
-      />
-    </div>
-  )
+  if (loading) return <p>Loading footer settings…</p>
+  return <div className="space-y-6">
+    <h1 className="text-3xl font-bold text-[var(--text-primary)]">Footer & newsletter</h1>
+    <p className="text-sm text-[var(--text-secondary)]">Navigation, legal links and visual branding stay code-owned. Contact and description use the same canonical record as <Link href="/admin/settings">Site Settings</Link>. Subscribers remain in <Link href="/admin/subscribers">Subscribers</Link>.</p>
+    {loadError && <p role="alert">{loadError}</p>}{message && <p role="status">{message}</p>}
+    <form className={card} onSubmit={saveSite}>
+      <fieldset disabled={!site || Boolean(saving)} className="space-y-4">
+        <legend className="text-xl font-bold">Brand & newsletter</legend>
+        <label className="block">Contact email<input type="email" value={contact} onChange={e => setContact(e.target.value)} className={input} /></label>
+        <label className="block">Footer description<textarea maxLength={400} value={description} onChange={e => setDescription(e.target.value)} className={input} /></label>
+        {!supportsNewsletter && <p>Newsletter controls require the proposed schema addition. Capture remains disabled; no SQL is run by this screen.</p>}
+        <fieldset disabled={!supportsNewsletter} className="space-y-4">
+          <legend className="font-bold">Newsletter settings</legend>
+          <p className="text-sm">Capture stays off unless the master switch and a surface switch are both enabled. Keep the master switch off until consent columns, email uniqueness, unsubscribe, RLS and Turnstile/Upstash are verified. All copy is plain text.</p>
+          {(['headline', 'description', 'popup_headline'] as const).map(field => <label key={field} className="block">{field === 'headline' ? 'Footer headline' : field === 'description' ? 'Supporting copy' : 'Popup headline'}<input required maxLength={field === 'description' ? 320 : 120} value={newsletter[field]} onChange={e => setNewsletter({ ...newsletter, [field]: e.target.value })} className={input} /></label>)}
+          <label className="block">Popup delay (seconds)<input type="number" min={180} max={300} step={1} required value={newsletter.popup_delay_seconds} onChange={e => setNewsletter({ ...newsletter, popup_delay_seconds: Number(e.target.value) })} className={input} /></label>
+          <label className="flex gap-2"><input type="checkbox" checked={newsletter.enabled} onChange={e => setNewsletter({ ...newsletter, enabled: e.target.checked })} />Enable newsletter capture</label>
+          <label className="flex gap-2"><input type="checkbox" checked={newsletter.footer_enabled} onChange={e => setNewsletter({ ...newsletter, footer_enabled: e.target.checked })} />Enable footer subscription</label>
+          <label className="flex gap-2"><input type="checkbox" checked={newsletter.popup_enabled} onChange={e => setNewsletter({ ...newsletter, popup_enabled: e.target.checked })} />Enable delayed popup</label>
+        </fieldset>
+        <button className={button} type="submit">{saving === 'site' ? 'Saving…' : 'Save brand/newsletter'}</button>
+      </fieldset>
+    </form>
+    <form className={card} onSubmit={saveSocial}>
+      <fieldset disabled={!footerId || Boolean(saving)} className="space-y-4">
+        <legend className="text-xl font-bold">Footer social profiles</legend>
+        <p className="text-sm">Only enabled, configured HTTPS profiles appear. Legacy Site Settings social fields are not a second source for this footer.</p>
+        {social.map((row, index) => <div key={index} className="space-y-2">
+          {networkFor(row.platform) ? <><label className="block">{networkFor(row.platform)} URL<input type="url" value={row.url} onChange={e => setSocialField(index, { url: e.target.value })} className={input} /></label><label className="flex gap-2"><input type="checkbox" checked={row.is_active} onChange={e => setSocialField(index, { is_active: e.target.checked })} />Enabled</label></> : <p>Historical profile “{row.platform}” is retained unchanged and not rendered by this footer.</p>}
+        </div>)}
+        <button className={button} type="submit">{saving === 'social' ? 'Saving…' : 'Save social profiles'}</button>
+      </fieldset>
+    </form>
+  </div>
 }

@@ -40,35 +40,33 @@ export default function TurnstileWidget({
       return
     }
 
-    if (document.querySelector('script[src*="turnstile"]')) {
-      console.log('✅ Turnstile: Script already loaded')
-      setIsLoaded(true)
-      return
+    // Multiple forms may mount while the same script is still loading. Wait for
+    // its load event rather than treating presence as API readiness.
+    let script = document.querySelector<HTMLScriptElement>('script[src*="turnstile/v0/api.js"]')
+    const created = !script
+    if (!script) {
+      script = document.createElement('script')
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+      script.async = true
+      script.defer = true
     }
-
-    console.log('📥 Turnstile: Loading script...')
-    const script = document.createElement('script')
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
-    script.async = true
-    script.defer = true
-    
-    script.onload = () => {
-      console.log('✅ Turnstile: Script loaded successfully')
-      setIsLoaded(true)
-    }
-    
-    script.onerror = () => {
-      console.error('❌ Turnstile: Failed to load script')
+    const ready = () => setIsLoaded(true)
+    const failed = () => {
       setError('Failed to load security verification')
       onError?.()
     }
-    
-    document.head.appendChild(script)
+    script.addEventListener('load', ready)
+    script.addEventListener('error', failed)
+    if (window.turnstile) ready()
+    if (created) document.head.appendChild(script)
 
     return () => {
+      script?.removeEventListener('load', ready)
+      script?.removeEventListener('error', failed)
       if (widgetIdRef.current && window.turnstile) {
         try {
           window.turnstile.remove(widgetIdRef.current)
+          widgetIdRef.current = null
         } catch (e) {
           // Ignore
         }
@@ -100,7 +98,7 @@ export default function TurnstileWidget({
         theme: theme,
         size: size,
         callback: (token: string) => {
-          console.log('✅ Turnstile: Verification successful, token:', token.substring(0, 10) + '...')
+          // Verification tokens are private authentication material; never log them.
           setIsVerifying(false)
           onVerify(token)
         },

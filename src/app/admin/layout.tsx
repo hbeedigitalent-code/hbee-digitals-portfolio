@@ -65,6 +65,7 @@ const navItems = [
   { name: 'Merchants', href: '/admin/merchants', icon: 'users' },
   { name: 'Profile', href: '/admin/profile', icon: 'profile' },
   { name: 'Settings', href: '/admin/settings', icon: 'settings' },
+  { name: 'Footer & Newsletter', href: '/admin/footer', icon: 'newsletter' },
 ]
 
   // Load site settings once. This must stay out of the effect below: that

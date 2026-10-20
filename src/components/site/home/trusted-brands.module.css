@@ -1,27 +1,28 @@
 .band { padding-block: 2.5rem 3rem; border-top: 1px solid var(--hb-border); }
-.heading { margin: 0 0 1.75rem; text-align: center; font-family: var(--hb-font-body); font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.08em; color: var(--hb-fg-body); }
-.group { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 1.5rem 3rem; list-style: none; margin: 0; padding: 0; }
+.heading { margin: 0 0 1.5rem; text-align: center; font-family: var(--hb-font-body); font-size: 0.875rem; font-weight: 600; letter-spacing: 0.06em; color: var(--hb-fg-body); }
+.marquee { text-align: center; }
+.viewport { overflow-x: auto; padding-block: 0.5rem; }
+.track { display: flex; width: max-content; }
+.group { display: flex; flex-wrap: nowrap; align-items: center; gap: 3rem; list-style: none; margin: 0; padding: 0 3rem 0 0; }
 .item { flex: 0 0 11rem; display: flex; align-items: center; justify-content: center; height: 4rem; }
 .logo { display: block; width: auto; height: auto; max-width: 10rem; max-height: 3rem; object-fit: contain; }
 .link { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; border-radius: 4px; }
 .link:focus-visible { outline: 2px solid var(--hb-blue); outline-offset: 4px; }
-.duplicate, .pause, .pauseLabel { display: none; }
+.duplicate, .copy, .pause, .pauseLabel { display: none; }
 @media (max-width: 480px) {
-  .group { column-gap: 1rem; }
+  .group { gap: 1.5rem; padding-right: 1.5rem; }
   .item { flex-basis: 8rem; }
   .logo { max-width: 7.5rem; max-height: 2.5rem; }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .marquee { text-align: center; }
-  .marquee .pause { display: inline-block; accent-color: var(--hb-blue); margin: 0 0.5rem 1rem 0; }
-  .marquee .pauseLabel { display: inline; font-size: 0.75rem; color: var(--hb-fg-body); cursor: pointer; }
-  .marquee .viewport { overflow-x: auto; }
-  .marquee .track { display: flex; width: max-content; animation: trust-travel 85s linear infinite; }
-  .marquee .group { flex-wrap: nowrap; gap: 3rem; padding-inline-end: 3rem; }
-  .marquee .duplicate { display: block; }
+  .pause { display: inline-block; accent-color: var(--hb-blue); margin: 0 0.5rem 1rem 0; }
+  .pauseLabel { display: inline; font-size: 0.75rem; color: var(--hb-fg-body); cursor: pointer; }
+  .track { animation: trust-travel var(--trust-duration, 80s) linear infinite; }
+  .duplicate { display: block; }
+  .copy { display: flex; }
   .marquee:hover .track, .marquee:focus-within .track, .pause:checked ~ .viewport .track { animation-play-state: paused; }
-  /* Show the original group at its untransformed position for keyboard access.
-     Otherwise a paused transform can leave the focused original off-screen. */
+  /* Reset originals into view for keyboard access, with no focusable clones. */
   .marquee:focus-within .track { animation: none; }
+  .marquee:focus-within .duplicate, .marquee:focus-within .copy { display: none; }
 }
 @keyframes trust-travel { to { transform: translateX(-50%); } }

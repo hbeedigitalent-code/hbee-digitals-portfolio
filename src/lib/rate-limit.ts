@@ -52,6 +52,7 @@ export interface RateLimitResult {
  * retry is a request) without allowing bulk submission.
  */
 export const RATE_LIMITS = {
+  newsletter: { requests: 5, window: '10 m' },
   contact: { requests: 5, window: '10 m' },
   onboarding: { requests: 3, window: '10 m' },
   assessment: { requests: 5, window: '10 m' },

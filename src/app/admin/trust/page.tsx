@@ -116,7 +116,7 @@ export default function AdminTrustPage() {
             <button type="button" aria-label={`Remove brand ${index + 1}`} onClick={() => setLogos(previous => previous.filter((_, i) => i !== index))} className={buttonClass}>Remove</button>
           </div>
         </div>)}
-        <p className="text-xs text-[var(--text-muted)]">Fewer than six visible, valid brands stay static. Six or more use a slow, pausable track; reduced-motion users always receive a static layout.</p>
+        <p className="text-xs text-[var(--text-muted)]">Visible brands form one continuous row, with visual copies added automatically for a seamless loop. Reduced-motion users get a static, horizontally scrollable row.</p>
         <button type="submit" className="rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-bold text-[var(--btn-primary-text)]">{saving ? 'Saving...' : 'Save Trusted Brands'}</button>
       </fieldset>
     </form>

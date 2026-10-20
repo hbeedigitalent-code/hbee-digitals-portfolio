@@ -10,7 +10,8 @@ export default function NewNewsletterPage() {
 
   const [saving, setSaving] = useState(false)
   const [sending, setSending] = useState(false)
-  const [subscribersCount, setSubscribersCount] = useState(0)
+  const [subscribersCount, setSubscribersCount] = useState<number | null>(null)
+  const [subscribersError, setSubscribersError] = useState('')
 
   const [subject, setSubject] = useState('Is Your Store Actually Ready For Q3 Growth?')
   const [previewText, setPreviewText] = useState(
@@ -52,23 +53,22 @@ export default function NewNewsletterPage() {
   )
 
   useEffect(() => {
+    const controller = new AbortController()
+    setSubscribersCount(null)
+    setSubscribersError('')
+    async function fetchSubscribersCount() {
+      try {
+        const response = await fetch(`/api/admin/subscribers?mode=count&audience=${encodeURIComponent(audienceType)}`, { cache: 'no-store', signal: controller.signal })
+        const result = await response.json()
+        if (!response.ok || !Number.isInteger(result.count)) throw Error(result.error || 'Subscriber count could not be loaded. Please retry.')
+        if (!controller.signal.aborted) setSubscribersCount(result.count)
+      } catch (error) {
+        if (!controller.signal.aborted) setSubscribersError((error as Error).message)
+      }
+    }
     fetchSubscribersCount()
+    return () => controller.abort()
   }, [audienceType])
-
-  async function fetchSubscribersCount() {
-    let query = supabase
-      .from('newsletter_subscribers')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'active')
-
-    if (audienceType === 'all_leads') query = query.eq('segment', 'lead')
-    if (audienceType === 'existing_clients') query = query.eq('segment', 'client')
-    if (audienceType === 'shopify_leads') query = query.contains('tags', ['shopify'])
-    if (audienceType === 'ecommerce_merchants') query = query.contains('tags', ['ecommerce'])
-
-    const { count } = await query
-    setSubscribersCount(count || 0)
-  }
 
   const previewHtml = useMemo(() => {
     return `
@@ -112,8 +112,8 @@ export default function NewNewsletterPage() {
       return
     }
 
-    if (sendNow && subscribersCount === 0) {
-      alert('No active subscribers found for this audience.')
+    if (sendNow && (subscribersCount === null || subscribersCount === 0)) {
+      alert(subscribersCount === null ? 'Load the subscriber count successfully before sending.' : 'No active subscribers found for this audience.')
       return
     }
 
@@ -243,7 +243,7 @@ export default function NewNewsletterPage() {
                 />
 
                 <Select
-                  label={`Audience (${subscribersCount} contacts)`}
+                  label={`Audience (${subscribersCount === null ? 'count unavailable' : `${subscribersCount} contacts`})`}
                   value={audienceType}
                   setValue={setAudienceType}
                   options={[
@@ -255,6 +255,8 @@ export default function NewNewsletterPage() {
                   ]}
                 />
               </div>
+
+              {subscribersError && <p role="alert" className="text-sm text-red-500">{subscribersError}</p>}
 
               <Input label="Featured Image URL" value={featuredImage} setValue={setFeaturedImage} />
             </div>
@@ -296,10 +298,10 @@ export default function NewNewsletterPage() {
 
             <button
               onClick={() => saveCampaign(true)}
-              disabled={saving || sending}
+              disabled={saving || sending || subscribersCount === null}
               className="rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-black text-[#07111F]"
             >
-              {sending ? 'Sending...' : `Send Now to ${subscribersCount}`}
+              {sending ? 'Sending...' : `Send Now to ${subscribersCount ?? '—'}`}
             </button>
           </div>
         </div>

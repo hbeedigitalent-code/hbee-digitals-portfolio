@@ -23,7 +23,8 @@ type Campaign = {
 
 export default function NewsletterDashboardPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
-  const [subscriberCount, setSubscriberCount] = useState(0)
+  const [subscriberCount, setSubscriberCount] = useState<number | null>(null)
+  const [subscriberError, setSubscriberError] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -33,20 +34,22 @@ export default function NewsletterDashboardPage() {
   async function loadData() {
     setLoading(true)
 
-    const [{ data: campaignsData }, { count }] = await Promise.all([
+    const [{ data: campaignsData }, countResponse] = await Promise.all([
       supabase
         .from('newsletter_campaigns')
         .select('*')
         .order('created_at', { ascending: false }),
 
-      supabase
-        .from('newsletter_subscribers')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active'),
+      fetch('/api/admin/subscribers?mode=count', { cache: 'no-store' }).catch(() => null),
     ])
 
     setCampaigns(campaignsData || [])
-    setSubscriberCount(count || 0)
+    try {
+      const result = countResponse && await countResponse.json()
+      if (!countResponse?.ok || !Number.isInteger(result?.count)) throw Error(result?.error || 'Subscriber count could not be loaded. Please retry.')
+      setSubscriberCount(result.count)
+      setSubscriberError('')
+    } catch (error) { setSubscriberCount(null); setSubscriberError((error as Error).message) }
     setLoading(false)
   }
 
@@ -103,9 +106,10 @@ export default function NewsletterDashboardPage() {
         </Link>
       </div>
 
+      {subscriberError && <p role="alert" className="text-sm text-red-500">{subscriberError}</p>}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
         {[
-          ['Subscribers', subscriberCount],
+          ['Subscribers', subscriberCount ?? 'Unavailable'],
           ['Campaigns', stats.totalCampaigns],
           ['Drafts', stats.drafts],
           ['Sent', stats.sent],

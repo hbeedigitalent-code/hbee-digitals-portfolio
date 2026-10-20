@@ -1,22 +1,24 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
 
 interface Subscriber {
   id: string
-  name: string
+  name: string | null
   email: string
-  phone: string
-  source: string
-  tags: string[]
-  segment: string
-  status: string
-  last_opened_at: string
-  last_clicked_at: string
-  created_at: string
+  phone: string | null
+  source: string | null
+  tags: string[] | null
+  segment: string | null
+  status: string | null
+  last_opened_at: string | null
+  last_clicked_at: string | null
+  created_at: string | null
+  consent_given_at?: string | null
+  consent_source?: string | null
+  consent_version?: string | null
 }
 
 export default function SubscribersPage() {
@@ -42,13 +44,26 @@ export default function SubscribersPage() {
   }, [])
 
   async function fetchSubscribers() {
-    const { data } = await supabase
-      .from('newsletter_subscribers')
-      .select('*')
-      .order('created_at', { ascending: false })
-    
-    setSubscribers(data || [])
-    setLoading(false)
+    try {
+      const loaded: Subscriber[] = []
+      let page = 0, hasMore = true
+      while (hasMore) {
+        const response = await fetch(`/api/admin/subscribers?page=${page++}`, { cache: 'no-store' })
+        const result = await response.json()
+        if (!response.ok || !Array.isArray(result.subscribers)) throw Error(result.error || 'Subscriber data could not be loaded. Please retry.')
+        loaded.push(...result.subscribers)
+        hasMore = result.has_more === true
+      }
+      setSubscribers(loaded)
+    } catch (error) { setMessage({ type: 'error', text: (error as Error).message }) }
+    finally { setLoading(false) }
+  }
+
+  async function saveSubscriber(method: string, body: Record<string, unknown>) {
+    const response = await fetch('/api/admin/subscribers', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    const result = await response.json()
+    if (!response.ok) throw Error(result.error || 'Subscriber save failed. Please retry.')
+    return result
   }
 
   async function addSubscriber(e: React.FormEvent) {
@@ -56,27 +71,20 @@ export default function SubscribersPage() {
     setSaving(true)
     setMessage(null)
 
-    const { error } = await supabase
-      .from('newsletter_subscribers')
-      .insert([{
+    try {
+      await saveSubscriber('POST', { action: 'manual', subscriber: {
         name: formName,
         email: formEmail,
         phone: formPhone,
-        source: 'manual',
         tags: formTags.split(',').map(t => t.trim()).filter(Boolean),
         segment: formSegment,
-        status: 'active',
-      }])
-
-    if (error) {
-      setMessage({ type: 'error', text: error.message })
-    } else {
+      } })
       setMessage({ type: 'success', text: 'Subscriber added successfully!' })
       setShowAddModal(false)
       resetForm()
       fetchSubscribers()
-    }
-    setSaving(false)
+    } catch (error) { setMessage({ type: 'error', text: (error as Error).message }) }
+    finally { setSaving(false) }
   }
 
   async function importSubscribers(e: React.FormEvent) {
@@ -84,35 +92,14 @@ export default function SubscribersPage() {
     setSaving(true)
     setMessage(null)
 
-    const lines = csvData.split('\n')
-    let successCount = 0
-    let failCount = 0
-
-    for (const line of lines) {
-      if (!line.trim()) continue
-      const [email, name, tags] = line.split(',').map(s => s.trim())
-      
-      if (email && email.includes('@')) {
-        const { error } = await supabase
-          .from('newsletter_subscribers')
-          .upsert([{
-            email,
-            name: name || null,
-            tags: tags ? tags.split(';') : [],
-            source: 'csv_import',
-            status: 'active',
-          }], { onConflict: 'email' })
-        
-        if (error) failCount++
-        else successCount++
-      }
-    }
-
-    setMessage({ type: 'success', text: `Imported ${successCount} subscribers. Failed: ${failCount}` })
-    setShowImportModal(false)
-    setCsvData('')
-    fetchSubscribers()
-    setSaving(false)
+    try {
+      const result = await saveSubscriber('POST', { action: 'import', csv: csvData })
+      setMessage({ type: 'success', text: `Imported ${result.inserted} subscribers. Existing addresses skipped: ${result.skipped}.` })
+      setShowImportModal(false)
+      setCsvData('')
+      fetchSubscribers()
+    } catch (error) { setMessage({ type: 'error', text: (error as Error).message }) }
+    finally { setSaving(false) }
   }
 
   async function exportSubscribers() {
@@ -124,7 +111,7 @@ export default function SubscribersPage() {
       s.tags?.join(';') || '',
       s.segment || '',
       s.status,
-      new Date(s.created_at).toLocaleDateString(),
+      s.created_at ? new Date(s.created_at).toLocaleDateString() : '',
     ])
     
     const csv = [headers, ...rows].map(row => row.join(',')).join('\n')
@@ -138,22 +125,14 @@ export default function SubscribersPage() {
   }
 
   async function updateStatus(id: string, newStatus: string) {
-    const { error } = await supabase
-      .from('newsletter_subscribers')
-      .update({ status: newStatus })
-      .eq('id', id)
-    
-    if (!error) fetchSubscribers()
+    try { await saveSubscriber('PATCH', { id, status: newStatus }); fetchSubscribers() }
+    catch (error) { setMessage({ type: 'error', text: (error as Error).message }) }
   }
 
   async function deleteSubscriber(id: string) {
     if (!confirm('Delete this subscriber?')) return
-    const { error } = await supabase
-      .from('newsletter_subscribers')
-      .delete()
-      .eq('id', id)
-    
-    if (!error) fetchSubscribers()
+    try { await saveSubscriber('DELETE', { id }); fetchSubscribers() }
+    catch (error) { setMessage({ type: 'error', text: (error as Error).message }) }
   }
 
   function resetForm() {
@@ -304,6 +283,7 @@ export default function SubscribersPage() {
             <tr>
               <th className="p-4 text-left text-xs font-black uppercase tracking-wider">Name</th>
               <th className="p-4 text-left text-xs font-black uppercase tracking-wider">Email</th>
+              <th className="p-4 text-left text-xs font-black uppercase tracking-wider">Source / Consent</th>
               <th className="p-4 text-left text-xs font-black uppercase tracking-wider">Tags</th>
               <th className="p-4 text-left text-xs font-black uppercase tracking-wider">Segment</th>
               <th className="p-4 text-left text-xs font-black uppercase tracking-wider">Status</th>
@@ -316,6 +296,10 @@ export default function SubscribersPage() {
               <tr key={sub.id} className="hover:bg-[var(--bg-section)]/50">
                 <td className="p-4 font-medium text-[var(--text-primary)]">{sub.name || '-'}</td>
                 <td className="p-4 text-[var(--text-secondary)]">{sub.email}</td>
+                <td className="p-4 text-sm text-[var(--text-secondary)]">
+                  <p>{sub.source || 'Not recorded'}</p>
+                  <p>{sub.consent_given_at && sub.consent_source && sub.consent_version ? `Explicit opt-in · ${sub.consent_source} · ${sub.consent_version} · ${new Date(sub.consent_given_at).toLocaleString()}` : 'Consent not recorded'}</p>
+                </td>
                 <td className="p-4">
                   <div className="flex flex-wrap gap-1">
                     {sub.tags?.slice(0, 2).map((tag) => (
@@ -323,7 +307,7 @@ export default function SubscribersPage() {
                         {tag}
                       </span>
                     ))}
-                    {sub.tags?.length > 2 && (
+                    {sub.tags && sub.tags.length > 2 && (
                       <span className="text-xs text-[var(--text-muted)]">+{sub.tags.length - 2}</span>
                     )}
                   </div>
@@ -339,7 +323,7 @@ export default function SubscribersPage() {
                 </td>
                 <td className="p-4">
                   <select
-                    value={sub.status}
+                    value={sub.status ?? ''}
                     onChange={(e) => updateStatus(sub.id, e.target.value)}
                     className={`rounded-full px-2 py-1 text-xs font-bold ${
                       sub.status === 'active' ? 'bg-green-500/20 text-green-400' :
@@ -347,13 +331,14 @@ export default function SubscribersPage() {
                       'bg-yellow-500/20 text-yellow-400'
                     }`}
                   >
+                    {!['active', 'unsubscribed', 'bounced'].includes(sub.status ?? '') && <option value={sub.status ?? ''}>{sub.status || 'Not recorded'}</option>}
                     <option value="active">Active</option>
                     <option value="unsubscribed">Unsubscribed</option>
                     <option value="bounced">Bounced</option>
                   </select>
                 </td>
                 <td className="p-4 text-sm text-[var(--text-muted)]">
-                  {new Date(sub.created_at).toLocaleDateString()}
+                  {sub.created_at ? new Date(sub.created_at).toLocaleDateString() : 'Not recorded'}
                  </td>
                 <td className="p-4">
                   <button
@@ -392,6 +377,7 @@ export default function SubscribersPage() {
               <button onClick={() => setShowAddModal(false)} className="text-[var(--text-muted)]">✕</button>
             </div>
             <form onSubmit={addSubscriber} className="space-y-4">
+              {message?.type === 'error' && <p role="alert" className="text-sm text-red-400">{message.text}</p>}
               <div>
                 <label className="mb-1 block text-sm font-bold">Name</label>
                 <input
@@ -473,6 +459,7 @@ export default function SubscribersPage() {
               <button onClick={() => setShowImportModal(false)} className="text-[var(--text-muted)]">✕</button>
             </div>
             <form onSubmit={importSubscribers} className="space-y-4">
+              {message?.type === 'error' && <p role="alert" className="text-sm text-red-400">{message.text}</p>}
               <div>
                 <label className="mb-1 block text-sm font-bold">CSV Data</label>
                 <textarea
@@ -483,7 +470,7 @@ export default function SubscribersPage() {
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 font-mono text-sm"
                 />
                 <p className="mt-2 text-xs text-[var(--text-muted)]">
-                  Format: email, name, tags (semicolon separated). One subscriber per line.
+                  Format: email, name, tags (semicolon separated). Up to 500 subscribers per import. Existing addresses are skipped; their status and consent are preserved.
                 </p>
               </div>
               <div className="flex gap-3 pt-4">

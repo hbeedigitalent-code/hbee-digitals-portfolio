@@ -8,7 +8,10 @@ import { SiteFooter } from '@/components/site/layout/SiteFooter'
 import { SiteMotionGate, SiteMotionLive } from '@/components/site/motion/SiteMotionScript'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import { SiteCookieConsent } from '@/components/site/layout/SiteCookieConsent'
+import { SiteScrollToTop } from '@/components/site/layout/SiteScrollToTop'
 import StructuredData from '@/components/StructuredData'
+import { getFooterExperience } from '@/lib/site/footer-data'
+import { SiteNewsletterPopup } from '@/components/site/layout/SiteNewsletterPopup'
 
 /**
  * Layout for the public site: /, /services, /work, /how-we-work, /insights,
@@ -24,12 +27,16 @@ import StructuredData from '@/components/StructuredData'
  * (site-styled, same storage key) and Organization JSON-LD. No service worker is
  * registered here. The legacy promotional widgets (subscribe popup, floating
  * WhatsApp tab, cursor glow, scroll utilities) are not part of the approved
- * public design and are not rendered here.
+ * public design and are not rendered here. A standalone site-styled scroll-to-top
+ * utility is available after cookie choice and meaningful scrolling. The new
+ * newsletter popup is separately controlled by canonical newsletter settings;
+ * it shares the footer's subscription pipeline and is disabled until configured.
  *
  * suppressHydrationWarning: the pre-paint motion gate adds data-motion-ready
  * to this element before React hydrates.
  */
-export default function SiteLayout({ children }: { children: ReactNode }) {
+export default async function SiteLayout({ children }: { children: ReactNode }) {
+  const footer = await getFooterExperience()
   return (
     <>
       <Suspense fallback={null}>
@@ -50,11 +57,13 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
         <SiteMotionGate />
         <SiteMotionLive />
         <SiteHeader />
-        <main id="main-content" className="flex-1">
+        <main id="main-content" tabIndex={-1} className="flex-1">
           {children}
         </main>
-        <SiteFooter />
+        <SiteFooter {...footer} />
+        <SiteNewsletterPopup settings={footer.newsletter} />
         <SiteCookieConsent />
+        <SiteScrollToTop />
       </div>
     </>
   )

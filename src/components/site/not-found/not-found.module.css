@@ -1,0 +1,25 @@
+.panel { display: grid; align-items: center; min-height: 75svh; padding-block: clamp(3rem, 6vw, 6rem); }
+.layout { display: grid; align-items: center; gap: 2rem; width: 100%; }
+.copy { min-width: 0; }
+.system { position: relative; width: 100%; max-width: 34rem; aspect-ratio: 100 / 90; margin-inline: auto; }
+.system::before { content: ''; position: absolute; inset: 8%; border-radius: 50%; background: radial-gradient(ellipse, rgba(29,110,255,0.14), transparent 68%); }
+.connections { position: absolute; inset: 0; width: 100%; height: 100%; }
+.broken { stroke-dasharray: 8 9; transition: stroke-dasharray 400ms ease; }
+.brokenNode, .brandNode, .creativeNode { position: absolute; transition: transform 300ms var(--hb-ease); }
+.brokenNode { left: 0; top: 25%; width: 48%; transform: rotate(-6deg); }
+.brandNode { left: 48%; top: 0; width: 38%; }
+.creativeNode { left: 57%; top: 64%; width: 38%; }
+.brand { position: absolute; left: 53%; top: 36%; width: 24%; padding: 0.75rem; aspect-ratio: 1; display: grid; place-items: center; border-radius: var(--hb-radius-md); background: var(--hb-white); box-shadow: 0 1rem 2rem rgba(0,0,0,0.25); transform: rotate(5deg); }
+.brand img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.system:hover .broken, .panel:focus-within .broken { stroke-dasharray: 100 0; }
+.system:hover .brokenNode, .panel:focus-within .brokenNode { transform: rotate(-3deg) translateY(-3px); }
+@media (min-width: 1024px) { .layout { grid-template-columns: 1fr 1fr; gap: 3rem; } }
+@media (max-width: 639px) {
+  .system { max-width: 22rem; }
+  .creativeNode { left: 54%; top: 62%; width: 42%; }
+  .brand { padding: 0.5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .broken, .brokenNode, .brandNode, .creativeNode { transition: none; }
+  .system:hover .brokenNode, .panel:focus-within .brokenNode { transform: rotate(-6deg); }
+}

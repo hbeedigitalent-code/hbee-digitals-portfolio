@@ -155,6 +155,7 @@ export default function AdminSettingsPage() {
           <SvgIcon name="branding" size={18} color="var(--accent)" />
           Social Media Links
         </h3>
+        <p className="mb-4 text-sm text-[var(--text-secondary)]">These legacy site fields are preserved. The public footer uses the enabled social profiles in Footer & Newsletter (/admin/footer).</p>
         <div className="grid gap-5 md:grid-cols-2">
           <div>
             <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Facebook</label>
