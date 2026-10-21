@@ -1,7 +1,7 @@
 import { validateEmail } from '@/utils/validation'
 
 export const NEWSLETTER_CONSENT_VERSION = 'newsletter-v1'
-export const NEWSLETTER_CONSENT = 'I agree to receive occasional emails from Hbee Digitals. I can unsubscribe at any time.'
+export const NEWSLETTER_CONSENT = 'I agree to receive Hbee Digitals insights and updates by email. I can unsubscribe at any time.'
 export const FOOTER_DESCRIPTION = 'Digital growth studio. Brand, experience, technology and growth — connected.'
 export const SOCIAL_NETWORKS = ['LinkedIn', 'Instagram', 'Facebook', 'TikTok', 'YouTube', 'X'] as const
 export type SocialNetwork = typeof SOCIAL_NETWORKS[number]

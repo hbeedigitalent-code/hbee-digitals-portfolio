@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     if (!body || typeof body !== 'object' || Array.isArray(body)) return NextResponse.json({ error: 'Invalid subscription request.' }, { status: 400 })
     const email = normalizedEmail(body.email, true), source = body.source
     if (!email || (source !== 'footer' && source !== 'popup')) return NextResponse.json({ error: 'Enter a valid email address.' }, { status: 400 })
-    if (body.consent !== true || body.consent_version !== NEWSLETTER_CONSENT_VERSION) return NextResponse.json({ error: 'Please agree to receive occasional newsletter emails.' }, { status: 400 })
+    if (body.consent !== true || body.consent_version !== NEWSLETTER_CONSENT_VERSION) return NextResponse.json({ error: 'Please agree to receive Hbee Digitals insights and updates by email.' }, { status: 400 })
     const verification = await verifyTurnstileToken(body.turnstile_token, ip)
     if (!verification.ok) return NextResponse.json({ error: turnstileFailureMessage(verification.reason) }, { status: verification.reason === 'not-configured' ? 503 : 400 })
 

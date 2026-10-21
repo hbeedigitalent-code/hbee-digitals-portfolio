@@ -88,6 +88,8 @@ function all(node, predicate) { if (!node || typeof node !== 'object') return []
 
 async function main() {
   const model = load('src/lib/footer-settings.ts')
+  assert.equal(model.NEWSLETTER_CONSENT, 'I agree to receive Hbee Digitals insights and updates by email. I can unsubscribe at any time.')
+  assert.equal(model.NEWSLETTER_CONSENT_VERSION, 'newsletter-v1')
   row = { ...model.NEWSLETTER_DEFAULTS, enabled: true, footer_enabled: true, popup_enabled: true }
   const { POST } = load('src/app/api/subscribe/route.ts')
   const body = { email: ' Person@Example.test ', source: 'footer', consent: true, consent_version: model.NEWSLETTER_CONSENT_VERSION, turnstile_token: 'synthetic-token' }

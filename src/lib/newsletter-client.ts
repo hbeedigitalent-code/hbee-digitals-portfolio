@@ -39,7 +39,7 @@ function startedAt(now: number) {
 export async function subscribeNewsletter(input: { email: string; consent: boolean; token: string; source: 'footer' | 'popup' }) {
   const email = normalizedEmail(input.email, true)
   if (!email) throw Error('Enter a valid email address.')
-  if (input.consent !== true) throw Error('Please agree to receive occasional newsletter emails.')
+  if (input.consent !== true) throw Error('Please agree to receive Hbee Digitals insights and updates by email.')
   if (!input.token) throw Error('Please complete the security check.')
   const response = await fetch('/api/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, source: input.source, consent: true, consent_version: NEWSLETTER_CONSENT_VERSION, turnstile_token: input.token }) })
