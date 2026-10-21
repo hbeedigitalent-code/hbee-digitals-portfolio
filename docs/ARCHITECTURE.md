@@ -161,6 +161,7 @@ Read from source (`process.env` references in `src/`):
 | `CRON_SECRET` | Guards the cron endpoints |
 | `RESEND_API_KEY` | Email provider key |
 | `RESEND_FROM_EMAIL` / `RESEND_REPLY_TO_EMAIL` | Sender identity |
+| `NEWSLETTER_UNSUBSCRIBE_SECRET` | Server-only HMAC secret for newsletter unsubscribe links; at least 32 random bytes |
 | `ADMIN_NOTIFICATION_EMAIL` | Internal notification recipient |
 | `TURNSTILE_SECRET_KEY` / `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Bot protection |
 | `NEXT_PUBLIC_GA_ID` / `GA_API_SECRET` | Google Analytics |

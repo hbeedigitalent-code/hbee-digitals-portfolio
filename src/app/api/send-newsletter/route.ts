@@ -22,6 +22,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { requireActiveAdmin } from '@/lib/admin-api-auth'
+import { createNewsletterUnsubscribeUrl } from '@/lib/newsletter-unsubscribe.server'
 
 const resendApiKey = process.env.RESEND_API_KEY
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hbeedigitals.com'
@@ -38,6 +39,7 @@ const SUPPORTED_AUDIENCES = [
 ] as const
 
 type SupportedAudience = (typeof SUPPORTED_AUDIENCES)[number]
+type DeliverySubscriber = { id: string; email: string }
 
 export async function POST(request: NextRequest) {
   try {
@@ -173,15 +175,30 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    let preparedSubscribers: Array<{ subscriber: DeliverySubscriber; unsubscribeUrl: string }>
+    try {
+      // Prepare every signed link before the first delivery. A missing/weak
+      // secret or invalid stored address therefore fails the whole send closed,
+      // rather than producing a partial campaign without working opt-outs.
+      preparedSubscribers = subscribers.map((subscriber: DeliverySubscriber) => ({
+        subscriber,
+        unsubscribeUrl: createNewsletterUnsubscribeUrl(siteUrl, subscriber.email),
+      }))
+    } catch {
+      return NextResponse.json(
+        { error: 'Newsletter unsubscribe signing is unavailable. Nothing was sent.' },
+        { status: 500 },
+      )
+    }
+
     let successCount = 0
     let failCount = 0
     /** newsletter_sends rows that could not be written. Telemetry only. */
     let loggingFailures = 0
 
-    for (const subscriber of subscribers) {
+    for (const { subscriber, unsubscribeUrl } of preparedSubscribers) {
       const email = subscriber.email
 
-      const unsubscribeUrl = `${siteUrl}/api/unsubscribe?email=${encodeURIComponent(email)}`
       const openUrl = `${siteUrl}/api/track-open?campaign=${campaignId}&email=${encodeURIComponent(email)}`
       const clickUrl = `${siteUrl}/api/track-click?campaign=${campaignId}&email=${encodeURIComponent(email)}&url=${encodeURIComponent(campaign.cta_url || siteUrl)}`
 
@@ -199,7 +216,7 @@ export async function POST(request: NextRequest) {
           to: email,
           subject: campaign.subject,
           html,
-          text: campaign.preview_text || campaign.subject,
+          text: `${campaign.preview_text || campaign.subject}\n\nUnsubscribe: ${unsubscribeUrl}`,
           replyTo:
             campaign.reply_to_email ||
             process.env.RESEND_REPLY_TO_EMAIL ||
@@ -408,7 +425,7 @@ function buildEmailHtml({
         </p>
 
         <p style="margin:0;color:#6B7A96;font-size:11px;">
-          <a href="${unsubscribeUrl}" style="color:#39D97A;text-decoration:none;font-weight:700;">Unsubscribe</a>
+          <a href="${escapeHtml(unsubscribeUrl)}" style="color:#39D97A;text-decoration:none;font-weight:700;">Unsubscribe</a>
           &nbsp;|&nbsp;
           <a href="${siteUrl}/privacy" style="color:#39D97A;text-decoration:none;font-weight:700;">Privacy Policy</a>
           &nbsp;|&nbsp;

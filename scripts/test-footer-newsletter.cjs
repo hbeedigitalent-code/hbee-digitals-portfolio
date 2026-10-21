@@ -4,7 +4,7 @@ const ts = require('typescript'), React = require('react'), postcss = require('p
 const root = path.resolve(__dirname, '..'), cache = new Map(), writes = [], selects = [], calls = []
 let active, row, insertError = null, insertData = { id: 'fixture-id' }, storedStatus = 'active', settingsError = null, duplicateReadError = null, identityId = 'fixture-id', updateError = null
 let allowed = true, rateDegraded = false, challengeOK = true, fetchImpl, lastRequest, blockedStorage = false
-const env = { NEXT_PUBLIC_SUPABASE_URL: 'https://database.example.test', SUPABASE_SERVICE_ROLE_KEY: 'synthetic-test-only', NEXT_PUBLIC_TURNSTILE_SITE_KEY: 'synthetic-site-key' }
+const env = { NEXT_PUBLIC_SUPABASE_URL: 'https://database.example.test', SUPABASE_SERVICE_ROLE_KEY: 'synthetic-test-only', NEXT_PUBLIC_TURNSTILE_SITE_KEY: 'synthetic-site-key', NEWSLETTER_UNSUBSCRIBE_SECRET: 'synthetic-unsubscribe-secret-at-least-32-bytes' }
 const clock = { time: 1000000, next: 0, timers: new Map(), set(fn, delay) { const id = ++this.next; this.timers.set(id, { fn, at: this.time + delay }); return id }, clear(id) { this.timers.delete(id) }, advance(ms) {
   const end = this.time + ms; let runs = 0
   while (true) { const next = [...this.timers.entries()].filter(([, t]) => t.at <= end).sort((a,b) => a[1].at - b[1].at)[0]; if (!next) break; assert.ok(++runs < 100); this.time = next[1].at; this.timers.delete(next[0]); next[1].fn() }
@@ -47,11 +47,12 @@ function query(table) {
 }
 function load(relative) {
   let file = path.resolve(root, relative)
-  if (!path.extname(file)) file = ['.ts', '.tsx'].map(ext => file + ext).find(fs.existsSync)
+  if (!fs.existsSync(file)) file = ['.ts', '.tsx'].map(ext => file + ext).find(fs.existsSync)
   if (cache.has(file)) return cache.get(file).exports
   const mod = { exports: {} }; cache.set(file, mod)
   const localRequire = name => {
     if (name === 'react') return hooks
+    if (name === 'server-only') return {}
     if (name === 'next/server') return { NextResponse: class extends Response { static json(body, options) { return Response.json(body, options) } } }
     if (name === 'next/link') return { __esModule: true, default: 'a' }
     if (name === 'next/cache') return { unstable_cache: (fn, keys, options) => { assert.equal(options.revalidate, 60); return fn } }
@@ -71,7 +72,7 @@ function load(relative) {
     return require(name)
   }
   const code = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText
-  vm.runInNewContext(code, { module: mod, exports: mod.exports, require: localRequire, process: { env }, URL, Response, Request, Event, Error, Date: FakeDate,
+  vm.runInNewContext(code, { module: mod, exports: mod.exports, require: localRequire, process: { env }, URL, Response, Request, Event, Error, Date: FakeDate, Buffer,
     window: file.endsWith('footer-data.ts') ? undefined : browser, document: doc,
     setTimeout: (fn, delay) => clock.set(fn, delay), clearTimeout: id => clock.clear(id),
     fetch: async (...args) => { lastRequest = args; if (!fetchImpl) throw Error('Unexpected network access prohibited'); return fetchImpl(...args) }, console,
@@ -124,17 +125,13 @@ async function main() {
   settingsError = { code: '42703' }; assert.equal((await POST(request(body))).status, 503); settingsError = null
   const key = env.SUPABASE_SERVICE_ROLE_KEY; delete env.SUPABASE_SERVICE_ROLE_KEY; assert.equal((await POST(request(body))).status, 503); env.SUPABASE_SERVICE_ROLE_KEY = key
 
-  // Historical case/space identity uses the restricted RPC for both duplicates and unsubscribe.
+  // Historical case/space identity uses the restricted RPC for duplicate resolution.
   assert.ok(calls.some(call => Array.isArray(call) && call[0] === 'normalized-identity' && call[1] === 'person@example.test'))
   const unsubscribe = load('src/app/api/unsubscribe/route.ts').GET
-  const unsubscribeRequest = { nextUrl: new URL('https://site.example.test/api/unsubscribe?email=%20Person%40Example.test%20') }
-  res = await unsubscribe(unsubscribeRequest); assert.match(await res.text(), /You Have Been Unsubscribed/)
-  res = await unsubscribe({ nextUrl: new URL('https://site.example.test/api/unsubscribe?email=%C4%B0%40example.test') }); assert.match(await res.text(), /You Have Been Unsubscribed/)
-  assert.ok(calls.some(call => Array.isArray(call) && call[0] === 'normalized-identity' && call[1] === 'İ@example.test'), 'Historical Unicode spelling reaches database lower() unchanged')
-  assert.equal(writes.at(-1).status, 'unsubscribed'); assert.ok(calls.some(call => Array.isArray(call) && call[0] === 'update-filter' && call[1] === 'id' && call[2] === identityId))
-  const beforeMissing = writes.length; identityId = null; res = await unsubscribe(unsubscribeRequest); assert.match(await res.text(), /No Subscription Found/); assert.equal(writes.length, beforeMissing); identityId = 'fixture-id'
-  duplicateReadError = { code: 'missing-rpc' }; res = await unsubscribe(unsubscribeRequest); assert.equal(res.status, 503); assert.match(await res.text(), /NOT been unsubscribed/); duplicateReadError = null
-  updateError = { code: 'denied', message: 'synthetic failure' }; res = await unsubscribe(unsubscribeRequest); assert.equal(res.status, 503); assert.match(await res.text(), /NOT been unsubscribed/); updateError = null
+  const beforeLegacyGet = writes.length
+  res = await unsubscribe(new Request('https://site.example.test/api/unsubscribe?email=Person%40Example.test'))
+  assert.equal(res.status, 303); assert.equal(new URL(res.headers.get('location')).pathname, '/unsubscribe')
+  assert.equal(new URL(res.headers.get('location')).searchParams.get('reason'), 'legacy'); assert.equal(writes.length, beforeLegacyGet)
 
   assert.equal(model.readNewsletterSettings({ footer_enabled: true }).footer_enabled, false)
   assert.equal(model.readNewsletterSettings({ ...row, enabled: undefined }).enabled, false)
