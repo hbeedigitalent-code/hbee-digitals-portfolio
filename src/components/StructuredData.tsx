@@ -9,10 +9,8 @@ export default function StructuredData() {
     description:
       "Premium websites, Shopify optimization, brand systems, and conversion-focused digital experiences for ambitious businesses.",
     sameAs: [
-      "https://facebook.com",
-      "https://instagram.com",
-      "https://linkedin.com",
-      "https://twitter.com"
+      "https://facebook.com/thehbeedigitals",
+      "https://instagram.com/thehbeedigitals"
     ],
   }
 

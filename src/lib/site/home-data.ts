@@ -85,7 +85,7 @@ export interface FeaturedWork {
   context?: string
   services: string[]
   image?: { src: string; alt: string }
-  /** Only when the CMS row holds both a numeric value and a label. */
+  /** Reserved for evidence-backed metrics; omitted until the CMS has a verification signal. */
   result?: { value: string; label: string }
 }
 
@@ -98,9 +98,6 @@ function toFeaturedWork(row: Row): FeaturedWork | null {
 
   const title = text(row.title)
   const image = imageUrl(row.image_url) ?? imageUrl(row.featured_image) ?? imageUrl(row.after_image)
-  const metricValue = text(row.metric_value)
-  const metricLabel = text(row.metric_label)
-
   return {
     id: String(row.id),
     slug,
@@ -110,7 +107,6 @@ function toFeaturedWork(row: Row): FeaturedWork | null {
     context: truncate(text(row.challenge) ?? text(row.brief) ?? text(row.description), 170),
     services: stringList(row.technologies_used, 3),
     image: image ? { src: image, alt: `${client} — project preview` } : undefined,
-    result: metricValue && metricLabel && /\d/.test(metricValue) ? { value: metricValue, label: metricLabel } : undefined,
   }
 }
 
@@ -120,14 +116,14 @@ export async function getFeaturedWork(limit = 3): Promise<FeaturedWork[]> {
       .from('portfolio_items')
       .select('*')
       .eq('is_active', true)
+      .eq('featured', true)
       .order('display_order', { ascending: true })
       .limit(24)
     if (error || !data) return []
 
     return (data as Row[])
-      .map((row, index) => ({ row, index }))
-      .sort((a, b) => Number(Boolean(b.row.featured)) - Number(Boolean(a.row.featured)) || a.index - b.index)
-      .map(({ row }) => toFeaturedWork(row))
+      .filter((row) => row.featured === true)
+      .map((row) => toFeaturedWork(row))
       .filter((w): w is FeaturedWork => w !== null)
       .slice(0, limit)
   } catch {
@@ -169,7 +165,7 @@ export interface InsightCard {
   image?: { src: string; alt: string }
 }
 
-const INSIGHT_FIELDS = 'id, title, slug, excerpt, featured_image, featured_image_alt, tags, read_time, published_at'
+const INSIGHT_FIELDS = 'id, title, slug, excerpt, featured_image, featured_image_alt, tags, read_time, published_at, is_featured'
 
 export async function getHomepageInsights(limit = 3): Promise<InsightCard[]> {
   try {
@@ -177,11 +173,13 @@ export async function getHomepageInsights(limit = 3): Promise<InsightCard[]> {
       .from('blog_posts')
       .select(INSIGHT_FIELDS)
       .eq('status', 'published')
+      .eq('is_featured', true)
       .order('published_at', { ascending: false })
       .limit(limit)
     if (error || !data) return []
 
     return (data as Row[])
+      .filter((row) => row.is_featured === true)
       .map((row): InsightCard | null => {
         const slug = text(row.slug)
         const title = text(row.title)

@@ -55,13 +55,17 @@ export default function TestimonialsPage() {
       if (!data?.id) throw new Error('No saved testimonial was returned. Reload before trying again.')
       setItems(previous => ordered([...previous.filter(item => item.id !== data.id), data]))
       setShowForm(false); setEditingId(null); setForm(testimonialForm())
-      setMessage('Testimonial saved. Homepage visibility updates within about five minutes; up to two visible testimonials are shown in display order.')
+      setMessage('Testimonial saved. Homepage visibility updates within about five minutes; up to three visible testimonials are shown in display order.')
     } catch (error) { setMessage(`Error: ${errorText(error)}`) }
     finally { pending.current = false; setBusy(false) }
   }
 
   async function toggle(item: TestimonialRow) {
     if (pending.current) return
+    if (item.is_active !== true && !testimonialQuote({ ...item, is_active: true })) {
+      setMessage('Error: Add a non-placeholder name and testimonial quote before making this record visible.')
+      return
+    }
     pending.current = true; setBusy(true); setMessage('')
     try {
       const { data, error } = await supabase.from('testimonials').update({ is_active: item.is_active !== true }).eq('id', item.id).select('*').single()
@@ -94,7 +98,7 @@ export default function TestimonialsPage() {
       <div><h1 className="text-2xl font-black">Testimonials</h1><p className="mt-2 text-sm text-[var(--text-secondary)]">Client statements from the testimonials collection. Trusted Brands has separate visibility.</p></div>
       {!showForm && <button type="button" disabled={busy} onClick={() => edit()} className={buttonClass}>New testimonial</button>}
     </div>
-    <p className="text-sm text-[var(--text-muted)]">The homepage shows up to two visible, nonempty testimonials in display order. Quotes appear in full. New testimonials start hidden. Confirm permission, attribution and source evidence before making one visible.</p>
+    <p className="text-sm text-[var(--text-muted)]">The homepage shows up to three visible, nonempty testimonials in display order. Quotes appear in full. New testimonials start hidden. Confirm permission, attribution and source evidence before making one visible.</p>
     <p className="text-xs text-[var(--text-muted)]">Legacy trust-section quotes and video proofs are separate sources and are not merged here. Ratings and featured values remain stored but are not presented by the homepage.</p>
     {message && <p role={message.startsWith('Error:') ? 'alert' : 'status'} className="rounded-lg border border-[var(--border)] p-4 text-sm">{message}</p>}
     {showForm && <form onSubmit={save}>
@@ -104,12 +108,12 @@ export default function TestimonialsPage() {
         <label className="block text-sm font-semibold">Role / title (optional)<input className={inputClass} value={form.position} onChange={e => field('position', e.target.value)} /></label>
         <label className="block text-sm font-semibold">Company / brand (optional)<input className={inputClass} value={form.company} onChange={e => field('company', e.target.value)} /></label>
         <label className="block text-sm font-semibold">Testimonial quote<textarea required rows={6} className={inputClass} value={form.content} onChange={e => field('content', e.target.value)} /></label>
-        <p className="text-xs text-[var(--text-muted)]">Use the original wording. Quotes are plain text; HTML is displayed as text. No rating is required or added by this editor.</p>
+        <p className="text-xs text-[var(--text-muted)]">Use the original wording. Quotes are plain text; HTML is displayed as text. No rating is required or added by this editor. John Doe, Jane Smith and Mike Johnson are demo identities and cannot be saved or published.</p>
         <label className="block text-sm font-semibold">Avatar / logo URL (optional)<input className={inputClass} value={form.image_url} onChange={e => field('image_url', e.target.value)} /></label>
         <label className="block text-sm font-semibold">Display order<input type="number" step="1" className={inputClass} value={form.display_order} onChange={e => field('display_order', e.target.value)} /></label>
         <label className="flex items-center gap-3 text-sm"><input type="checkbox" checked={form.is_active} onChange={e => field('is_active', e.target.checked)} />Visible on website</label>
         <div className="flex flex-wrap gap-3"><button type="submit" className={buttonClass}>{busy ? 'Saving...' : 'Save testimonial'}</button><button type="button" onClick={() => { setShowForm(false); setEditingId(null) }} className={buttonClass}>Cancel</button></div>
-        <div data-surface="site" className="rounded-lg bg-white p-4"><p className="mb-3 text-sm text-hb-fg-body">Public quote preview (visibility does not hide this preview)</p>{preview ? <TestimonialQuote quote={preview} /> : <p className="text-sm text-hb-fg-body">Enter a name and quote to preview.</p>}</div>
+        <div data-surface="site" className="rounded-lg bg-white p-4"><p className="mb-3 text-sm text-hb-fg-body">Public quote preview (visibility does not hide this preview)</p>{preview ? <TestimonialQuote quote={preview} /> : <p className="text-sm text-hb-fg-body">Enter a non-placeholder name and quote to preview.</p>}</div>
       </fieldset>
     </form>}
     <div className="grid gap-4">
@@ -117,8 +121,8 @@ export default function TestimonialsPage() {
         const quote = testimonialQuote(item, true)
         return <article key={item.id} className="min-w-0 space-y-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
           <div className="flex flex-wrap gap-3 text-sm"><span>{item.is_active === true ? 'Visible' : 'Hidden'}</span><span>Order: {String(item.display_order ?? 0)}</span>{!quote && <span>Incomplete: excluded publicly</span>}</div>
-          {quote ? <div data-surface="site"><TestimonialQuote quote={quote} /></div> : <p className="text-sm">Missing name or quote. Edit to complete this record.</p>}
-          {!showForm && <div className="flex flex-wrap gap-2"><button type="button" disabled={busy} onClick={() => edit(item)} className={buttonClass}>Edit</button><button type="button" disabled={busy} onClick={() => toggle(item)} className={buttonClass}>{item.is_active === true ? 'Hide' : 'Show'}</button><button type="button" disabled={busy} onClick={() => remove(item)} className={buttonClass}>Delete</button></div>}
+          {quote ? <div data-surface="site"><TestimonialQuote quote={quote} /></div> : <p className="text-sm">Missing or placeholder name, or missing quote. Edit to complete this record.</p>}
+          {!showForm && <div className="flex flex-wrap gap-2"><button type="button" disabled={busy} onClick={() => edit(item)} className={buttonClass}>Edit</button><button type="button" disabled={busy || (item.is_active !== true && !quote)} onClick={() => toggle(item)} className={buttonClass}>{item.is_active === true ? 'Hide' : 'Show'}</button><button type="button" disabled={busy} onClick={() => remove(item)} className={buttonClass}>Delete</button></div>}
         </article>
       })}
       {!items.length && <p className="rounded-lg border border-dashed border-[var(--border)] p-6 text-sm">No testimonials yet. The public section stays hidden until a valid testimonial is visible.</p>}

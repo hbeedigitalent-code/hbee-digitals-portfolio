@@ -13,9 +13,9 @@ export default function NewNewsletterPage() {
   const [subscribersCount, setSubscribersCount] = useState<number | null>(null)
   const [subscribersError, setSubscribersError] = useState('')
 
-  const [subject, setSubject] = useState('Is Your Store Actually Ready For Q3 Growth?')
+  const [subject, setSubject] = useState('[Draft starter] Where Is Growth Getting Stuck?')
   const [previewText, setPreviewText] = useState(
-    'Many stores focus on getting more traffic. Few prepare their store to convert it.'
+    'A practical framework for reviewing clarity, trust, conversion, retention, and capacity.'
   )
   const [senderName, setSenderName] = useState('Hbee Digitals')
   const [senderEmail, setSenderEmail] = useState('forms@send.hbeedigitals.com')
@@ -23,31 +23,27 @@ export default function NewNewsletterPage() {
   const [campaignType, setCampaignType] = useState('Ecommerce Growth Insight')
   const [audienceType, setAudienceType] = useState('all_subscribers')
   const [featuredImage, setFeaturedImage] = useState('')
-  const [contentHtml, setContentHtml] = useState(`<p>Hi there,</p>
+  const [contentHtml, setContentHtml] = useState(`<p><strong>Draft starter: tailor this message with a current Hbee insight or audience-relevant example before sending.</strong></p>
 
-<p>As we move deeper into Q3, many ecommerce brands are focused on increasing traffic, launching new campaigns, and pushing for more sales.</p>
+<p>Hi there,</p>
 
-<p>But here is something we have noticed while reviewing online stores:</p>
+<p>When growth slows down, the constraint is not always a lack of activity. It is often a weak connection somewhere in the customer journey.</p>
 
-<p><strong>Most stores do not struggle because of traffic. They struggle because their store is not fully prepared to convert the attention it is already receiving.</strong></p>
-
-<p>Before investing more into ads, influencers, or new marketing campaigns, it is worth asking a few simple questions:</p>
+<p>A useful review starts with five questions:</p>
 
 <ul>
-  <li>Can visitors understand what your brand offers within a few seconds?</li>
-  <li>Does your website look trustworthy enough for a first-time customer?</li>
-  <li>Are your product pages helping customers make buying decisions?</li>
-  <li>Is your mobile experience smooth from landing page to checkout?</li>
-  <li>Do you have enough customer trust signals in place?</li>
+  <li><strong>Clarity:</strong> Can the right customer quickly understand what you offer and why it matters?</li>
+  <li><strong>Trust:</strong> Does the experience give them enough confidence to take the next step?</li>
+  <li><strong>Conversion:</strong> Is the path from interest to action simple on mobile and desktop?</li>
+  <li><strong>Retention:</strong> Do customers have a clear reason to return after the first purchase?</li>
+  <li><strong>Capacity:</strong> Can your systems support more demand without creating new friction?</li>
 </ul>
 
-<p>A useful exercise this week: open your store on your phone and try purchasing a product as if you have never visited the website before.</p>
+<p>Choose the weakest connection and define one practical improvement you can make next. A focused change is often more useful than adding another disconnected tactic.</p>
 
-<p>Pay attention to clarity, trust, speed, navigation, product presentation, and checkout experience.</p>
-
-<p>You will often spot opportunities that analytics alone will not show you.</p>`)
+<p>If you want an outside perspective, a Growth Review can help identify the constraint that deserves attention first.</p>`)
   const [ctaText, setCtaText] = useState('Request A Growth Review')
-  const [ctaUrl, setCtaUrl] = useState('https://www.hbeedigitals.com/contact')
+  const [ctaUrl, setCtaUrl] = useState('https://hbeedigitals.com/growth-review')
   const [footerNote, setFooterNote] = useState(
     'Helping businesses build stronger digital systems for measurable growth.'
   )

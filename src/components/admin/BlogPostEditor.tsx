@@ -226,7 +226,7 @@ export default function BlogPostEditor({
                 <ToolButton onClick={() => insertSnippet('<p>Write your paragraph here.</p>')}>Paragraph</ToolButton>
                 <ToolButton onClick={() => insertSnippet('<ul>\n  <li>First point</li>\n  <li>Second point</li>\n</ul>')}>List</ToolButton>
                 <ToolButton onClick={() => insertSnippet('<blockquote>Important insight or quote here.</blockquote>')}>Quote</ToolButton>
-                <ToolButton onClick={() => insertSnippet('<a href="https://hbeedigitals.com/contact" target="_blank" rel="noopener">Request a Growth Review</a>')}>Link</ToolButton>
+                <ToolButton onClick={() => insertSnippet('<a href="https://hbeedigitals.com/growth-review" target="_blank" rel="noopener">Request a Growth Review</a>')}>Link</ToolButton>
               </div>
 
               <Textarea label="HTML Content" value={content} setValue={setContent} rows={24} mono />

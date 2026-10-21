@@ -130,6 +130,11 @@ async function main() {
   assert.ok((editor.match(/message\?\.type === 'error'/g) || []).length === 2)
   const creator = fs.readFileSync(path.join(root, 'src/app/admin/newsletter/new/page.tsx'), 'utf8')
   assert.ok(creator.includes('subscribersCount === null')); assert.ok(creator.includes('AbortController'))
+  assert.ok(creator.includes('[Draft starter] Where Is Growth Getting Stuck?'))
+  assert.ok(creator.includes('tailor this message'))
+  assert.ok(!creator.includes('Q3'))
+  assert.ok(creator.includes("useState('https://hbeedigitals.com/growth-review')"))
+  assert.ok(!creator.includes('https://www.hbeedigitals.com/contact'))
   console.log('Newsletter admin API compatibility tests passed (offline mocks only).')
 }
 main().catch(error => { console.error(error); process.exitCode = 1 })

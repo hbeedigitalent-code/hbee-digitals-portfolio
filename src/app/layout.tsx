@@ -61,7 +61,6 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: siteTitle,
     description: siteDescription,
-    creator: '@hbeedigitals',
     images: [`${siteUrl}/svgs/twitter-image.jpg`],
   },
   robots: {

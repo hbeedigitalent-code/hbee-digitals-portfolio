@@ -80,6 +80,10 @@ const submit = h => find(h, node => node.type === 'form').props.onSubmit({ preve
   assert.equal(model.testimonialForm().is_active, false)
   assert.equal(model.testimonialQuote({ ...sample, is_active: false }), null)
   assert.equal(model.testimonialQuote({ ...sample, content: '   ' }), null)
+  for (const name of ['John Doe', ' jane   smith ', 'MIKE JOHNSON']) {
+    assert.equal(model.testimonialQuote({ ...sample, name }), null, `${name} is excluded from public proof`)
+    assert.throws(() => model.testimonialPayload({ ...model.testimonialForm(sample), name }), /Placeholder testimonial identities/)
+  }
   const originalWords = '  Exact words.\nNot rewritten, shortened, or polished. <script>bad()</script> & "quoted"  '
   assert.equal(model.testimonialQuote({ ...sample, content: originalWords }).quote, originalWords)
   assert.equal(model.testimonialQuote({ ...sample, position: '', image_url: '' }).role, undefined)
@@ -92,7 +96,7 @@ const submit = h => find(h, node => node.type === 'form').props.onSubmit({ preve
   assert.throws(() => model.testimonialPayload({ ...model.testimonialForm(sample), image_url: 'javascript:bad()' }))
   for (const url of ['//remote.test/a', 'data:image/png,x', '/\\host/a', 'https://user:pass@remote.test/a']) assert.equal(model.testimonialImageUrl(url), undefined)
   const { getHomepageProof } = load('src/lib/site/home-data.ts'), { getHomepageBrands } = load('src/lib/site/trusted-brands-data.ts')
-  rows = [{ ...sample, id: 'late', display_order: 3 }, { ...sample, id: 'early', display_order: 1, content: 'Short but genuine.' }, { ...sample, id: 'hidden', display_order: 0, is_active: false }, { ...sample, id: 'invalid', display_order: 0, name: '' }]
+  rows = [{ ...sample, id: 'late', display_order: 3 }, { ...sample, id: 'early', display_order: 1, content: 'Short but genuine.' }, { ...sample, id: 'placeholder', display_order: 0, name: 'John Doe' }, { ...sample, id: 'hidden', display_order: 0, is_active: false }, { ...sample, id: 'invalid', display_order: 0, name: '' }]
   assert.deepEqual(clone(await getHomepageProof()).map(q => q.id), ['early', 'late'])
   const selection = calls.find(c => c.table === 'testimonials')
   assert.ok(selection.operations.some(op => op[0] === 'eq' && op[1] === 'is_active' && op[2] === true))
@@ -160,6 +164,10 @@ const submit = h => find(h, node => node.type === 'form').props.onSubmit({ preve
   await submit(admin); admin.render(); assert.match(text(admin.tree), /Mock save denied/); assert.ok(nodes(admin.tree).some(n => n.type === 'form'))
   field(admin, 'Name').props.onChange({ target: { value: '   ' } }); admin.render(); const beforeInvalid = calls.length
   await submit(admin); admin.render(); assert.equal(calls.length, beforeInvalid); assert.match(text(admin.tree), /Name and testimonial quote are required/)
+  field(admin, 'Name').props.onChange({ target: { value: 'Jane Smith' } }); admin.render()
+  await submit(admin); admin.render(); assert.equal(calls.length, beforeInvalid); assert.match(text(admin.tree), /Placeholder testimonial identities/)
+  const adminSource = fs.readFileSync(path.join(root, 'src/app/admin/testimonials/page.tsx'), 'utf8')
+  assert.ok(!adminSource.includes('up to two')); assert.ok(adminSource.includes('up to three'))
   rows = []; const empty = await mount(Admin); assert.match(text(empty.tree), /No testimonials yet/)
   failure = { message: 'Mock admin read denied' }; const denied = await mount(Admin); assert.match(text(denied.tree), /Mock admin read denied/)
   authUser = null; await mount(Admin); assert.ok(navigations.includes('/admin/login'))

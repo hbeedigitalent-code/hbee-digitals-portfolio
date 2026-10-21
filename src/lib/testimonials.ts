@@ -5,7 +5,12 @@ export interface TestimonialForm {
   name: string; position: string; company: string; content: string; image_url: string; display_order: string; is_active: boolean
 }
 
+const PLACEHOLDER_TESTIMONIAL_NAMES = new Set(['john doe', 'jane smith', 'mike johnson'])
+
 function string(value: unknown) { return typeof value === 'string' ? value : '' }
+export function isPlaceholderTestimonialName(value: unknown): boolean {
+  return PLACEHOLDER_TESTIMONIAL_NAMES.has(string(value).trim().replace(/\s+/g, ' ').toLowerCase())
+}
 function primary(row: Record<string, unknown>, key: string, legacy: string) {
   // An explicitly empty canonical value clears the field; it must not resurrect legacy data.
   return typeof row[key] === 'string' ? row[key] as string : string(row[legacy])
@@ -25,12 +30,13 @@ export function testimonialForm(row?: Record<string, unknown>): TestimonialForm 
 export function testimonialQuote(row: Record<string, unknown>, preview = false): ProofQuote | null {
   if (!preview && row.is_active !== true) return null
   const name = string(row.name), quote = string(row.content)
-  if (!name.trim() || !quote.trim()) return null
+  if (!name.trim() || !quote.trim() || isPlaceholderTestimonialName(name)) return null
   return { id: String(row.id ?? 'preview'), name, quote, role: primary(row, 'position', 'role') || undefined,
     company: string(row.company) || undefined, avatar: testimonialImageUrl(primary(row, 'image_url', 'avatar_url')) }
 }
 export function testimonialPayload(form: TestimonialForm) {
   if (!form.name.trim() || !form.content.trim()) throw new Error('Name and testimonial quote are required.')
+  if (isPlaceholderTestimonialName(form.name)) throw new Error('Placeholder testimonial identities cannot be saved or published.')
   if (!/^-?\d+$/.test(form.display_order.trim()) || !Number.isSafeInteger(Number(form.display_order))) throw new Error('Display order must be a whole number.')
   if (form.image_url.trim() && !testimonialImageUrl(form.image_url)) throw new Error('Use an HTTPS image URL or a local image path.')
   // Rating, featured, legacy attribution, provenance, and relationship fields stay untouched.
