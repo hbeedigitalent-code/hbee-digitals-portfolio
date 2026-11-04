@@ -1,5 +1,20 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+/** Refresh ISR pages only after the associated database mutation succeeds. */
+export async function revalidateInsightPublicPages() {
+  const response = await fetch('/api/admin/insights/revalidate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
+    cache: 'no-store',
+    credentials: 'same-origin',
+  })
+  const result = await response.json().catch(() => null) as { error?: unknown } | null
+  if (!response.ok) {
+    throw new Error(typeof result?.error === 'string' ? result.error : 'Public Insights pages could not be refreshed.')
+  }
+}
+
 /** All list/editor transitions use this existing-field write path. No scheduler. */
 export async function writeInsightPost(client: Pick<SupabaseClient, 'from'>, id: string | undefined, fields: Record<string, unknown>, status: string, now = new Date().toISOString()) {
   if (!['draft', 'published'].includes(status)) throw new Error('Choose draft or published.')

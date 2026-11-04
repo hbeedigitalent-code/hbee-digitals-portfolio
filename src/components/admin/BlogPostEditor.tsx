@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { estimateReadTime, insightCanonical, insightHref, insightTags, SITE_URL, validReadTime } from '@/lib/blog-utils'
-import { insightPublicationLabel, writeInsightPost } from '@/lib/admin/insights-editor'
+import { insightPublicationLabel, revalidateInsightPublicPages, writeInsightPost } from '@/lib/admin/insights-editor'
 import { InsightArticleBody } from '@/components/site/insights/InsightArticleBody'
 import type { InsightDetail } from '@/lib/site/insights-data'
 import '@/styles/site-tokens.css'
@@ -198,6 +198,12 @@ export default function BlogPostEditor({
 
     try {
       await writeInsightPost(supabase, mode === 'edit' ? initialPost?.id : undefined, payload, status)
+      try {
+        await revalidateInsightPublicPages()
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : 'Article saved, but public Insights pages could not be refreshed.')
+        return
+      }
       router.push('/admin/blog')
     } catch (error) {
       setErrorMessage(error && typeof error === 'object' && 'message' in error ? String(error.message) : 'Article save failed.')

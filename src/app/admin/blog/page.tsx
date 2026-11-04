@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import SvgIcon from '@/components/ui/SvgIcon'
 import { insightHref } from '@/lib/blog-utils'
-import { insightPublicationLabel, writeInsightPost } from '@/lib/admin/insights-editor'
+import { insightPublicationLabel, revalidateInsightPublicPages, writeInsightPost } from '@/lib/admin/insights-editor'
 
 interface BlogPost {
   id: string
@@ -107,6 +107,11 @@ export default function AdminBlogPage() {
     try {
       const saved = await writeInsightPost(supabase, id, {}, newStatus)
       setPosts((prev) => prev.map((post) => post.id === id ? { ...post, ...saved } : post))
+      try { await revalidateInsightPublicPages() }
+      catch (error) {
+        setActionMessage(`Publication changed, but ${error instanceof Error ? error.message : 'public Insights pages could not be refreshed.'}`)
+        return
+      }
       setActionMessage(
         newStatus === 'published' ? 'Post published!' : 'Post moved to drafts'
       )
@@ -130,6 +135,11 @@ export default function AdminBlogPage() {
       setPosts((prev) =>
         prev.map((p) => (p.id === id ? { ...p, is_featured: data.is_featured } : p))
       )
+      try { await revalidateInsightPublicPages() }
+      catch (error) {
+        setActionMessage(`Featured state saved, but ${error instanceof Error ? error.message : 'public Insights pages could not be refreshed.'}`)
+        return
+      }
       setActionMessage(!current ? 'Post featured!' : 'Removed from featured')
     } catch (error) { setActionMessage(`Error: ${error && typeof error === 'object' && 'message' in error ? String(error.message) : 'Featured change failed.'}`) }
     finally { actionPending.current = false; setBusy(false) }
@@ -145,6 +155,11 @@ export default function AdminBlogPage() {
       if (error) throw error
       if (!data) throw new Error('Article was not deleted.')
       setPosts((prev) => prev.filter((p) => p.id !== id))
+      try { await revalidateInsightPublicPages() }
+      catch (error) {
+        setActionMessage(`Post deleted, but ${error instanceof Error ? error.message : 'public Insights pages could not be refreshed.'}`)
+        return
+      }
       setActionMessage('Post deleted')
     } catch (error) { setActionMessage(`Error: ${error && typeof error === 'object' && 'message' in error ? String(error.message) : 'Delete failed.'}`) }
     finally { actionPending.current = false; setBusy(false) }

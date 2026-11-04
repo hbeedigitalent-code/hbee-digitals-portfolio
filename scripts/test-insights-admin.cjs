@@ -15,6 +15,7 @@ let rows = []
 let nextError = null
 let previewAllowed = true
 let previewAuthCalls = 0
+let revalidatedPaths = []
 let queryHandler = null
 const router = { push: url => navigations.push(url) }
 const location = { href: 'https://hbeedigitals.com/insights?category=brand-positioning&q=growth', search: '?category=brand-positioning&q=growth' }
@@ -57,9 +58,11 @@ const hooks = { ...React, cache: fn => fn, useMemo: fn => fn(),
   useEffect(fn,deps) { const h=active,i=h.index++; const previous=h.state[i]; if (!previous || deps.some((v,n)=>v!==previous[n])) { h.state[i]=deps; h.effects.push(fn) } },
 }
 async function mockFetch(url, options) {
-  assert.equal(url, '/api/admin/insights/preview')
   const { NextRequest } = require('next/server')
-  return load('src/app/api/admin/insights/preview/route.ts').POST(new NextRequest('https://example.test'+url, { method: 'POST', body: options.body, headers: options.headers }))
+  const headers = { ...options.headers, origin: 'https://example.test', 'sec-fetch-site': 'same-origin' }
+  if (url === '/api/admin/insights/preview') return load('src/app/api/admin/insights/preview/route.ts').POST(new NextRequest('https://example.test'+url, { method: 'POST', body: options.body, headers }))
+  if (url === '/api/admin/insights/revalidate') return load('src/app/api/admin/insights/revalidate/route.ts').POST(new NextRequest('https://example.test'+url, { method: 'POST', body: options.body, headers }))
+  throw new Error(`Unexpected fetch: ${url}`)
 }
 function load(file) {
   file=path.resolve(root,file)
@@ -70,6 +73,7 @@ function load(file) {
     if (name==='react') return hooks
     if (name==='@/lib/supabase') return { supabase: client }
     if (name==='@/lib/admin-api-auth') return { requireActiveAdmin: async()=>{ previewAuthCalls++; return previewAllowed?{ok:true,db:client}:{ok:false,response:require('next/server').NextResponse.json({error:'Not authorized'},{status:403})} } }
+    if (name==='next/cache') return { revalidatePath: (route, type) => { assert.equal(type, 'page'); revalidatedPaths.push(route) } }
     if (name==='next/navigation') return { useRouter:()=>router, useSearchParams:()=>new URLSearchParams(location.search) }
     if (name==='next/link') return { __esModule:true,default:'a' }
     if (name.endsWith('.module.css')) return new Proxy({}, {get:(_,key)=>key==='__esModule'?false:String(key)})
@@ -121,11 +125,14 @@ const plain=value=>JSON.parse(JSON.stringify(value))
   assert.equal(find(list,n=>n.type==='a'&&n.props.title==='Edit').props.href,'/admin/blog/edit/post-1')
   await find(list,n=>n.type==='button'&&n.props.title==='Unpublish').props.onClick();list.render();list.render()
   assert.equal(rows[0].status,'draft');assert.equal(rows[0].published_at,firstDate)
+  assert.deepEqual(revalidatedPaths.splice(0), ['/', '/insights', '/insights/[slug]'])
   assert.ok(!nodes(list.tree).some(n=>n.type==='a'&&n.props.title==='View'))
   await find(list,n=>n.type==='button'&&n.props.title==='Publish').props.onClick();list.render();list.render()
   assert.equal(rows[0].status,'published');assert.equal(rows[0].published_at,firstDate)
+  assert.deepEqual(revalidatedPaths.splice(0), ['/', '/insights', '/insights/[slug]'])
   await find(list,n=>n.type==='button'&&n.props.title==='Feature').props.onClick();list.render();list.render()
   assert.equal(rows[0].is_featured,true);assert.ok(!textOf(list.tree).includes('Legacy badge'))
+  assert.deepEqual(revalidatedPaths.splice(0), ['/', '/insights', '/insights/[slug]'])
   rows=[{...article}]
   const Editor=load('src/components/admin/BlogPostEditor.tsx').default
   const emptyAlt=host(Editor,{mode:'edit',initialPost:{...article,featured_image_alt:'',alt_text:'Legacy alt'}});emptyAlt.render()
@@ -139,6 +146,7 @@ const plain=value=>JSON.parse(JSON.stringify(value))
   assert.ok(!nodes(editor.tree).some(n=>['CTA Text','CTA Link','Featured Badge'].includes(n.props?.label)))
   field(editor,'Featured Image Alt Text').props.setValue('Updated alt');editor.render()
   await button(editor,'Update Insight').props.onClick();editor.render()
+  assert.deepEqual(revalidatedPaths.splice(0), ['/', '/insights', '/insights/[slug]'])
   assert.equal(rows[0].featured_image_alt,'Updated alt');assert.equal(rows[0].alt_text,'Updated alt')
   assert.equal(rows[0].featured_badge,article.featured_badge);assert.equal(rows[0].cta_text,article.cta_text)
   assert.equal(rows[0].read_time,'7 min')
@@ -165,6 +173,15 @@ const plain=value=>JSON.parse(JSON.stringify(value))
   const denied=await previewRoute.POST(new NextRequest('https://example.test/api/admin/insights/preview',{method:'POST',body:'{}'}))
   assert.equal(denied.status,403);assert.equal(calls.length,beforeDenied)
   previewAllowed=true
+  const revalidationRoute=load('src/app/api/admin/insights/revalidate/route.ts')
+  let revalidationResponse=await revalidationRoute.POST(new NextRequest('https://example.test/api/admin/insights/revalidate',{method:'POST',headers:{origin:'https://other.example.test','sec-fetch-site':'cross-site'}}))
+  assert.equal(revalidationResponse.status,403);assert.deepEqual(revalidatedPaths,[])
+  previewAllowed=false
+  revalidationResponse=await revalidationRoute.POST(new NextRequest('https://example.test/api/admin/insights/revalidate',{method:'POST',headers:{origin:'https://example.test','sec-fetch-site':'same-origin'}}))
+  assert.equal(revalidationResponse.status,403);assert.deepEqual(revalidatedPaths,[])
+  previewAllowed=true
+  revalidationResponse=await revalidationRoute.POST(new NextRequest('https://example.test/api/admin/insights/revalidate',{method:'POST',headers:{origin:'https://example.test','sec-fetch-site':'same-origin'}}))
+  assert.equal(revalidationResponse.status,200);assert.deepEqual(revalidatedPaths.splice(0), ['/', '/insights', '/insights/[slug]'])
   const api=load('src/lib/site/insights-data.ts')
   rows=[{...article,status:'published',published_at:firstDate}, {...article,id:'related',slug:'related',status:'published',published_at:later}, {...article,id:'draft',slug:'draft',status:'draft'}]
   const listing=await api.getInsightsData();assert.equal(listing.items.length,2)
