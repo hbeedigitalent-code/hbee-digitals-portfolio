@@ -131,7 +131,12 @@ export async function POST(req: Request) {
         .gte('created_at', new Date(Date.now() - 10 * 60_000).toISOString())
         .limit(1)
       if (!recentError && recent && recent.length > 0) {
-        return NextResponse.json({ success: true, form_type: 'enquiry', message: 'Form submitted successfully!' })
+        return NextResponse.json({
+          success: true,
+          duplicate: true,
+          form_type: 'enquiry',
+          message: 'Form submitted successfully!',
+        })
       }
     }
 
@@ -226,6 +231,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
+      duplicate: false,
       form_type: contact.form_type,
       message: 'Form submitted successfully!',
     })

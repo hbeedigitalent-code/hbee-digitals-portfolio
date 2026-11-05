@@ -320,13 +320,13 @@ export async function POST(request: NextRequest) {
         : `/admin/growth-assessments/${assessmentId}`,
     })
 
-    // A bare acknowledgement. The only caller (useAssessmentForm) reads
-    // `response.ok` and nothing from a success body. This endpoint is PUBLIC:
+    // A minimal acknowledgement. `duplicate` lets conversion measurement avoid
+    // treating an idempotent retry as a new lead. This endpoint is PUBLIC:
     // scores, classification, constraint and focus are internal review inputs
     // (the merchant is told no score is returned), and database identifiers
     // have no use to an anonymous caller. Email outcomes stay in the server
     // log above for the same reason.
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, duplicate: isRetry })
 
   } catch (error) {
     console.error('Assessment submission error:', error)

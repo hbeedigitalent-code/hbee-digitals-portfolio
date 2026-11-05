@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Lock } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import TurnstileWidget from '@/components/ui/TurnstileWidget'
+import { trackContactFormSubmission } from '@/lib/analytics'
 import {
   BUDGETS,
   ENQUIRY_MESSAGES,
@@ -140,6 +141,7 @@ export function ContactForm({ supportEmail }: { supportEmail: string | null }) {
 
     const snapshot = JSON.stringify(v)
     if (!attempt.current || attempt.current.snapshot !== snapshot) attempt.current = { key: newKey(), snapshot }
+    const submissionKey = attempt.current.key
 
     inFlight.current = true
     setPhase('sending')
@@ -160,10 +162,14 @@ export function ContactForm({ supportEmail }: { supportEmail: string | null }) {
           ...(v.timeline ? { timeline: v.timeline } : {}),
           message: v.message.trim(),
           turnstile_token: turnstile,
-          submission_key: attempt.current.key,
+          submission_key: submissionKey,
         }),
       })
       const data = await res.json().catch(() => ({}))
+      trackContactFormSubmission(
+        { responseOk: res.ok, success: data?.success, duplicate: data?.duplicate },
+        submissionKey,
+      )
       if (res.ok && data?.success) {
         setPhase('done')
         return
