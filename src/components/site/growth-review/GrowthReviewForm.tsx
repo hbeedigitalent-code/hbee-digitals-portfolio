@@ -49,6 +49,7 @@ import {
   type FieldKey,
 } from './form-model'
 import styles from './growth-review.module.css'
+import { trackGrowthReviewSubmission } from '@/lib/analytics'
 
 /**
  * The Growth Review assessment (Phase 16.4). One section at a time; posts to
@@ -431,6 +432,7 @@ export function GrowthReviewForm() {
     // a new one before sending.
     const hash = answersHash(answers)
     if (!submission.current || submission.current.hash !== hash) submission.current = { key: newSubmissionKey(), hash }
+    const submissionKey = submission.current.key
     started.current = true
     writeDraft(answers, section)
 
@@ -446,10 +448,15 @@ export function GrowthReviewForm() {
       const res = await fetch(SUBMIT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...buildPayload(answers), turnstile_token: turnstile, submission_key: submission.current.key }),
+        body: JSON.stringify({ ...buildPayload(answers), turnstile_token: turnstile, submission_key: submissionKey }),
         signal: ac.signal,
       })
       const json = await res.json().catch(() => null)
+
+      trackGrowthReviewSubmission(
+        { responseOk: res.ok, success: json?.success, duplicate: json?.duplicate },
+        submissionKey,
+      )
 
       if (res.ok && json?.success === true) {
         clearTimers()

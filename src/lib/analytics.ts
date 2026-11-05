@@ -1,51 +1,84 @@
-// src/lib/analytics.ts
+import { readCookieConsent } from '@/lib/cookie-consent'
 declare global {
   interface Window {
     gtag: (...args: any[]) => void
   }
 }
 
-export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || ''
+type SubmissionAcknowledgement = {
+  responseOk: boolean
+  success: unknown
+  duplicate?: unknown
+}
 
-export const pageview = (url: string) => {
-  if (typeof window.gtag !== 'undefined') {
-    window.gtag('config', GA_MEASUREMENT_ID, {
-      page_path: url,
-    })
+type ConversionName = 'growth_review_submitted' | 'contact_form_submitted'
+type ConversionContext = 'growth_review' | 'contact'
+
+const RECEIPT_PREFIX = 'hbee:ga4-conversion:v1:'
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const sentThisPage = new Set<string>()
+
+function storageHas(storage: Storage, key: string): boolean {
+  try {
+    return storage.getItem(key) === 'sent'
+  } catch {
+    return false
   }
 }
 
-export const event = ({
-  action,
-  category,
-  label,
-  value,
-}: {
-  action: string
-  category: string
-  label?: string
-  value?: number
-}) => {
-  if (typeof window.gtag !== 'undefined') {
-    window.gtag('event', action, {
-      event_category: category,
-      event_label: label,
-      value: value,
-    })
+function storageMark(storage: Storage, key: string): void {
+  try {
+    storage.setItem(key, 'sent')
+  } catch {
+    // The in-memory receipt still prevents duplicate calls during this page view.
   }
 }
 
-// Track contact form submissions
-export const trackContactForm = () => {
-  event({ action: 'submit_form', category: 'Contact' })
+function sendConversion(name: ConversionName, context: ConversionContext, receiptId: string): boolean {
+  if (typeof window === 'undefined' || readCookieConsent() !== 'accepted') return false
+  if (typeof window.gtag !== 'function' || !UUID_RE.test(receiptId)) return false
+
+  const receipt = `${RECEIPT_PREFIX}${name}:${receiptId}`
+  if (
+    sentThisPage.has(receipt) ||
+    storageHas(window.localStorage, receipt) ||
+    storageHas(window.sessionStorage, receipt)
+  ) {
+    return false
+  }
+
+  // Mark before queueing so a synchronous rerender/callback cannot send twice.
+  sentThisPage.add(receipt)
+  storageMark(window.localStorage, receipt)
+  storageMark(window.sessionStorage, receipt)
+
+  window.gtag('event', name, {
+    form_name: context,
+    conversion_type: context,
+  })
+  return true
 }
 
-// Track portfolio views
-export const trackPortfolioView = (title: string) => {
-  event({ action: 'view_portfolio', category: 'Portfolio', label: title })
+function isNewSuccessfulSubmission(acknowledgement: SubmissionAcknowledgement): boolean {
+  return (
+    acknowledgement.responseOk &&
+    acknowledgement.success === true &&
+    acknowledgement.duplicate !== true
+  )
 }
 
-// Track service page views
-export const trackServiceView = (service: string) => {
-  event({ action: 'view_service', category: 'Services', label: service })
+export function trackGrowthReviewSubmission(
+  acknowledgement: SubmissionAcknowledgement,
+  submissionKey: string,
+): boolean {
+  if (!isNewSuccessfulSubmission(acknowledgement)) return false
+  return sendConversion('growth_review_submitted', 'growth_review', submissionKey)
+}
+
+export function trackContactFormSubmission(
+  acknowledgement: SubmissionAcknowledgement,
+  submissionKey: string,
+): boolean {
+  if (!isNewSuccessfulSubmission(acknowledgement)) return false
+  return sendConversion('contact_form_submitted', 'contact', submissionKey)
 }
