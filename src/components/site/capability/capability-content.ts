@@ -20,6 +20,10 @@ export type SystemModule = 'Brand' | 'Experience' | 'Technology' | 'Creative' | 
 
 export interface CapabilityDetail {
   slug: string
+  seo: {
+    title: string
+    description: string
+  }
   /** Which module of the Hbee system this capability features in visuals. */
   systemModule: SystemModule
   hero: {
@@ -40,6 +44,7 @@ export interface CapabilityDetail {
   opportunity: {
     headline: string
     copy: string
+    bestFor: string
     outcomes: { name: string; text: string }[]
   }
   approach: {
@@ -53,6 +58,8 @@ export interface CapabilityDetail {
     headline: string
     empty: string
   }
+  /** Published Insights are still DB-owned; these slugs only assign contextual relevance. */
+  insightSlugs: string[]
   systemFit: {
     headline: string
     headlineAccent: string
@@ -64,24 +71,33 @@ export interface CapabilityDetail {
     eyebrow: string
     headline: string
     copy: string
+    secondaryLabel: string
   }
+  faq: { question: string; answer: string }[]
 }
 
 export const BRAND_POSITIONING: CapabilityDetail = {
   slug: 'brand-positioning',
+  seo: {
+    title: 'Ecommerce Brand Positioning Services',
+    description:
+      'Clarify your ecommerce brand positioning, messaging and product story so customers understand the offer, the difference and why it matters.',
+  },
   systemModule: 'Brand',
   hero: {
     headline: 'A clearer brand.',
     headlineAccent: 'Stronger growth.',
     summary:
-      'We help ambitious businesses clarify who they are, what they stand for and how they should be understood — then turn that into a positioning foundation that shapes every customer experience and growth decision.',
+      'We help ecommerce and product-led businesses clarify their positioning, value proposition and messaging — then carry that foundation into product storytelling, brand identity and the wider customer experience.',
     visualLabel:
       'Brand & Positioning, highlighted as the active module of the Hbee system, connected to Experience, Creative, Technology, Discovery and Growth.',
   },
   opportunity: {
     headline: 'Your brand is more than a logo.',
     copy:
-      'A clear brand and positioning foundation helps the right people understand what you do, why it matters and why you’re different — creating stronger demand, clearer decision-making and a more consistent customer experience.',
+      'When the value proposition is unclear, product stories become generic and the brand looks different from one touchpoint to the next, customers have to work too hard to understand why they should choose you. Clear positioning gives the whole business a more coherent direction.',
+    bestFor:
+      'New or established ecommerce brands with an unclear offer, weak differentiation or an existing identity that no longer reflects the business.',
     outcomes: [
       { name: 'Clarity', text: 'A clearer story for who you are, who you’re for and why it matters.' },
       {
@@ -110,6 +126,7 @@ export const BRAND_POSITIONING: CapabilityDetail = {
     headline: 'Brand and positioning applied to real businesses.',
     empty: 'Real capability examples will appear here as related case studies are published.',
   },
+  insightSlugs: [],
   systemFit: {
     headline: 'One capability.',
     headlineAccent: 'A stronger whole.',
@@ -128,24 +145,49 @@ export const BRAND_POSITIONING: CapabilityDetail = {
     headline: 'Let’s explore what’s possible.',
     copy:
       'Start with a focused Growth Review and get a clearer view of how Brand & Positioning can contribute to your next stage of growth.',
+    secondaryLabel: 'Discuss Brand & Positioning',
   },
+  faq: [
+    {
+      question: 'What does ecommerce brand positioning include?',
+      answer:
+        'Depending on the engagement, work may include audience and market understanding, positioning, differentiation, value proposition, messaging, product or offer narrative, identity direction and guidance for applying the brand across customer touchpoints.',
+    },
+    {
+      question: 'Is Brand & Positioning only for new businesses?',
+      answer:
+        'No. It can establish a new brand or help an established business clarify an offer, enter a new stage, resolve inconsistent messaging or create a stronger foundation before redesigning its storefront or marketing.',
+    },
+    {
+      question: 'Can Hbee work with an existing brand identity?',
+      answer:
+        'Yes. The starting point is what already exists. We can retain useful brand elements while improving the positioning, messaging or application around them, with the exact scope agreed for the engagement.',
+    },
+  ],
 }
 
 export const DIGITAL_SYSTEMS: CapabilityDetail = {
   slug: 'digital-systems',
+  seo: {
+    title: 'Shopify Store Development & Redesign',
+    description:
+      'Build or redesign a Shopify storefront with clearer architecture, stronger mobile usability, reliable integrations and a foundation ready to grow.',
+  },
   systemModule: 'Technology',
   hero: {
     headline: 'Better systems.',
     headlineAccent: 'Stronger foundations.',
     summary:
-      'We build the technology and operational foundation your business runs on — from platforms and integrations to data, automation and workflows — so everything works together and can support sustainable growth.',
+      'We build and redesign Shopify stores and ecommerce websites, connecting storefront architecture, theme implementation, integrations, analytics and workflows into a reliable system the business can grow on.',
     visualLabel:
       'Digital Systems, highlighted as the active module of the Hbee system, connected to Experience, Creative, Brand, Discovery and Growth.',
   },
   opportunity: {
     headline: 'Growth becomes harder when the systems underneath it can’t keep up.',
     copy:
-      'As your business grows, the technology, data and operational systems behind the scenes need to be reliable, integrated and scalable. Without the right systems, you end up with manual work, broken processes and missed opportunities.',
+      'A store can look finished while mobile navigation, product discovery, integrations or the underlying theme still make it difficult to shop and operate. Fragmented tools and manual work then turn every new growth initiative into another workaround.',
+    bestFor:
+      'Businesses building a Shopify store, redesigning an outdated storefront or replacing a fragile technical foundation without becoming a generic software project.',
     outcomes: [
       { name: 'Reliability', text: 'Stable systems that reduce errors, downtime and dependence on manual work.' },
       { name: 'Integration', text: 'A connected platform, tools and data so every part of the business can work together.' },
@@ -168,6 +210,7 @@ export const DIGITAL_SYSTEMS: CapabilityDetail = {
     headline: 'Digital systems applied to real businesses.',
     empty: 'Real capability examples will appear here as related case studies are published.',
   },
+  insightSlugs: [],
   systemFit: {
     headline: 'Strong systems.',
     headlineAccent: 'A stronger whole.',
@@ -187,17 +230,40 @@ export const DIGITAL_SYSTEMS: CapabilityDetail = {
     headline: 'Let’s build what growth needs.',
     copy:
       'Start with a focused Growth Review and get a clearer view of how Digital Systems can strengthen the foundation your next stage of growth depends on.',
+    secondaryLabel: 'Discuss Your Shopify Store',
   },
+  faq: [
+    {
+      question: 'Does Hbee build Shopify stores?',
+      answer:
+        'Yes. Digital Systems can include a Shopify store build, theme implementation, storefront architecture, integrations and analytics foundations. The exact work depends on the products, customer journey and operational requirements.',
+    },
+    {
+      question: 'Can Hbee redesign an existing Shopify store?',
+      answer:
+        'Yes. We first assess the current theme, navigation, content structure, mobile experience, integrations and operational constraints, then define what should be improved, retained or rebuilt.',
+    },
+    {
+      question: 'Can you work with an existing Shopify theme?',
+      answer:
+        'Often, yes. Whether an existing theme should be customized or replaced depends on its condition, maintainability and ability to support the required experience. That decision follows the audit rather than being assumed in advance.',
+    },
+  ],
 }
 
 export const CREATIVE_UGC: CapabilityDetail = {
   slug: 'creative-ugc',
+  seo: {
+    title: 'UGC & Ecommerce Product Video',
+    description:
+      'Turn product value into UGC, demonstrations and campaign-ready ecommerce creative that helps shoppers understand, believe and take the next step.',
+  },
   systemModule: 'Creative',
   hero: {
     headline: 'Creative that earns attention.',
     headlineAccent: 'Content that builds belief.',
     summary:
-      'We turn product and brand value into creative communication that helps the right audience notice, understand and believe in the offer — from UGC and product storytelling to campaign-ready creative systems.',
+      'We plan and produce UGC videos, product demonstrations and ecommerce creative that make products easier to understand — with concepts, hooks and adaptable assets for storefronts, social content and paid campaigns.',
     visualLabel:
       'Creative & UGC, highlighted as the active module of the Hbee system, connected to Experience, Brand, Technology, Discovery and Growth.',
     longHeadline: true,
@@ -205,7 +271,9 @@ export const CREATIVE_UGC: CapabilityDetail = {
   opportunity: {
     headline: 'Attention is only useful when it moves people closer.',
     copy:
-      'Brands do not just need more content. They need creative that communicates the product clearly, earns attention quickly and gives customers reasons to keep watching, clicking and buying.',
+      'When products are difficult to understand visually, demonstrations are missing or the same few assets carry every campaign, creative fatigue sets in quickly. More content is not the answer unless each asset makes the offer clearer and gives the audience a reason to keep moving.',
+    bestFor:
+      'Ecommerce brands that need clearer product demonstrations, creator-led communication or a more useful supply of storefront, social and advertising creative.',
     outcomes: [
       { name: 'Attention', text: 'Creative built to stop the right people and earn the next few seconds.' },
       {
@@ -234,6 +302,7 @@ export const CREATIVE_UGC: CapabilityDetail = {
     headline: 'Creative applied to real businesses.',
     empty: 'Real capability examples will appear here as related case studies are published.',
   },
+  insightSlugs: [],
   systemFit: {
     headline: 'Strong creative.',
     headlineAccent: 'A stronger whole.',
@@ -252,24 +321,49 @@ export const CREATIVE_UGC: CapabilityDetail = {
     headline: 'Let’s create what your growth needs.',
     copy:
       'Start with a focused Growth Review and get a clearer view of how Creative & UGC can support the next stage of your growth.',
+    secondaryLabel: 'Discuss Creative & UGC',
   },
+  faq: [
+    {
+      question: 'What types of UGC and product videos can Hbee produce?',
+      answer:
+        'Depending on the engagement, work may include UGC concepts, creator-led videos, product demonstrations, product showcases, campaign creative, hooks and format variations. The mix is shaped around the product, audience and intended channel.',
+    },
+    {
+      question: 'Can the creative be used for ads and storefronts?',
+      answer:
+        'It can be planned for paid social, organic social, product pages or broader campaign use. Usage, formats and variations are agreed before production so the work is created for the places it needs to perform.',
+    },
+    {
+      question: 'Does the brand need to provide products?',
+      answer:
+        'Physical product requirements depend on the concept and production plan. Product access, shipping, creator requirements and usage needs are confirmed as part of scoping before production begins.',
+    },
+  ],
 }
 
 export const DISCOVERY_TRAFFIC: CapabilityDetail = {
   slug: 'discovery-traffic',
+  seo: {
+    title: 'Shopify & Ecommerce SEO Services',
+    description:
+      'Improve Shopify and ecommerce discoverability through technical SEO, search architecture, content relevance and purposeful internal linking.',
+  },
   systemModule: 'Discovery',
   hero: {
     headline: 'The right audience.',
     headlineAccent: 'Stronger results.',
     summary:
-      'We help businesses reach the right audience through a clearer discovery and traffic strategy — combining the appropriate mix of organic, paid, creator and emerging discovery channels so more of the right people can find the brand and move toward action.',
+      'We improve Shopify and ecommerce SEO through technical foundations, search architecture, relevant page content and internal linking — helping the right products, services and ideas become easier to discover over time.',
     visualLabel:
       'Discovery & Traffic, highlighted as the active module of the Hbee system, connected to Experience, Creative, Brand, Technology and Growth.',
   },
   opportunity: {
     headline: 'Great products don’t grow without visibility.',
     copy:
-      'Even strong products and offers can go unnoticed without the right discovery strategy. The goal is not simply to generate more traffic — it is to help the right audience find the business through the right channels, with the right message and a clear path forward.',
+      'Products and services can be useful and still remain difficult to find when pages are poorly targeted, internal links are weak, technical signals conflict or useful search content is missing. The goal is not traffic for its own sake; it is sustainable organic visibility for commercially relevant searches.',
+    bestFor:
+      'Ecommerce businesses with weak search visibility, unclear page targeting, indexing or discoverability issues, or too much dependence on paid and outbound traffic.',
     outcomes: [
       {
         name: 'Visibility',
@@ -286,26 +380,26 @@ export const DISCOVERY_TRAFFIC: CapabilityDetail = {
     ],
   },
   approach: {
-    headline: 'From strategy',
-    headlineAccent: 'to traffic that converts.',
+    headline: 'From search diagnosis',
+    headlineAccent: 'to discoverability that compounds.',
     copy:
-      'We combine audience insight, channel strategy, creative context and measurement to help the right people reach the business — then continuously improve how discovery turns into meaningful engagement and opportunity.',
+      'We connect technical foundations, commercial search intent, useful page content and measurement so the right products and services are easier to find — then improve the system as search behavior and the business evolve.',
     steps: [
       {
         name: 'Audit',
-        text: 'Review current traffic sources, audience quality, channel performance, measurement and discovery constraints.',
+        text: 'Review crawlability, indexing, site structure, page targeting, internal links, current visibility and measurement.',
       },
       {
-        name: 'Strategy',
-        text: 'Define priority audiences, channel mix, messaging context, budget direction and measurement priorities.',
+        name: 'Map',
+        text: 'Define priority commercial searches, intent ownership, page architecture, content gaps and measurement priorities.',
       },
       {
-        name: 'Execute',
-        text: 'Launch or improve the selected discovery channels, campaigns and distribution activity based on the approved strategy.',
+        name: 'Improve',
+        text: 'Strengthen technical signals, metadata, page content, product or service discoverability and purposeful internal linking.',
       },
       {
-        name: 'Optimize',
-        text: 'Measure traffic quality and downstream behavior, learn from results and refine channels, audiences, creative inputs and allocation over time.',
+        name: 'Measure',
+        text: 'Track search visibility, landing-page quality and downstream behavior, then prioritize the next useful improvement.',
       },
     ],
   },
@@ -313,6 +407,7 @@ export const DISCOVERY_TRAFFIC: CapabilityDetail = {
     headline: 'Discovery and traffic applied to real businesses.',
     empty: 'Real capability examples will appear here as related case studies are published.',
   },
+  insightSlugs: [],
   systemFit: {
     headline: 'More discovery.',
     headlineAccent: 'A stronger whole.',
@@ -331,18 +426,41 @@ export const DISCOVERY_TRAFFIC: CapabilityDetail = {
     eyebrow: 'Ready to grow your audience',
     headline: 'Let’s get the right people to you.',
     copy:
-      'Start with a focused Growth Review and get a clearer view of which discovery channels deserve attention — and how they should connect with the rest of your growth system.',
+      'Start with a focused Growth Review and get a clearer view of where search discoverability is constrained — and how organic visibility should connect with the rest of your growth system.',
+    secondaryLabel: 'Discuss Ecommerce SEO',
   },
+  faq: [
+    {
+      question: 'What does ecommerce SEO include?',
+      answer:
+        'Depending on the engagement, work may include a technical and search audit, search architecture, page targeting, metadata and content improvements, product or service discoverability, internal linking and a prioritized organic visibility plan.',
+    },
+    {
+      question: 'How is Shopify SEO different from paid advertising?',
+      answer:
+        'SEO improves how a store is understood and discovered through organic search, while paid advertising buys placement for selected audiences and terms. They can support each other, but they use different systems, timelines and measurement.',
+    },
+    {
+      question: 'How long does organic visibility take?',
+      answer:
+        'There is no responsible universal timeline or ranking guarantee. Progress depends on the site, competition, technical condition, content, authority and how quickly approved improvements are implemented. We define priorities and measure movement over time.',
+    },
+  ],
 }
 
 export const COMMERCE_EXPERIENCE: CapabilityDetail = {
   slug: 'commerce-experience',
+  seo: {
+    title: 'Shopify Conversion Optimization',
+    description:
+      'Improve Shopify product pages, mobile UX and the buying journey so shoppers encounter less friction and more confidence from discovery to checkout.',
+  },
   systemModule: 'Experience',
   hero: {
     headline: 'From interest to purchase.',
     headlineAccent: 'A better experience at every step.',
     summary:
-      'We design and improve the customer journey so it’s clear, seamless and built to convert — from product discovery and content to checkout, fulfilment and post-purchase experience.',
+      'We improve Shopify conversion and ecommerce customer experience across product discovery, product pages, navigation, trust, mobile UX and the path to checkout — helping shoppers move forward with less friction and more confidence.',
     visualLabel:
       'Commerce Experience, highlighted as the active module of the Hbee system, connected to Creative, Brand, Technology, Discovery and Growth.',
     longHeadline: true,
@@ -350,7 +468,9 @@ export const COMMERCE_EXPERIENCE: CapabilityDetail = {
   opportunity: {
     headline: 'A great product deserves a better buying experience.',
     copy:
-      'People may discover your brand and be interested in what you offer, but if the buying experience is confusing, slow or inconsistent, many will drop off before they become customers.',
+      'Traffic may already be reaching the store, but product pages that do not persuade, weak trust signals, mobile friction and a confusing purchase journey can leave shoppers without enough reason or confidence to convert.',
+    bestFor:
+      'Shopify and ecommerce businesses attracting visitors but seeing hesitation, abandonment or weak sales across product pages and the wider buying journey.',
     outcomes: [
       { name: 'Conversion', text: 'Turn interest into action through a clearer, lower-friction buying journey.' },
       { name: 'Confidence', text: 'Give customers the information, reassurance and experience they need to move forward.' },
@@ -388,6 +508,7 @@ export const COMMERCE_EXPERIENCE: CapabilityDetail = {
     headline: 'Commerce experiences applied to real businesses.',
     empty: 'Real capability examples will appear here as related case studies are published.',
   },
+  insightSlugs: ['ecommerce-conversion-mistakes-costing-sales'],
   systemFit: {
     headline: 'Better experiences.',
     headlineAccent: 'A stronger whole.',
@@ -407,24 +528,49 @@ export const COMMERCE_EXPERIENCE: CapabilityDetail = {
     headline: 'Let’s turn more interest into customers.',
     copy:
       'Start with a focused Growth Review and get a clearer view of where your commerce experience is creating friction — and what deserves attention first.',
+    secondaryLabel: 'Discuss Conversion Optimization',
   },
+  faq: [
+    {
+      question: 'What is Shopify conversion optimization?',
+      answer:
+        'It is the structured work of understanding and reducing friction in the shopping journey. Depending on the engagement, that may include product pages, navigation, mobile usability, trust, content hierarchy, cart behavior and the path to checkout.',
+    },
+    {
+      question: 'Do I need more traffic or a better conversion experience?',
+      answer:
+        'That depends on what the data and journey show. If qualified visitors already arrive but hesitate or leave, the experience may deserve attention before more traffic is added. The Growth Review helps identify which constraint should be addressed first.',
+    },
+    {
+      question: 'What areas of the store are reviewed?',
+      answer:
+        'A review can cover entry pages, navigation, collection and product discovery, product pages, mobile interactions, trust and reassurance, cart behavior and the route into checkout. Scope is agreed around the actual business problem.',
+    },
+  ],
 }
 
 export const RETENTION_GROWTH: CapabilityDetail = {
   slug: 'retention-growth',
+  seo: {
+    title: 'Klaviyo & Shopify Email Marketing',
+    description:
+      'Build Shopify and Klaviyo lifecycle systems across welcome, abandonment, post-purchase and winback journeys to support repeat customer value.',
+  },
   systemModule: 'Growth',
   hero: {
     headline: 'More customers.',
     headlineAccent: 'Greater value over time.',
     summary:
-      'We help businesses keep more customers, increase repeat value and build long-term growth through retention strategy, lifecycle experiences and data-informed engagement.',
+      'We build and improve Shopify email marketing and Klaviyo lifecycle systems — including welcome, abandonment, post-purchase, winback, segmentation and campaign planning — to support stronger customer relationships and repeat value.',
     visualLabel:
       'Retention & Growth, highlighted as the active module of the Hbee system, connected to Experience, Creative, Brand, Technology and Discovery.',
   },
   opportunity: {
     headline: 'Growth is stronger when customers stay.',
     copy:
-      'Acquiring new customers is important, but long-term growth becomes stronger when businesses also keep customers, increase the value created over time and build relationships that reduce dependence on constantly finding the next buyer.',
+      'When customers purchase once and disappear, welcome journeys are absent, carts go unrecovered and post-purchase communication stops at the receipt, the business keeps paying to restart the relationship. Connected lifecycle communication creates a more reliable path back.',
+    bestFor:
+      'Shopify businesses with weak repeat purchase, disconnected email activity or a Klaviyo account that needs clearer flows, segmentation and lifecycle direction.',
     outcomes: [
       { name: 'Retention', text: 'Keep more of the customers the business has already worked to acquire.' },
       {
@@ -465,6 +611,7 @@ export const RETENTION_GROWTH: CapabilityDetail = {
     headline: 'Retention and growth applied to real businesses.',
     empty: 'Real capability examples will appear here as related case studies are published.',
   },
+  insightSlugs: ['ecommerce-conversion-mistakes-costing-sales'],
   systemFit: {
     headline: 'Stronger customers.',
     headlineAccent: 'A stronger whole.',
@@ -484,7 +631,25 @@ export const RETENTION_GROWTH: CapabilityDetail = {
     headline: 'Let’s build a more valuable customer base.',
     copy:
       'Start with a focused Growth Review and get a clearer view of how customer retention, repeat value and lifecycle systems can support more predictable growth.',
+    secondaryLabel: 'Discuss Retention & Growth',
   },
+  faq: [
+    {
+      question: 'What Klaviyo flows should a Shopify store have?',
+      answer:
+        'Common starting points include welcome, browse or cart abandonment, post-purchase and winback journeys. The right sequence, triggers and messages depend on the store, customer behavior, consent setup and buying cycle.',
+    },
+    {
+      question: 'Can Hbee improve an existing Klaviyo account?',
+      answer:
+        'Yes. Work can begin with the existing integration, lists, segments, flows, campaigns and performance signals, then prioritize the gaps that matter most. Existing systems are not replaced by default.',
+    },
+    {
+      question: 'Is retention only email marketing?',
+      answer:
+        'No. Email and Klaviyo can be important delivery systems, but retention also depends on the product, customer experience, post-purchase journey, segmentation, offers, service and reasons customers have to return.',
+    },
+  ],
 }
 
 /** Capabilities that have a detail page — the complete six-capability set (Phase 10). */

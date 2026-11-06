@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation'
+import type { InsightSummary } from '@/lib/site/insights-data'
 import type { WorkItem } from '@/lib/site/work-data'
 import { CAPABILITY_DETAILS, capabilityIdentity } from './capability-content'
 import { CapabilityHero } from './CapabilityHero'
-import { CapabilityApproach, CapabilityCta, CapabilityOpportunity, CapabilityWork } from './CapabilitySections'
+import { CapabilityApproach, CapabilityCta, CapabilityFaq, CapabilityOpportunity, CapabilityWork } from './CapabilitySections'
 import { CapabilitySystemFit } from './CapabilitySystemFit'
 
 /**
@@ -10,13 +11,13 @@ import { CapabilitySystemFit } from './CapabilitySystemFit'
  * everything specific comes from the capability's content object
  * (capability-content.ts) and its identity in the Services system.
  *
- *   01 Hero · 02 Opportunity · 03 What we do · 04 Real work ·
- *   05 How it fits · 06 Growth Review CTA   (footer from the layout)
+ *   01 Hero · 02 Opportunity · 03 What we do · 04 Real work / Insights ·
+ *   05 How it fits · 06 FAQ · 07 Growth Review CTA   (footer from the layout)
  *
  * Server component throughout; client code is limited to the shared
  * SiteNav and SiteReveal triggers.
  */
-export function CapabilityDetailPage({ slug, work = [] }: { slug: string; work?: WorkItem[] }) {
+export function CapabilityDetailPage({ slug, work = [], insights = [] }: { slug: string; work?: WorkItem[]; insights?: InsightSummary[] }) {
   const detail = CAPABILITY_DETAILS[slug]
   const identity = capabilityIdentity(slug)
   if (!detail || !identity) notFound()
@@ -27,8 +28,9 @@ export function CapabilityDetailPage({ slug, work = [] }: { slug: string; work?:
       <CapabilityHero detail={detail} name={name} />
       <CapabilityOpportunity detail={detail} />
       <CapabilityApproach detail={detail} name={name} />
-      <CapabilityWork detail={detail} work={work} />
+      <CapabilityWork detail={detail} work={work} insights={insights} />
       <CapabilitySystemFit detail={detail} name={name} />
+      <CapabilityFaq detail={detail} />
       <CapabilityCta detail={detail} />
     </>
   )

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 import { pageMetadata } from '@/lib/site/seo'
+import { getInsightsData } from '@/lib/site/insights-data'
 import { getCapabilityWork } from '@/lib/site/portfolio-creative-data'
 import { CapabilityDetailPage } from '@/components/site/capability/CapabilityDetailPage'
 import { CAPABILITY_DETAILS, capabilityIdentity } from '@/components/site/capability/capability-content'
@@ -22,16 +23,23 @@ export function generateMetadata({ params }: { params: { capability: string } })
   const detail = CAPABILITY_DETAILS[params.capability]
   if (!name || !detail) return { title: 'Capability not found', robots: { index: false, follow: false } }
   return pageMetadata({
-    title: name,
-    description: detail.hero.summary,
+    title: detail.seo.title,
+    description: detail.seo.description,
     path: `/services/${params.capability}`,
   })
 }
 
 export default async function CapabilityPage({ params }: { params: { capability: string } }) {
-  const work = await getCapabilityWork(params.capability)
   const detail = CAPABILITY_DETAILS[params.capability]
   const name = capabilityIdentity(params.capability)?.capability.name
+  const [work, insightData] = await Promise.all([
+    getCapabilityWork(params.capability),
+    detail?.insightSlugs.length ? getInsightsData() : Promise.resolve({ items: [], topics: [] }),
+  ])
+  const insightOrder = new Map(detail?.insightSlugs.map((slug, index) => [slug, index]) ?? [])
+  const insights = insightData.items
+    .filter((item) => insightOrder.has(item.slug))
+    .sort((a, b) => insightOrder.get(a.slug)! - insightOrder.get(b.slug)!)
   const url = `${SITE_URL}/services/${params.capability}`
   const ldJson = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c')
 
@@ -47,7 +55,7 @@ export default async function CapabilityPage({ params }: { params: { capability:
                 '@type': 'Service',
                 '@id': `${url}#service`,
                 name,
-                description: detail.hero.summary,
+                description: detail.seo.description,
                 url,
                 provider: { '@id': `${SITE_URL}#organization` },
               }),
@@ -69,7 +77,7 @@ export default async function CapabilityPage({ params }: { params: { capability:
           />
         </>
       )}
-      <CapabilityDetailPage slug={params.capability} work={work} />
+      <CapabilityDetailPage slug={params.capability} work={work} insights={insights} />
     </>
   )
 }

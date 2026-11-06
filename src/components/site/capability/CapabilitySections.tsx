@@ -1,13 +1,16 @@
-import { ALL_WORK_HREF, CONTACT_HREF, GROWTH_REVIEW_HREF } from '@/lib/site/routes'
+import { ALL_INSIGHTS_HREF, ALL_WORK_HREF, CONTACT_HREF, GROWTH_REVIEW_HREF } from '@/lib/site/routes'
+import type { InsightSummary } from '@/lib/site/insights-data'
 import type { WorkItem } from '@/lib/site/work-data'
 import { CAPABILITY_GROUPS } from '../home/home-content'
 import { HbeeModuleGlyph } from '../module/HbeeModule'
 import { SiteReveal } from '../motion/SiteReveal'
 import { SiteButton, SiteLinkArrow } from '../primitives/SiteButton'
 import { SiteGrid } from '../primitives/SiteContainer'
+import { SiteChevron } from '../primitives/SiteIcons'
 import { SiteSection } from '../primitives/SiteSection'
 import { SiteDisplayHeading, SiteEyebrow } from '../primitives/SiteTypography'
 import type { CapabilityDetail } from './capability-content'
+import servicesStyles from '../services/services.module.css'
 import styles from './capability.module.css'
 
 /* ── 02 — The opportunity (Night) ──
@@ -31,6 +34,9 @@ export function CapabilityOpportunity({ detail }: { detail: CapabilityDetail }) 
           </SiteReveal>
           <SiteReveal index={2}>
             <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{o.copy}</p>
+            <p className="mt-5 max-w-[34rem] border-l-2 border-hb-structure-soft pl-5 text-[0.9375rem] leading-relaxed text-hb-fg-body">
+              <strong className="font-semibold text-hb-fg">Best suited to:</strong> {o.bestFor}
+            </p>
           </SiteReveal>
         </div>
 
@@ -77,7 +83,7 @@ export function CapabilityApproach({ detail, name }: { detail: CapabilityDetail;
             </SiteLinkArrow>
             {deliverables.length > 0 && (
               <div className="mt-6 border-l-2 border-hb-structure-soft pl-5">
-                <h3 className="font-hb-display text-base font-semibold text-hb-fg">Typical deliverables</h3>
+                <h3 className="font-hb-display text-base font-semibold text-hb-fg">Depending on the engagement, work may include</h3>
                 <ul className="mt-3 space-y-2 text-[0.9375rem] leading-relaxed text-hb-fg-body">
                   {deliverables.map((deliverable) => (
                     <li key={deliverable}>{deliverable}</li>
@@ -114,7 +120,7 @@ export function CapabilityApproach({ detail, name }: { detail: CapabilityDetail;
 
 /* Explicit published assignments only; the safe empty state remains. */
 
-export function CapabilityWork({ detail, work = [] }: { detail: CapabilityDetail; work?: WorkItem[] }) {
+export function CapabilityWork({ detail, work = [], insights = [] }: { detail: CapabilityDetail; work?: WorkItem[]; insights?: InsightSummary[] }) {
   return (
     <SiteSection tone="deep" spacing="compact" aria-labelledby="capability-work-title">
       <SiteGrid className="items-end gap-y-10">
@@ -137,6 +143,70 @@ export function CapabilityWork({ detail, work = [] }: { detail: CapabilityDetail
           </SiteButton>
         </SiteReveal>
       </SiteGrid>
+      {insights.length > 0 && (
+        <SiteGrid className="mt-12 gap-y-8 border-t border-hb-border pt-10">
+          <div className="col-span-4 md:col-span-8 lg:col-span-4">
+            <SiteReveal>
+              <SiteEyebrow signal>Related insights</SiteEyebrow>
+            </SiteReveal>
+            <SiteReveal index={1}>
+              <p className="mt-4 max-w-[28rem] leading-relaxed text-hb-fg-body">
+                Practical thinking connected to this capability and the problems it helps solve.
+              </p>
+              <SiteLinkArrow href={ALL_INSIGHTS_HREF} className="mt-4 min-h-[44px]">
+                Explore all Insights
+              </SiteLinkArrow>
+            </SiteReveal>
+          </div>
+          <ul className="col-span-4 space-y-4 md:col-span-8 lg:col-span-8">
+            {insights.map((insight, index) => (
+              <SiteReveal as="li" key={insight.id} index={index + 2}>
+                <SiteLinkArrow href={insight.href} className="min-h-[44px]">
+                  {insight.title}
+                </SiteLinkArrow>
+              </SiteReveal>
+            ))}
+          </ul>
+        </SiteGrid>
+      )}
+    </SiteSection>
+  )
+}
+
+/* Buyer questions, using the same native disclosure pattern as /services. */
+
+export function CapabilityFaq({ detail }: { detail: CapabilityDetail }) {
+  const half = Math.ceil(detail.faq.length / 2)
+  const columns = [detail.faq.slice(0, half), detail.faq.slice(half)]
+  return (
+    <SiteSection tone="white" aria-labelledby="capability-faq-title">
+      <SiteReveal>
+        <SiteEyebrow>Frequently asked questions</SiteEyebrow>
+      </SiteReveal>
+      <SiteReveal index={1}>
+        <SiteDisplayHeading id="capability-faq-title" size="h2" className="mt-6">
+          Questions before the work begins.
+        </SiteDisplayHeading>
+      </SiteReveal>
+      <div className="mt-12 grid items-start gap-x-[var(--hb-grid-gap)] gap-y-3 lg:grid-cols-2">
+        {columns.map((column, columnIndex) => (
+          <SiteReveal key={columnIndex} index={columnIndex + 2} className="flex flex-col gap-3">
+            {column.map((item) => (
+              <details key={item.question} className={servicesStyles.faq}>
+                <summary className={servicesStyles.faqSummary}>
+                  <h3 className="font-hb-body text-[1rem] font-semibold leading-snug text-hb-fg">{item.question}</h3>
+                  <span aria-hidden="true" className={servicesStyles.faqIcon}>
+                    <SiteChevron size={18} />
+                  </span>
+                </summary>
+                <div className={servicesStyles.faqAnswer}>
+                  <p className="max-w-[40rem] leading-relaxed text-hb-fg-body">{item.answer}</p>
+                </div>
+              </details>
+            ))}
+          </SiteReveal>
+        ))}
+      </div>
     </SiteSection>
   )
 }
@@ -165,10 +235,10 @@ export function CapabilityCta({ detail }: { detail: CapabilityDetail }) {
         </SiteReveal>
         <SiteReveal index={3} className="mt-9 flex flex-wrap items-center gap-3">
           <SiteButton href={GROWTH_REVIEW_HREF} variant="conversion" size="lg" arrow>
-            Start Growth Review
+            Start a Growth Review
           </SiteButton>
           <SiteButton href={CONTACT_HREF} variant="secondary" size="lg">
-            Talk to Our Team
+            {detail.cta.secondaryLabel}
           </SiteButton>
         </SiteReveal>
       </div>

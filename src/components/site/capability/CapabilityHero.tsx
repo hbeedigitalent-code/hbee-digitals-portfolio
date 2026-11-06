@@ -2,7 +2,7 @@ import { SiteButton } from '../primitives/SiteButton'
 import { SiteGrid } from '../primitives/SiteContainer'
 import { SiteSection } from '../primitives/SiteSection'
 import { SiteLede } from '../primitives/SiteTypography'
-import { GROWTH_REVIEW_HREF } from '@/lib/site/routes'
+import { CONTACT_HREF, GROWTH_REVIEW_HREF } from '@/lib/site/routes'
 import type { CapabilityDetail } from './capability-content'
 import { CapabilityFocusSystem } from './CapabilityFocusSystem'
 import homeStyles from '../home/home.module.css'
@@ -50,10 +50,10 @@ export function CapabilityHero({ detail, name }: { detail: CapabilityDetail; nam
 
           <div className="mt-9 flex flex-wrap items-center gap-3">
             <SiteButton href={GROWTH_REVIEW_HREF} variant="conversion" size="lg" arrow>
-              Start Growth Review
+              Start a Growth Review
             </SiteButton>
-            <SiteButton href="#what-we-do" variant="secondary" size="lg">
-              See How It Works
+            <SiteButton href={CONTACT_HREF} variant="secondary" size="lg">
+              {detail.cta.secondaryLabel}
             </SiteButton>
           </div>
         </div>
