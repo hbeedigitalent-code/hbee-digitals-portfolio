@@ -126,7 +126,10 @@ export const BRAND_POSITIONING: CapabilityDetail = {
     headline: 'Brand and positioning applied to real businesses.',
     empty: 'Real capability examples will appear here as related case studies are published.',
   },
-  insightSlugs: [],
+  insightSlugs: [
+    'brand-positioning-vs-brand-identity',
+    'first-five-things-customers-should-understand-about-your-brand',
+  ],
   systemFit: {
     headline: 'One capability.',
     headlineAccent: 'A stronger whole.',
@@ -508,7 +511,10 @@ export const COMMERCE_EXPERIENCE: CapabilityDetail = {
     headline: 'Commerce experiences applied to real businesses.',
     empty: 'Real capability examples will appear here as related case studies are published.',
   },
-  insightSlugs: ['ecommerce-conversion-mistakes-costing-sales'],
+  insightSlugs: [
+    'ecommerce-conversion-mistakes-costing-sales',
+    'how-to-build-product-pages-that-answer-buying-questions',
+  ],
   systemFit: {
     headline: 'Better experiences.',
     headlineAccent: 'A stronger whole.',

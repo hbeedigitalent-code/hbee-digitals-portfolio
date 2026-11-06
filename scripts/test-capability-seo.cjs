@@ -61,14 +61,24 @@ assert.deepEqual(plain(CAPABILITY_GROUPS.flatMap((group) => group.capabilities.m
 
 const titles = new Set()
 const descriptions = new Set()
+const brandPositioningInsight = 'brand-positioning-vs-brand-identity'
+const brandClarityInsight = 'first-five-things-customers-should-understand-about-your-brand'
 const conversionInsight = 'ecommerce-conversion-mistakes-costing-sales'
+const productPageInsight = 'how-to-build-product-pages-that-answer-buying-questions'
 const seasonalInsight = 'q3-growth-readiness-why-most-ecommerce-stores-struggle-to-scale'
+const novemberSeasonalInsight = 'november-2026-e-commerce-readiness'
+const approvedPublishedInsights = new Set([
+  brandPositioningInsight,
+  brandClarityInsight,
+  conversionInsight,
+  productPageInsight,
+])
 const expectedInsights = {
-  'brand-positioning': [],
+  'brand-positioning': [brandPositioningInsight, brandClarityInsight],
   'digital-systems': [],
   'creative-ugc': [],
   'discovery-traffic': [],
-  'commerce-experience': [conversionInsight],
+  'commerce-experience': [conversionInsight, productPageInsight],
   'retention-growth': [conversionInsight],
 }
 const bannedClaims = /\b(?:10x|skyrocket|dominate|guaranteed|world-class|best agency|number one|#1)\b/i
@@ -85,7 +95,9 @@ for (const slug of slugs) {
   assert.equal(detail.faq.length, 3, `${slug} answers three real buyer questions`)
   assert.ok(detail.cta.secondaryLabel.startsWith('Discuss '), `${slug} has a direct-project CTA`)
   assert.deepEqual(plain(detail.insightSlugs), expectedInsights[slug], `${slug} has only strongly relevant published Insight assignments`)
+  assert.ok(detail.insightSlugs.every((insightSlug) => approvedPublishedInsights.has(insightSlug)), `${slug} has no fabricated or unverified Insight slug`)
   assert.ok(!detail.insightSlugs.includes(seasonalInsight), `${slug} does not use seasonal Q3 content as generic acquisition support`)
+  assert.ok(!detail.insightSlugs.includes(novemberSeasonalInsight), `${slug} does not use the November campaign article as evergreen capability support`)
   assert.equal(relatedCapabilities(slug).length, 5, `${slug} links to the other five approved capabilities`)
 
   const content = JSON.stringify(detail)
