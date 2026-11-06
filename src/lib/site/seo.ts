@@ -1,10 +1,10 @@
 /**
  * Metadata helper for the public site.
  *
- * The root layout sets `alternates.canonical` to the site root and a root-only
- * openGraph object. Next.js does not deep-merge those, so a page that does not
- * set its own canonical would inherit "/" — every public route therefore goes
- * through this helper, which always sets canonical, openGraph and twitter.
+ * The root layout intentionally has no canonical or Open Graph URL because
+ * Next.js would inherit them into unrelated utility routes. Every indexable
+ * public route therefore goes through this helper, which always sets its own
+ * canonical, Open Graph and Twitter metadata.
  *
  * `title` goes through the root `%s | Hbee Digitals` template; `absoluteTitle`
  * bypasses it (used where an approved full title already exists).

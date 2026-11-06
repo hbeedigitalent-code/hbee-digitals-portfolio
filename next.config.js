@@ -33,6 +33,21 @@ const nextConfig = {
   
   // Security and performance headers
   async headers() {
+    const noindexRoutes = [
+      '/admin/:path*',
+      '/admin-2fa-challenge',
+      '/client-portal/:path*',
+      '/client-login',
+      '/client-signup',
+      '/client-confirmation',
+      '/client-reset-password',
+      '/portal-invitation',
+      '/client-onboarding/:path*',
+      '/growth-review/received',
+      '/unsubscribe',
+      '/api/:path*',
+    ]
+
     return [
       {
         // Apply to all routes
@@ -130,6 +145,13 @@ const nextConfig = {
           },
         ],
       },
+      // Route-level indexing protection for private, authentication and
+      // transactional surfaces. Authentication remains the access boundary;
+      // this header only controls search indexing.
+      ...noindexRoutes.map((source) => ({
+        source,
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+      })),
     ];
   },
   
@@ -154,6 +176,12 @@ const nextConfig = {
   // Redirects
   async redirects() {
     return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.hbeedigitals.com' }],
+        destination: 'https://hbeedigitals.com/:path*',
+        permanent: true,
+      },
       {
         source: '/home',
         destination: '/',

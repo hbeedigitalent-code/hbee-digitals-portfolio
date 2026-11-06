@@ -13,6 +13,7 @@
 // Authentication itself is untouched: middleware.ts still guards /client-portal/*
 // and sends signed-out visitors to /client-login.
 
+import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { Suspense } from 'react'
 import Link from 'next/link'
@@ -24,6 +25,9 @@ import { HbeeLogo } from '@/components/site/brand/HbeeLogo'
 import { SiteCookieConsent } from '@/components/site/layout/SiteCookieConsent'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import styles from '@/components/client-portal/auth-shell.module.css'
+import { NOINDEX } from '@/lib/site/seo'
+
+export const metadata: Metadata = NOINDEX
 
 export default function ClientAuthLayout({ children }: { children: ReactNode }) {
   return (

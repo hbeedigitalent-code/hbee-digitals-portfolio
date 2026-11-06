@@ -8,12 +8,16 @@
 // Server-side protection is NOT here: middleware.ts guards /client-portal/*
 // before this renders, exactly as before.
 
+import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 
 import '@/styles/site-tokens.css'
 import '@/styles/portal-tokens.css'
 import { manrope } from '@/components/site/fonts'
 import { PortalAuthGate } from '@/components/client-portal/PortalAuthGate'
+import { NOINDEX } from '@/lib/site/seo'
+
+export const metadata: Metadata = NOINDEX
 
 export default function ClientPortalLayout({ children }: { children: ReactNode }) {
   return (

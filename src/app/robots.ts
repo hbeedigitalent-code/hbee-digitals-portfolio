@@ -13,7 +13,6 @@ export default function robots(): MetadataRoute.Robots {
           '/admin-2fa-challenge',
           '/client-portal',
           '/api',
-          '/_next',
         ],
       },
     ],
