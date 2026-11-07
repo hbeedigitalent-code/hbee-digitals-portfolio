@@ -21,6 +21,8 @@ export async function POST(request: NextRequest) {
     revalidatePath('/', 'page')
     revalidatePath('/insights', 'page')
     revalidatePath('/insights/[slug]', 'page')
+    // The sitemap lists published Insights; without this it stays stale until the next deploy.
+    revalidatePath('/sitemap.xml')
     return NextResponse.json({ revalidated: true }, { headers })
   } catch (error) {
     console.error('[admin-insights] public page revalidation failed', error)
