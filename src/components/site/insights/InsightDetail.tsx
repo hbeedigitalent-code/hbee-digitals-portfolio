@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { InsightArticleBody } from './InsightArticleBody'
+import { InsightReadingProgress } from './InsightReadingProgress'
 import { cn } from '@/lib/cn'
 import type { InsightDetail } from '@/lib/site/insights-data'
 import { SiteReveal } from '../motion/SiteReveal'
@@ -16,18 +17,21 @@ import styles from './insights.module.css'
  *   related only when other posts share a real topic, then the CTA.
  * No callouts are manufactured; no metadata is filled in.
  */
+const ARTICLE_ID = 'insight-article'
+
 export function InsightDetailPage({ detail }: { detail: InsightDetail }) {
   const hasToc = detail.toc.length > 0
   const hasRelated = detail.related.length > 0
   return (
     <>
+      {detail.html && <InsightReadingProgress articleId={ARTICLE_ID} />}
       <InsightHero detail={detail} />
       {(detail.html || hasRelated) && (
         <SiteSection tone="white" spacing="compact" aria-label="Article" className={styles.articleBand}>
           <div className={cn(styles.articleGrid, hasToc && styles.articleGridToc, hasRelated && styles.articleGridRelated, !hasToc && !hasRelated && styles.articleGridLean)}>
             {hasToc && <ArticleToc detail={detail} />}
             {detail.html ? (
-              <InsightArticleBody html={detail.html} />
+              <InsightArticleBody html={detail.html} id={ARTICLE_ID} />
             ) : null}
             {hasRelated && <RelatedInsights detail={detail} />}
           </div>

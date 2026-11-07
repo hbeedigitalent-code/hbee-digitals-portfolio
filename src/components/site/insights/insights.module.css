@@ -327,3 +327,26 @@
 /* Lean article (no contents list, no related column): the reading column
    shares the hero's left editorial axis instead of re-centring. */
 .articleGridLean.articleGridLean { margin-inline: 0; }
+
+/* Reading progress: zero-height sticky anchor on the header's bottom edge; the
+   line occupies the header's last 3px (its 1px border + 2px of empty bar), so it
+   never overlaps the breadcrumb, headline or article. Above the header (z 50)
+   but far below modals; the mobile menu controls sit well above this edge. */
+.progress {
+  position: sticky;
+  top: calc(var(--hb-header-height) + 1px);
+  z-index: 51;
+  height: 0;
+  pointer-events: none;
+}
+.progressBar {
+  position: absolute;
+  top: -3px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--hb-blue);
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
+}

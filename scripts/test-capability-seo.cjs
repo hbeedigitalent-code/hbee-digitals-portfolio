@@ -67,19 +67,31 @@ const conversionInsight = 'ecommerce-conversion-mistakes-costing-sales'
 const productPageInsight = 'how-to-build-product-pages-that-answer-buying-questions'
 const seasonalInsight = 'q3-growth-readiness-why-most-ecommerce-stores-struggle-to-scale'
 const novemberSeasonalInsight = 'november-2026-e-commerce-readiness'
+const valuePropositionInsight = 'how-to-write-clear-ecommerce-value-proposition'
+const redesignInsight = 'shopify-redesign-vs-optimization'
+const ugcInsight = 'types-of-ugc-ecommerce-brand-needs'
+const searchInsight = 'why-shopify-store-not-appearing-google'
+const frictionInsight = 'identify-shopify-conversion-friction'
+const klaviyoInsight = 'klaviyo-flows-shopify-store-needs-first'
 const approvedPublishedInsights = new Set([
   brandPositioningInsight,
   brandClarityInsight,
+  valuePropositionInsight,
+  redesignInsight,
+  ugcInsight,
+  searchInsight,
   conversionInsight,
   productPageInsight,
+  frictionInsight,
+  klaviyoInsight,
 ])
 const expectedInsights = {
-  'brand-positioning': [brandPositioningInsight, brandClarityInsight],
-  'digital-systems': [],
-  'creative-ugc': [],
-  'discovery-traffic': [],
-  'commerce-experience': [conversionInsight, productPageInsight],
-  'retention-growth': [conversionInsight],
+  'brand-positioning': [brandPositioningInsight, brandClarityInsight, valuePropositionInsight],
+  'digital-systems': [redesignInsight],
+  'creative-ugc': [ugcInsight],
+  'discovery-traffic': [searchInsight],
+  'commerce-experience': [conversionInsight, productPageInsight, frictionInsight],
+  'retention-growth': [conversionInsight, klaviyoInsight],
 }
 const bannedClaims = /\b(?:10x|skyrocket|dominate|guaranteed|world-class|best agency|number one|#1)\b/i
 const unsupportedProof = /\b\d+(?:\.\d+)?\s*(?:%|x)\b/i
@@ -148,6 +160,34 @@ for (const slug of slugs) {
   assert.equal(metadata.openGraph.url, metadata.alternates.canonical)
   assert.equal(metadata.twitter.description, metadata.description)
 }
+
+// Resolution: mapped slugs only, mapping order, missing/unpublished dropped, no fallback.
+async function resolvedInsights(slug, publishedSlugs) {
+  const items = publishedSlugs.map((itemSlug) => ({ id: itemSlug, slug: itemSlug, href: `/insights/${itemSlug}` }))
+  const resolver = loadTypeScript('src/app/(site)/services/[capability]/page.tsx', {
+    'react/jsx-runtime': require('react/jsx-runtime'),
+    '@/lib/site/seo': { pageMetadata },
+    '@/lib/site/insights-data': { getInsightsData: async () => ({ items, topics: [] }) },
+    '@/lib/site/portfolio-creative-data': { getCapabilityWork: async () => [] },
+    '@/components/site/capability/CapabilityDetailPage': { CapabilityDetailPage: () => null },
+    '@/components/site/capability/capability-content': { CAPABILITY_DETAILS, capabilityIdentity },
+    '@/lib/blog-utils': { SITE_URL: 'https://hbeedigitals.com' },
+  })
+  const tree = await resolver.default({ params: { capability: slug } })
+  const children = [].concat(tree.props.children)
+  return children.find((child) => child && child.props && 'insights' in child.props).props.insights.map((item) => item.slug)
+}
+const allPublished = [...approvedPublishedInsights, seasonalInsight, novemberSeasonalInsight, 'unmapped-published-article'].reverse()
+;(async () => {
+  for (const slug of slugs) {
+    assert.deepEqual(await resolvedInsights(slug, allPublished), expectedInsights[slug], `${slug} resolves exactly its approved Insights in mapping order`)
+    assert.deepEqual(await resolvedInsights(slug, []), [], `${slug} renders no Insight block when nothing is published`)
+    assert.deepEqual(await resolvedInsights(slug, [seasonalInsight, novemberSeasonalInsight, 'unmapped-published-article']), [], `${slug} has no unrelated or seasonal fallback`)
+  }
+  assert.deepEqual(await resolvedInsights('commerce-experience', [frictionInsight, conversionInsight]), [conversionInsight, frictionInsight], 'A missing or unpublished mapped article is dropped without disturbing order')
+  assert.deepEqual(expectedInsights['brand-positioning'].length + expectedInsights['digital-systems'].length + expectedInsights['creative-ugc'].length + expectedInsights['discovery-traffic'].length + expectedInsights['commerce-experience'].length + expectedInsights['retention-growth'].length, 11)
+  console.log('PASS: capability → Insight resolution (exact mappings, order, safe omission, no fallback, seasonal/broad articles unmapped)')
+})().catch((error) => { console.error(error); process.exit(1) })
 
 const heroSource = read('src/components/site/capability/CapabilityHero.tsx')
 const sectionsSource = read('src/components/site/capability/CapabilitySections.tsx')

@@ -129,6 +129,7 @@ export const BRAND_POSITIONING: CapabilityDetail = {
   insightSlugs: [
     'brand-positioning-vs-brand-identity',
     'first-five-things-customers-should-understand-about-your-brand',
+    'how-to-write-clear-ecommerce-value-proposition',
   ],
   systemFit: {
     headline: 'One capability.',
@@ -213,7 +214,7 @@ export const DIGITAL_SYSTEMS: CapabilityDetail = {
     headline: 'Digital systems applied to real businesses.',
     empty: 'Real capability examples will appear here as related case studies are published.',
   },
-  insightSlugs: [],
+  insightSlugs: ['shopify-redesign-vs-optimization'],
   systemFit: {
     headline: 'Strong systems.',
     headlineAccent: 'A stronger whole.',
@@ -305,7 +306,7 @@ export const CREATIVE_UGC: CapabilityDetail = {
     headline: 'Creative applied to real businesses.',
     empty: 'Real capability examples will appear here as related case studies are published.',
   },
-  insightSlugs: [],
+  insightSlugs: ['types-of-ugc-ecommerce-brand-needs'],
   systemFit: {
     headline: 'Strong creative.',
     headlineAccent: 'A stronger whole.',
@@ -410,7 +411,7 @@ export const DISCOVERY_TRAFFIC: CapabilityDetail = {
     headline: 'Discovery and traffic applied to real businesses.',
     empty: 'Real capability examples will appear here as related case studies are published.',
   },
-  insightSlugs: [],
+  insightSlugs: ['why-shopify-store-not-appearing-google'],
   systemFit: {
     headline: 'More discovery.',
     headlineAccent: 'A stronger whole.',
@@ -514,6 +515,7 @@ export const COMMERCE_EXPERIENCE: CapabilityDetail = {
   insightSlugs: [
     'ecommerce-conversion-mistakes-costing-sales',
     'how-to-build-product-pages-that-answer-buying-questions',
+    'identify-shopify-conversion-friction',
   ],
   systemFit: {
     headline: 'Better experiences.',
@@ -617,7 +619,7 @@ export const RETENTION_GROWTH: CapabilityDetail = {
     headline: 'Retention and growth applied to real businesses.',
     empty: 'Real capability examples will appear here as related case studies are published.',
   },
-  insightSlugs: ['ecommerce-conversion-mistakes-costing-sales'],
+  insightSlugs: ['ecommerce-conversion-mistakes-costing-sales', 'klaviyo-flows-shopify-store-needs-first'],
   systemFit: {
     headline: 'Stronger customers.',
     headlineAccent: 'A stronger whole.',
