@@ -17,7 +17,7 @@ export const GR_HERO = {
   eyebrow: 'Growth Review',
   headline: 'Understand what should',
   headlineAccent: 'move next.',
-  lede: 'Tell us about your business and where growth feels stuck. We look at the whole picture — how customers find you, buy from you and come back — before recommending anything.',
+  lede: 'The Hbee Growth Review is a focused assessment that helps identify the most important gaps, priorities and next steps in your e-commerce growth system. Tell us about your business and where growth feels stuck. We look at the whole picture — how customers find you, buy from you and come back — before recommending anything.',
   cta: 'Start the Growth Review',
   trust: ['Reviewed by the Hbee team', 'No account needed', 'No obligation'],
 } as const

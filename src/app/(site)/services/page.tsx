@@ -20,7 +20,7 @@ export const revalidate = 300
 export const metadata: Metadata = pageMetadata({
   title: 'Services & Capabilities',
   description:
-    'Brand, technology, creative, customer experience, discovery and growth capabilities that work together — informed by a clear diagnosis and focused on measurable business progress.',
+    'Connected brand, digital systems, creative, discovery, commerce and retention services for Shopify and e-commerce brands — shaped by a clear diagnosis of what should move first.',
   path: '/services',
 })
 

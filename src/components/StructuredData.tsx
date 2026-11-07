@@ -8,7 +8,7 @@ export default function StructuredData() {
     logo: "https://hbeedigitals.com/favicon.svg",
     email: "contact@hbeedigitals.com",
     description:
-      "A digital growth studio connecting brand, digital systems, creative, discovery, commerce, retention, and growth capabilities.",
+      "Hbee Digitals is a digital growth studio for Shopify and e-commerce brands, connecting brand, digital systems, creative, discovery, commerce, retention and growth.",
     sameAs: [
       "https://facebook.com/thehbeedigitals",
       "https://instagram.com/thehbeedigitals"

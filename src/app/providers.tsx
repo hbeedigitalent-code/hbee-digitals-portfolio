@@ -1,14 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
-import { reportWebVitals, initPerformanceMonitoring } from '@/lib/performance';
+import { reportWebVitals } from '@/lib/performance';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    // Initialize performance monitoring
-    initPerformanceMonitoring();
-    
-    // Report Web Vitals (using correct v4 exports)
+    // The single Web Vitals reporting path (see src/lib/performance.ts).
     if (typeof window !== 'undefined') {
       import('web-vitals').then((webVitals) => {
         webVitals.onCLS(reportWebVitals);
