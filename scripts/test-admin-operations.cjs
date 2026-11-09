@@ -179,7 +179,7 @@ for (const f of ['src/app/api/admin/growth-reviews/route.ts', 'src/app/api/admin
 for (const p of ['src/app/client-portal', 'src/components/client-portal', 'src/styles/portal-tokens.css', 'src/app/(client-auth)', 'src/app/api/client-portal']) {
   assert.equal(execSync(`git status --porcelain -- "${p}"`, { cwd: root }).toString().trim(), '', `${p} untouched`)
 }
-assert.equal(execSync('git status --porcelain -- scripts/portfolio-creative-01-forward.sql src/app/api/admin/2fa', { cwd: root }).toString().split('\n').filter((l) => /2fa/.test(l)).length, 0, 'admin 2FA routes untouched')
+assert.equal(execSync('git status --porcelain -- src/lib/admin-2fa-cookie.ts', { cwd: root }).toString().trim(), '', 'the 2FA cookie signer/verifier is untouched (the 2FA ROUTES were hardened separately; see test-admin-2fa.cjs)')
 
 /* ── Unlisted-route inventory exists and covers all 13 ────────────────────── */
 const inventory = read('docs/admin-unlisted-routes.md')

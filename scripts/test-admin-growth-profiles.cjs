@@ -138,10 +138,10 @@ const profiles = [{ id: 'p-1', merchant_id: 'm-1', assessment_id: 'a-1' }, { id:
   assert.match(read('docs/admin-merchant-architecture.md'), /No database was queried and no SQL was run/)
   const audit = read('docs/admin-route-security-audit.md')
   for (const route of ['/api/sitemap', '/api/backup', '/api/analytics', '/api/google-analytics', '/api/export', '/admin/bulk-delete', '/admin/email-settings']) assert.ok(audit.includes(route), `audit covers ${route}`)
-  assert.match(audit, /No route was changed/)
+  assert.match(audit, /updated after remediation/); assert.match(audit, /Fixed in this work/); assert.match(audit, /Still open/)
   // The audit's headline claims are true of the code it describes.
-  assert.ok(!/requireActiveAdmin|getUser|admin_users|2FA/i.test(stripComments(read('src/app/api/sitemap/route.ts'))), 'S1: /api/sitemap really has no guard')
-  assert.ok(!/requireActiveAdmin|getUser|admin_users|2FA/i.test(stripComments(read('src/app/api/backup/route.ts'))), 'S2: /api/backup really has no guard')
+  assert.ok(!fs.existsSync(path.join(root, 'src/app/api/sitemap')), 'S1 fixed: the unauthenticated sitemap write route is gone')
+  assert.match(read('src/app/api/backup/route.ts'), /requireActiveAdmin()/, 'S2 fixed: /api/backup is behind the shared admin gate')
   assert.ok(fs.existsSync(path.join(root, 'src/app/api/bulk-delete/route.ts')) === false, 'C: /api/bulk-delete does not exist')
   assert.ok(fs.existsSync(path.join(root, 'src/app/api/send-email/route.ts')) === false, 'C: /api/send-email does not exist')
 

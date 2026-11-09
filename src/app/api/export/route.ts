@@ -10,13 +10,14 @@
 //
 // Not covered by middleware.ts (its matcher is /admin/:path*,
 // /admin-2fa-challenge and /client-portal/:path*, not /api/*), so session, 2FA
-// and active-admin are verified here independently — the same pattern as
-// /api/admin/proposals/[id]/status.
+// and active-admin are verified here by the ONE shared gate, requireActiveAdmin()
+// in src/lib/admin-api-auth.ts. (This file used to carry its own copy of that gate;
+// it was functionally identical, and a duplicated security check can drift.)
 //
 // TWO DIFFERENT DATABASE CLIENTS ARE USED HERE, DELIBERATELY:
 //
-//   1. Authorization  — the session client (identity) and a service-role client
-//      used for exactly ONE query: the admin_users membership lookup.
+//   1. Authorization  — the shared gate (session, user-bound 2FA, active admin_users
+//      row). The privileged client it returns is NOT used for the export.
 //   2. Export data    — the pre-existing ANONYMOUS client from '@/lib/supabase',
 //      unchanged.
 //
@@ -28,9 +29,7 @@
 // see the batch report.
 
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
-import { ADMIN_2FA_COOKIE_NAME, verifyAdmin2FACookie } from '@/lib/admin-2fa-cookie'
+import { requireActiveAdmin } from '@/lib/admin-api-auth'
 
 // The ONLY exportable targets. Mirrors the ten tables the admin export page
 // already offers. A caller-supplied value outside this list is rejected before
@@ -65,111 +64,6 @@ function isSupportedFormat(value: unknown): value is ExportFormat {
   return (
     typeof value === 'string' && (SUPPORTED_FORMATS as readonly string[]).includes(value)
   )
-}
-
-// Lazy, non-throwing service-role client — the same defensive pattern used by
-// the other /api/admin routes. Deliberately NOT the shared
-// src/lib/supabaseAdmin.ts singleton, which throws at import time when
-// SUPABASE_SERVICE_ROLE_KEY is missing.
-//
-// Named for its single purpose: it is used ONLY for the admin_users membership
-// lookup, never for the export query itself.
-let authLookupClient: any = null
-
-function getAuthLookupClient() {
-  if (authLookupClient) return authLookupClient
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !serviceKey) return null
-
-  const { createClient } = require('@supabase/supabase-js')
-  authLookupClient = createClient(supabaseUrl, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
-  return authLookupClient
-}
-
-type AuthResult = { ok: true } | { ok: false; response: NextResponse }
-
-/**
- * Session + user-bound 2FA attestation + active admin_users membership.
- *
- * Fails closed at every step, including when the membership lookup itself
- * errors: an authenticated non-admin (a client-portal account, for instance)
- * and a failed lookup both end in 403, never in access.
- */
-async function requireActiveAdmin(): Promise<AuthResult> {
-  // 1. Identity comes from the caller's OWN session cookie — never from a
-  //    body field, header or query parameter.
-  const sessionClient = createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await sessionClient.auth.getUser()
-
-  if (!user) {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: 'Not authenticated' }, { status: 401 }),
-    }
-  }
-
-  // 2. Signed, user-bound, unexpired 2FA attestation. Checked BEFORE any
-  //    admin_users query and returning the SAME generic 401 as a missing
-  //    session, so a missing cookie is indistinguishable from no session.
-  //    verifyAdmin2FACookie fails closed on a missing secret.
-  const cookieValue = cookies().get(ADMIN_2FA_COOKIE_NAME)?.value
-  const twoFAVerified = await verifyAdmin2FACookie(cookieValue, user.id)
-  if (!twoFAVerified) {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: 'Not authenticated' }, { status: 401 }),
-    }
-  }
-
-  // 3. Service-role client obtained only AFTER session + 2FA succeed, and used
-  //    for the membership lookup alone.
-  const adminClient = getAuthLookupClient()
-  if (!adminClient) {
-    console.error('[export] service-role client unavailable — export denied')
-    return {
-      ok: false,
-      response: NextResponse.json({ error: 'Server configuration error' }, { status: 500 }),
-    }
-  }
-
-  // 4. Active admin membership, verified server-side. The lookup error is
-  //    captured explicitly and treated as a denial: an authorization lookup
-  //    that cannot answer "yes" must never be read as "yes".
-  const { data: adminRow, error: adminLookupError } = await adminClient
-    .from('admin_users')
-    .select('user_id')
-    .eq('user_id', user.id)
-    .eq('is_active', true)
-    .maybeSingle()
-
-  if (adminLookupError) {
-    console.error(
-      `[export] admin membership lookup failed (code=${
-        (adminLookupError as { code?: string }).code ?? 'n/a'
-      }) — export denied`,
-    )
-    return {
-      ok: false,
-      response: NextResponse.json({ error: 'Not authorized' }, { status: 403 }),
-    }
-  }
-
-  if (!adminRow) {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: 'Not authorized' }, { status: 403 }),
-    }
-  }
-
-  return { ok: true }
 }
 
 export async function POST(request: Request) {

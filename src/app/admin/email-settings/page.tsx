@@ -6,6 +6,16 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
 
+// SECRETS STAY OUT OF THE BROWSER. This page used to select('*') from email_settings and upsert the whole object back,
+// so an SMTP password — a credential — was pulled into the browser, held in React state and written back on every
+// save, protected only by whatever RLS the table happens to have. Nothing in the application reads that table (mail is
+// sent through the configured provider's environment variables), so the page now:
+//   - selects an explicit list of NON-secret columns only;
+//   - never displays, holds or sends smtp_password (there is no password field);
+//   - upserts only named columns, so a value already stored is neither read nor overwritten.
+// Removing the stored value itself is a database action (see docs/admin-browser-table-access.md) and is not done here.
+const NON_SECRET_COLUMNS = 'id, admin_email, from_name, from_email, notify_new_inquiry, smtp_host, smtp_port, smtp_user'
+
 export default function EmailSettings() {
   const [settings, setSettings] = useState<any>({
     admin_email: '',
@@ -15,7 +25,6 @@ export default function EmailSettings() {
     smtp_host: '',
     smtp_port: 587,
     smtp_user: '',
-    smtp_password: '',
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -35,7 +44,7 @@ export default function EmailSettings() {
   }
 
   const fetchSettings = async () => {
-    const { data } = await supabase.from('email_settings').select('*').single()
+    const { data } = await supabase.from('email_settings').select(NON_SECRET_COLUMNS).single()
     if (data) setSettings(data)
     setLoading(false)
   }
@@ -48,7 +57,15 @@ export default function EmailSettings() {
     const { error } = await supabase
       .from('email_settings')
       .upsert({
-        ...settings,
+        // Named fields only: never spread the row, so no column (least of all a credential) rides along by accident.
+        ...(settings.id ? { id: settings.id } : {}),
+        admin_email: settings.admin_email,
+        from_name: settings.from_name,
+        from_email: settings.from_email,
+        notify_new_inquiry: settings.notify_new_inquiry,
+        smtp_host: settings.smtp_host,
+        smtp_port: settings.smtp_port,
+        smtp_user: settings.smtp_user,
         updated_at: new Date().toISOString()
       })
 
@@ -102,7 +119,7 @@ export default function EmailSettings() {
             <div><label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">SMTP Host</label><input type="text" value={settings.smtp_host || ''} onChange={(e) => setSettings({ ...settings, smtp_host: e.target.value })} className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3" placeholder="smtp.gmail.com" /></div>
             <div><label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">SMTP Port</label><input type="number" value={settings.smtp_port || 587} onChange={(e) => setSettings({ ...settings, smtp_port: parseInt(e.target.value) })} className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3" /></div>
             <div><label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">SMTP Username</label><input type="text" value={settings.smtp_user || ''} onChange={(e) => setSettings({ ...settings, smtp_user: e.target.value })} className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3" /></div>
-            <div><label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">SMTP Password</label><input type="password" value={settings.smtp_password || ''} onChange={(e) => setSettings({ ...settings, smtp_password: e.target.value })} className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3" /></div>
+            <p className="text-sm text-[var(--text-muted)] md:col-span-2">SMTP passwords are no longer edited or shown here: a credential should not pass through the browser. Outbound email is sent through the platform&rsquo;s configured provider, not through these fields.</p>
           </div>
         </div>
 

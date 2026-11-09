@@ -26,7 +26,6 @@ export default function SEOToolsPage() {
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
-  const [generatingSitemap, setGeneratingSitemap] = useState(false)
   const router = useRouter()
   const [formData, setFormData] = useState({
     page_url: '',
@@ -116,20 +115,6 @@ export default function SEOToolsPage() {
     }
   }
 
-  const generateSitemap = async () => {
-    setGeneratingSitemap(true)
-    try {
-      const response = await fetch('/api/sitemap', { method: 'POST' })
-      if (response.ok) setMessage('Sitemap generated successfully!')
-      else throw new Error('Failed')
-    } catch {
-      setMessage('Failed to generate sitemap')
-    } finally {
-      setGeneratingSitemap(false)
-      setTimeout(() => setMessage(''), 3000)
-    }
-  }
-
   if (loading) return <div className="flex items-center justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" /></div>
 
   return (
@@ -137,12 +122,9 @@ export default function SEOToolsPage() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-black text-[var(--text-primary)]">SEO Tools</h2>
-          <p className="text-sm text-[var(--text-secondary)]">Manage meta tags and generate sitemap.</p>
+          <p className="text-sm text-[var(--text-secondary)]">Manage meta tags. The sitemap is generated automatically from the site's content.</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={generateSitemap} disabled={generatingSitemap} className="rounded-full border border-[var(--accent)]/30 px-4 py-2 text-sm font-black text-[var(--accent)]">
-            {generatingSitemap ? 'Generating...' : 'Generate Sitemap'}
-          </button>
           {!showForm && (
             <button onClick={() => setShowForm(true)} className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-black text-[var(--btn-primary-text)]">
               + Add Page SEO
@@ -205,7 +187,6 @@ export default function SEOToolsPage() {
         <ul className="mt-2 list-disc pl-5 space-y-1">
           <li>Meta titles: 50-60 characters</li>
           <li>Meta descriptions: 150-160 characters</li>
-          <li>Generate sitemap after adding new content</li>
           <li>Submit sitemap to Google Search Console</li>
         </ul>
       </div>

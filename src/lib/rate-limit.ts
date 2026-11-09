@@ -56,6 +56,9 @@ export const RATE_LIMITS = {
   contact: { requests: 5, window: '10 m' },
   onboarding: { requests: 3, window: '10 m' },
   assessment: { requests: 5, window: '10 m' },
+  // Admin TOTP attempts, keyed by the signed-in admin's user id (NOT by IP, so rotating addresses does not help).
+  // 8 per 10 minutes leaves room for typos but caps guessing a 6-digit code at ~1,100 tries a day.
+  adminTotp: { requests: 8, window: '10 m' },
 } as const
 
 export type RateLimitName = keyof typeof RATE_LIMITS
