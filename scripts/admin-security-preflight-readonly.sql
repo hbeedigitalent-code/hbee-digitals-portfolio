@@ -18,7 +18,14 @@
 -- errors on staging before relying on it. Nothing here is a migration. Read the output, then decide.
 --
 -- HOW TO READ SECTION 1 (the verdict column):
---   BLOCKER  a table holding secrets / personal / commercial data where the browser roles (anon, authenticated, PUBLIC)
+--   BLOCKER  anon / PUBLIC holds any privilege on a secret or private table, RLS is off while a browser role can read, or a
+--            browser-role WRITE policy does NOT test admin membership (printed as <UNRESTRICTED>). Revision 2: the first version
+--            called any "ALL to authenticated" policy a BLOCKER from the role list alone - it now reads the policy's USING / WITH
+--            CHECK text. A policy that tests an active admin_users row prints <admin-checked> and yields ADMIN-WRITE, not BLOCKER.
+--   ADMIN-WRITE  every browser write policy requires an active admin_users row. Not open to ordinary signed-in users, but RLS
+--            cannot see 2FA, so an active admin who has not completed 2FA can still write from a browser until the writes are
+--            moved behind /api/admin routes. See scripts/admin-rls-00-policy-definitions-readonly.sql for the exact definitions.
+--   (original wording continues) a table holding secrets / personal / commercial data where the browser roles (anon, authenticated, PUBLIC)
 --            can write, or RLS is off while a browser role can read — the browser can do directly what the 2FA cookie
 --            is supposed to gate. Must be fixed or proven safe before deploying the admin changes.
 --   REVIEW   browser roles hold privileges and RLS is on: the policies decide. Read them.
@@ -62,11 +69,24 @@ grants AS (
   WHERE table_schema = 'public' AND grantee IN ('anon', 'authenticated', 'PUBLIC')
   GROUP BY table_name
 ),
+pol0 AS (
+  SELECT tablename, policyname, cmd, roles,
+         (cmd IN ('INSERT', 'UPDATE', 'DELETE', 'ALL') AND roles::text ~ 'anon|authenticated|public') AS is_browser_write,
+         ((qual IS NULL OR (qual ~* 'admin_users' AND qual ~* 'is_active' AND qual ~* 'auth\.uid'))
+          AND (with_check IS NULL OR (with_check ~* 'admin_users' AND with_check ~* 'is_active' AND with_check ~* 'auth\.uid'))
+          AND (qual IS NOT NULL OR with_check IS NOT NULL)) AS is_admin_checked
+  FROM pg_policies
+  WHERE schemaname = 'public'
+),
 pol AS (
   SELECT tablename,
-         string_agg(policyname || ' [' || cmd || ' to ' || array_to_string(roles, ',') || ']', ' / ' ORDER BY policyname) AS policies,
-         bool_or(cmd IN ('INSERT', 'UPDATE', 'DELETE', 'ALL') AND (roles::text ~ 'anon|authenticated|public')) AS browser_write_policy
-  FROM pg_policies WHERE schemaname = 'public' GROUP BY tablename
+         string_agg(policyname || ' [' || cmd || ' to ' || array_to_string(roles, ',') || ']'
+                    || CASE WHEN is_browser_write THEN CASE WHEN is_admin_checked THEN ' <admin-checked>' ELSE ' <UNRESTRICTED>' END ELSE '' END,
+                    ' / ' ORDER BY policyname) AS policies,
+         bool_or(is_browser_write) AS browser_write_policy,
+         bool_or(is_browser_write AND NOT is_admin_checked) AS unrestricted_write_policy
+  FROM pol0
+  GROUP BY tablename
 ),
 section1 AS (
   SELECT
@@ -80,12 +100,13 @@ section1 AS (
                  coalesce(g.anon_privs, '') ~ 'INSERT|UPDATE|DELETE|SELECT'
               OR coalesce(g.public_privs, '') ~ 'INSERT|UPDATE|DELETE|SELECT'
               OR (NOT r.rls_enabled AND coalesce(g.authenticated_privs, '') <> '')
-              OR coalesce(g.authenticated_privs, '') ~ 'INSERT|UPDATE|DELETE'
-              OR coalesce(p.browser_write_policy, false)
+              OR coalesce(p.unrestricted_write_policy, false)
           ) THEN 'BLOCKER'
+          WHEN w.class IN ('secret', 'private') AND coalesce(p.browser_write_policy, false) THEN 'ADMIN-WRITE (every browser write policy tests an active admin_users row, RLS cannot see 2FA - see header)'
           WHEN w.class IN ('secret', 'private') AND coalesce(g.authenticated_privs, '') <> '' THEN 'REVIEW'
           WHEN w.class IN ('secret', 'private') THEN 'OK-ISH'
-          WHEN w.class = 'cms' AND (coalesce(g.anon_privs, '') ~ 'INSERT|UPDATE|DELETE' OR coalesce(g.public_privs, '') ~ 'INSERT|UPDATE|DELETE' OR coalesce(p.browser_write_policy, false)) THEN 'BLOCKER'
+          WHEN w.class = 'cms' AND (coalesce(g.anon_privs, '') ~ 'INSERT|UPDATE|DELETE' OR coalesce(g.public_privs, '') ~ 'INSERT|UPDATE|DELETE' OR coalesce(p.unrestricted_write_policy, false)) THEN 'BLOCKER'
+          WHEN w.class = 'cms' AND coalesce(p.browser_write_policy, false) THEN 'ADMIN-WRITE (every browser write policy tests an active admin_users row, RLS cannot see 2FA - see header)'
           WHEN w.class = 'cms' THEN 'PUBLIC-CMS'
         END
         || ' | rls=' || CASE WHEN r.rls_enabled THEN 'ON' ELSE 'OFF' END || CASE WHEN r.rls_forced THEN '+forced' ELSE '' END
