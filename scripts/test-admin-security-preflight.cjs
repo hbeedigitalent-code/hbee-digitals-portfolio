@@ -45,7 +45,7 @@ for (const fn of FORBIDDEN_FUNCTIONS) assert.ok(!upper.includes(fn), `forbidden 
 assert.doesNotMatch(upper, /\bFOR\s+(UPDATE|SHARE|NO\s+KEY)/, 'no row locks')
 
 // 5. Catalog / metadata sources only, plus the two application tables read for COUNTS in section 3.
-const sources = [...code.matchAll(/\b(?:FROM|JOIN)\s+([a-z_][a-z0-9_.]*)/gi)].map((m) => m[1].toLowerCase()).filter((s) => !['wanted', 'rls', 'grants', 'pol', 'section1', 'section2', 'section3', 'u', 'd'].includes(s))
+const sources = [...code.matchAll(/\b(?:FROM|JOIN)\s+([a-z_][a-z0-9_.]*)/gi)].map((m) => m[1].toLowerCase()).filter((s) => !['wanted', 'rls', 'grants', 'pol', 'pol0', 'section1', 'section2', 'section3', 'u', 'd'].includes(s))
 const ALLOWED = new Set(['pg_class', 'pg_namespace', 'pg_policies', 'pg_index', 'pg_attribute', 'information_schema.role_table_grants', 'information_schema.columns', 'public.admin_2fa', 'public.admin_users'])
 for (const source of new Set(sources)) assert.ok(ALLOWED.has(source), `unexpected data source: ${source}`)
 
@@ -74,4 +74,5 @@ assert.equal(new Set(listed).size, listed.length, 'no table listed twice in the 
 // 9. The header says plainly that it is unexecuted, unparsed and read-only.
 assert.match(raw, /NOT EXECUTED and NOT PARSED/); assert.match(raw, /READ-ONLY/)
 
+assert.ok(/ADMIN-WRITE/.test(raw) && /<UNRESTRICTED>/.test(raw) && /<admin-checked>/.test(raw), 'v2 verdicts: ADMIN-WRITE and the <UNRESTRICTED> / <admin-checked> policy tags exist')
 console.log(`PASS: preflight SQL static contract - single read-only WITH/SELECT, ${new Set(sources).size} metadata sources, ${wantedTables.length} table/class literals, no secret value selectable, no write/lock/setting/file function. (Static check only: NOT a PostgreSQL parse.)`)
