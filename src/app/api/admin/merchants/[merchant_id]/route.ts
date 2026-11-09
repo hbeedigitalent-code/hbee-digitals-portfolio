@@ -7,6 +7,11 @@
 // growth_assessments and growth_profiles. All four ran as the caller's
 // `authenticated` role, and three of those tables are being brought under RLS.
 //
+// Phase A2 adds two READ-ONLY relationships for admin navigation, both keyed on the stored merchant id (never
+// on a name or an email): the portal account(s) whose clients.merchant_id points here, and the growth_reviews
+// rows (so an assessment can link to its review). If either read fails the field is returned as null — "could
+// not be determined" — which the page shows differently from "none linked". Neither failure fails the page.
+//
 // The merchant id comes from the route parameter and is UUID-validated; every
 // related read is scoped by that same stored id, so one merchant's page can
 // never assemble another merchant's records.
@@ -80,11 +85,29 @@ export async function GET(
 
     if (profileError) return queryFailure('merchant profiles', profileError)
 
+    const { data: clients, error: clientsError } = await db
+      .from('clients')
+      .select('id, full_name, business_name, email, status')
+      .eq('merchant_id', merchantId)
+      .limit(5)
+
+    const { data: reviews, error: reviewsError } = await db
+      .from('growth_reviews')
+      .select('id, status, assessment_id, completed_at')
+      .eq('merchant_id', merchantId)
+      .order('created_at', { ascending: false })
+      .limit(100)
+
+    if (clientsError) console.error('[admin-api] merchant linked clients read failed')
+    if (reviewsError) console.error('[admin-api] merchant reviews read failed')
+
     return NextResponse.json({
       merchant,
       status: status || null,
       assessments: assessments || [],
       profiles: profiles || [],
+      clients: clientsError ? null : clients || [],
+      reviews: reviewsError ? null : reviews || [],
     })
   } catch (error) {
     console.error('[admin-api] merchant detail error:', error)

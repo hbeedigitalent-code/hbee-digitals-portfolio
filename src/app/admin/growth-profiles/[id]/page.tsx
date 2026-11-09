@@ -2,14 +2,21 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import StatusBadge from '@/components/ui/StatusBadge'
-import SvgIcon from '@/components/ui/SvgIcon'
-import Button from '@/components/ui/Button'
 import { displayGrowthClassification } from '@/lib/growth-classification'
 import { formatDateOrDash, formatDateOrNull } from '@/lib/safe-date'
+import { ProfileStanding, releaseChip, type ProfileStatusData } from '@/components/admin/growth/ProfileStatus'
+import {
+  AdminButton,
+  AdminErrorState,
+  AdminFacts,
+  AdminLoadingState,
+  AdminPageHeader,
+  AdminSection,
+  AdminStatusBadge,
+  adminBtn,
+} from '@/components/admin/ui/AdminUi'
 
 interface PageProps {
   params: {
@@ -17,29 +24,41 @@ interface PageProps {
   }
 }
 
+const PILLAR_LABELS: Record<string, string> = { visibility: 'Visibility', conversion: 'Conversion', retention: 'Retention', authority: 'Authority', scalability: 'Scalability' }
+
+/** Only an absolute http(s) URL is ever rendered as a link; anything else is dropped. */
+function safeHttp(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  try {
+    const url = new URL(value.trim())
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null
+  } catch {
+    return null
+  }
+}
+
 export default function AdminGrowthProfileDetailPage({ params }: PageProps) {
-  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [profile, setProfile] = useState<any>(null)
-  const [merchant, setMerchant] = useState<any>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [status, setStatus] = useState<ProfileStatusData | undefined>(undefined)
+  const [releaseEnabled, setReleaseEnabled] = useState<boolean | null>(null)
 
-  useEffect(() => {
-    fetchProfile()
-  }, [params.id])
-
-  async function fetchProfile() {
+  const fetchProfile = useCallback(async () => {
     setLoading(true)
     try {
-      // One call: /api/admin/growth-profiles/[id] returns the profile with its
-      // merchant, assessment and latest PDF, after verifying session, user-bound
+      // One call: /api/admin/growth-profiles/[id] returns the profile with its merchant, assessment, latest PDF and
+      // (read-only) the stored review / decision / linkage / invitation facts, after verifying session, user-bound
       // admin 2FA and active admin membership.
-      const response = await fetch(`/api/admin/growth-profiles/${params.id}`, {
-        credentials: 'same-origin',
-      })
+      const response = await fetch(`/api/admin/growth-profiles/${params.id}`, { credentials: 'same-origin' })
       const payload = await response.json().catch(() => null)
 
+      if (response.status === 404) {
+        setLoadError(null)
+        setProfile(null)
+        return
+      }
       if (!response.ok || !payload?.profile) {
         setLoadError(payload?.error || 'Could not load this profile. Please refresh and try again.')
         return
@@ -47,336 +66,173 @@ export default function AdminGrowthProfileDetailPage({ params }: PageProps) {
 
       setLoadError(null)
       setProfile(payload.profile)
-      setMerchant(payload.profile.merchant)
-      setPdfUrl(payload.pdf_url || null)
-    } catch (error) {
-      console.error('Error:', error)
+      setPdfUrl(safeHttp(payload.pdf_url))
+      setStatus(payload.status || undefined)
+      setReleaseEnabled(typeof payload.releaseEnabled === 'boolean' ? payload.releaseEnabled : null)
+    } catch {
       setLoadError('Could not load this profile. Please refresh and try again.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id])
 
-  const getClassificationColor = (classification: string) => {
-    const colors: Record<string, string> = {
-      'Foundation': 'border-blue-500/30 bg-blue-500/10 text-blue-500',
-      'Foundation Stage': 'border-blue-500/30 bg-blue-500/10 text-blue-500',
-      'Growth Potential': 'border-yellow-500/30 bg-yellow-500/10 text-yellow-500',
-      'Growth Ready': 'border-green-500/30 bg-green-500/10 text-green-500',
-      'Scale Ready': 'border-purple-500/30 bg-purple-500/10 text-purple-500'
-    }
-    return colors[classification] || 'border-gray-500/30 bg-gray-500/10 text-gray-500'
-  }
+  useEffect(() => { void fetchProfile() }, [fetchProfile])
 
-  const classificationEmojis: Record<string, string> = {
-    'Foundation': '🏗️',
-    'Foundation Stage': '🏗️',
-    'Growth Potential': '🌱',
-    'Growth Ready': '🚀',
-    'Scale Ready': '🌍'
-  }
+  if (loading) return <AdminLoadingState label="Loading the profile…" />
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
-      </div>
-    )
-  }
-
-  // An authorization or database failure is shown as a real error. It must
-  // never render as an empty list, which would read as "no records".
+  // A failed or denied load is distinct from "this profile does not exist".
   if (loadError) {
     return (
-      <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
-        <SvgIcon name="warning" size={48} color="var(--error)" />
-        <h2 className="mt-4 text-xl font-semibold text-[var(--text-primary)]">
-          Could not load this profile
-        </h2>
-        <p className="mt-2 max-w-md text-[var(--text-secondary)]">{loadError}</p>
-        <button
-          type="button"
-          onClick={fetchProfile}
-          className="mt-6 rounded-full bg-[var(--accent-orange)] px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
-        >
-          Try Again
-        </button>
+      <div className="space-y-6">
+        <AdminErrorState title="Could not load this profile" message={loadError} onRetry={fetchProfile} />
+        <div className="text-center"><AdminButton variant="secondary" href="/admin/growth-profiles">Back to Growth Profiles</AdminButton></div>
       </div>
     )
   }
 
   if (!profile) {
     return (
-      <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
-        <SvgIcon name="warning" size={48} color="var(--text-muted)" />
-        <h2 className="mt-4 text-xl font-semibold text-[var(--text-primary)]">Profile Not Found</h2>
-        <p className="mt-2 text-[var(--text-secondary)]">The growth profile you're looking for doesn't exist.</p>
-        <Link href="/admin/growth-profiles">
-          <Button className="mt-6">Back to Profiles</Button>
-        </Link>
-      </div>
+      <AdminPageHeader eyebrow="Growth" title="Profile not found" description="The growth profile you are looking for does not exist.">
+        <AdminButton variant="primary" href="/admin/growth-profiles">Back to Growth Profiles</AdminButton>
+      </AdminPageHeader>
     )
   }
 
-  const classificationColor = getClassificationColor(displayGrowthClassification(profile.growth_classification))
-  const emoji = classificationEmojis[displayGrowthClassification(profile.growth_classification)] || '📈'
+  const merchant = Array.isArray(profile.merchant) ? profile.merchant[0] : profile.merchant
+  const name = merchant?.business_name || 'Unnamed business'
+  const classification = profile.growth_classification ? displayGrowthClassification(profile.growth_classification) : null
+  const pillars: Array<[string, number]> = Object.entries(profile.profile_data?.scores?.pillars || {}).map(([key, score]: [string, any]) => [key, typeof score === 'number' ? score : Number(score?.score) || 0])
+  const recommendations: string[] = Array.isArray(profile.profile_data?.recommendations) ? profile.profile_data.recommendations.filter((r: unknown) => typeof r === 'string') : []
+  const updated = formatDateOrNull(profile.updated_at)
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <Link href="/admin/growth-profiles" className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
-              <SvgIcon name="chevron-left" size={20} />
-            </Link>
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-              {profile.title || `${merchant?.business_name || 'Business'} - Growth Profile`}
-            </h1>
-          </div>
-          <p className="text-[var(--text-secondary)]">
-            {merchant?.business_name} • Generated {formatDateOrDash(profile.created_at)}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {pdfUrl && (
-            <a
-              href={pdfUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button variant="secondary">
-                <SvgIcon name="download" size={16} />
-                Download PDF
-              </Button>
-            </a>
-          )}
-          <Link href={`/admin/merchants/${profile.merchant_id}`}>
-            <Button>
-              <SvgIcon name="user" size={16} color="white" />
-              View Merchant
-            </Button>
-          </Link>
-        </div>
-      </div>
+      <AdminPageHeader
+        breadcrumbs={[{ label: 'Growth Profiles', href: '/admin/growth-profiles' }, { label: name }]}
+        eyebrow="Growth Profile"
+        title={profile.title || `${name} — Growth Profile`}
+        description={`${name} · Prepared ${formatDateOrDash(profile.created_at)}`}
+        meta={
+          <>
+            <AdminStatusBadge tone={profile.is_active ? 'neutral' : 'amber'}>{profile.is_active ? 'Active flag' : 'Archived flag'}</AdminStatusBadge>
+            {status && <AdminStatusBadge tone={releaseChip(status).tone}>{releaseChip(status).text}</AdminStatusBadge>}
+          </>
+        }
+      >
+        {pdfUrl && <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className={adminBtn('secondary')}>Download PDF</a>}
+        {profile.merchant_id && <Link href={`/admin/merchants/${profile.merchant_id}`} className={adminBtn('secondary')}>Merchant record</Link>}
+      </AdminPageHeader>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Score Card */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-            <div className="flex flex-col gap-6 md:flex-row md:items-center">
-              <div className="flex flex-shrink-0 flex-col items-center">
-                <div className="text-5xl font-bold text-[var(--text-primary)]">
-                  {profile.hgri_score || 0}
-                </div>
-                <div className="mt-1 text-sm text-[var(--text-muted)]">HGRI™ Score</div>
+      <AdminSection id="standing" title="Where this profile stands" description="Four different facts, each from a stored record: prepared, decided, linked and visible. Completing a review does not make a profile visible.">
+        <ProfileStanding status={status} profileId={profile.id} merchantId={profile.merchant_id} releaseEnabled={releaseEnabled} />
+      </AdminSection>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start">
+        <div className="min-w-0 space-y-6">
+          <AdminSection id="summary" title="Growth score" description="As prepared when the review was completed.">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+              <div className="flex-none text-center sm:text-left">
+                <div className="text-5xl font-extrabold text-[var(--text-primary)]">{profile.hgri_score || 0}</div>
+                <div className="mt-1 text-sm text-[var(--text-muted)]">HGRI™ score</div>
               </div>
-              <div className="hidden h-16 w-px bg-[var(--border)] md:block" />
-              <div className="flex-1">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">{emoji}</span>
-                  <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${classificationColor}`}>
-                    {displayGrowthClassification(profile.growth_classification)}
-                  </span>
-                </div>
-                <p className="mt-2 text-[var(--text-secondary)]">{profile.summary}</p>
+              <div className="min-w-0 flex-1">
+                {classification && <AdminStatusBadge tone="dark">{classification}</AdminStatusBadge>}
+                {profile.summary && <p className="mt-2 whitespace-pre-line break-words text-[var(--text-secondary)]">{profile.summary}</p>}
               </div>
             </div>
-          </div>
+          </AdminSection>
 
-          {/* Pillar Scores */}
-          {profile.profile_data?.scores?.pillars && (
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-              <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Growth Pillars</h3>
+          {pillars.length > 0 && (
+            <AdminSection id="pillars" title="Growth pillars">
               <div className="space-y-4">
-                {Object.entries(profile.profile_data.scores.pillars).map(([pillar, score]: [string, any]) => {
-                  const pillarLabels: Record<string, string> = {
-                    visibility: 'Visibility',
-                    conversion: 'Conversion',
-                    retention: 'Retention',
-                    authority: 'Authority',
-                    scalability: 'Scalability'
-                  }
-                  const label = pillarLabels[pillar] || pillar.charAt(0).toUpperCase() + pillar.slice(1)
-                  const scoreValue = typeof score === 'number' ? score : score?.score || 0
-
-                  return (
-                    <div key={pillar}>
-                      <div className="mb-1 flex items-center justify-between">
-                        <span className="text-sm font-medium text-[var(--text-secondary)]">{label}</span>
-                        <span className="text-sm font-semibold text-[var(--text-primary)]">{scoreValue}/100</span>
-                      </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--bg-section)]">
-                        <div
-                          className="h-full rounded-full bg-[var(--accent)] transition-all duration-500"
-                          style={{ width: `${Math.min(scoreValue, 100)}%` }}
-                        />
-                      </div>
+                {pillars.map(([pillar, score]) => (
+                  <div key={pillar}>
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-sm font-medium text-[var(--text-secondary)]">{PILLAR_LABELS[pillar] || pillar.charAt(0).toUpperCase() + pillar.slice(1)}</span>
+                      <span className="text-sm font-semibold text-[var(--text-primary)]">{score}/100</span>
                     </div>
-                  )
-                })}
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--bg-section)]">
+                      <div className="h-full rounded-full bg-[var(--accent)] transition-all duration-500" style={{ width: `${Math.min(Math.max(score, 0), 100)}%` }} />
+                    </div>
+                  </div>
+                ))}
               </div>
+            </AdminSection>
+          )}
+
+          {((profile.strengths?.length ?? 0) > 0 || (profile.opportunities?.length ?? 0) > 0) && (
+            <div className="grid gap-6 md:grid-cols-2">
+              {(['strengths', 'opportunities'] as const).map((field) =>
+                profile[field]?.length > 0 ? (
+                  <AdminSection key={field} id={field} title={field === 'strengths' ? 'Strengths' : 'Opportunities'}>
+                    <ul className="space-y-2">
+                      {profile[field].map((entry: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2 break-words text-sm text-[var(--text-secondary)]">
+                          <span aria-hidden="true" className="mt-0.5 text-[var(--accent)]">•</span>{entry}
+                        </li>
+                      ))}
+                    </ul>
+                  </AdminSection>
+                ) : null,
+              )}
             </div>
           )}
 
-          {/* Strengths & Opportunities */}
-          <div className="grid gap-6 md:grid-cols-2">
-            {profile.strengths && profile.strengths.length > 0 && (
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-                <div className="flex items-center gap-2">
-                  <SvgIcon name="check" size={20} color="#22C55E" />
-                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">Strengths</h3>
-                </div>
-                <ul className="mt-3 space-y-2">
-                  {profile.strengths.map((strength: string, index: number) => (
-                    <li key={index} className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
-                      <span className="mt-1 text-green-500">•</span>
-                      {strength}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {profile.opportunities && profile.opportunities.length > 0 && (
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-                <div className="flex items-center gap-2">
-                  <SvgIcon name="growth" size={20} color="#F97316" />
-                  <h3 className="text-sm font-semibold text-[var(--text-primary)]">Opportunities</h3>
-                </div>
-                <ul className="mt-3 space-y-2">
-                  {profile.opportunities.map((opportunity: string, index: number) => (
-                    <li key={index} className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
-                      <span className="mt-1 text-[var(--accent)]">•</span>
-                      {opportunity}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-
-          {/* Recommendations */}
-          {profile.profile_data?.recommendations && profile.profile_data.recommendations.length > 0 && (
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-              <div className="flex items-center gap-2">
-                <SvgIcon name="strategy" size={20} color="#3B82F6" />
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">Growth Recommendations</h3>
-              </div>
-              <ul className="mt-3 space-y-3">
-                {profile.profile_data.recommendations.map((rec: string, index: number) => (
-                  <li key={index} className="flex items-start gap-3 text-sm text-[var(--text-secondary)]">
-                    <span className="mt-1 flex-shrink-0 text-[var(--accent)]">{index + 1}.</span>
-                    {rec}
+          {recommendations.length > 0 && (
+            <AdminSection id="recommendations" title="Growth recommendations">
+              <ol className="space-y-3">
+                {recommendations.map((rec, index) => (
+                  <li key={index} className="flex items-start gap-3 break-words text-sm text-[var(--text-secondary)]">
+                    <span className="flex-none font-semibold text-[var(--accent)]">{index + 1}.</span>{rec}
                   </li>
                 ))}
-              </ul>
-            </div>
+              </ol>
+            </AdminSection>
           )}
 
-          {/* Profile Data (JSON) */}
           {profile.profile_data && (
-            <details className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-              <summary className="cursor-pointer text-sm font-semibold text-[var(--text-primary)]">
-                Raw Profile Data
-              </summary>
-              <pre className="mt-4 overflow-x-auto rounded-lg bg-[var(--bg-section)] p-4 text-xs text-[var(--text-secondary)]">
-                {JSON.stringify(profile.profile_data, null, 2)}
-              </pre>
+            <details className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+              <summary className="cursor-pointer text-sm font-semibold text-[var(--text-primary)]">Raw profile data</summary>
+              <pre className="mt-4 overflow-x-auto rounded-lg bg-[var(--bg-section)] p-4 text-xs text-[var(--text-secondary)]">{JSON.stringify(profile.profile_data, null, 2)}</pre>
             </details>
           )}
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Merchant Info */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Merchant Information</h3>
-            <dl className="space-y-2 text-sm">
-              <div>
-                <dt className="text-[var(--text-muted)]">Business</dt>
-                <dd className="font-medium text-[var(--text-primary)]">{merchant?.business_name || 'N/A'}</dd>
-              </div>
-              <div>
-                <dt className="text-[var(--text-muted)]">Email</dt>
-                <dd className="font-medium text-[var(--text-primary)]">{merchant?.email || 'N/A'}</dd>
-              </div>
-              <div>
-                <dt className="text-[var(--text-muted)]">Website</dt>
-                <dd className="font-medium text-[var(--text-primary)]">
-                  {merchant?.website ? (
-                    <a href={merchant.website} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline">
-                      {merchant.website}
-                    </a>
-                  ) : 'N/A'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[var(--text-muted)]">Industry</dt>
-                <dd className="font-medium text-[var(--text-primary)]">{merchant?.industry || 'N/A'}</dd>
-              </div>
-              <div>
-                <dt className="text-[var(--text-muted)]">Country</dt>
-                <dd className="font-medium text-[var(--text-primary)]">{merchant?.country || 'N/A'}</dd>
-              </div>
-            </dl>
-          </div>
+        <div className="min-w-0 space-y-6">
+          <AdminSection id="merchant" title="Merchant">
+            <AdminFacts
+              columns={1}
+              items={[
+                { label: 'Business', value: merchant?.business_name },
+                { label: 'Email', value: merchant?.email, href: merchant?.email ? `mailto:${merchant.email}` : undefined },
+                { label: 'Website', value: merchant?.website, href: safeHttp(merchant?.website) || undefined, external: true },
+                { label: 'Industry', value: merchant?.industry },
+                { label: 'Country', value: merchant?.country },
+              ]}
+            />
+          </AdminSection>
 
-          {/* Profile Details */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Profile Details</h3>
-            <dl className="space-y-2 text-sm">
-              <div className="flex items-center justify-between">
-                <dt className="text-[var(--text-muted)]">Status</dt>
-                <dd><StatusBadge status={profile.is_active ? 'active' : 'archived'} /></dd>
-              </div>
-              <div className="flex items-center justify-between">
-                <dt className="text-[var(--text-muted)]">Created</dt>
-                <dd className="text-[var(--text-secondary)]">{formatDateOrDash(profile.created_at)}</dd>
-              </div>
-              {/* growth_profiles has no update timestamp in the detail response (the API selects created_at only), so the
-                  row appears only when a real, valid one is supplied. Nothing is substituted for it. */}
-              {formatDateOrNull(profile.updated_at) && (
-                <div className="flex items-center justify-between">
-                  <dt className="text-[var(--text-muted)]">Updated</dt>
-                  <dd className="text-[var(--text-secondary)]">{formatDateOrNull(profile.updated_at)}</dd>
-                </div>
-              )}
-            </dl>
-          </div>
+          <AdminSection id="details" title="Profile details">
+            <AdminFacts
+              columns={1}
+              items={[
+                { label: 'Admin flag', value: profile.is_active ? 'Active' : 'Archived' },
+                { label: 'Prepared', value: formatDateOrDash(profile.created_at) },
+                // growth_profiles has no update timestamp in the detail response; the row appears only when a real one is supplied.
+                ...(updated ? [{ label: 'Updated', value: updated }] : []),
+              ]}
+            />
+            <p className="mt-3 text-xs text-[var(--text-muted)]">The Active / Archived flag is an admin label. The Client Portal shows the profile named on the merchant&rsquo;s approval, so changing the flag does not release or withdraw anything.</p>
+          </AdminSection>
 
-          {/* Actions */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-4">Actions</h3>
-            <div className="space-y-2">
-              <Link href={`/admin/proposals/new?merchant=${profile.merchant_id}`}>
-                <Button className="w-full">
-                  <SvgIcon name="pricing" size={16} color="white" />
-                  Create Proposal
-                </Button>
-              </Link>
-              <Link href={`/admin/growth-reviews?merchant=${profile.merchant_id}`}>
-                <Button variant="secondary" className="w-full">
-                  <SvgIcon name="eye" size={16} />
-                  View Reviews
-                </Button>
-              </Link>
-              {pdfUrl && (
-                <a
-                  href={pdfUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block"
-                >
-                  <Button variant="secondary" className="w-full">
-                    <SvgIcon name="download" size={16} />
-                    Download PDF
-                  </Button>
-                </a>
-              )}
+          <AdminSection id="actions" title="Actions">
+            <div className="flex flex-col gap-2">
+              {profile.merchant_id && <Link href={`/admin/proposals/new?merchant=${profile.merchant_id}`} className={adminBtn('primary')}>Create proposal</Link>}
+              {profile.merchant_id && <Link href={`/admin/growth-reviews?merchant=${profile.merchant_id}`} className={adminBtn('secondary')}>View reviews</Link>}
+              {status?.review.id && <Link href={`/admin/growth-reviews/${status.review.id}#decision`} className={adminBtn('secondary')}>Open the decision</Link>}
+              {pdfUrl && <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className={adminBtn('secondary')}>Download PDF</a>}
             </div>
-          </div>
+          </AdminSection>
         </div>
       </div>
     </div>

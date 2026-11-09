@@ -1,273 +1,195 @@
 // src/app/admin/merchants/page.tsx
 //
-// Restyled to the established admin list pattern, matching
-// src/app/admin/growth-reviews/page.tsx (card-wrapped table, tinted header row,
-// centred empty/error states) and src/app/admin/proposals/page.tsx (stat tiles,
-// search + status filter row).
-//
-// Every colour is now a semantic theme token. The previous version hard-coded
-// `text-white`, `text-yellow-400`, `bg-gray-500/20 text-gray-400` and
-// `bg-[var(--accent-lime)]/20` — the first is invisible on the light theme, and
-// --accent-lime is the deprecated alias for --cta, so "active" merchants were
-// badged in the CTA orange rather than a success colour.
-//
-// Data, stats, the API call and the authentication behaviour are unchanged:
-// /api/admin/merchants still verifies session, user-bound admin 2FA and active
-// admin membership, and the tiles still come from the server's `stats` object.
-// Filtering is client-side over the rows already returned; it issues no new
-// request and changes no query parameter.
+// Merchants (Phase A2 follow-up). Two clearly separate things used to share this name:
+//   - Businesses   the `merchants` table: a business that submitted a Growth Review. This is the record the
+//                  Growth Review workflow hangs off and the one the merchant detail page shows.
+//   - Sign-up accounts   the `merchant_accounts` table: one row per sign-up LOGIN (id = auth user id).
+// They are different tables with no stored link between them, so the page labels them apart and only ever
+// connects them through stored identifiers (merchant_accounts.id = clients.user_id → clients.merchant_id), never
+// by name or email. See docs/admin-merchant-architecture.md.
 
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import SvgIcon from '@/components/ui/SvgIcon'
-import StatusBadge from '@/components/ui/StatusBadge'
-import Button from '@/components/ui/Button'
+import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
+import {
+  AdminButton,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminFilterGroup,
+  AdminLoadingState,
+  AdminPageHeader,
+  AdminSearchField,
+  AdminStatusBadge,
+  AdminToolbar,
+  adminBtn,
+} from '@/components/admin/ui/AdminUi'
 
-interface Merchant {
+type View = 'businesses' | 'accounts'
+
+interface Business {
   id: string
-  business_name: string
-  contact_name: string
-  email: string
-  whatsapp: string
-  website_url: string
-  country: string
-  industry: string
-  status: string
-  email_verified: boolean
+  business_name: string | null
+  contact_name: string | null
+  email: string | null
+  industry: string | null
+  country: string | null
   created_at: string
+  lifecycle: string | null
+  linked_clients: number | null
+  reviews: { total: number; needs_review: number } | null
 }
 
-const STATUS_FILTERS = ['all', 'active', 'pending'] as const
-
-function formatDate(value: string | null | undefined): string {
-  if (!value) return '—'
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString()
+interface Account {
+  id: string
+  business_name: string | null
+  contact_name: string | null
+  email: string | null
+  country: string | null
+  industry: string | null
+  status: string | null
+  email_verified: boolean | null
+  created_at: string
+  /** false = no portal account for this login; null = could not be determined; object = exists. */
+  portal_account: { id: string } | false | null
+  merchant_id: string | null
 }
+
+const day = (value: string | null | undefined) => {
+  if (!value) return ''
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+const matches = (q: string, ...fields: Array<string | null | undefined>) => !q || fields.some((f) => (f || '').toLowerCase().includes(q))
 
 export default function AdminMerchantsPage() {
-  const [merchants, setMerchants] = useState<Merchant[]>([])
+  const [view, setView] = useState<View>('businesses')
+  const [businesses, setBusinesses] = useState<Business[]>([])
+  const [accounts, setAccounts] = useState<Account[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [stats, setStats] = useState({ total: 0, pending: 0, active: 0 })
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [query, setQuery] = useState('')
 
-  useEffect(() => {
-    fetchMerchants()
-  }, [])
-
-  async function fetchMerchants() {
+  const load = useCallback(async (which: View) => {
     setLoading(true)
-
-    // /api/admin/merchants verifies session, user-bound admin 2FA and active
-    // admin membership before reading merchant_accounts.
     try {
-      const response = await fetch('/api/admin/merchants', { credentials: 'same-origin' })
+      // /api/admin/merchants verifies session, user-bound admin 2FA and active admin membership.
+      const response = await fetch(`/api/admin/merchants?view=${which}`, { credentials: 'same-origin' })
       const payload = await response.json().catch(() => null)
-
-      if (!response.ok || !Array.isArray(payload?.merchants)) {
+      const rows = which === 'businesses' ? payload?.businesses : payload?.merchants
+      if (!response.ok || !Array.isArray(rows)) {
+        // A denied or failed read is an error, never an empty list.
         setLoadError(payload?.error || 'Could not load merchants. Please refresh and try again.')
-        setMerchants([])
         return
       }
-
       setLoadError(null)
-      setMerchants(payload.merchants)
-      setStats(payload.stats)
-    } catch (error) {
-      console.error('Error:', error)
+      if (which === 'businesses') setBusinesses(rows)
+      else setAccounts(rows)
+    } catch {
       setLoadError('Could not load merchants. Please refresh and try again.')
-      setMerchants([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  // Client-side only. The server response is never re-requested or narrowed.
-  const filteredMerchants = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return merchants.filter((merchant) => {
-      const matchesSearch =
-        q === '' ||
-        (merchant.business_name?.toLowerCase().includes(q) ?? false) ||
-        (merchant.contact_name?.toLowerCase().includes(q) ?? false) ||
-        (merchant.email?.toLowerCase().includes(q) ?? false)
-      const matchesStatus = statusFilter === 'all' || merchant.status === statusFilter
-      return matchesSearch && matchesStatus
-    })
-  }, [merchants, search, statusFilter])
+  useEffect(() => { void load(view) }, [load, view])
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
-      </div>
-    )
-  }
-
-  // An authorization or database failure is shown as a real error. It must
-  // never render as an empty list, which would read as "no records".
-  if (loadError) {
-    return (
-      <div className="flex min-h-[400px] flex-col items-center justify-center px-4 text-center">
-        <SvgIcon name="x-circle" size={48} color="var(--error)" />
-        <h2 className="mt-4 text-xl font-semibold text-[var(--text-primary)]">
-          Could not load merchants
-        </h2>
-        <p className="mt-2 max-w-md text-[var(--text-secondary)]">{loadError}</p>
-        <Button className="mt-6" onClick={fetchMerchants}>
-          Try Again
-        </Button>
-      </div>
-    )
-  }
-
-  const isFiltered = search.trim() !== '' || statusFilter !== 'all'
+  const q = query.trim().toLowerCase()
+  const shownBusinesses = businesses.filter((b) => matches(q, b.business_name, b.contact_name, b.email, b.industry, b.country))
+  const shownAccounts = accounts.filter((a) => matches(q, a.business_name, a.contact_name, a.email, a.industry, a.country))
+  const isBusinesses = view === 'businesses'
+  const total = isBusinesses ? businesses.length : accounts.length
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Merchants</h1>
-          <p className="text-[var(--text-secondary)]">
-            Merchant accounts registered through signup
-          </p>
-        </div>
-        <div className="text-sm text-[var(--text-muted)]">
-          {merchants.length} total {merchants.length === 1 ? 'merchant' : 'merchants'}
-        </div>
-      </div>
+      <AdminPageHeader
+        eyebrow="Clients & Delivery"
+        title="Merchants"
+        description={isBusinesses
+          ? 'Businesses that submitted a Growth Review. Open one to see its assessments, reviews, Growth Profiles and portal account.'
+          : 'People who signed up for the Client Portal. A sign-up is a login, not a business: it is only tied to a business through its portal account.'}
+      />
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
-          <div className="text-2xl font-bold text-[var(--text-primary)]">{stats.total}</div>
-          <div className="text-sm text-[var(--text-muted)]">Total</div>
-        </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
-          <div className="text-2xl font-bold text-[var(--warning)]">{stats.pending}</div>
-          <div className="text-sm text-[var(--text-muted)]">Pending</div>
-        </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
-          <div className="text-2xl font-bold text-[var(--success)]">{stats.active}</div>
-          <div className="text-sm text-[var(--text-muted)]">Active</div>
-        </div>
-      </div>
+      <AdminToolbar>
+        <AdminFilterGroup<View>
+          label="Choose a list"
+          options={[{ key: 'businesses', label: 'Businesses' }, { key: 'accounts', label: 'Sign-up accounts' }]}
+          value={view}
+          onChange={(next) => { setView(next); setQuery('') }}
+        />
+        <AdminSearchField label="Search merchants" value={query} onChange={setQuery} placeholder="Search business, contact or email" />
+      </AdminToolbar>
 
-      {/* Filters */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1">
-          <SvgIcon
-            name="search"
-            size={16}
-            color="var(--text-muted)"
-            className="absolute left-3 top-1/2 -translate-y-1/2"
-          />
-          <label htmlFor="merchant-search" className="sr-only">
-            Search merchants
-          </label>
-          <input
-            id="merchant-search"
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by business, contact or email..."
-            className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-page)] py-2 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-          />
+      {loading ? (
+        <AdminLoadingState label="Loading merchants…" />
+      ) : loadError ? (
+        <AdminErrorState title="Could not load merchants" message={loadError} onRetry={() => load(view)} />
+      ) : total === 0 ? (
+        <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-card)]">
+          <AdminEmptyState title={isBusinesses ? 'No businesses yet' : 'No sign-up accounts yet'} description={isBusinesses ? 'A business appears here when it submits a Growth Review.' : 'An account appears here when someone confirms their Client Portal sign-up.'} />
         </div>
-        <label htmlFor="merchant-status" className="sr-only">
-          Filter by status
-        </label>
-        <select
-          id="merchant-status"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-[var(--border)] bg-[var(--bg-page)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-        >
-          {STATUS_FILTERS.map((value) => (
-            <option key={value} value={value}>
-              {value === 'all' ? 'All Statuses' : value.charAt(0).toUpperCase() + value.slice(1)}
-            </option>
+      ) : (isBusinesses ? shownBusinesses.length : shownAccounts.length) === 0 ? (
+        <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-card)]">
+          <AdminEmptyState title="Nothing matches" description="Try a different search." action={<AdminButton variant="secondary" onClick={() => setQuery('')}>Clear search</AdminButton>} />
+        </div>
+      ) : isBusinesses ? (
+        <ul aria-label="Businesses" className="space-y-3">
+          {shownBusinesses.map((b) => (
+            <li key={b.id} className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+                <div className="min-w-0 flex-1 basis-64">
+                  <Link href={`/admin/merchants/${b.id}`} className="text-base font-bold text-[var(--text-primary)] hover:text-[var(--accent)]">{b.business_name || 'Unnamed business'}</Link>
+                  <p className="mt-0.5 break-words text-sm text-[var(--text-secondary)]">{[b.contact_name, b.email].filter(Boolean).join(' · ') || 'No contact details stored'}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">{[b.industry, b.country, day(b.created_at) && `First seen ${day(b.created_at)}`].filter(Boolean).join(' · ')}</p>
+                </div>
+                <Link href={`/admin/merchants/${b.id}`} className={adminBtn('secondary', 'sm')}>Open record</Link>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                {b.lifecycle && <AdminStatusBadge dot>{b.lifecycle.replace(/_/g, ' ')}</AdminStatusBadge>}
+                {b.reviews === null ? <AdminStatusBadge>Reviews unknown</AdminStatusBadge>
+                  : b.reviews.needs_review > 0 ? <AdminStatusBadge tone="orange" dot>{b.reviews.needs_review} to review</AdminStatusBadge>
+                    : b.reviews.total > 0 ? <AdminStatusBadge tone="green" dot>{b.reviews.total} {b.reviews.total === 1 ? 'review' : 'reviews'} done</AdminStatusBadge>
+                      : <AdminStatusBadge>No reviews</AdminStatusBadge>}
+                {b.linked_clients === null ? <AdminStatusBadge>Portal account unknown</AdminStatusBadge>
+                  : b.linked_clients === 0 ? <AdminStatusBadge>No portal account</AdminStatusBadge>
+                    : b.linked_clients === 1 ? <AdminStatusBadge tone="blue" dot>Portal account linked</AdminStatusBadge>
+                      : <AdminStatusBadge tone="amber" dot>{b.linked_clients} portal accounts linked</AdminStatusBadge>}
+              </div>
+            </li>
           ))}
-        </select>
-      </div>
-
-      {/* Table / empty state */}
-      {filteredMerchants.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
-          <SvgIcon name="users" size={48} color="var(--text-muted)" />
-          <h3 className="mt-4 text-lg font-semibold text-[var(--text-primary)]">
-            {isFiltered ? 'No matching merchants' : 'No merchants found'}
-          </h3>
-          <p className="mt-1 text-[var(--text-secondary)]">
-            {isFiltered
-              ? 'No merchant accounts match the current search or status filter.'
-              : 'No merchant accounts have been registered yet.'}
-          </p>
-          {isFiltered && (
-            <Button
-              variant="secondary"
-              className="mt-6"
-              onClick={() => {
-                setSearch('')
-                setStatusFilter('all')
-              }}
-            >
-              Clear filters
-            </Button>
-          )}
-        </div>
+        </ul>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]">
-          <table className="w-full min-w-[720px]">
-            <thead>
-              <tr className="border-b border-[var(--border)] bg-[var(--bg-section)]">
-                <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-secondary)]">
-                  Business
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-secondary)]">
-                  Contact
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-secondary)]">
-                  Email
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-secondary)]">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-secondary)]">
-                  Joined
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredMerchants.map((merchant) => (
-                <tr
-                  key={merchant.id}
-                  className="border-b border-[var(--border)] transition-colors last:border-0 hover:bg-[var(--bg-card-hover)]"
-                >
-                  <td className="px-4 py-4 font-medium text-[var(--text-primary)]">
-                    {merchant.business_name || '—'}
-                  </td>
-                  <td className="px-4 py-4 text-sm text-[var(--text-secondary)]">
-                    {merchant.contact_name || '—'}
-                  </td>
-                  <td className="px-4 py-4 text-sm text-[var(--text-secondary)]">
-                    {merchant.email || '—'}
-                  </td>
-                  <td className="px-4 py-4">
-                    <StatusBadge status={merchant.status || 'pending'} />
-                  </td>
-                  <td className="px-4 py-4 text-sm text-[var(--text-secondary)]">
-                    {formatDate(merchant.created_at)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ul aria-label="Sign-up accounts" className="space-y-3">
+          {shownAccounts.map((a) => (
+            <li key={a.id} className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+                <div className="min-w-0 flex-1 basis-64">
+                  <p className="text-base font-bold text-[var(--text-primary)]">{a.business_name || '—'}</p>
+                  <p className="mt-0.5 break-words text-sm text-[var(--text-secondary)]">{[a.contact_name, a.email].filter(Boolean).join(' · ') || 'No contact details stored'}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">{[a.industry, a.country, day(a.created_at) && `Signed up ${day(a.created_at)}`].filter(Boolean).join(' · ')}</p>
+                </div>
+                {a.merchant_id && <Link href={`/admin/merchants/${a.merchant_id}`} className={adminBtn('secondary', 'sm')}>Open business record</Link>}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <AdminStatusBadge tone={a.status === 'active' ? 'green' : 'amber'} dot>Sign-up {a.status || 'unknown'}</AdminStatusBadge>
+                <AdminStatusBadge tone={a.email_verified ? 'green' : 'neutral'}>{a.email_verified ? 'Email verified' : 'Email not verified'}</AdminStatusBadge>
+                {a.portal_account === null ? <AdminStatusBadge>Portal account unknown</AdminStatusBadge>
+                  : a.portal_account === false ? <AdminStatusBadge>No portal account</AdminStatusBadge>
+                    : <AdminStatusBadge tone="blue">Has a portal account</AdminStatusBadge>}
+                {a.portal_account !== null && (a.merchant_id ? <AdminStatusBadge tone="blue" dot>Linked to a business</AdminStatusBadge> : <AdminStatusBadge>Not linked to a business</AdminStatusBadge>)}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!loading && !loadError && total > 0 && (
+        <p className="text-xs text-[var(--text-muted)]">
+          {isBusinesses
+            ? 'A business is tied to a portal account only through clients.merchant_id, set by an accepted invitation or an audited admin link. Nothing is matched by name or email.'
+            : 'Sign-up status is the login’s own lifecycle field. It is not a programme approval.'}
+        </p>
       )}
     </div>
   )

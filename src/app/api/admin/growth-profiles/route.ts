@@ -32,6 +32,7 @@ import {
 } from '@/lib/notifications/createNotification'
 import { requireActiveAdmin, queryFailure, ADMIN_UUID_RE } from '@/lib/admin-api-auth'
 import { toDatabaseGrowthClassification } from '@/lib/growth-classification'
+import { buildProfileStatuses, releaseGateEnabled } from '@/lib/admin/profile-context'
 
 // Session, user-bound 2FA, the privileged client and active-admin membership
 // all come from requireActiveAdmin() now, so this module no longer builds its
@@ -99,7 +100,15 @@ export async function GET(request: Request) {
     const { data, error } = await query
     if (error) return queryFailure('growth profile list', error)
 
-    return NextResponse.json({ profiles: data || [] })
+    // Phase 6 (read-only, additive): the stored facts behind each profile's status — review, programme decision,
+    // portal linkage, invitation — and whether the Client Portal would actually show it. A source that cannot be
+    // read is reported as unknown for that field; it never becomes "none". See src/lib/admin/profile-release.ts.
+    const profiles = data || []
+    const statuses = await buildProfileStatuses(db, profiles, { releaseEnabled: releaseGateEnabled() })
+    return NextResponse.json({
+      profiles: profiles.map((p: any) => ({ ...p, status: statuses[p.id] })),
+      releaseEnabled: releaseGateEnabled(),
+    })
   } catch (error) {
     console.error('[admin-api] growth profile list error:', error)
     return NextResponse.json({ error: 'Failed to load data' }, { status: 500 })

@@ -2,9 +2,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import SvgIcon from '@/components/ui/SvgIcon'
+import a from '@/components/admin/auth/admin-auth.module.css'
 
-// Imports only the shared SvgIcon primitive — nothing from src/app/admin/
+// Imports only the auth styles — nothing from src/app/admin/
 // (no sidebar, header, nav, or dashboard data). This form has never depended
 // on the admin shell; the shell-leak bug was the route's file-system
 // nesting under admin/layout.tsx, fixed by this route living outside it.
@@ -83,91 +83,65 @@ export default function TwoFactorChallengeForm({ next }: { next: string }) {
     }
   }
 
-  const brandMark = (
-    <div className="mb-6 flex items-center justify-center gap-2">
-      <SvgIcon name="logo" size={22} color="var(--accent)" />
-      <span className="text-sm font-black tracking-tight text-[var(--text-primary)]">Hbee Digitals</span>
-    </div>
-  )
-
   if (phase === 'checking') {
     return (
-      <div className="w-full max-w-md text-center">
-        {brandMark}
-        <div className="h-10 w-10 mx-auto animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
-        <p className="mt-4 text-sm text-[var(--text-muted)]">Checking your account...</p>
+      <div className={a.card} role="status">
+        <p className={a.cardEyebrow}><span aria-hidden="true" className={a.node} />Verification</p>
+        <h1 className={a.cardTitle}>Checking your account</h1>
+        <p className={a.cardText}>One moment while we confirm your sign-in.</p>
+        <div className={a.form}><span aria-hidden="true" className={a.spinner} style={{ width: '1.75rem', height: '1.75rem', color: 'var(--hb-blue)' }} /></div>
       </div>
     )
   }
 
   if (phase === 'error') {
     return (
-      <div className="w-full max-w-md">
-        {brandMark}
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-center">
-          <SvgIcon name="error" size={32} color="#f87171" className="mx-auto mb-3" />
-          <p className="font-bold text-red-400">{error}</p>
-          <a
-            href="/admin/login"
-            className="mt-4 inline-block text-sm text-[var(--accent)] hover:underline"
-          >
-            Back to login
-          </a>
+      <div className={a.card}>
+        <p className={a.cardEyebrow}><span aria-hidden="true" className={a.node} />Verification</p>
+        <h1 className={a.cardTitle}>We could not verify your account</h1>
+        <div className={a.form}>
+          <p role="alert" className={a.error}>{error}</p>
+          <div className={a.linkRow}><a href="/admin/login" className={a.linkBtn}>← Back to sign in</a></div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="w-full max-w-md">
-      {brandMark}
-      <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 shadow-lg">
-          <SvgIcon name="security" size={32} color="var(--accent)" />
+    <div className={a.card}>
+      <p className={a.cardEyebrow}><span aria-hidden="true" className={a.node} />Two-step verification</p>
+      <h1 className={a.cardTitle}>Enter your authentication code</h1>
+      <p className={a.cardText}>Open your authenticator app and enter the 6-digit code for Hbee Administration.</p>
+
+      <div className={a.form}>
+        <div className={a.field}>
+          <label htmlFor="admin-2fa-code" className={a.label}>Authentication code</label>
+          <input
+            id="admin-2fa-code"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/D/g, '').slice(0, 6))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && code.length === 6 && !submitting) handleVerify()
+            }}
+            className={`${a.input} ${a.codeInput}`}
+            placeholder="000000"
+            maxLength={6}
+            aria-invalid={Boolean(error)}
+            autoFocus
+          />
         </div>
-        <h1 className="text-2xl font-black text-[var(--text-primary)]">Two-Factor Authentication</h1>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">Enter the code from your authenticator app</p>
-      </div>
 
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-lg)]">
-        <div className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Authentication Code</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && code.length === 6 && !submitting) handleVerify()
-              }}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-3 text-center text-2xl tracking-wider text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-              placeholder="000000"
-              maxLength={6}
-              autoFocus
-            />
-          </div>
+        {error && <p role="alert" className={a.error}>{error}</p>}
 
-          {error && (
-            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm font-bold text-red-400">
-              {error}
-            </div>
-          )}
+        <button type="button" onClick={handleVerify} disabled={submitting || code.length !== 6} className={a.submit}>
+          {submitting && <span aria-hidden="true" className={a.spinner} />}
+          {submitting ? 'Verifying…' : 'Verify and continue'}
+        </button>
 
-          <button
-            onClick={handleVerify}
-            disabled={submitting || code.length !== 6}
-            className="w-full rounded-full bg-[var(--accent)] py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] disabled:opacity-50"
-          >
-            {submitting ? 'Verifying...' : 'Verify & Continue'}
-          </button>
-
-          <div className="text-center">
-            <a href="/admin/login" className="text-sm text-[var(--accent)] hover:underline">
-              ← Back to login
-            </a>
-          </div>
-        </div>
+        <div className={a.linkRow}><a href="/admin/login" className={a.linkBtn}>← Back to sign in</a></div>
       </div>
     </div>
   )

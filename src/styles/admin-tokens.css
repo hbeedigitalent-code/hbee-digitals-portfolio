@@ -1,0 +1,171 @@
+/* ═══════════════════════════════════════════════════════
+   HBEE ADMINISTRATION — SCOPED SURFACE  (Phase A1)
+
+   [data-surface="admin"] is the internal product surface. It shares the Hbee
+   palette, type and scales with the public site and the Client Portal (the
+   first block of site-tokens.css), and follows the Portal's method exactly:
+
+   WHY AN ALIAS LAYER. The ~80 admin pages were written against the older global
+   tokens (--bg-card, --text-primary, --accent, …), which follow a dark-first
+   theme set on <html>. This surface re-declares those legacy names from the
+   Hbee palette, so every existing page — migrated or not — renders on-brand,
+   while pages can be rebuilt on the semantic --ad-* roles below one at a time.
+
+   Two themes, chosen by data-admin-theme on the surface root (default light,
+   remembered per browser by the shell):
+     light   Cloud canvas, White surfaces, Royal Blue structure, Signal Orange action
+     dark    Night canvas, Deep-Navy surfaces — the Hbee dark tones, not the old greys
+
+   Scoped: nothing here targets :root, html (apart from the document lock for the
+   mounted shell), body or bare elements. Client Portal and public site tokens are
+   untouched.
+   ═══════════════════════════════════════════════════════ */
+
+[data-surface='admin'] {
+  color-scheme: light;
+
+  /* ── Semantic roles (use these in new work) ───────────────── */
+  --ad-canvas: var(--hb-cloud);
+  --ad-surface: var(--hb-white);
+  --ad-surface-2: var(--hb-mist);
+  --ad-surface-hover: #f1f5fb;
+  --ad-border: var(--hb-border-soft);
+  --ad-border-strong: #b9cbe6;
+  --ad-ink: var(--hb-ink);
+  --ad-body: var(--hb-slate);
+  --ad-muted: #5b6b82;
+  --ad-accent: var(--hb-blue);
+  --ad-accent-soft: var(--hb-mist);
+  --ad-accent-ink: var(--hb-blue);
+  --ad-signal: var(--hb-orange);
+  --ad-signal-hover: #e5490f;
+  --ad-on-signal: var(--hb-night);
+  --ad-focus: var(--hb-electric);
+  --ad-success: var(--hb-success);
+  --ad-success-soft: #dcfce7;
+  --ad-warning: var(--hb-warning);
+  --ad-warning-soft: #fef3c7;
+  --ad-danger: var(--hb-error);
+  --ad-danger-soft: #fee2e2;
+  --ad-shadow: 0 1px 2px rgba(6, 20, 38, 0.05), 0 12px 28px -18px rgba(7, 51, 143, 0.28);
+  --ad-grid: rgba(6, 66, 179, 0.045);
+  --ad-glow: rgba(234, 242, 255, 0.9);
+
+  /* ── Legacy names → semantic roles ────────────────────────── */
+  --bg: var(--ad-canvas);
+  --bg-page: var(--ad-canvas);
+  --bg-subtle: var(--ad-surface-2);
+  --bg-section: var(--ad-surface-2);
+  --bg-card: var(--ad-surface);
+  --bg-card-hover: var(--ad-surface-hover);
+  --bg-card-dark: var(--hb-night);
+  --bg-navy-mid: var(--hb-deep-navy);
+  --bg-inverse: var(--hb-night);
+  --surface: var(--ad-surface);
+
+  --text: var(--ad-ink);
+  --text-primary: var(--ad-ink);
+  --text-secondary: var(--ad-body);
+  --text-muted: var(--ad-muted);
+  --text-on-inverse: var(--hb-white);
+  --text-on-dark-muted: #c3cfe2;
+
+  --border: var(--ad-border);
+  --border-strong: var(--ad-border-strong);
+
+  /* Structure is blue; action is orange. */
+  --accent: var(--ad-accent);
+  --primary-color: var(--ad-accent);
+  --accent-subtle: var(--ad-accent-soft);
+  --accent-orange: var(--ad-signal);
+  --accent-lime: var(--ad-signal); /* deprecated name kept so the ~90 old call sites stay on-brand */
+  --cta: var(--ad-signal);
+  --cta-hover: var(--ad-signal-hover);
+  --cta-text: var(--ad-on-signal);
+  --btn-primary-text: #ffffff;
+  --orange-600: var(--ad-signal-hover);
+  --blue-500: var(--hb-electric);
+  --blue-600: var(--hb-blue);
+  --navy-800: var(--hb-deep-navy);
+
+  --success: var(--ad-success);
+  --success-subtle: var(--ad-success-soft);
+  --warning: var(--ad-warning);
+  --warning-subtle: var(--ad-warning-soft);
+  --error: var(--ad-danger);
+  --error-subtle: var(--ad-danger-soft);
+  --ring: rgba(29, 110, 255, 0.4);
+  --radius-control: var(--hb-radius-md);
+  --shadow-sm: 0 1px 2px rgba(6, 20, 38, 0.06);
+  --shadow-md: 0 4px 12px rgba(6, 20, 38, 0.08);
+  --shadow-lg: 0 16px 40px rgba(6, 20, 38, 0.14), 0 6px 16px rgba(6, 20, 38, 0.08);
+
+  background-color: var(--ad-canvas);
+  color: var(--ad-body);
+  font-family: var(--hb-font-body);
+}
+
+/* ── Dark: the Hbee dark tones ───────────────────────────────── */
+[data-surface='admin'][data-admin-theme='dark'] {
+  color-scheme: dark;
+  --ad-canvas: var(--hb-night);
+  --ad-surface: var(--hb-deep-navy);
+  --ad-surface-2: var(--hb-midnight);
+  --ad-surface-hover: #0b2140;
+  --ad-border: rgba(207, 224, 255, 0.14);
+  --ad-border-strong: rgba(207, 224, 255, 0.28);
+  --ad-ink: var(--hb-white);
+  --ad-body: #c3cfe2;
+  --ad-muted: #8fa1bd;
+  --ad-accent: var(--hb-electric);
+  --ad-accent-soft: rgba(29, 110, 255, 0.16);
+  --ad-accent-ink: #8bb6ff;
+  --ad-focus: var(--hb-ice);
+  --ad-success: #4ade80;
+  --ad-success-soft: rgba(74, 222, 128, 0.14);
+  --ad-warning: #fbbf24;
+  --ad-warning-soft: rgba(251, 191, 36, 0.16);
+  --ad-danger: #f87171;
+  --ad-danger-soft: rgba(248, 113, 113, 0.14);
+  --ad-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 14px 32px -20px rgba(0, 0, 0, 0.7);
+  --ad-grid: rgba(207, 224, 255, 0.045);
+  --ad-glow: rgba(13, 35, 64, 0.8);
+  --bg-card-dark: var(--hb-midnight);
+  --ring: rgba(139, 182, 255, 0.55);
+}
+
+[data-surface='admin'] ::selection { background: var(--hb-ice); color: var(--hb-night); }
+
+/* One visible, on-brand focus ring for every keyboard-reachable control. */
+[data-surface='admin'] :focus-visible {
+  outline: 2px solid var(--ad-focus);
+  outline-offset: 2px;
+}
+
+/* app/layout.tsx critical CSS makes every <nav> position:fixed (a marketing-header rule).
+   Admin navigation is in flow, so undo it here — the same reset the site and the portal apply. */
+html :where([data-surface='admin']) nav {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 0;
+}
+
+/* Typography: Manrope for headings, Inter for the rest (same rule as the portal). */
+html :where([data-surface='admin']) :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--hb-font-display);
+}
+
+/* While the admin shell is mounted the DOCUMENT must not scroll or bounce: the shell is pinned to
+   the viewport and its content canvas owns vertical scrolling (same lock as the portal). */
+html:has([data-admin-shell]) {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+html:has([data-admin-shell]) body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}

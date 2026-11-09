@@ -148,7 +148,7 @@ const bytesFile = (type, bytes, name = 'logo.bad-extension') => ({ name, type, s
   assert.ok(homepage.indexOf('<HomeBridge />') < homepage.indexOf('<HomeTrustedBrands brands={brands} />'))
   assert.ok(homepage.indexOf('<HomeTrustedBrands brands={brands} />') < homepage.indexOf('<HomeProblem />'))
   assert.ok(homepage.includes('getHomepageBrands()')); assert.ok(!homepage.includes('PartnerMarquee'))
-  assert.ok(fs.readFileSync(path.join(root, 'src/app/admin/layout.tsx'), 'utf8').includes("{ name: 'Trusted Brands', href: '/admin/trust', icon: 'security' }"))
+  assert.ok(fs.readFileSync(path.join(root, 'src/components/admin/shell/admin-nav.ts'), 'utf8').includes("{ label: 'Trusted Brands', href: '/admin/trust' }"))
 
   const Admin = load('src/app/admin/trust/page.tsx').default
   row = clone(original)

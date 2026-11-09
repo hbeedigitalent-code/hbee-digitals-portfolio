@@ -1,0 +1,119 @@
+/* ═══════════════════════════════════════════════════════
+   Admin shell (Phase A1). Same architecture as the Client Portal shell: a viewport-pinned frame, a
+   sidebar of navigation, a topbar, and a content canvas that owns the vertical scroll. Colours come from
+   the --ad-* roles on [data-surface="admin"], so light and dark both work.
+   Differences from the portal, on purpose: grouped (and collapsible) navigation for ~35 operational
+   routes, an "Hbee Administration" context label instead of "Client Portal", an inquiry indicator and a
+   theme switch in the topbar.
+   ═══════════════════════════════════════════════════════ */
+
+.shell { position: fixed; inset: 0; display: flex; overflow: hidden; overflow: clip; background: var(--ad-canvas); }
+
+/* ── Sidebar ─────────────────────────────────────────────────── */
+.sidebar { display: none; width: 17rem; flex: none; flex-direction: column; border-right: 1px solid var(--ad-border); background: var(--ad-surface); }
+@media (min-width: 1024px) { .sidebar { display: flex; } }
+.sidebarBody { display: flex; min-height: 0; flex: 1; flex-direction: column; }
+
+.brand { padding: 1.25rem 1.25rem 1rem; }
+.context { display: flex; align-items: center; gap: 0.5rem; margin: 0.625rem 0 0 0.125rem; font-size: 0.625rem; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ad-muted); }
+.node { width: 0.625rem; height: 0.3125rem; border-radius: 2px 999px 999px 2px; background: var(--ad-signal); }
+
+.identity { display: flex; align-items: center; gap: 0.75rem; margin: 0 0.875rem; padding: 0.625rem 0.75rem; border: 1px solid var(--ad-border); border-radius: 12px; background: var(--ad-canvas); }
+.avatar { display: grid; width: 2.25rem; height: 2.25rem; flex: none; place-items: center; overflow: hidden; border-radius: 50%; background: var(--ad-surface); box-shadow: inset 0 0 0 1px var(--ad-border-strong); font-family: var(--hb-font-display); font-size: 0.875rem; font-weight: 700; color: var(--ad-accent-ink); }
+.avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.who { min-width: 0; }
+.name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; font-family: var(--hb-font-display); font-size: 0.875rem; font-weight: 700; color: var(--ad-ink); }
+.email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; font-size: 0.75rem; color: var(--ad-muted); }
+
+.navScroll { flex: 1; overflow-y: auto; padding: 1rem 0.875rem 0.5rem; overscroll-behavior: contain; }
+.groups { display: grid; gap: 0.25rem; margin: 0; padding: 0; list-style: none; }
+.groupBtn { display: flex; width: 100%; min-height: 2.5rem; align-items: center; gap: 0.625rem; padding: 0.375rem 0.625rem; border: 0; border-radius: 8px; background: transparent; font-family: var(--hb-font-body); font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; text-align: left; color: var(--ad-muted); cursor: pointer; transition: background-color 160ms var(--hb-ease), color 160ms var(--hb-ease); }
+.groupBtn:hover { background: var(--ad-surface-hover); color: var(--ad-ink); }
+.groupIcon { width: 1rem; height: 1rem; flex: none; stroke-width: 1.7; }
+.groupLabel { flex: 1; }
+.chev { width: 0.875rem; height: 0.875rem; flex: none; transition: transform 160ms var(--hb-ease); }
+.groupBtn[aria-expanded='true'] .chev { transform: rotate(180deg); }
+.groupHasActive .groupBtn { color: var(--ad-accent-ink); }
+
+.items { display: grid; gap: 0.125rem; margin: 0.125rem 0 0.5rem 1.1rem; padding: 0 0 0 0.5rem; list-style: none; border-left: 1px solid var(--ad-border); }
+.item { position: relative; display: flex; min-height: 2.375rem; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.375rem 0.625rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; color: var(--ad-body); text-decoration: none; transition: background-color 160ms var(--hb-ease), color 160ms var(--hb-ease); }
+.item:hover { background: var(--ad-surface-hover); color: var(--ad-ink); }
+/* Active: a soft wash that fades right, Royal Blue text and a fine structural rule on the group's own rail. */
+.item[aria-current='page'] { background: linear-gradient(90deg, var(--ad-accent-soft), transparent); color: var(--ad-accent-ink); font-weight: 600; }
+.item[aria-current='page']::before { content: ''; position: absolute; left: calc(-0.5rem - 1px); top: 0.4rem; bottom: 0.4rem; width: 2px; border-radius: 2px; background: var(--ad-accent); }
+.count { display: inline-grid; min-width: 1.25rem; height: 1.25rem; place-items: center; padding: 0 0.375rem; border-radius: 999px; background: var(--ad-signal); font-size: 0.6875rem; font-weight: 700; color: var(--ad-on-signal); }
+
+.sidebarFoot { margin: 0 0.875rem; padding: 0.75rem 0 1rem; border-top: 1px solid var(--ad-border); }
+.logout { display: flex; width: 100%; min-height: 2.5rem; align-items: center; justify-content: center; gap: 0.5rem; border: 1px solid var(--ad-border); border-radius: 8px; background: var(--ad-surface); font-family: var(--hb-font-body); font-size: 0.875rem; font-weight: 600; color: var(--ad-body); cursor: pointer; transition: background-color 160ms var(--hb-ease), border-color 160ms var(--hb-ease); }
+.logout:hover { background: var(--ad-surface-hover); border-color: var(--ad-border-strong); color: var(--ad-ink); }
+.logout:hover .logoutIcon { color: var(--ad-danger); }
+.logoutIcon { width: 1.0625rem; height: 1.0625rem; }
+
+/* ── Main column ─────────────────────────────────────────────── */
+.main { display: flex; min-width: 0; flex: 1; flex-direction: column; overflow: hidden; }
+.topbar { position: relative; z-index: 30; display: flex; min-height: 4rem; flex: none; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.5rem 1rem; border-bottom: 1px solid var(--ad-border); background: color-mix(in srgb, var(--ad-surface) 88%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+@media (min-width: 1024px) { .topbar { min-height: 4.25rem; padding-inline: 2rem; } }
+.topLeft { display: flex; min-width: 0; align-items: center; gap: 0.75rem; }
+.topRight { display: flex; align-items: center; gap: 0.25rem; }
+
+.iconBtn { position: relative; display: grid; width: 2.5rem; height: 2.5rem; flex: none; place-items: center; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--ad-body); cursor: pointer; text-decoration: none; transition: background-color 160ms var(--hb-ease), border-color 160ms var(--hb-ease), color 160ms var(--hb-ease); }
+.iconBtn:hover { background: var(--ad-surface-hover); border-color: var(--ad-border); color: var(--ad-ink); }
+.iconBtn svg { width: 1.25rem; height: 1.25rem; }
+.hamburger { border-color: var(--ad-border); background: var(--ad-surface); color: var(--ad-ink); }
+@media (min-width: 1024px) { .hamburger { display: none; } }
+.badge { position: absolute; top: 0.125rem; right: 0.125rem; display: grid; min-width: 1.0625rem; height: 1.0625rem; place-items: center; padding: 0 0.25rem; border-radius: 999px; background: var(--ad-signal); font-size: 0.625rem; font-weight: 700; line-height: 1; color: var(--ad-on-signal); }
+
+/* The section name: a paragraph, not a heading — every page renders its own h1. */
+.section { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; font-family: var(--hb-font-display); font-size: 1.0625rem; font-weight: 800; letter-spacing: -0.015em; color: var(--ad-ink); }
+
+.profileWrap { position: relative; margin-left: 0.25rem; }
+.profileBtn { display: flex; min-height: 2.5rem; align-items: center; gap: 0.5rem; padding: 0.1875rem 0.5rem 0.1875rem 0.1875rem; border: 1px solid transparent; border-radius: 999px; background: transparent; font-size: 0.875rem; font-weight: 500; color: var(--ad-ink); cursor: pointer; }
+.profileBtn:hover { background: var(--ad-surface-hover); border-color: var(--ad-border); }
+.profileName { display: none; max-width: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (min-width: 640px) { .profileName { display: inline; } }
+.chevron { width: 1rem; height: 1rem; color: var(--ad-muted); transition: transform 160ms var(--hb-ease); }
+.profileBtn[aria-expanded='true'] .chevron { transform: rotate(180deg); }
+/* Narrow phones: give the section name room (the avatar alone opens the account menu). */
+@media (max-width: 639px) {
+  .topbar { gap: 0.5rem; padding-inline: 0.75rem; }
+  .topLeft { gap: 0.5rem; }
+  .iconBtn { width: 2.25rem; height: 2.25rem; }
+  .profileWrap { margin-left: 0; }
+  .profileBtn { padding-right: 0.1875rem; }
+  .chevron { display: none; }
+}
+.scrim { position: fixed; inset: 0; z-index: 40; background: transparent; }
+.panel { position: absolute; right: 0; z-index: 50; margin-top: 0.5rem; width: min(16rem, calc(100vw - 2rem)); padding: 0.875rem; border: 1px solid var(--ad-border); border-radius: 14px; background: var(--ad-surface); box-shadow: var(--shadow-lg); }
+.panelLabel { margin: 0; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ad-muted); }
+.panelEmail { margin: 0.25rem 0 0; overflow-wrap: anywhere; font-size: 0.875rem; font-weight: 600; color: var(--ad-ink); }
+.panelLink { display: flex; min-height: 2.5rem; align-items: center; justify-content: center; margin-top: 0.75rem; border: 1px solid var(--ad-border); border-radius: 10px; font-size: 0.875rem; font-weight: 600; color: var(--ad-ink); text-decoration: none; }
+.panelLink:hover { background: var(--ad-surface-hover); }
+.panel .logout { margin-top: 0.5rem; }
+
+/* The canvas carries the Hbee structural grid, very quietly. Pages supply their own surfaces on top. */
+.content { position: relative; flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 1.25rem 1rem 2rem; background-color: var(--ad-canvas); background-image: radial-gradient(ellipse 70% 38% at 0% 0%, var(--ad-glow), transparent 70%), linear-gradient(var(--ad-grid) 1px, transparent 1px), linear-gradient(90deg, var(--ad-grid) 1px, transparent 1px); background-size: auto, 64px 64px, 64px 64px; }
+@media (min-width: 1024px) { .content { padding: 2rem 2rem 3rem; } }
+.content:focus { outline: none; }
+/* Pages are comfortable to read and to scan: a generous but bounded measure. */
+.contentInner { margin-inline: auto; width: 100%; max-width: 80rem; }
+
+/* ── Mobile drawer ───────────────────────────────────────────── */
+.backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(6, 20, 38, 0.55); }
+.drawer { position: fixed; top: 0; bottom: 0; left: 0; z-index: 50; display: flex; width: min(18rem, 88vw); flex-direction: column; background: var(--ad-surface); box-shadow: var(--shadow-lg); }
+@media (min-width: 1024px) { .backdrop, .drawer { display: none; } }
+.drawerHead { display: flex; align-items: flex-start; justify-content: space-between; }
+.drawerClose { display: grid; width: 2.5rem; height: 2.5rem; margin: 0.75rem 0.75rem 0 0; flex: none; place-items: center; border: 0; border-radius: 10px; background: transparent; color: var(--ad-body); cursor: pointer; }
+.drawerClose:hover { background: var(--ad-surface-hover); color: var(--ad-ink); }
+@keyframes adDrawerIn { from { transform: translateX(-100%); } }
+@keyframes adFadeIn { from { opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) {
+  .drawer { animation: adDrawerIn 240ms var(--hb-ease) both; }
+  .backdrop { animation: adFadeIn 200ms var(--hb-ease) both; }
+}
+
+/* ── Gate states (auth check) ────────────────────────────────── */
+.centered { display: grid; min-height: 100vh; min-height: 100dvh; place-items: center; padding: 1rem; background: var(--ad-canvas); text-align: center; }
+.centeredText { margin: 0.75rem 0 0; font-size: 0.9375rem; color: var(--ad-body); }
+.spinner { width: 2.25rem; height: 2.25rem; margin: 0 auto; border: 2px solid var(--ad-accent); border-top-color: transparent; border-radius: 50%; }
+@keyframes adGateSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: no-preference) { .spinner { animation: adGateSpin 800ms linear infinite; } }

@@ -13,6 +13,7 @@ interface Client {
   full_name: string
   email: string
   whatsapp: string
+  merchant_id?: string | null
   business_name: string
   website_url: string
   country: string
@@ -184,6 +185,12 @@ export default function AdminClientDetailPage() {
             {client.full_name}
           </h1>
           <p className="text-sm text-[var(--text-muted)]">{client.business_name}</p>
+          {/* Phase A2: the stored link (clients.merchant_id) to the merchant record and its assessments. */}
+          {client.merchant_id && (
+            <Link href={`/admin/merchants/${client.merchant_id}`} className="mt-1 inline-block text-sm font-semibold text-[var(--accent)] hover:underline">
+              View merchant record and assessments
+            </Link>
+          )}
         </div>
       </div>
 

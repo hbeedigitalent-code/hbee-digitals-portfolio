@@ -14,6 +14,7 @@
 import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { isSafeAdminRedirect } from '@/lib/admin-2fa-redirect'
+import { AdminAuthShell } from '@/components/admin/auth/AdminAuthShell'
 import TwoFactorChallengeForm from './TwoFactorChallengeForm'
 
 export default async function TwoFactorChallengePage({
@@ -35,13 +36,8 @@ export default async function TwoFactorChallengePage({
   const next = isSafeAdminRedirect(searchParams.next) ? searchParams.next : '/admin/dashboard'
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-page)] p-4">
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-[var(--accent)]/7 blur-[140px]" />
-        <div className="absolute bottom-0 right-0 h-[420px] w-[520px] rounded-full bg-[var(--accent-lime)]/5 blur-[130px]" />
-      </div>
-
+    <AdminAuthShell>
       <TwoFactorChallengeForm next={next} />
-    </div>
+    </AdminAuthShell>
   )
 }

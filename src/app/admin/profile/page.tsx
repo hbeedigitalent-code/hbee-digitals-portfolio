@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import { ADMIN_PASSWORD_MIN_LENGTH, adminPasswordError } from '@/lib/admin/password-policy'
 import { useRouter } from 'next/navigation'
 import SvgIcon from '@/components/ui/SvgIcon'
 
@@ -181,8 +182,9 @@ export default function AdminProfile() {
       return
     }
 
-    if (newPassword.length < 6) {
-      setMessage({ type: 'error', text: 'Password must be at least 6 characters' })
+    const passwordProblem = adminPasswordError(newPassword)
+    if (passwordProblem) {
+      setMessage({ type: 'error', text: passwordProblem })
       return
     }
 
@@ -434,8 +436,8 @@ export default function AdminProfile() {
                   value={newPassword} 
                   onChange={(e) => setNewPassword(e.target.value)} 
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50" 
-                  minLength={6} 
-                  placeholder="••••••••"
+                  minLength={ADMIN_PASSWORD_MIN_LENGTH}
+                  placeholder={`At least ${ADMIN_PASSWORD_MIN_LENGTH} characters`}
                 />
               </div>
               <div>
@@ -443,9 +445,9 @@ export default function AdminProfile() {
                 <input 
                   type="password" 
                   value={confirmPassword} 
-                  onChange={(e) => setConfirmPassword(e.target.value)} 
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50" 
-                  placeholder="••••••••"
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
+                  placeholder="Repeat the password"
                 />
               </div>
               <button type="submit" disabled={saving} className="w-full rounded-full border border-red-500/30 bg-red-500/10 py-2.5 text-sm font-black text-red-400 transition hover:bg-red-500/20">
