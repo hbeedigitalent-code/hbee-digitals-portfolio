@@ -49,6 +49,11 @@ export async function middleware(request: NextRequest) {
   // The admin login screen must stay reachable without a session.
   if (pathname === '/admin/login') return NextResponse.next()
 
+  // Password recovery. The emailed link lands here without a session (the recovery session is only created
+  // by the browser client after it exchanges the link's code), so it cannot sit behind the session check.
+  // The page performs no data access and can only call updateUser({ password }) for the recovery session.
+  if (pathname === '/admin/reset-password') return NextResponse.next()
+
   // A response we can attach refreshed auth cookies to.
   let response = NextResponse.next({ request: { headers: request.headers } })
 

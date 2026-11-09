@@ -2,291 +2,225 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import StatusBadge from '@/components/ui/StatusBadge'
-import SvgIcon from '@/components/ui/SvgIcon'
-import Button from '@/components/ui/Button'
 import { displayGrowthClassification } from '@/lib/growth-classification'
+import { ProfileChips, type ProfileStatusData } from '@/components/admin/growth/ProfileStatus'
+import {
+  AdminButton,
+  AdminCallout,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminFilterGroup,
+  AdminLoadingState,
+  AdminNotice,
+  AdminPageHeader,
+  AdminSearchField,
+  AdminStatusBadge,
+  AdminToolbar,
+  adminBtn,
+} from '@/components/admin/ui/AdminUi'
+
+/**
+ * Growth Profiles (Phase 6). Same endpoint and same Archive / Activate action as before; what changed is that each
+ * profile now shows FIVE SEPARATE, stored facts — review, programme decision, portal account, invitation and
+ * whether the Client Portal would actually show it — instead of one "Active" badge. A profile being prepared,
+ * active, approved and visible to the client are four different things.
+ */
+
+type Flag = 'all' | 'active' | 'archived'
+type Visibility = 'all' | 'visible' | 'withheld' | 'awaiting'
+
+interface ProfileRow {
+  id: string
+  title: string | null
+  hgri_score: number | null
+  growth_classification: string | null
+  is_active: boolean
+  created_at: string
+  merchant_id: string | null
+  assessment_id: string | null
+  merchant?: { id?: string; business_name?: string | null; contact_name?: string | null; email?: string | null } | null
+  status?: ProfileStatusData
+}
+
+const first = <T,>(v: T | T[] | null | undefined): T | null => (Array.isArray(v) ? v[0] ?? null : v ?? null)
+const day = (value: string) => {
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+}
 
 export default function AdminGrowthProfilesPage() {
-  const [profiles, setProfiles] = useState<any[]>([])
+  const [profiles, setProfiles] = useState<ProfileRow[]>([])
+  const [releaseEnabled, setReleaseEnabled] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [filter, setFilter] = useState('all')
+  const [flag, setFlag] = useState<Flag>('all')
+  const [visibility, setVisibility] = useState<Visibility>('all')
   const [search, setSearch] = useState('')
+  const [notice, setNotice] = useState<{ tone: 'success' | 'error'; text: string } | null>(null)
+  const [busyId, setBusyId] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchProfiles()
-  }, [filter])
-
-  async function fetchProfiles() {
+  const load = useCallback(async () => {
     setLoading(true)
     try {
-      // /api/admin/growth-profiles verifies session, user-bound admin 2FA and
-      // active admin membership before reading growth_profiles.
-      const response = await fetch(
-        `/api/admin/growth-profiles?filter=${encodeURIComponent(filter)}`,
-        { credentials: 'same-origin' },
-      )
+      // /api/admin/growth-profiles verifies session, user-bound admin 2FA and active admin membership.
+      const response = await fetch(`/api/admin/growth-profiles?filter=${encodeURIComponent(flag)}`, { credentials: 'same-origin' })
       const payload = await response.json().catch(() => null)
-
       if (!response.ok || !Array.isArray(payload?.profiles)) {
+        // A denied or failed read is an error, never an empty list.
         setLoadError(payload?.error || 'Could not load profiles. Please refresh and try again.')
         setProfiles([])
         return
       }
-
       setLoadError(null)
       setProfiles(payload.profiles)
-    } catch (error) {
-      console.error('Error:', error)
+      setReleaseEnabled(typeof payload.releaseEnabled === 'boolean' ? payload.releaseEnabled : null)
+    } catch {
       setLoadError('Could not load profiles. Please refresh and try again.')
       setProfiles([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [flag])
 
-  async function toggleProfileStatus(profileId: string, currentStatus: boolean) {
-    if (!confirm(`Are you sure you want to ${currentStatus ? 'archive' : 'activate'} this profile?`)) return
+  useEffect(() => { void load() }, [load])
 
+  async function toggleProfileStatus(profile: ProfileRow) {
+    const next = !profile.is_active
+    const message = next
+      ? 'Activate this profile?'
+      : 'Archive this profile?\n\nArchiving only changes the admin flag. The Client Portal shows the profile named on the merchant’s programme approval, so archiving does NOT withdraw a release. To withdraw, record a withdrawal on the review.'
+    if (!confirm(message)) return
+
+    setBusyId(profile.id)
+    setNotice(null)
     try {
-      const response = await fetch(`/api/admin/growth-profiles/${profileId}`, {
+      const response = await fetch(`/api/admin/growth-profiles/${profile.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ is_active: !currentStatus }),
+        body: JSON.stringify({ is_active: next }),
       })
-
       if (!response.ok) {
         const payload = await response.json().catch(() => null)
-        alert(payload?.error || 'Failed to update profile status.')
+        setNotice({ tone: 'error', text: payload?.error || 'Failed to update the profile.' })
         return
       }
-
-      await fetchProfiles()
-    } catch (error) {
-      console.error('Error:', error)
+      setNotice({ tone: 'success', text: next ? 'Profile activated.' : 'Profile archived.' })
+      await load()
+    } catch {
+      setNotice({ tone: 'error', text: 'An error occurred while updating the profile.' })
+    } finally {
+      setBusyId(null)
     }
   }
 
-  const getClassificationColor = (classification: string) => {
-    const colors: Record<string, string> = {
-      'Foundation': 'border-blue-500/30 bg-blue-500/10 text-blue-500',
-      'Foundation Stage': 'border-blue-500/30 bg-blue-500/10 text-blue-500',
-      'Growth Potential': 'border-yellow-500/30 bg-yellow-500/10 text-yellow-500',
-      'Growth Ready': 'border-green-500/30 bg-green-500/10 text-green-500',
-      'Scale Ready': 'border-purple-500/30 bg-purple-500/10 text-purple-500'
-    }
-    return colors[classification] || 'border-gray-500/30 bg-gray-500/10 text-gray-500'
+  // A count is shown only when it can be stated truthfully. If any profile's status could not be determined, the
+  // visibility counts are left blank rather than shown as a (misleading) zero.
+  const visibilityUnknown = profiles.some((p) => !p.status || p.status.release.visible === null)
+  const decisionUnknown = profiles.some((p) => !p.status || p.status.release.decisionState === 'unknown')
+  const counts = {
+    all: profiles.length,
+    visible: visibilityUnknown ? undefined : profiles.filter((p) => p.status?.release.visible === true).length,
+    awaiting: decisionUnknown ? undefined : profiles.filter((p) => p.status?.release.decisionState === 'none').length,
+    withheld: visibilityUnknown ? undefined : profiles.filter((p) => p.status?.release.visible === false).length,
   }
-
-  if (loading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
-      </div>
-    )
-  }
-
-  // An authorization or database failure is shown as a real error. It must
-  // never render as an empty list, which would read as "no records".
-  if (loadError) {
-    return (
-      <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
-        <SvgIcon name="warning" size={48} color="var(--error)" />
-        <h2 className="mt-4 text-xl font-semibold text-[var(--text-primary)]">
-          Could not load growth profiles
-        </h2>
-        <p className="mt-2 max-w-md text-[var(--text-secondary)]">{loadError}</p>
-        <button
-          type="button"
-          onClick={fetchProfiles}
-          className="mt-6 rounded-full bg-[var(--accent-orange)] px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
-        >
-          Try Again
-        </button>
-      </div>
-    )
-  }
-
-  const getStatusCounts = () => {
-    const counts: Record<string, number> = { all: profiles.length }
-    profiles.forEach((profile) => {
-      const key = profile.is_active ? 'active' : 'archived'
-      counts[key] = (counts[key] || 0) + 1
-    })
-    return counts
-  }
-
-  const statusCounts = getStatusCounts()
+  const q = search.trim().toLowerCase()
+  const shown = profiles.filter((p) => {
+    if (visibility === 'visible' && p.status?.release.visible !== true) return false
+    if (visibility === 'withheld' && p.status?.release.visible !== false) return false
+    if (visibility === 'awaiting' && p.status?.release.decisionState !== 'none') return false
+    if (!q) return true
+    const m = first(p.merchant)
+    return [m?.business_name, m?.contact_name, m?.email, p.title].some((f) => (f || '').toLowerCase().includes(q))
+  })
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Growth Profiles</h1>
-          <p className="text-[var(--text-secondary)]">View and manage all generated growth profiles</p>
-        </div>
-        <Link href="/admin/growth-assessments">
-          <Button variant="secondary">
-            <SvgIcon name="growth-readiness" size={16} />
-            View Assessments
-          </Button>
-        </Link>
-      </div>
+      <AdminPageHeader eyebrow="Growth" title="Growth Profiles" description="Each profile is prepared when a review is completed. Whether the merchant can see it depends on a recorded programme decision, a linked portal account and the release gate.">
+        <AdminButton variant="secondary" href="/admin/growth-reviews">Growth Reviews</AdminButton>
+      </AdminPageHeader>
 
-      {/* Stats Summary */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
-          <div className="text-2xl font-bold text-[var(--text-primary)]">{profiles.length}</div>
-          <div className="text-xs text-[var(--text-muted)]">Total Profiles</div>
-        </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
-          <div className="text-2xl font-bold text-green-500">
-            {profiles.filter(p => p.is_active).length}
-          </div>
-          <div className="text-xs text-[var(--text-muted)]">Active</div>
-        </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
-          <div className="text-2xl font-bold text-blue-500">
-            {profiles.filter(p => p.hgri_score >= 70).length}
-          </div>
-          <div className="text-xs text-[var(--text-muted)]">High Performers (70+)</div>
-        </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-center">
-          <div className="text-2xl font-bold text-purple-500">
-            {profiles.filter(p => p.growth_classification === 'Scale Ready' || p.growth_classification === 'Growth Ready').length}
-          </div>
-          <div className="text-xs text-[var(--text-muted)]">Growth Ready</div>
-        </div>
-      </div>
+      {notice && <AdminNotice tone={notice.tone}>{notice.text}</AdminNotice>}
 
-      {/* Filter Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-[var(--border)] pb-4">
-        {['all', 'active', 'archived'].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setFilter(tab)}
-            className={`px-4 py-2 text-sm font-medium rounded-full transition ${
-              filter === tab
-                ? 'bg-[var(--accent)] text-white'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-section)]'
-            }`}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            <span className="ml-2 text-xs opacity-60">({statusCounts[tab] || 0})</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <SvgIcon name="search" size={18} color="var(--text-muted)" className="absolute left-3 top-1/2 -translate-y-1/2" />
-        <input
-          type="text"
-          placeholder="Search by business name or email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
-        />
-      </div>
-
-      {/* Profiles List */}
-      {profiles.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
-          <SvgIcon name="growth-profile" size={48} color="var(--text-muted)" />
-          <h3 className="mt-4 text-lg font-semibold text-[var(--text-primary)]">No profiles found</h3>
-          <p className="text-[var(--text-secondary)]">
-            {filter === 'all' 
-              ? 'No growth profiles have been generated yet.' 
-              : `No ${filter} profiles found.`}
-          </p>
-          <Link href="/admin/growth-assessments">
-            <Button className="mt-6">
-              <SvgIcon name="growth-readiness" size={16} color="white" />
-              Review Assessments
-            </Button>
-          </Link>
-        </div>
+      {loading ? (
+        <AdminLoadingState label="Loading profiles…" />
+      ) : loadError ? (
+        <AdminErrorState title="Could not load growth profiles" message={loadError} onRetry={load} />
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[var(--border)] bg-[var(--bg-section)]">
-                <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-secondary)]">Business</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-secondary)]">Classification</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-secondary)]">HGRI</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-secondary)]">Status</th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-[var(--text-secondary)]">Created</th>
-                <th className="px-4 py-3 text-right text-sm font-medium text-[var(--text-secondary)]">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {profiles
-                .filter((profile) => {
-                  if (!search) return true
-                  const businessName = profile.merchant?.business_name || ''
-                  const email = profile.merchant?.email || ''
-                  return businessName.toLowerCase().includes(search.toLowerCase()) ||
-                         email.toLowerCase().includes(search.toLowerCase())
-                })
-                .map((profile) => {
-                  const classificationColor = getClassificationColor(displayGrowthClassification(profile.growth_classification))
-                  return (
-                    <tr key={profile.id} className="border-b border-[var(--border)] hover:bg-[var(--bg-card-hover)] transition-colors last:border-0">
-                      <td className="px-4 py-4">
-                        <div className="font-medium text-[var(--text-primary)]">
-                          {profile.merchant?.business_name || 'Unknown'}
-                        </div>
-                        <div className="text-sm text-[var(--text-muted)]">
-                          {profile.merchant?.email}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${classificationColor}`}>
-                          {displayGrowthClassification(profile.growth_classification) || 'N/A'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className={`font-bold ${
-                          profile.hgri_score >= 70 ? 'text-green-500' :
-                          profile.hgri_score >= 50 ? 'text-yellow-500' :
-                          'text-red-500'
-                        }`}>
-                          {profile.hgri_score || 0}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4">
-                        <StatusBadge status={profile.is_active ? 'active' : 'archived'} />
-                      </td>
-                      <td className="px-4 py-4 text-sm text-[var(--text-secondary)]">
-                        {new Date(profile.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link href={`/admin/growth-profiles/${profile.id}`}>
-                            <Button size="sm">
-                              <SvgIcon name="eye" size={14} color="white" />
-                              View
-                            </Button>
-                          </Link>
-                          <button
-                            onClick={() => toggleProfileStatus(profile.id, profile.is_active)}
-                            className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                          >
-                            {profile.is_active ? 'Archive' : 'Activate'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {releaseEnabled === false && (
+            <AdminCallout tone="warn" title="The release gate is off">
+              No Growth Profile is shown to any merchant yet, whatever has been approved. Approvals are still recorded. Turning the gate on is a deliberate, separate step.
+            </AdminCallout>
+          )}
+
+          <AdminToolbar>
+            <AdminSearchField label="Search profiles" value={search} onChange={setSearch} placeholder="Search business, contact, email or title" />
+            <AdminFilterGroup<Visibility>
+              label="Filter by client visibility"
+              options={[
+                { key: 'all', label: 'All', count: counts.all },
+                { key: 'visible', label: 'Visible to client', count: counts.visible },
+                { key: 'awaiting', label: 'Awaiting decision', count: counts.awaiting },
+                { key: 'withheld', label: 'Withheld', count: counts.withheld },
+              ]}
+              value={visibility}
+              onChange={setVisibility}
+            />
+            <AdminFilterGroup<Flag>
+              label="Filter by admin flag"
+              options={[{ key: 'all', label: 'Any flag' }, { key: 'active', label: 'Active' }, { key: 'archived', label: 'Archived' }]}
+              value={flag}
+              onChange={setFlag}
+            />
+          </AdminToolbar>
+
+          {profiles.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-card)]">
+              <AdminEmptyState title="No growth profiles" description={flag === 'all' ? 'A profile is prepared when a Growth Review is completed.' : `No ${flag} profiles.`} action={<AdminButton variant="secondary" href="/admin/growth-reviews">Open the review queue</AdminButton>} />
+            </div>
+          ) : shown.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-card)]">
+              <AdminEmptyState title="Nothing matches" description="Try a different search or filter." action={<AdminButton variant="secondary" onClick={() => { setSearch(''); setVisibility('all') }}>Clear filters</AdminButton>} />
+            </div>
+          ) : (
+            <ul aria-label="Growth profiles" className="space-y-3">
+              {shown.map((p) => {
+                const merchant = first(p.merchant)
+                const blocker = p.status?.release.visible === false ? p.status.release.blockers[0]?.text : null
+                return (
+                  <li key={p.id} className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-5">
+                    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+                      <div className="min-w-0 flex-1 basis-64">
+                        <Link href={`/admin/growth-profiles/${p.id}`} className="text-base font-bold text-[var(--text-primary)] hover:text-[var(--accent)]">{merchant?.business_name || p.title || 'Unnamed business'}</Link>
+                        <p className="mt-0.5 break-words text-sm text-[var(--text-secondary)]">{[merchant?.contact_name, merchant?.email].filter(Boolean).join(' · ') || 'No contact details stored'}</p>
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">
+                          {[p.hgri_score ? `HGRI ${p.hgri_score}` : null, p.growth_classification && displayGrowthClassification(p.growth_classification), day(p.created_at) && `Prepared ${day(p.created_at)}`].filter(Boolean).join(' · ')}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link href={`/admin/growth-profiles/${p.id}`} className={adminBtn('secondary', 'sm')}>Open</Link>
+                        <button type="button" onClick={() => toggleProfileStatus(p)} disabled={busyId === p.id} className={adminBtn('ghost', 'sm')}>
+                          {busyId === p.id ? 'Saving…' : p.is_active ? 'Archive' : 'Activate'}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                      <AdminStatusBadge tone={p.is_active ? 'neutral' : 'amber'}>{p.is_active ? 'Active flag' : 'Archived flag'}</AdminStatusBadge>
+                      <ProfileChips status={p.status} />
+                    </div>
+                    {blocker && <p className="mt-2 text-xs text-[var(--text-muted)]">Withheld: {blocker}</p>}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+          <p className="text-xs text-[var(--text-muted)]">
+            &ldquo;Visible to client&rdquo; means the Client Portal would serve this profile right now: the merchant&rsquo;s latest decision approves this profile, a portal account is linked, and the release gate is on. Completing a review never makes a profile visible.
+          </p>
+        </>
       )}
     </div>
   )

@@ -14,6 +14,7 @@
 
 import { NextResponse } from 'next/server'
 import { requireActiveAdmin, queryFailure, ADMIN_UUID_RE } from '@/lib/admin-api-auth'
+import { buildProfileStatuses, releaseGateEnabled } from '@/lib/admin/profile-context'
 
 const DETAIL_COLUMNS = `
   id, title, summary, hgri_score, growth_classification, profile_data,
@@ -52,9 +53,15 @@ export async function GET(_request: Request, { params }: { params: { id: string 
 
     if (pdfError) return queryFailure('growth profile pdf', pdfError)
 
+    // Phase 6 (read-only, additive): review, decision (with history), portal linkage, invitation and release
+    // evaluation for this profile. See src/lib/admin/profile-release.ts.
+    const statuses = await buildProfileStatuses(db, [profile], { releaseEnabled: releaseGateEnabled(), history: true })
+
     return NextResponse.json({
       profile,
       pdf_url: typeof pdfRows?.[0]?.file_url === 'string' ? pdfRows[0].file_url : null,
+      status: statuses[profile.id],
+      releaseEnabled: releaseGateEnabled(),
     })
   } catch (error) {
     console.error('[admin-api] growth profile detail error:', error)

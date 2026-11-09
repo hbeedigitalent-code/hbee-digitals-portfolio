@@ -1,22 +1,34 @@
 ﻿// src/app/admin/login/page.tsx
 'use client'
 
-import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import SvgIcon from '@/components/ui/SvgIcon'
+import { Eye, EyeOff } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { AdminAuthShell } from '@/components/admin/auth/AdminAuthShell'
+import a from '@/components/admin/auth/admin-auth.module.css'
 
+/**
+ * Admin sign-in (Phase A1 presentation). LOGIN ONLY: there is deliberately no sign-up or "create account"
+ * control; admin access is provisioned. Authentication is unchanged: signInWithPassword, then on to
+ * /admin/dashboard. Whether a verification code is required is still decided entirely server-side by
+ * middleware (the browser never queries admin_2fa).
+ */
 export default function AdminLogin() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [resetMode, setResetMode] = useState(false)
-  const [resetEmail, setResetEmail] = useState('')
   const [resetSent, setResetSent] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
+
+  // /admin/login?reset=1 (linked from an invalid reset link) opens the reset-request form.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('reset') === '1') setResetMode(true)
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,22 +36,18 @@ export default function AdminLogin() {
     setError('')
 
     try {
-      const { error: loginError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password })
 
       if (loginError) {
-        setError(loginError.message)
+        // Plain, non-revealing wording for the common failure; anything else is shown as returned.
+        setError(/invalid login credentials/i.test(loginError.message) ? 'The email or password is incorrect.' : loginError.message)
         setLoading(false)
         return
       }
 
-      // Always continue to /admin/dashboard. Whether TOTP verification is
-      // required — and collecting it — is now decided entirely server-side:
-      // middleware redirects to /admin/2fa-challenge if this account has 2FA
-      // enabled and the session hasn't completed it yet. The browser never
-      // queries admin_2fa to make that decision anymore.
+      // Always continue to /admin/dashboard. Whether TOTP verification is required — and collecting it —
+      // is decided entirely server-side: middleware redirects to the 2FA challenge when this account has
+      // 2FA enabled and the session has not completed it yet.
       router.push('/admin/dashboard')
     } catch (err: any) {
       setError(err.message || 'An error occurred')
@@ -53,7 +61,7 @@ export default function AdminLogin() {
     setError('')
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/admin/reset-password`,
       })
 
@@ -69,139 +77,76 @@ export default function AdminLogin() {
     }
   }
 
-  // Normal login form
+  function leaveReset() {
+    setResetMode(false)
+    setResetSent(false)
+    setError('')
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-page)] p-4">
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-[var(--accent)]/7 blur-[140px]" />
-        <div className="absolute bottom-0 right-0 h-[420px] w-[520px] rounded-full bg-[var(--accent-lime)]/5 blur-[130px]" />
-      </div>
+    <AdminAuthShell>
+      <div className={a.card}>
+        <p className={a.cardEyebrow}><span aria-hidden="true" className={a.node} />Team sign in</p>
+        <h1 className={a.cardTitle}>{resetMode ? 'Reset your password' : 'Sign in to Hbee Administration'}</h1>
+        <p className={a.cardText}>
+          {resetMode ? 'Enter your work email and we will send a reset link.' : 'Use the email and password for your Hbee team account.'}
+        </p>
 
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 shadow-lg">
-            <SvgIcon name="logo" size={32} color="var(--accent)" />
-          </div>
-          <h1 className="text-2xl font-black text-[var(--text-primary)]">Admin Login</h1>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">Sign in to manage your content</p>
-        </div>
+        {!resetMode ? (
+          <form onSubmit={handleLogin} className={a.form} noValidate={false}>
+            <div className={a.field}>
+              <label htmlFor="admin-email" className={a.label}>Email</label>
+              <input id="admin-email" type="email" name="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className={a.input} placeholder="you@hbeedigitals.com" required aria-invalid={Boolean(error)} />
+            </div>
 
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-[var(--shadow-lg)]">
-          {!resetMode ? (
-            <form onSubmit={handleLogin}>
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Email</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                    placeholder="admin@hbeedigitals.com"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Password</label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-
-                {error && (
-                  <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm font-bold text-red-400">
-                    {error}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full rounded-full bg-[var(--accent)] py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] disabled:opacity-50"
-                >
-                  {loading ? 'Signing in...' : 'Sign In'}
+            <div className={a.field}>
+              <label htmlFor="admin-password" className={a.label}>Password</label>
+              <div className={a.inputWrap}>
+                <input id="admin-password" type={showPassword ? 'text' : 'password'} name="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className={`${a.input} ${a.inputWithToggle}`} placeholder="Your password" required aria-invalid={Boolean(error)} />
+                <button type="button" className={a.toggle} onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword}>
+                  {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
                 </button>
-
-                <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => setResetMode(true)}
-                    className="text-sm text-[var(--accent)] hover:underline"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
               </div>
-            </form>
-          ) : (
-            <form onSubmit={handleResetPassword}>
-              <div className="space-y-4">
-                {!resetSent ? (
-                  <>
-                    <div>
-                      <label className="mb-1 block text-sm font-bold text-[var(--text-secondary)]">Email Address</label>
-                      <input
-                        type="email"
-                        value={resetEmail}
-                        onChange={(e) => setResetEmail(e.target.value)}
-                        className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] px-4 py-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                        placeholder="admin@hbeedigitals.com"
-                        required
-                      />
-                    </div>
+            </div>
 
-                    {error && (
-                      <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm font-bold text-red-400">
-                        {error}
-                      </div>
-                    )}
+            {error && <p role="alert" className={a.error}>{error}</p>}
 
-                    <button
-                      type="submit"
-                      disabled={resetLoading}
-                      className="w-full rounded-full bg-[var(--accent)] py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02] disabled:opacity-50"
-                    >
-                      {resetLoading ? 'Sending...' : 'Send Reset Link'}
-                    </button>
-                  </>
-                ) : (
-                  <div className="rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 p-4 text-center">
-                    <SvgIcon name="verified" size={32} color="var(--accent)" className="mx-auto mb-3" />
-                    <p className="font-bold text-[var(--accent)]">Reset link sent!</p>
-                    <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                      Check your email for a password reset link.
-                    </p>
-                  </div>
-                )}
+            <button type="submit" disabled={loading} className={a.submit}>
+              {loading && <span aria-hidden="true" className={a.spinner} />}
+              {loading ? 'Signing in…' : 'Sign in'}
+            </button>
 
-                <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setResetMode(false)
-                      setResetSent(false)
-                      setError('')
-                    }}
-                    className="text-sm text-[var(--text-muted)] hover:text-[var(--accent)]"
-                  >
-                    ← Back to login
-                  </button>
+            <div className={a.linkRow}>
+              <button type="button" className={a.linkBtn} onClick={() => { setResetMode(true); setError('') }}>Forgot password?</button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleResetPassword} className={a.form}>
+            {!resetSent ? (
+              <>
+                <div className={a.field}>
+                  <label htmlFor="admin-reset-email" className={a.label}>Email address</label>
+                  <input id="admin-reset-email" type="email" name="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className={a.input} placeholder="you@hbeedigitals.com" required />
                 </div>
-              </div>
-            </form>
-          )}
-        </div>
+                {error && <p role="alert" className={a.error}>{error}</p>}
+                <button type="submit" disabled={resetLoading} className={a.submit}>
+                  {resetLoading && <span aria-hidden="true" className={a.spinner} />}
+                  {resetLoading ? 'Sending…' : 'Send reset link'}
+                </button>
+              </>
+            ) : (
+              <p role="status" className={a.success}><strong>Reset link sent</strong>Check your email for a password reset link.</p>
+            )}
+            <div className={a.linkRow}>
+              <button type="button" className={a.linkBtn} onClick={leaveReset}>← Back to sign in</button>
+            </div>
+          </form>
+        )}
 
-        <p className="mt-6 text-center text-xs text-[var(--text-muted)]">
-          Secure admin access for Hbee Digitals team members only.
+        <p className={a.hint}>
+          Access is provisioned for the Hbee team. If you are a client, use the <a href="/client-login">Client Portal sign in</a> instead.
         </p>
       </div>
-    </div>
+    </AdminAuthShell>
   )
 }

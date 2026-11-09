@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { createClientComponentClient } from '@/lib/supabase-client'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
+import { describeMoney, summariseMoney } from '@/lib/admin/money'
 
 interface DashboardStats {
   activeProjects: number
@@ -16,7 +17,8 @@ interface DashboardStats {
   overdueTasks: number
   unpaidInvoices: number
   projectCompletionRate: number
-  revenuePipeline: number
+  /** Overdue-invoice total per stored currency (never mixed or assumed), or null when none can be stated. */
+  overdueInvoiceMoney: string | null
 }
 
 export default function AdminWorkspacePage() {
@@ -62,7 +64,7 @@ export default function AdminWorkspacePage() {
       supabase.from('client_onboarding_submissions').select('status', { count: 'exact' }).eq('status', 'New Submission'),
       supabase.from('tasks').select('status, due_date').eq('status', 'Pending'),
       supabase.from('project_requests').select('status').eq('status', 'open'),
-      supabase.from('project_invoices').select('status, amount').eq('status', 'overdue'),
+      supabase.from('project_invoices').select('status, amount, currency', { count: 'exact' }).eq('status', 'overdue'),
     ])
 
     const activeProjects = projectsRes.data?.filter(p => p.status !== 'Completed' && p.status !== 'Archived').length || 0
@@ -91,7 +93,7 @@ export default function AdminWorkspacePage() {
     const completedProjects = projectsRes.data?.filter(p => p.status === 'Completed').length || 0
     const projectCompletionRate = totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0
 
-    const revenuePipeline = invoicesRes.data?.reduce((sum, inv) => sum + (inv.amount || 0), 0) || 0
+    const overdueInvoiceMoney = invoicesRes.data ? describeMoney(summariseMoney(invoicesRes.data)) : null
 
     setStats({
       activeProjects,
@@ -103,7 +105,7 @@ export default function AdminWorkspacePage() {
       overdueTasks,
       unpaidInvoices,
       projectCompletionRate,
-      revenuePipeline
+      overdueInvoiceMoney
     })
 
     const { data: recentTaskData } = await supabase
@@ -182,9 +184,10 @@ export default function AdminWorkspacePage() {
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 text-center">
           <div className="text-lg font-bold text-[var(--accent)]">
-            ${stats?.revenuePipeline.toLocaleString()}
+            {stats?.unpaidInvoices ?? 0}
           </div>
-          <div className="text-xs text-[var(--text-muted)]">Revenue Pipeline</div>
+          <div className="text-xs text-[var(--text-muted)]">Overdue Invoices</div>
+          {stats?.overdueInvoiceMoney && <div className="mt-0.5 text-[11px] text-[var(--text-muted)]">{stats.overdueInvoiceMoney}</div>}
         </div>
       </div>
 

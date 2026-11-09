@@ -1,196 +1,214 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import SvgIcon from '@/components/ui/SvgIcon'
+import { ArrowLeft, Mail } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { filterInquiries, inquiryCounts, inquiryPreview, type Inquiry, type InquiryFilter } from '@/lib/admin/inquiries'
+import {
+  AdminButton,
+  AdminCallout,
+  AdminEmptyState,
+  AdminErrorState,
+  AdminFacts,
+  AdminFilterGroup,
+  AdminLoadingState,
+  AdminNotice,
+  AdminPageHeader,
+  AdminSearchField,
+  AdminSection,
+  AdminStatusBadge,
+  AdminToolbar,
+  adminBtn,
+} from '@/components/admin/ui/AdminUi'
 
-interface Message {
-  id: string
-  full_name: string
-  email: string
-  phone: string
-  company: string
-  service: string
-  budget: string
-  timeline: string
-  website: string
-  message: string
-  is_read: boolean
-  created_at: string
+/**
+ * Inquiries (Phase A2): the public Contact form's submissions. Presentation only: the data access is exactly
+ * what it was (a browser read of contact_submissions, an is_read update, a delete). The known contact_submissions
+ * RLS concern is a separate security task and is deliberately NOT changed here.
+ *
+ * contact_submissions stores no merchant or client identifier, so an inquiry is never linked to a business or
+ * client record: matching on name or email would be a guess, not a stored relationship.
+ */
+
+const formatWhen = (value: string) => {
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
 export default function InquiriesPage() {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null)
-  const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const [messages, setMessages] = useState<Inquiry[]>([])
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [filter, setFilter] = useState<InquiryFilter>('all')
+  const [query, setQuery] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState<{ tone: 'success' | 'error'; text: string } | null>(null)
 
-  useEffect(() => {
-    checkAuth()
-    fetchMessages()
+  const fetchMessages = useCallback(async () => {
+    const { data, error } = await supabase.from('contact_submissions').select('*').order('created_at', { ascending: false })
+    if (error) {
+      // A failed read must never look like an empty inbox.
+      setLoadError('Could not load inquiries. Please refresh and try again.')
+      setMessages([])
+    } else {
+      setLoadError(null)
+      setMessages((data as Inquiry[]) || [])
+    }
+    setLoading(false)
   }, [])
 
-  const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) router.push('/admin/login')
-  }
-
-  const fetchMessages = async () => {
-    const { data } = await supabase
-      .from('contact_submissions')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    setMessages(data || [])
-    setLoading(false)
-  }
-
-  const markAsRead = async (id: string) => {
-    await supabase.from('contact_submissions').update({ is_read: true }).eq('id', id)
-    fetchMessages()
-    if (selectedMessage?.id === id) {
-      setSelectedMessage({ ...selectedMessage, is_read: true })
+  useEffect(() => {
+    async function init() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) router.push('/admin/login')
+      await fetchMessages()
     }
+    void init()
+  }, [router, fetchMessages])
+
+  const selected = messages.find((m) => m.id === selectedId) || null
+  const counts = inquiryCounts(messages)
+  const visible = filterInquiries(messages, { filter, query })
+
+  async function markAsRead(id: string) {
+    setBusy(true)
+    setNotice(null)
+    const { error } = await supabase.from('contact_submissions').update({ is_read: true }).eq('id', id)
+    if (error) setNotice({ tone: 'error', text: 'Could not mark this inquiry as read.' })
+    else setMessages((current) => current.map((m) => (m.id === id ? { ...m, is_read: true } : m)))
+    setBusy(false)
   }
 
-  const deleteMessage = async (id: string) => {
-    if (confirm('Delete this message?')) {
-      await supabase.from('contact_submissions').delete().eq('id', id)
-      fetchMessages()
-      if (selectedMessage?.id === id) setSelectedMessage(null)
+  async function deleteMessage(message: Inquiry) {
+    if (!confirm(`Delete the inquiry from ${message.full_name || 'this sender'}? This cannot be undone.`)) return
+    setBusy(true)
+    setNotice(null)
+    const { error } = await supabase.from('contact_submissions').delete().eq('id', message.id)
+    if (error) {
+      setNotice({ tone: 'error', text: 'Could not delete this inquiry.' })
+    } else {
+      setMessages((current) => current.filter((m) => m.id !== message.id))
+      setSelectedId(null)
+      setNotice({ tone: 'success', text: 'Inquiry deleted.' })
     }
+    setBusy(false)
   }
 
-  if (loading) {
-    return <div className="flex items-center justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" /></div>
-  }
+  if (loading) return <AdminLoadingState label="Loading inquiries…" />
+  if (loadError) return <AdminErrorState title="Could not load inquiries" message={loadError} onRetry={() => { setLoading(true); void fetchMessages() }} />
+
+  const filters = [
+    { key: 'all' as const, label: 'All', count: counts.all },
+    { key: 'unread' as const, label: 'Unread', count: counts.unread },
+    { key: 'read' as const, label: 'Read', count: counts.read },
+  ]
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-black text-[var(--text-primary)]">Inquiries</h2>
-        <p className="text-sm text-[var(--text-secondary)]">Manage and respond to project inquiries from potential clients.</p>
-      </div>
+      <AdminPageHeader eyebrow="Inbox" title="Inquiries" description="Messages sent through the public Contact form." />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Messages List */}
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden">
-          <div className="border-b border-[var(--border)] p-4">
-            <h3 className="font-black">Inbox ({messages.length} messages)</h3>
-          </div>
+      {notice && <AdminNotice tone={notice.tone}>{notice.text}</AdminNotice>}
+
+      {counts.unread > 0 ? (
+        <AdminCallout tone="attention" title={`${counts.unread} unread ${counts.unread === 1 ? 'inquiry' : 'inquiries'}`}>
+          Open an inquiry to read it, reply by email, and mark it as read when you have dealt with it.
+        </AdminCallout>
+      ) : counts.all > 0 ? (
+        <AdminCallout tone="good" title="You are up to date">Every inquiry has been marked as read.</AdminCallout>
+      ) : null}
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start">
+        {/* List. On phones it gives way to the detail while one is open. */}
+        <div className={`min-w-0 space-y-3 ${selected ? 'hidden lg:block' : ''}`}>
+          <AdminToolbar>
+            <AdminSearchField label="Search inquiries" value={query} onChange={setQuery} placeholder="Search name, email, company or message" />
+            <AdminFilterGroup label="Filter inquiries" options={filters} value={filter} onChange={setFilter} />
+          </AdminToolbar>
 
           {messages.length === 0 ? (
-            <div className="p-12 text-center">
-              <SvgIcon name="email" size={48} color="var(--text-muted)" />
-              <p className="mt-4 text-[var(--text-secondary)]">No messages yet.</p>
+            <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-card)]">
+              <AdminEmptyState title="No inquiries yet" description="Messages sent through the Contact form appear here." />
+            </div>
+          ) : visible.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-card)]">
+              <AdminEmptyState title="Nothing matches" description="Try a different search or filter." action={<AdminButton variant="secondary" onClick={() => { setQuery(''); setFilter('all') }}>Clear filters</AdminButton>} />
             </div>
           ) : (
-            <div className="divide-y divide-[var(--border)] max-h-[600px] overflow-y-auto">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  onClick={() => setSelectedMessage(msg)}
-                  className={`cursor-pointer p-4 transition hover:bg-[var(--bg-section)] ${!msg.is_read ? 'border-l-4 border-l-[var(--accent)] bg-[var(--accent)]/5' : ''}`}
-                >
-                  <div className="flex items-start justify-between">
-                    <p className="font-bold text-[var(--text-primary)]">{msg.full_name || 'Anonymous'}</p>
-                    <p className="text-xs text-[var(--text-muted)]">{new Date(msg.created_at).toLocaleDateString()}</p>
-                  </div>
-                  <p className="text-sm text-[var(--text-secondary)]">{msg.email}</p>
-                  <p className="mt-2 line-clamp-2 text-sm text-[var(--text-muted)]">{msg.message}</p>
-                  <div className="mt-2 flex gap-2">
-                    {msg.service && <span className="rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-xs text-[var(--accent)]">{msg.service}</span>}
-                    {!msg.is_read && <span className="rounded-full bg-[var(--accent)]/20 px-2 py-0.5 text-xs text-[var(--accent)]">New</span>}
-                  </div>
-                </div>
+            <ul aria-label="Inquiries" className="space-y-2">
+              {visible.map((msg) => (
+                <li key={msg.id}>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedId(msg.id); setNotice(null) }}
+                    aria-current={selectedId === msg.id ? 'true' : undefined}
+                    className={`block w-full rounded-xl border p-4 text-left transition ${selectedId === msg.id ? 'border-[var(--accent)] bg-[var(--bg-section)]' : 'border-[var(--border)] bg-[var(--bg-card)] hover:border-[var(--border-strong)]'}`}
+                    style={!msg.is_read ? { borderLeft: '4px solid var(--ad-signal)' } : undefined}
+                  >
+                    <span className="flex items-start justify-between gap-3">
+                      <span className="min-w-0 truncate font-bold text-[var(--text-primary)]">{msg.full_name || 'Anonymous'}</span>
+                      <span className="shrink-0 text-xs text-[var(--text-muted)]">{new Date(msg.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>
+                    </span>
+                    <span className="mt-0.5 block truncate text-sm text-[var(--text-secondary)]">{[msg.company, msg.email].filter(Boolean).join(' · ')}</span>
+                    <span className="mt-1.5 line-clamp-2 block text-sm text-[var(--text-muted)]">{inquiryPreview(msg.message)}</span>
+                    <span className="mt-2 flex flex-wrap gap-1.5">
+                      {!msg.is_read && <AdminStatusBadge tone="orange" dot>Unread</AdminStatusBadge>}
+                      {msg.service && <AdminStatusBadge>{msg.service}</AdminStatusBadge>}
+                    </span>
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
 
-        {/* Message Detail */}
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden">
-          {selectedMessage ? (
-            <>
-              <div className="flex items-center justify-between border-b border-[var(--border)] p-4">
-                <h3 className="font-black">Message Details</h3>
-                <div className="flex gap-2">
-                  {!selectedMessage.is_read && (
-                    <button onClick={() => markAsRead(selectedMessage.id)} className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-sm font-bold text-[var(--accent)]">
-                      Mark as Read
-                    </button>
-                  )}
-                  <button onClick={() => deleteMessage(selectedMessage.id)} className="rounded-full bg-red-500/10 px-3 py-1 text-sm font-bold text-red-400">
-                    Delete
-                  </button>
-                </div>
+        {/* Detail */}
+        <div className={`min-w-0 ${selected ? '' : 'hidden lg:block'}`}>
+          {selected ? (
+            <div className="space-y-4 lg:sticky lg:top-0">
+              <div className="lg:hidden">
+                <button type="button" onClick={() => setSelectedId(null)} className={adminBtn('ghost', 'sm')}>
+                  <ArrowLeft aria-hidden="true" className="h-4 w-4" /> Back to inbox
+                </button>
               </div>
-
-              <div className="p-5 space-y-4">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">From</p>
-                  <p className="font-bold text-[var(--text-primary)]">{selectedMessage.full_name || 'Anonymous'}</p>
-                  <p className="text-sm text-[var(--text-secondary)]">{selectedMessage.email}</p>
-                  {selectedMessage.phone && <p className="text-sm text-[var(--text-secondary)]">{selectedMessage.phone}</p>}
-                </div>
-
-                {selectedMessage.company && (
+              <AdminSection
+                title={selected.full_name || 'Anonymous'}
+                description={formatWhen(selected.created_at)}
+                actions={<AdminStatusBadge tone={selected.is_read ? 'neutral' : 'orange'} dot>{selected.is_read ? 'Read' : 'Unread'}</AdminStatusBadge>}
+              >
+                <div className="space-y-6">
+                  <AdminFacts
+                    items={[
+                      { label: 'Email', value: selected.email, href: selected.email ? `mailto:${selected.email}` : undefined },
+                      { label: 'Phone', value: selected.phone },
+                      { label: 'Company', value: selected.company },
+                      { label: 'Website', value: selected.website, href: /^https?:\/\//i.test(selected.website || '') ? selected.website || undefined : undefined, external: true },
+                      { label: 'About', value: selected.service },
+                      { label: 'Budget', value: selected.budget },
+                      { label: 'Timeline', value: selected.timeline },
+                    ].filter((f) => f.value || ['Email', 'About'].includes(f.label))}
+                  />
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Company</p>
-                    <p className="text-sm text-[var(--text-primary)]">{selectedMessage.company}</p>
+                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Message</h3>
+                    <p className="whitespace-pre-line break-words rounded-xl bg-[var(--bg-section)] p-4 text-sm leading-relaxed text-[var(--text-primary)]">{selected.message}</p>
                   </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4">
-                  {selectedMessage.service && (
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Service</p>
-                      <p className="text-sm text-[var(--text-primary)]">{selectedMessage.service}</p>
-                    </div>
-                  )}
-                  {selectedMessage.budget && (
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Budget</p>
-                      <p className="text-sm text-[var(--text-primary)]">{selectedMessage.budget}</p>
-                    </div>
-                  )}
-                  {selectedMessage.timeline && (
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Timeline</p>
-                      <p className="text-sm text-[var(--text-primary)]">{selectedMessage.timeline}</p>
-                    </div>
-                  )}
-                  {selectedMessage.website && (
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Website</p>
-                      <p className="text-sm text-[var(--text-primary)]">{selectedMessage.website}</p>
-                    </div>
-                  )}
+                  <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-4">
+                    <a href={`mailto:${selected.email}?subject=${encodeURIComponent(`Response to your inquiry about ${selected.service || 'your project'}`)}`} className={adminBtn('primary')}>
+                      <Mail aria-hidden="true" className="h-4 w-4" /> Reply by email
+                    </a>
+                    {!selected.is_read && (
+                      <button type="button" onClick={() => markAsRead(selected.id)} disabled={busy} className={adminBtn('secondary')}>Mark as read</button>
+                    )}
+                    <button type="button" onClick={() => deleteMessage(selected)} disabled={busy} className={`${adminBtn('danger')} sm:ml-auto`}>Delete</button>
+                  </div>
                 </div>
-
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Message</p>
-                  <p className="mt-2 rounded-lg bg-[var(--bg-section)] p-4 text-sm text-[var(--text-secondary)]">
-                    {selectedMessage.message}
-                  </p>
-                </div>
-
-                <div className="pt-4 border-t border-[var(--border)]">
-                  <a
-                    href={`mailto:${selectedMessage.email}?subject=Response to your inquiry about ${selectedMessage.service || 'project'}`}
-                    className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02]"
-                  >
-                    <SvgIcon name="email" size={16} color="var(--btn-primary-text)" />
-                    Reply via Email
-                  </a>
-                </div>
-              </div>
-            </>
+              </AdminSection>
+            </div>
           ) : (
-            <div className="flex flex-col items-center justify-center p-12 text-center">
-              <SvgIcon name="messages" size={48} color="var(--text-muted)" />
-              <p className="mt-4 text-[var(--text-secondary)]">Select a message to view details</p>
+            <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-card)]">
+              <AdminEmptyState title="Select an inquiry" description="Choose a message from the list to read it and reply." />
             </div>
           )}
         </div>
