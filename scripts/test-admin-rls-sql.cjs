@@ -133,6 +133,30 @@ ok(/qual ~\* 'admin_users'/.test(RAW.verify00) && /auth\\\.uid/.test(RAW.verify0
   const tables = new Set([...(code + ' ' + literals.join(' ')).toLowerCase().matchAll(/public\.([a-z_]+)/g)].map((m) => m[1]))
   for (const t of tables) ok(['portfolio_items', 'portfolio_media', 'admin_users', '_environment_marker'].includes(t), `tests03: touches only portfolio/admin tables (found ${t})`)
   ok(!/drop |truncate|alter |grant |revoke |create (table|policy|function)/i.test(code + literals.join(' ')), 'tests03: no DDL')
+  // Regression (staging 23502: portfolio_items.name NOT NULL; the fixture used a non-existent "title" column).
+  // Fixtures must satisfy the NOT NULL columns declared by the repo's own DDL, and may only name columns that exist there.
+  const boot = read('scripts/portfolio-staging-01-bootstrap-structure.sql')
+  const itemsDdl = /create table if not exists public\.portfolio_items \(([\s\S]*?)\n\);/.exec(boot)[1]
+  const itemCols = itemsDdl.split('\n').map((l) => /^\s*([a-z_]+)\s+[a-z]+/.exec(l)).filter(Boolean).map((m) => m[1])
+  const itemRequired = itemsDdl.split('\n').filter((l) => /\bnot null\b/i.test(l) && !/\bdefault\b/i.test(l)).map((l) => /^\s*([a-z_]+)/.exec(l)[1])
+  ok(itemRequired.includes('name') && itemRequired.includes('category'), `repo DDL: portfolio_items requires ${itemRequired.join(', ')}`)
+  const creative = read('scripts/portfolio-creative-01-forward.sql')
+  const itemAdded = [...creative.matchAll(/alter table public\.portfolio_items add column if not exists ([a-z_]+)/g)].map((m) => m[1])
+  const knownItemCols = new Set([...itemCols, ...itemAdded])
+  const itemInserts = [...RAW.tests03.matchAll(/insert into public\.portfolio_items \(([^)]*)\)/g)].map((m) => m[1].split(',').map((c) => c.trim()))
+  ok(itemInserts.length >= 7, `tests03: portfolio_items fixture/test inserts found (${itemInserts.length})`)
+  for (const cols of itemInserts) {
+    for (const r of [...itemRequired, 'engagement_type', 'project_status']) ok(cols.includes(r), `tests03: every portfolio_items insert sets ${r} (${cols.join(', ')})`)
+    for (const c of cols) ok(knownItemCols.has(c), `tests03: portfolio_items.${c} exists in the repo schema`)
+  }
+  ok(!/\btitle\b/.test(RAW.tests03.replace(/--.*$/gm, '').replace(/portfolio_media[^;]*\btitle\b/g, '')), 'tests03: no reference to a non-existent portfolio_items.title')
+  ok(/engagement_type, project_status, is_active\) values \(v_tag \|\| '-active', 'rls-test', 'studio_team', 'completed', true\)/.test(RAW.tests03), "tests03: parent fixture sets engagement_type = 'studio_team' and project_status = 'completed' explicitly")
+  const mediaDdl = /create table if not exists public\.portfolio_media \(([\s\S]*?)\r?\n    \)\r?\n  \$ddl\$/.exec(creative)[1]
+  const mediaRequired = mediaDdl.split('\n').filter((l) => /\bnot null\b/i.test(l) && !/\bdefault\b/i.test(l)).map((l) => /^\s*([a-z_]+)/.exec(l)[1]).filter((c) => !['id', 'check', 'primary', 'constraint'].includes(c))
+  const mediaInserts = [...RAW.tests03.matchAll(/insert into public\.portfolio_media \(([^)]*)\)/g)].map((m) => m[1].split(',').map((c) => c.trim()))
+  ok(mediaInserts.length >= 3 && mediaRequired.length >= 4, `tests03: portfolio_media inserts found (${mediaInserts.length}); required ${mediaRequired.join(', ')}`)
+  for (const cols of mediaInserts) for (const r of mediaRequired) ok(cols.includes(r), `tests03: every portfolio_media insert sets ${r}`)
+  ok(!/portfolio_capabilities/.test(RAW.tests03.replace(/--.*$/gm, '')), 'tests03: does not insert portfolio_capabilities rows (so no capability fixture can drift)')
   ok(/example\.invalid/.test(RAW.tests03) && !/@(gmail|hotmail|yahoo|hbeedigitals)\./.test(RAW.tests03), 'tests03: synthetic identities only')
 }
 
