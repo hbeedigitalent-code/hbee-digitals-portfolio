@@ -7,6 +7,8 @@
 import { NextResponse } from 'next/server'
 import speakeasy from 'speakeasy'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { TWO_FACTOR_MESSAGES } from '@/lib/admin-2fa-policy'
 import { getAdmin2FACookieOptions, ADMIN_2FA_COOKIE_NAME, signAdmin2FACookie } from '@/lib/admin-2fa-cookie'
 
 // Lazy, non-throwing service-role client — see login/route.ts for why this
@@ -80,6 +82,15 @@ export async function POST(request: Request) {
       )
     }
 
+    // Brute-force guard: TOTP is a 6-digit code, so attempts are limited per admin account (not per IP).
+    const limit = await checkRateLimit('adminTotp', user.id)
+    if (!limit.ok) {
+      return NextResponse.json(
+        { success: false, error: TWO_FACTOR_MESSAGES.tooManyAttempts },
+        { status: 429, headers: limit.retryAfterSeconds ? { 'Retry-After': String(limit.retryAfterSeconds) } : undefined },
+      )
+    }
+
     // Get user's 2FA secret
     const { data, error } = await supabase
       .from('admin_2fa')
@@ -109,27 +120,20 @@ export async function POST(request: Request) {
       )
     }
 
-    // Generate backup codes
-    const backupCodes = Array.from({ length: 8 }, () =>
-      Math.random().toString(36).substring(2, 10).toUpperCase(),
-    )
-
-    // Enable 2FA for user and save backup codes
+    // Backup codes are NOT generated, stored or returned: nothing in the app accepts them at login, so showing
+    // them would promise a recovery path that does not exist. Lost-authenticator recovery is owner-assisted.
+    // Enable 2FA for the user (is_enabled only; backup_codes is left untouched).
     const { error: updateError } = await supabase
       .from('admin_2fa')
       .update({
         is_enabled: true,
-        backup_codes: backupCodes,
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', user.id)
 
     if (updateError) {
       console.error('Update error:', updateError)
-      return NextResponse.json(
-        { success: false, error: updateError.message },
-        { status: 500 },
-      )
+      return NextResponse.json({ success: false, error: 'Verification failed' }, { status: 500 })
     }
 
     // The admin just proved TOTP possession right now — stamp the current
@@ -139,7 +143,7 @@ export async function POST(request: Request) {
     // (and its own fail-closed error) on their next /admin/* request.
     const cookieValue = await signAdmin2FACookie(user.id)
 
-    const response = NextResponse.json({ success: true, backupCodes })
+    const response = NextResponse.json({ success: true })
     if (cookieValue) {
       response.cookies.set(ADMIN_2FA_COOKIE_NAME, cookieValue, getAdmin2FACookieOptions())
     }

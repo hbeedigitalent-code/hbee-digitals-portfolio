@@ -130,3 +130,15 @@ export function queryFailure(context: string, error: unknown): NextResponse {
   )
   return NextResponse.json({ error: 'Failed to load data' }, { status: 500 })
 }
+
+/**
+ * True when this request carries a valid, unexpired, user-bound "2FA verified" cookie for `userId`.
+ *
+ * For the 2FA routes themselves, which must work BEFORE verification (so they cannot use requireActiveAdmin) yet
+ * must still refuse the sensitive operations — changing or switching off an already-enabled second factor — to a
+ * caller who has not completed it. Fails closed on every problem, like the verifier it wraps.
+ */
+export async function hasVerifiedTwoFactor(userId: string): Promise<boolean> {
+  const cookieValue = cookies().get(ADMIN_2FA_COOKIE_NAME)?.value
+  return verifyAdmin2FACookie(cookieValue, userId)
+}

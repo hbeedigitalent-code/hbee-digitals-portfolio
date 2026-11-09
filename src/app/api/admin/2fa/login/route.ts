@@ -10,6 +10,8 @@
 import { NextResponse } from 'next/server'
 import speakeasy from 'speakeasy'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { TWO_FACTOR_MESSAGES } from '@/lib/admin-2fa-policy'
 import { getAdmin2FACookieOptions, ADMIN_2FA_COOKIE_NAME, signAdmin2FACookie } from '@/lib/admin-2fa-cookie'
 
 // Lazy, non-throwing service-role client. Deliberately not the shared
@@ -88,6 +90,15 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { success: false, error: 'User is not authorized as admin' },
         { status: 403 },
+      )
+    }
+
+    // 2b. Brute-force guard: a 6-digit code must not be guessable at machine speed. Limited per admin account, not per IP.
+    const limit = await checkRateLimit('adminTotp', user.id)
+    if (!limit.ok) {
+      return NextResponse.json(
+        { success: false, error: TWO_FACTOR_MESSAGES.tooManyAttempts },
+        { status: 429, headers: limit.retryAfterSeconds ? { 'Retry-After': String(limit.retryAfterSeconds) } : undefined },
       )
     }
 

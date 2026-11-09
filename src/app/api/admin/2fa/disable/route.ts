@@ -7,6 +7,8 @@
 // session-derived user id — never a browser-supplied one.
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { hasVerifiedTwoFactor } from '@/lib/admin-api-auth'
+import { enrollmentPolicy, TWO_FACTOR_MESSAGES } from '@/lib/admin-2fa-policy'
 
 // Lazy, non-throwing service-role client — see login/route.ts for why this
 // does not import the shared src/lib/supabaseAdmin.ts singleton.
@@ -70,6 +72,18 @@ export async function POST() {
       )
     }
 
+    // This route only needed a signed-in admin SESSION, so anyone holding just a password could switch 2FA off and
+    // (under the old status route) be stamped as verified. Now:
+    //  - while enrollment is mandatory, an admin cannot switch their own second factor off at all; a lost
+    //    authenticator is reset by an owner (a deliberate, audited database action), which forces re-enrollment;
+    //  - under the explicit opt-out policy, switching it off still requires a completed 2FA verification.
+    if (enrollmentPolicy() === 'required') {
+      return NextResponse.json({ success: false, error: TWO_FACTOR_MESSAGES.mandatory }, { status: 403 })
+    }
+    if (!(await hasVerifiedTwoFactor(user.id))) {
+      return NextResponse.json({ success: false, error: TWO_FACTOR_MESSAGES.verifyFirst }, { status: 403 })
+    }
+
     const { error } = await supabase
       .from('admin_2fa')
       .update({ is_enabled: false, secret: null, backup_codes: null })
@@ -77,10 +91,7 @@ export async function POST() {
 
     if (error) {
       console.error('Disable 2FA error:', error)
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500 },
-      )
+      return NextResponse.json({ success: false, error: 'Failed to disable 2FA' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })

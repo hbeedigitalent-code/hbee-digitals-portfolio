@@ -26,7 +26,6 @@ export default function AdminProfile() {
   const [qrCode, setQrCode] = useState('')
   const [twoFASecret, setTwoFASecret] = useState('')
   const [twoFAToken, setTwoFAToken] = useState('')
-  const [backupCodes, setBackupCodes] = useState<string[]>([])
   const [verifying2FA, setVerifying2FA] = useState(false)
 
   useEffect(() => {
@@ -247,11 +246,10 @@ export default function AdminProfile() {
       })
       const data = await response.json()
       if (data.success) {
-        setBackupCodes(data.backupCodes)
         setTwoFAEnabled(true)
         setShow2FASetup(false)
         setTwoFAToken('')
-        setMessage({ type: 'success', text: '2FA enabled successfully! Save your backup codes.' })
+        setMessage({ type: 'success', text: 'Two-factor authentication is now on.' })
       } else {
         setMessage({ type: 'error', text: data.error || 'Invalid verification code' })
       }
@@ -310,7 +308,7 @@ export default function AdminProfile() {
               <button onClick={() => setShow2FASetup(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">✕</button>
             </div>
             
-            {!backupCodes.length ? (
+            {(
               <>
                 <div className="mb-4 rounded-lg bg-[var(--bg-section)] p-4 text-center">
                   {qrCode && <img src={qrCode} alt="2FA QR Code" className="mx-auto mb-3 w-48 rounded-lg" />}
@@ -348,25 +346,6 @@ export default function AdminProfile() {
                   {verifying2FA ? 'Verifying...' : 'Verify & Enable 2FA'}
                 </button>
               </>
-            ) : (
-              <div>
-                <div className="mb-4 rounded-lg bg-green-500/10 p-4 text-center">
-                  <SvgIcon name="verified" size={32} color="var(--accent)" className="mx-auto mb-3" />
-                  <p className="font-bold text-[var(--accent)]">2FA Enabled Successfully!</p>
-                  <p className="mt-2 text-sm text-[var(--text-secondary)]">Save these backup codes in a safe place:</p>
-                </div>
-                <div className="mb-4 grid grid-cols-2 gap-2 rounded-lg bg-[var(--bg-section)] p-4">
-                  {backupCodes.map((code, i) => (
-                    <code key={i} className="rounded bg-[var(--bg-card)] px-2 py-1 text-center font-mono text-sm">{code}</code>
-                  ))}
-                </div>
-                <button
-                  onClick={() => setShow2FASetup(false)}
-                  className="w-full rounded-full bg-[var(--accent)] py-3 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02]"
-                >
-                  Done
-                </button>
-              </div>
             )}
           </div>
         </div>

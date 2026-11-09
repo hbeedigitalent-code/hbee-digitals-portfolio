@@ -6,13 +6,20 @@
 // admin_2fa.is_enabled, and it always does so with the service-role client.
 // The browser never queries admin_2fa directly.
 //
-// When 2FA is NOT enabled for this admin, this route stamps the "2FA
-// verified" cookie itself (there is nothing to verify, so the requirement is
-// trivially satisfied) — this is the single, well-defined place that
-// auto-stamps the cookie for a no-2FA admin; nothing else in the app does.
+// ENROLLMENT IS MANDATORY (src/lib/admin-2fa-policy.ts). This route used to stamp the
+// "2FA verified" cookie for any admin with no 2FA record, treating "nothing to verify" as
+// "verified" — so an admin who never enrolled, or whose second factor had been switched
+// off, was let straight in. It now stamps only under the explicit opt-out
+// ADMIN_2FA_ENROLLMENT=optional. By default an un-enrolled admin gets
+// `enrollmentRequired: true` and NO cookie: the cookie is issued by completing enrollment
+// (/api/admin/2fa/verify) or by a TOTP login, never by this status check.
+//
+// It also fails CLOSED: if admin_2fa cannot be read, nobody is stamped. Previously a read
+// error looked exactly like "not enrolled" and was waved through.
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { getAdmin2FACookieOptions, ADMIN_2FA_COOKIE_NAME, signAdmin2FACookie } from '@/lib/admin-2fa-cookie'
+import { decideTwoFactorStatus, enrollmentPolicy } from '@/lib/admin-2fa-policy'
 
 // Lazy, non-throwing service-role client — see login/route.ts for why this
 // does not import the shared src/lib/supabaseAdmin.ts singleton.
@@ -66,33 +73,42 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authorized as admin' }, { status: 403 })
     }
 
-    const { data: twoFAData } = await adminClient
+    const { data: twoFAData, error: twoFAError } = await adminClient
       .from('admin_2fa')
       .select('is_enabled')
       .eq('user_id', user.id)
       .maybeSingle()
 
-    const enabled = Boolean(twoFAData?.is_enabled)
+    const decision = decideTwoFactorStatus({
+      readFailed: Boolean(twoFAError),
+      enabled: Boolean(twoFAData?.is_enabled),
+      policy: enrollmentPolicy(),
+    })
 
-    if (!enabled) {
-      // No 2FA configured — the "verified" requirement is trivially met.
-      // Fail closed if the signing secret is missing: do NOT report ready
-      // without actually being able to issue a valid cookie.
-      const cookieValue = await signAdmin2FACookie(user.id)
-      if (!cookieValue) {
-        console.error('❌ ADMIN_2FA_COOKIE_SECRET is not set — cannot stamp verification state')
-        return NextResponse.json(
-          { error: 'Server configuration error' },
-          { status: 500 },
-        )
-      }
-
-      const response = NextResponse.json({ enabled: false, ready: true })
-      response.cookies.set(ADMIN_2FA_COOKIE_NAME, cookieValue, getAdmin2FACookieOptions())
-      return response
+    if (decision.kind === 'error') {
+      console.error(`[2fa/status] admin_2fa read failed (code=${(twoFAError as { code?: string } | null)?.code ?? 'n/a'}) — nobody is stamped`)
+      return NextResponse.json({ error: 'Failed to determine 2FA status' }, { status: 500 })
     }
 
-    return NextResponse.json({ enabled: true, ready: false })
+    if (decision.kind === 'challenge') {
+      return NextResponse.json({ enabled: true, ready: false, enrollmentRequired: false })
+    }
+
+    if (decision.kind === 'enroll') {
+      // No cookie is issued. The admin must enroll first.
+      return NextResponse.json({ enabled: false, ready: false, enrollmentRequired: true })
+    }
+
+    // decision.kind === 'stamp': the explicit, temporary opt-out (ADMIN_2FA_ENROLLMENT=optional).
+    console.warn('[2fa/status] ADMIN_2FA_ENROLLMENT=optional: stamping an un-enrolled admin (security downgrade)')
+    const cookieValue = await signAdmin2FACookie(user.id)
+    if (!cookieValue) {
+      console.error('❌ ADMIN_2FA_COOKIE_SECRET is not set — cannot stamp verification state')
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
+    const response = NextResponse.json({ enabled: false, ready: true, enrollmentRequired: false })
+    response.cookies.set(ADMIN_2FA_COOKIE_NAME, cookieValue, getAdmin2FACookieOptions())
+    return response
   } catch (error: any) {
     console.error('2FA status error:', error)
     return NextResponse.json({ error: 'Failed to determine 2FA status' }, { status: 500 })

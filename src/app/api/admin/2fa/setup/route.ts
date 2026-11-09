@@ -8,6 +8,8 @@ import { NextResponse } from 'next/server'
 import speakeasy from 'speakeasy'
 import QRCode from 'qrcode'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { hasVerifiedTwoFactor } from '@/lib/admin-api-auth'
+import { TWO_FACTOR_MESSAGES } from '@/lib/admin-2fa-policy'
 
 // Lazy, non-throwing service-role client — mirrors the pattern this route
 // already used before this change. Deliberately does NOT import the shared
@@ -74,6 +76,25 @@ export async function POST() {
       )
     }
 
+    // GUARD. This route only needed a signed-in admin SESSION, so anyone holding just a password could replace an
+    // enrolled admin's secret and flip is_enabled to false — and the old status route then stamped them as verified.
+    // Replacing or restarting an ENABLED second factor now requires a completed 2FA verification (the signed cookie).
+    // First-time enrollment (nothing enabled yet) does not, because that is how the cookie is first earned.
+    const { data: current, error: currentError } = await supabase
+      .from('admin_2fa')
+      .select('id, is_enabled')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (currentError) {
+      console.error('[2fa/setup] admin_2fa read failed')
+      return NextResponse.json({ success: false, error: 'Setup failed' }, { status: 500 })
+    }
+
+    if (current?.is_enabled === true && !(await hasVerifiedTwoFactor(user.id))) {
+      return NextResponse.json({ success: false, error: TWO_FACTOR_MESSAGES.verifyFirst }, { status: 403 })
+    }
+
     const email = user.email || 'admin'
 
     // Generate secret
@@ -85,12 +106,8 @@ export async function POST() {
     // Generate QR code
     const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url!)
 
-    // Check if user already has a record
-    const { data: existing } = await supabase
-      .from('admin_2fa')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle()
+    // The record read above doubles as the existence check.
+    const existing = current
 
     let error
     if (existing) {
@@ -120,10 +137,7 @@ export async function POST() {
 
     if (error) {
       console.error('Supabase error:', error)
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500 },
-      )
+      return NextResponse.json({ success: false, error: 'Setup failed' }, { status: 500 })
     }
 
     return NextResponse.json({
