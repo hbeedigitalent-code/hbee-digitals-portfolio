@@ -16,7 +16,7 @@
 -- either "PASS" or "FAIL".
 --
 -- Safeguards: refuses unless public._environment_marker holds env = 'staging'; needs at least one active admin_users row.
--- Uses only a synthetic second admin (user id generated here, email at example.invalid) and rows titled "rls-test-…".
+-- Uses only a synthetic second admin (user id generated here, email at example.invalid) and rows named "rls-test-…" (portfolio_items has NOT NULL name and category; classification set explicitly).
 -- Role switching (SET LOCAL ROLE) needs the postgres role to be a member of anon / authenticated / service_role, which is the
 -- Supabase SQL-editor default. Any step that cannot switch role is reported SKIPPED, never silently passed.
 --
@@ -58,8 +58,8 @@ begin
   end if;
 
   -- fixtures (as the table owner; rolled back with everything else)
-  insert into public.portfolio_items (title, is_active) values (v_tag || '-active', true) returning id into v_item_active;
-  insert into public.portfolio_items (title, is_active) values (v_tag || '-hidden', false) returning id into v_item_hidden;
+  insert into public.portfolio_items (name, category, engagement_type, project_status, is_active) values (v_tag || '-active', 'rls-test', 'studio_team', 'completed', true) returning id into v_item_active;
+  insert into public.portfolio_items (name, category, engagement_type, project_status, is_active) values (v_tag || '-hidden', 'rls-test', 'studio_team', 'completed', false) returning id into v_item_hidden;
   insert into public.admin_users (user_id, email, role, is_active) values (v_admin2, 'rls-test-admin2@example.invalid', 'admin', true);
   begin
     insert into public.portfolio_media (portfolio_id, asset_type, image_url, alt_text, is_visible)
@@ -73,13 +73,13 @@ begin
     select * from (values
       -- (ord, role, who, description, statement, expect)   expect: BLOCK | ALLOW | a number
       (1,  'authenticated', 'ordinary', 'insert portfolio item',
-           format($f$ with c as (insert into public.portfolio_items (title, is_active) values (%L, true) returning 1) select count(*) from c $f$, v_tag || '-ins-ordinary'), 'BLOCK'),
+           format($f$ with c as (insert into public.portfolio_items (name, category, engagement_type, project_status, is_active) values (%L, 'rls-test', 'studio_team', 'completed', true) returning 1) select count(*) from c $f$, v_tag || '-ins-ordinary'), 'BLOCK'),
       (2,  'authenticated', 'ordinary', 'update published item',
-           format($f$ with c as (update public.portfolio_items set title = title where id = %L returning 1) select count(*) from c $f$, v_item_active), 'BLOCK'),
+           format($f$ with c as (update public.portfolio_items set name = name where id = %L returning 1) select count(*) from c $f$, v_item_active), 'BLOCK'),
       (3,  'authenticated', 'ordinary', 'delete published item',
            format($f$ with c as (delete from public.portfolio_items where id = %L returning 1) select count(*) from c $f$, v_item_active), 'BLOCK'),
       (4,  'authenticated', 'ordinary', 'sees only the published fixture',
-           format($f$ select count(*) from public.portfolio_items where title like %L $f$, v_tag || '%'), '1'),
+           format($f$ select count(*) from public.portfolio_items where name like %L $f$, v_tag || '%'), '1'),
       (5,  'authenticated', 'ordinary', 'insert portfolio media',
            format($f$ with c as (insert into public.portfolio_media (portfolio_id, asset_type, image_url, alt_text) values (%L, 'logo', 'https://example.invalid/x.png', 'x') returning 1) select count(*) from c $f$, v_item_active), 'BLOCK'),
       (6,  'authenticated', 'ordinary', 'update portfolio media',
@@ -89,23 +89,23 @@ begin
       (8,  'authenticated', 'ordinary', 'admin_users: sees no admin rows',
            $f$ select count(*) from public.admin_users $f$, '0'),
       (9,  'anon', 'anon', 'sees only the published fixture',
-           format($f$ select count(*) from public.portfolio_items where title like %L $f$, v_tag || '%'), '1'),
+           format($f$ select count(*) from public.portfolio_items where name like %L $f$, v_tag || '%'), '1'),
       (10, 'anon', 'anon', 'insert portfolio item',
-           format($f$ with c as (insert into public.portfolio_items (title, is_active) values (%L, true) returning 1) select count(*) from c $f$, v_tag || '-ins-anon'), 'BLOCK'),
+           format($f$ with c as (insert into public.portfolio_items (name, category, engagement_type, project_status, is_active) values (%L, 'rls-test', 'studio_team', 'completed', true) returning 1) select count(*) from c $f$, v_tag || '-ins-anon'), 'BLOCK'),
       (11, 'anon', 'anon', 'update portfolio item',
-           format($f$ with c as (update public.portfolio_items set title = title where id = %L returning 1) select count(*) from c $f$, v_item_active), 'BLOCK'),
+           format($f$ with c as (update public.portfolio_items set name = name where id = %L returning 1) select count(*) from c $f$, v_item_active), 'BLOCK'),
       (12, 'anon', 'anon', 'delete portfolio item',
            format($f$ with c as (delete from public.portfolio_items where id = %L returning 1) select count(*) from c $f$, v_item_active), 'BLOCK'),
       (13, 'anon', 'anon', 'admin_users is not readable',
            $f$ select count(*) from public.admin_users $f$, 'BLOCK'),
       (14, 'authenticated', 'admin1', 'insert portfolio item',
-           format($f$ with c as (insert into public.portfolio_items (title, is_active) values (%L, true) returning 1) select count(*) from c $f$, v_tag || '-ins-admin1'), 'ALLOW'),
+           format($f$ with c as (insert into public.portfolio_items (name, category, engagement_type, project_status, is_active) values (%L, 'rls-test', 'studio_team', 'completed', true) returning 1) select count(*) from c $f$, v_tag || '-ins-admin1'), 'ALLOW'),
       (15, 'authenticated', 'admin1', 'sees published + hidden + own insert',
-           format($f$ select count(*) from public.portfolio_items where title like %L $f$, v_tag || '%'), '3'),
+           format($f$ select count(*) from public.portfolio_items where name like %L $f$, v_tag || '%'), '3'),
       (16, 'authenticated', 'admin1', 'update a hidden item',
-           format($f$ with c as (update public.portfolio_items set title = title where id = %L returning 1) select count(*) from c $f$, v_item_hidden), 'ALLOW'),
+           format($f$ with c as (update public.portfolio_items set name = name where id = %L returning 1) select count(*) from c $f$, v_item_hidden), 'ALLOW'),
       (17, 'authenticated', 'admin1', 'delete the item it inserted',
-           format($f$ with c as (delete from public.portfolio_items where title = %L returning 1) select count(*) from c $f$, v_tag || '-ins-admin1'), 'ALLOW'),
+           format($f$ with c as (delete from public.portfolio_items where name = %L returning 1) select count(*) from c $f$, v_tag || '-ins-admin1'), 'ALLOW'),
       (18, 'authenticated', 'admin1', 'insert portfolio media',
            format($f$ with c as (insert into public.portfolio_media (portfolio_id, asset_type, image_url, alt_text) values (%L, 'logo', 'https://example.invalid/y.png', 'y') returning 1) select count(*) from c $f$, v_item_active), 'ALLOW'),
       (19, 'authenticated', 'admin1', 'admin_users: sees exactly its own row',
@@ -115,15 +115,15 @@ begin
       (21, 'authenticated', 'admin2', 'admin_users: sees exactly its own row',
            $f$ select count(*) from public.admin_users $f$, '1'),
       (22, 'authenticated', 'admin2', 'insert portfolio item (active admin)',
-           format($f$ with c as (insert into public.portfolio_items (title, is_active) values (%L, true) returning 1) select count(*) from c $f$, v_tag || '-ins-admin2'), 'ALLOW'),
+           format($f$ with c as (insert into public.portfolio_items (name, category, engagement_type, project_status, is_active) values (%L, 'rls-test', 'studio_team', 'completed', true) returning 1) select count(*) from c $f$, v_tag || '-ins-admin2'), 'ALLOW'),
       (23, 'postgres', 'owner', 'PREP: deactivate the synthetic admin',
            format($f$ with c as (update public.admin_users set is_active = false where user_id = %L returning 1) select count(*) from c $f$, v_admin2), 'ALLOW'),
       (24, 'authenticated', 'admin2', 'DEACTIVATED admin: insert portfolio item',
-           format($f$ with c as (insert into public.portfolio_items (title, is_active) values (%L, true) returning 1) select count(*) from c $f$, v_tag || '-ins-admin2b'), 'BLOCK'),
+           format($f$ with c as (insert into public.portfolio_items (name, category, engagement_type, project_status, is_active) values (%L, 'rls-test', 'studio_team', 'completed', true) returning 1) select count(*) from c $f$, v_tag || '-ins-admin2b'), 'BLOCK'),
       (25, 'authenticated', 'admin2', 'DEACTIVATED admin: sees only the published fixture',
-           format($f$ select count(*) from public.portfolio_items where title like %L and title not like %L $f$, v_tag || '%', v_tag || '-ins-%'), '1'),
+           format($f$ select count(*) from public.portfolio_items where name like %L and name not like %L $f$, v_tag || '%', v_tag || '-ins-%'), '1'),
       (26, 'service_role', 'service', 'trusted server role: insert portfolio item',
-           format($f$ with c as (insert into public.portfolio_items (title, is_active) values (%L, true) returning 1) select count(*) from c $f$, v_tag || '-ins-service'), 'ALLOW')
+           format($f$ with c as (insert into public.portfolio_items (name, category, engagement_type, project_status, is_active) values (%L, 'rls-test', 'studio_team', 'completed', true) returning 1) select count(*) from c $f$, v_tag || '-ins-service'), 'ALLOW')
     ) as x(ord, role_name, who, descr, stmt, expect)
     order by ord
   loop
