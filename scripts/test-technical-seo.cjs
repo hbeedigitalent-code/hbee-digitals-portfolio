@@ -55,6 +55,8 @@ async function main() {
       { slug: 'missing-title', title: '   ', published_at: '2026-08-21T12:00:00Z' },
     ],
   }
+  let creativeOn = false
+  const caseStudyRows = [{ slug: 'valid-case-study' }]
   const supabase = {
     from(table) {
       const call = { table, operations: [] }
@@ -62,7 +64,11 @@ async function main() {
       const chain = {
         select(fields) { call.operations.push(['select', fields]); return chain },
         eq(field, value) { call.operations.push(['eq', field, value]); return chain },
-        then(resolve) { return Promise.resolve(resolve({ data: rows[table], error: null })) },
+        then(resolve) {
+          // The flag-on Case Study lookup is its own query (select 'slug, is_case_study').
+          const selected = call.operations.find((op) => op[0] === 'select')?.[1]
+          return Promise.resolve(resolve({ data: String(selected).includes('is_case_study') ? caseStudyRows : rows[table], error: null }))
+        },
       }
       return chain
     },
@@ -83,6 +89,7 @@ async function main() {
     '@/components/site/capability/capability-content': { CAPABILITY_DETAILS: Object.fromEntries(capabilitySlugs.map((slug) => [slug, {}])) },
     '@/lib/site/home-data': { text, isValidPortfolioSlug },
     '@/lib/blog-utils': { insightCanonical },
+    '@/lib/portfolio-creative': { portfolioCreativeEnabled: () => creativeOn },
   })
   const sitemap = await sitemapModule.default()
   const byUrl = new Map(sitemap.map((entry) => [entry.url, entry]))
@@ -98,6 +105,8 @@ async function main() {
     assert.ok(entry, `Sitemap includes capability ${slug}`)
     assert.equal(entry.lastModified, undefined)
   }
+  assert.ok(!byUrl.has('https://hbeedigitals.com/case-studies'), 'Flag off: no Case Studies route in the sitemap')
+  assert.ok(!queryCalls.some((c) => c.operations.some((op) => op[0] === 'select' && String(op[1]).includes('is_case_study'))), 'Flag off: the sitemap never reads is_case_study')
   assert.equal(byUrl.get('https://hbeedigitals.com/work/valid-case-study').lastModified.toISOString(), '2026-09-01T12:00:00.000Z')
   assert.equal(byUrl.get('https://hbeedigitals.com/work/valid-without-date').lastModified, undefined)
   assert.ok(!byUrl.has('https://hbeedigitals.com/work/portfolio'))
@@ -188,6 +197,15 @@ async function main() {
     assert.ok(image.width >= 1200 && image.height >= 630, `${asset} has social-card resolution`)
     assert.ok(Math.abs(image.width / image.height - 1200 / 630) < 0.01, `${asset} has 1.91:1 social-card aspect ratio`)
   }
+
+    // Flag on: a Case Study is listed once, at its canonical page, plus the library route.
+  creativeOn = true
+  const flagged = new Map((await sitemapModule.default()).map((entry) => [entry.url, entry]))
+  assert.ok(flagged.has('https://hbeedigitals.com/case-studies/valid-case-study'))
+  assert.ok(!flagged.has('https://hbeedigitals.com/work/valid-case-study'), 'No duplicate /work URL for a Case Study')
+  assert.ok(flagged.has('https://hbeedigitals.com/case-studies'))
+  assert.ok(flagged.has('https://hbeedigitals.com/work/valid-without-date'), 'Standard Work keeps its /work URL')
+  creativeOn = false
 
   console.log('PASS: canonical-only sitemap and truthful dates; active/published route eligibility; robots asset access; apex host and one-hop redirects; route-family noindex; public canonical/OG/Twitter metadata; current Service/Breadcrumb/Organization schema; Work/Insights guards; social and icon assets.')
 }

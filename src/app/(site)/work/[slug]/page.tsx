@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 
 import { WorkDetailPage } from '@/components/site/work/WorkDetail'
-import { getWorkDetail, getWorkSeo } from '@/lib/site/work-data'
+import { getNextWork, getWorkDetail, getWorkSeo } from '@/lib/site/work-data'
 import { pageMetadata } from '@/lib/site/seo'
 
 /**
@@ -26,5 +26,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function CaseStudyPage({ params }: { params: { slug: string } }) {
   const detail = await getWorkDetail(params.slug)
   if (!detail) notFound()
-  return <WorkDetailPage detail={detail} />
+  // A Case Study has exactly one canonical page; never render a second copy here.
+  if (detail.creative?.caseStudy) redirect(`/case-studies/${params.slug}`)
+  // Next-project navigation belongs to the creative experience only (flag on).
+  const next = detail.creative ? await getNextWork(params.slug) : null
+  return <WorkDetailPage detail={detail} next={next} />
 }

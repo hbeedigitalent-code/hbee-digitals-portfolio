@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { Plus, Search } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { newPortfolioPayload, portfolioEditHref, portfolioPublicHref, portfolioErrorMessage, slugify, validWorkSlug } from '@/lib/admin/portfolio-editor'
+import { AdminButton, AdminEmptyState, AdminLoadingState, AdminNotice, AdminPageHeader, AdminSection, AdminStatusBadge, adminBtn } from '@/components/admin/ui/AdminUi'
 
 type PortfolioItem = {
   id: string
@@ -16,10 +18,31 @@ type PortfolioItem = {
   featured: boolean
   is_active: boolean
   display_order: number
+  // Present only once the creative / case-study migrations exist; absent means "not classified yet".
+  engagement_type?: string | null
+  project_status?: string | null
+  is_case_study?: boolean | null
 }
 
-const inputClass = 'w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)]'
-const actionClass = 'rounded-full border border-[var(--border)] px-3 py-2 text-xs font-bold text-[var(--text-primary)] disabled:opacity-50'
+type Filter = 'all' | 'visible' | 'hidden' | 'featured' | 'case'
+
+const inputClass = 'w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2.5 text-[var(--text-primary)] focus:border-[var(--accent)]'
+
+/** Classification chips. Only what the row actually says: never a default presented as a fact. */
+function Classification({ item }: { item: PortfolioItem }) {
+  return (
+    <>
+      <AdminStatusBadge tone={item.is_active ? 'green' : 'neutral'} dot>{item.is_active ? 'Visible' : 'Hidden'}</AdminStatusBadge>
+      {item.featured && <AdminStatusBadge tone="orange">Featured</AdminStatusBadge>}
+      {item.is_case_study === true && <AdminStatusBadge tone="dark">Case Study</AdminStatusBadge>}
+      {item.is_case_study === false && <AdminStatusBadge>Standard Work</AdminStatusBadge>}
+      {item.engagement_type === 'client' && <AdminStatusBadge tone="blue">Client</AdminStatusBadge>}
+      {item.engagement_type === 'studio_team' && <AdminStatusBadge>Studio</AdminStatusBadge>}
+      {item.project_status === 'ongoing' && <AdminStatusBadge tone="amber">Ongoing</AdminStatusBadge>}
+      {item.project_status === 'completed' && <AdminStatusBadge>Completed</AdminStatusBadge>}
+    </>
+  )
+}
 
 export default function AdminPortfolioPage() {
   const router = useRouter()
@@ -31,6 +54,8 @@ export default function AdminPortfolioPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [title, setTitle] = useState('')
   const [slug, setSlug] = useState('')
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<Filter>('all')
 
   useEffect(() => { void fetchItems() }, [])
 
@@ -94,76 +119,134 @@ export default function AdminPortfolioPage() {
     } finally { setBusy(false) }
   }
 
-  if (loading) return <p className="py-20 text-center text-[var(--text-muted)]" role="status">Loading portfolio…</p>
+  const hasCaseStudies = items.some((item) => item.is_case_study === true)
+  const needle = query.trim().toLowerCase()
+  const visibleItems = items.filter((item) => {
+    if (filter === 'visible' && !item.is_active) return false
+    if (filter === 'hidden' && item.is_active) return false
+    if (filter === 'featured' && !item.featured) return false
+    if (filter === 'case' && item.is_case_study !== true) return false
+    return !needle || [item.title, item.client_name, item.category, item.slug].some((value) => (value || '').toLowerCase().includes(needle))
+  })
+
+  const filters: Array<[Filter, string, number]> = [
+    ['all', 'All', items.length],
+    ['visible', 'Visible', items.filter((i) => i.is_active).length],
+    ['hidden', 'Hidden', items.filter((i) => !i.is_active).length],
+    ['featured', 'Featured', items.filter((i) => i.featured).length],
+    ...(hasCaseStudies ? ([['case', 'Case Studies', items.filter((i) => i.is_case_study === true).length]] as Array<[Filter, string, number]>) : []),
+  ]
+
+  const header = (
+    <AdminPageHeader
+      eyebrow="Website content"
+      title="Portfolio & Case Studies"
+      description="Manage the public /work entries. Open a project to edit its story, media, classification and SEO."
+    >
+      <button type="button" disabled={busy} onClick={() => { setShowCreate(true); setMessage(''); setErrorMessage('') }} className={adminBtn('primary')}>
+        <Plus aria-hidden="true" className="h-4 w-4" />Create New Project
+      </button>
+    </AdminPageHeader>
+  )
+
+  if (loading) return <div className="space-y-6">{header}<AdminLoadingState label="Loading portfolio…" /></div>
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-[var(--text-primary)]">Portfolio &amp; Case Studies</h2>
-          <p className="text-sm text-[var(--text-muted)]">Manage public /work entries. Open Edit for the full story, media and SEO controls.</p>
-        </div>
-        <button type="button" disabled={busy} onClick={() => { setShowCreate(true); setMessage(''); setErrorMessage('') }} className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-black text-white disabled:opacity-50">Create New Project</button>
-      </div>
-      {message && <p role="status" className="rounded-xl border border-[var(--accent)]/20 p-4 text-sm text-[var(--accent)]">{message}</p>}
-      {errorMessage && <p role="alert" className="rounded-xl border border-red-500/20 p-4 text-sm text-red-500">{errorMessage}</p>}
+      {header}
+      {message && <AdminNotice tone="success">{message}</AdminNotice>}
+      {errorMessage && <AdminNotice tone="error">{errorMessage}</AdminNotice>}
 
       {showCreate && (
-        <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6" aria-labelledby="create-portfolio-title">
-          <h3 id="create-portfolio-title" className="text-lg font-black text-[var(--text-primary)]">Create a draft</h3>
-          <p className="mt-2 text-sm text-[var(--text-muted)]">Start with a title and URL. Add the remaining details in the full editor before making it visible.</p>
-          <form onSubmit={createItem} className="mt-5 space-y-4">
+        <AdminSection id="create-portfolio" title="Create a draft" description="Start with a title and URL. Add the remaining details in the full editor before making it visible.">
+          <form onSubmit={createItem} className="space-y-4">
             <fieldset disabled={busy} className="grid gap-5 lg:grid-cols-2">
               <label className="text-sm font-bold text-[var(--text-secondary)]">Project title *
-                <input required value={title} onChange={(e) => { setTitle(e.target.value); setSlug(slugify(e.target.value)) }} className={inputClass} />
+                <input required value={title} onChange={(e) => { setTitle(e.target.value); setSlug(slugify(e.target.value)) }} className={`mt-1.5 ${inputClass}`} />
               </label>
               <label className="text-sm font-bold text-[var(--text-secondary)]">Slug *
-                <input required value={slug} onChange={(e) => setSlug(slugify(e.target.value))} pattern="[a-z0-9_]+(-[a-z0-9_]+)*" aria-describedby="create-slug-hint" className={inputClass} />
-                <span id="create-slug-hint" className="mt-1 block text-xs font-normal text-[var(--text-muted)]">URL: /work/{slug || '…'}{slug === 'portfolio' ? ' — “portfolio” is reserved; choose another slug.' : ''}</span>
+                <input required value={slug} onChange={(e) => setSlug(slugify(e.target.value))} pattern="[a-z0-9_]+(-[a-z0-9_]+)*" aria-describedby="create-slug-hint" className={`mt-1.5 ${inputClass}`} />
+                <span id="create-slug-hint" className="mt-1 block text-xs font-normal text-[var(--text-muted)]">URL: /work/{slug || '…'}{slug === 'portfolio' ? ' — “portfolio” is reserved' : ''}</span>
               </label>
             </fieldset>
             <div className="flex flex-wrap gap-3">
-              <button type="submit" disabled={busy || !title.trim() || !validWorkSlug(slug)} className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-black text-white disabled:opacity-50">{busy ? 'Creating…' : 'Create draft & continue'}</button>
-              <button type="button" disabled={busy} onClick={() => setShowCreate(false)} className={actionClass}>Cancel</button>
+              <button type="submit" disabled={busy || !title.trim() || !validWorkSlug(slug)} className={adminBtn('primary')}>{busy ? 'Creating…' : 'Create draft'}</button>
+              <button type="button" disabled={busy} onClick={() => setShowCreate(false)} className={adminBtn('secondary')}>Cancel</button>
             </div>
           </form>
-        </section>
+        </AdminSection>
       )}
 
-      <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6" aria-labelledby="portfolio-items-title">
-        <h3 id="portfolio-items-title" className="mb-2 text-lg font-black text-[var(--text-primary)]">Existing Portfolio Items</h3>
-        <p className="mb-5 text-sm text-[var(--text-muted)]">Lower display order appears first within featured and non-featured groups. Public loaders show featured entries first.</p>
-        {items.length === 0 ? <p className="py-8 text-center text-[var(--text-muted)]">No portfolio items loaded.</p> : (
-          <div className="grid gap-4 lg:grid-cols-2">
-            {items.map((item) => (
-              <article key={item.id} className="rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-4">
-                <div className="flex gap-4">
-                  {item.image_url && <img src={item.image_url} alt="" className="h-20 w-24 shrink-0 rounded-lg bg-[var(--bg-card)] object-contain" />}
-                  <div className="min-w-0 flex-1">
-                    <h4 className="break-words font-bold text-[var(--text-primary)]">{item.title || item.client_name}</h4>
-                    <p className="mt-1 text-sm text-[var(--text-muted)]">{item.category || 'Uncategorized'} · {item.is_active ? 'Visible' : 'Hidden'}{item.featured ? ' · Featured' : ''}</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Link href={portfolioEditHref(item.id)} className="rounded-full bg-[var(--accent)] px-3 py-2 text-xs font-black text-white">Edit</Link>
-                      {validWorkSlug(item.slug) && item.is_active && <Link href={portfolioPublicHref(item.slug)} target="_blank" rel="noopener noreferrer" className={actionClass}>View /work page</Link>}
-                      <button type="button" disabled={busy} onClick={() => manageItem(item.id, { featured: !item.featured })} className={actionClass}>{item.featured ? 'Unfeature' : 'Feature'}</button>
-                      <button type="button" disabled={busy} onClick={() => manageItem(item.id, { is_active: !item.is_active })} className={actionClass}>{item.is_active ? 'Hide' : 'Make visible'}</button>
-                      <button type="button" disabled={busy} onClick={() => deleteItem(item.id)} className="rounded-full border border-red-500/30 px-3 py-2 text-xs font-bold text-red-500 disabled:opacity-50">Delete</button>
-                    </div>
-                    <form className="mt-3 flex items-end gap-2" onSubmit={(event) => {
-                      event.preventDefault()
-                      const value = Number(new FormData(event.currentTarget).get('display_order'))
-                      if (Number.isSafeInteger(value)) void manageItem(item.id, { display_order: value })
-                    }}>
-                      <label className="text-xs text-[var(--text-muted)]">Display order
-                        <input key={item.display_order} name="display_order" type="number" step="1" required defaultValue={item.display_order ?? 0} disabled={busy} className={`${inputClass} mt-1 max-w-28`} />
-                      </label>
-                      <button type="submit" disabled={busy} className={actionClass}>Save order</button>
-                    </form>
-                  </div>
-                </div>
-              </article>
+      <section aria-label="Portfolio projects" className="space-y-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="relative min-w-[14rem] flex-1 sm:max-w-sm">
+            <span className="sr-only">Search projects</span>
+            <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+            <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by title, client, category or URL" className={`${inputClass} pl-9`} />
+          </label>
+          <div role="group" aria-label="Filter projects" className="flex flex-wrap gap-1.5">
+            {filters.map(([key, label, total]) => (
+              <button key={key} type="button" aria-pressed={filter === key} onClick={() => setFilter(key)} className={adminBtn(filter === key ? 'accent' : 'secondary', 'sm')}>
+                {label} <span className="opacity-70">{total}</span>
+              </button>
             ))}
           </div>
+        </div>
+
+        {items.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-card)]">
+            <AdminEmptyState title="No projects yet" description="Create your first draft to start building the public Work portfolio." action={<AdminButton variant="primary" onClick={() => { setShowCreate(true); setMessage(''); setErrorMessage('') }}>Start a draft</AdminButton>} />
+          </div>
+        ) : visibleItems.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-card)]">
+            <AdminEmptyState title="No projects match" description="Try a different search or filter." action={<AdminButton variant="secondary" onClick={() => { setQuery(''); setFilter('all') }}>Clear filters</AdminButton>} />
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-[var(--text-muted)]" role="status">Showing {visibleItems.length} of {items.length}. Lower display order appears first within featured and non-featured groups.</p>
+            <ul className="grid gap-4 xl:grid-cols-2">
+              {visibleItems.map((item) => (
+                <li key={item.id}>
+                  <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-[var(--shadow-sm)] sm:flex-row">
+                    <div className="aspect-[16/9] w-full flex-none bg-[var(--bg-section)] sm:aspect-auto sm:w-44">
+                      {item.image_url
+                        ? <img src={item.image_url} alt="" className="h-full w-full object-cover" />
+                        : <div aria-hidden="true" className="grid h-full w-full place-items-center text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">No image</div>}
+                    </div>
+                    <div className="flex min-w-0 flex-1 flex-col gap-3 p-4">
+                      <div>
+                        <h3 className="break-words text-base font-extrabold leading-snug text-[var(--text-primary)]">{item.title || item.client_name}</h3>
+                        <p className="mt-0.5 text-sm text-[var(--text-muted)]">{item.category || 'Uncategorized'}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5"><Classification item={item} /></div>
+                      <div className="mt-auto flex flex-wrap gap-2">
+                        <Link href={portfolioEditHref(item.id)} className={adminBtn('accent', 'sm')}>Edit</Link>
+                        {validWorkSlug(item.slug) && item.is_active && <Link href={portfolioPublicHref(item.slug)} target="_blank" rel="noopener noreferrer" className={adminBtn('secondary', 'sm')}>View /work page</Link>}
+                        <button type="button" disabled={busy} onClick={() => manageItem(item.id, { featured: !item.featured })} className={adminBtn('secondary', 'sm')}>{item.featured ? 'Unfeature' : 'Feature'}</button>
+                        <button type="button" disabled={busy} onClick={() => manageItem(item.id, { is_active: !item.is_active })} className={adminBtn('secondary', 'sm')}>{item.is_active ? 'Hide' : 'Show'}</button>
+                      </div>
+                      <details className="group text-sm">
+                        <summary className="inline-flex min-h-[2rem] cursor-pointer list-none items-center font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)]">More options</summary>
+                        <div className="mt-2 flex flex-wrap items-end justify-between gap-3 border-t border-[var(--border)] pt-3">
+                          <form className="flex items-end gap-2" onSubmit={(event) => {
+                            event.preventDefault()
+                            const value = Number(new FormData(event.currentTarget).get('display_order'))
+                            if (Number.isSafeInteger(value)) void manageItem(item.id, { display_order: value })
+                          }}>
+                            <label className="text-xs text-[var(--text-muted)]">Display order
+                              <input key={item.display_order} name="display_order" type="number" step="1" required defaultValue={item.display_order ?? 0} disabled={busy} className={`mt-1 block w-24 ${inputClass}`} />
+                            </label>
+                            <button type="submit" disabled={busy} className={adminBtn('secondary', 'sm')}>Save order</button>
+                          </form>
+                          <button type="button" disabled={busy} onClick={() => deleteItem(item.id)} className={adminBtn('danger', 'sm')}>Delete</button>
+                        </div>
+                      </details>
+                    </div>
+                  </article>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </section>
     </div>

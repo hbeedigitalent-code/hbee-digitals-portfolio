@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { CAPABILITY_DETAILS } from '@/components/site/capability/capability-content'
 import { isValidPortfolioSlug, text } from '@/lib/site/home-data'
 import { insightCanonical } from '@/lib/blog-utils'
+import { portfolioCreativeEnabled } from '@/lib/portfolio-creative'
 
 const baseUrl = 'https://hbeedigitals.com'
 const insightSlugPattern = /^[a-z0-9_]+(?:-[a-z0-9_]+)*$/
@@ -41,7 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { route: '/cookies', priority: 0.35, changeFrequency: 'yearly' as const },
   ]
 
-  const [{ data: portfolioItems }, { data: blogPosts }] = await Promise.all([
+  const [{ data: portfolioItems }, { data: blogPosts }, caseStudyRows] = await Promise.all([
     supabase
       .from('portfolio_items')
       .select('slug, client_name, name, title, updated_at')
@@ -51,7 +52,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .from('blog_posts')
       .select('slug, title, canonical_url, updated_at, published_at')
       .eq('status', 'published'),
+
+    // Flag on only, and a separate query: a database without the column just returns an error => no Case Studies.
+    portfolioCreativeEnabled()
+      ? supabase.from('portfolio_items').select('slug, is_case_study').eq('is_active', true).eq('is_case_study', true)
+      : Promise.resolve({ data: null }),
   ])
+  const caseStudySlugs = new Set((caseStudyRows.data ?? []).map((row) => text(row.slug)))
 
   // Capability detail pages are static content (one per capability), not CMS rows.
   const serviceRoutes = Object.keys(CAPABILITY_DETAILS).map((slug) => ({
@@ -67,8 +74,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         const client = text(item.client_name) ?? text(item.name) ?? text(item.title)
         if (!isValidPortfolioSlug(slug) || !client) return []
         const lastModified = realDate(item.updated_at)
+        // A Case Study's canonical page is /case-studies/[slug]; /work/[slug] redirects there, so list only one.
+        const caseStudy = caseStudySlugs.has(slug)
         return [{
-          url: `${baseUrl}/work/${slug}`,
+          url: `${baseUrl}${caseStudy ? '/case-studies' : '/work'}/${slug}`,
           ...(lastModified ? { lastModified } : {}),
           changeFrequency: 'monthly' as const,
           priority: 0.85,
@@ -101,6 +110,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
 
     ...serviceRoutes,
+    ...(portfolioCreativeEnabled() && workRoutes.some((route) => route.url.startsWith(`${baseUrl}/case-studies/`))
+      ? [{ url: `${baseUrl}/case-studies`, changeFrequency: 'monthly' as const, priority: 0.86 }]
+      : []),
     ...workRoutes,
     ...insightRoutes,
   ]

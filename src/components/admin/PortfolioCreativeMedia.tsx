@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import ImageUpload from '@/components/ImageUpload'
 import { portfolioErrorMessage, validPortfolioImage } from '@/lib/admin/portfolio-editor'
-import { ASSET_TYPES, CAPABILITY_SLUGS, creativeRevision, creativeSavePayload, isCapabilitySlug, readCreativeMedia, reorderMedia, validateCreativeMedia, type PortfolioMedia } from '@/lib/portfolio-creative'
+import { ASSET_TYPES, CAPABILITY_SLUGS, creativeRevision, creativeSavePayload, detectImageSize, isCapabilitySlug, readCreativeMedia, reorderMedia, validateCreativeMedia, type PortfolioMedia } from '@/lib/portfolio-creative'
 import { SERVICE_GROUPS } from '@/components/site/services/services-content'
 
 const input = 'mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-3 text-sm text-[var(--text-primary)]'
@@ -25,6 +25,9 @@ export default function PortfolioCreativeMedia({ portfolioId, disabled }: { port
   const [clearCapabilities, setClearCapabilities] = useState(false)
   const [pendingUploads, setPendingUploads] = useState(0)
   const [conflict, setConflict] = useState(false)
+  const [autoIds, setAutoIds] = useState<string[]>([])
+  const [detectNote, setDetectNote] = useState('')
+  const autoIdsRef = useRef<Set<string>>(new Set())
   const pendingUploadsRef = useRef(0)
   const mutationVersion = useRef(0)
   const savePending = useRef(false)
@@ -74,8 +77,33 @@ export default function PortfolioCreativeMedia({ portfolioId, disabled }: { port
   function removeAllMedia() { change([]); setClearMedia(true) }
   function changeCapabilities(next: string[], explicitlyCleared = false) { setCapabilities(next); setClearCapabilities(explicitlyCleared); markDirty() }
   function update(index: number, patch: Partial<PortfolioMedia>) { change(media.map((item, i) => i === index ? { ...item, ...patch } : item)) }
+  function forgetAuto(id: string) {
+    if (autoIdsRef.current.delete(id)) setAutoIds([...autoIdsRef.current])
+  }
+  /**
+   * Read the natural size of an asset's image and store it. Never blocks upload or save, and never
+   * overwrites deliberately entered dimensions unless the editor presses "Detect size" (force).
+   * Dimensions it detected itself may be refreshed when the image is replaced.
+   */
+  async function detect(id: string, url: string, force = false) {
+    const size = await detectImageSize(url)
+    if (!size) { if (force) setDetectNote('Could not read the size of that image. Enter width and height manually; saving is not affected.'); return }
+    const current = latestMedia.current.find((m) => m.id === id)
+    if (!current || current.image_url !== url) return
+    const missing = current.width === null && current.height === null
+    if (!force && !missing && !autoIdsRef.current.has(id)) return
+    setDetectNote('')
+    if (current.width === size.width && current.height === size.height) return
+    autoIdsRef.current.add(id); setAutoIds([...autoIdsRef.current])
+    change(latestMedia.current.map((m) => m.id === id ? { ...m, ...size } : m))
+  }
+  async function detectAllMissing() {
+    for (const item of latestMedia.current) if ((item.width === null || item.height === null) && validPortfolioImage(item.image_url)) await detect(item.id, item.image_url, true)
+  }
   function add(url = '') {
-    change([...latestMedia.current, { id: crypto.randomUUID(), asset_type: 'other', image_url: url, alt_text: '', caption: '', is_visible: false, fit_mode: 'auto', display_order: latestMedia.current.length, width: null, height: null }])
+    const id = crypto.randomUUID()
+    change([...latestMedia.current, { id, asset_type: 'other', image_url: url, alt_text: '', caption: '', is_visible: false, fit_mode: 'auto', display_order: latestMedia.current.length, width: null, height: null, media_kind: 'image', title: '', description: '', video_url: null, captions_url: null, transcript: '' }])
+    return id
   }
   async function save() {
     if (savePending.current || disabled || !loaded || conflict || pendingUploadsRef.current) return
@@ -102,60 +130,121 @@ export default function PortfolioCreativeMedia({ portfolioId, disabled }: { port
     finally { savePending.current = false; setSaving(false) }
   }
 
+  const assetCount = media.length
+  const visibleCount = media.filter((m) => m.is_visible).length
+  const videoCount = media.filter((m) => m.media_kind === 'video').length
+  const missingSizes = media.some((m) => (m.width === null || m.height === null) && validPortfolioImage(m.image_url))
   if (!loaded) return <p role={error ? 'alert' : 'status'} className="text-sm text-[var(--text-muted)]">{error || 'Loading creative media…'}</p>
   return (
-    <fieldset disabled={disabled || saving} className="min-w-0 space-y-5">
-      <p className="text-sm text-[var(--text-muted)]">These assets belong to this engagement. They do not become separate /work cards. Save this section separately from the project details. Hidden assets are excluded from public reads; uploaded files in the public bucket are still public by URL.</p>
-      <div className="space-y-3">
-        <h3 className="font-bold text-[var(--text-primary)]">Explicit capabilities</h3>
-        <p className="text-sm text-[var(--text-muted)]">Assign only verified Hbee work. Industry, project label, technologies and asset type remain separate.</p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {CAPABILITY_SLUGS.map((slug) => <label key={slug} className="flex items-center gap-3 text-sm text-[var(--text-secondary)]"><input type="checkbox" checked={capabilities.includes(slug)} onChange={(e) => {
+    <fieldset disabled={disabled || saving} className="min-w-0 space-y-8">
+      <p className="text-sm text-[var(--text-muted)]">These assets belong to this engagement; they do not become separate /work cards. Save this section separately from the project details. Hidden assets are excluded from public reads; uploaded files in the public bucket are still public by URL.</p>
+
+      <section aria-labelledby="creative-capabilities" className="space-y-3">
+        <div>
+          <h3 id="creative-capabilities" className="font-bold text-[var(--text-primary)]">Explicit capabilities</h3>
+          <p className="text-sm text-[var(--text-muted)]">Assign only verified Hbee work. Industry, project label, technologies and asset type remain separate.</p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {CAPABILITY_SLUGS.map((slug) => <label key={slug} className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 text-sm text-[var(--text-secondary)] has-[:checked]:border-[var(--accent)]"><input type="checkbox" checked={capabilities.includes(slug)} onChange={(e) => {
             const next = e.target.checked ? [...capabilities, slug] : capabilities.filter((s) => s !== slug)
             changeCapabilities(next, !e.target.checked && next.length === 0)
           }} />{SERVICE_GROUPS.flatMap((g) => g.capabilities).find((c) => c.slug === slug)?.name}</label>)}
         </div>
         <button type="button" className={action} disabled={!capabilities.length} onClick={() => changeCapabilities([], true)}>Clear all capability assignments on save</button>
         {clearCapabilities && <p role="status" className="text-sm text-[var(--text-muted)]">All saved capability assignments will be removed when you save.</p>}
+      </section>
+
+      <section aria-labelledby="creative-assets" className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h3 id="creative-assets" className="font-bold text-[var(--text-primary)]">Creative assets</h3>
+            <p className="text-sm text-[var(--text-muted)]">{assetCount ? `${assetCount} asset${assetCount === 1 ? '' : 's'} · ${visibleCount} visible · ${videoCount} video${videoCount === 1 ? '' : 's'}. Order here is the order on the page.` : 'No assets yet. Upload an image or add one by URL.'}</p>
+          </div>
+          {missingSizes && <button type="button" className={action} onClick={() => void detectAllMissing()}>Detect missing image sizes</button>}
+        </div>
+        {detectNote && <p role="status" className="text-sm text-[var(--text-muted)]">{detectNote}</p>}
+        <ol className="space-y-5">
+          {media.map((item, index) => {
+            const isVideo = item.media_kind === 'video'
+            const sizeState = item.width !== null && item.height !== null ? (autoIds.includes(item.id) ? 'Detected from the image' : 'Entered manually') : 'Not set'
+            return <li key={item.id} className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--bg-section)] px-4 py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-bold text-[var(--text-primary)]">Asset {index + 1}</h3>
+                  <span className="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-xs text-[var(--text-secondary)]">{item.asset_type === 'mockup' ? 'Mockup' : ASSET_TYPES[item.asset_type]}</span>
+                  {isVideo && <span className="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-xs text-[var(--text-secondary)]">Video</span>}
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs ${item.is_visible ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'border border-[var(--border)] text-[var(--text-muted)]'}`}>{item.is_visible ? 'Visible' : 'Hidden'}</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" className={action} disabled={index === 0} onClick={() => change(reorderMedia(media, index, -1))}>Move asset {index + 1} up</button>
+                  <button type="button" className={action} disabled={index === media.length - 1} onClick={() => change(reorderMedia(media, index, 1))}>Move asset {index + 1} down</button>
+                  <button type="button" className={action} onClick={() => {
+                    const next = media.filter((m) => m.id !== item.id).map((m, display_order) => ({ ...m, display_order }))
+                    change(next); if (!next.length) setClearMedia(true)
+                  }}>Remove asset {index + 1}{media.length === 1 ? ' (clears collection on save)' : ''}</button>
+                </div>
+              </div>
+              <div className="grid gap-6 p-4 lg:grid-cols-2">
+                <div className="space-y-4">
+                  <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">{isVideo ? 'Poster image' : 'Image'}</p>
+                  {validPortfolioImage(item.image_url) && <img src={item.image_url} alt={item.alt_text || 'Asset preview'} className="h-56 w-full rounded-xl bg-[var(--bg-section)] object-contain" />}
+                  <ImageUpload key={item.image_url} label={`Upload replacement for asset ${index + 1}`} folder={`portfolio/${portfolioId}`} contain disabled={saving || disabled} onUploadingChange={uploadingChanged} onUpload={(url) => { change(latestMedia.current.map((m) => m.id === item.id ? { ...m, image_url: url } : m)); void detect(item.id, url) }} />
+                  <label className="block text-sm text-[var(--text-secondary)]">Image URL<input value={item.image_url} onChange={(e) => update(index, { image_url: e.target.value })} onBlur={() => void detect(item.id, item.image_url)} className={input} /></label>
+                  <div className="rounded-xl border border-[var(--border)] p-3">
+                    <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Dimensions</p>
+                    <div className="mt-2 grid grid-cols-2 gap-3">{(['width', 'height'] as const).map((key) => <label key={key} className="text-sm capitalize text-[var(--text-secondary)]">{key} (px)<input type="number" min="1" max="20000" step="1" value={item[key] ?? ''} onChange={(e) => { forgetAuto(item.id); update(index, { [key]: e.target.value ? Number(e.target.value) : null }) }} className={input} /></label>)}</div>
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs text-[var(--text-muted)]">{sizeState}. Real dimensions let portrait screens and wide banners be framed without cropping.</p>
+                      <button type="button" className={action} disabled={!validPortfolioImage(item.image_url)} onClick={() => void detect(item.id, item.image_url, true)}>Detect size for asset {index + 1}</button>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Details</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="block text-sm text-[var(--text-secondary)]">Asset type<select value={item.asset_type} onChange={(e) => update(index, { asset_type: e.target.value as PortfolioMedia['asset_type'] })} className={input}>{Object.entries(ASSET_TYPES).map(([value, label]) => <option key={value} value={value}>{value === 'mockup' ? 'Mockup (presentation image)' : label}</option>)}</select></label>
+                    <label className="block text-sm text-[var(--text-secondary)]">Media kind<select value={item.media_kind ?? 'image'} onChange={(e) => update(index, e.target.value === 'video' ? { media_kind: 'video' } : { media_kind: 'image', video_url: null, captions_url: null, transcript: '' })} className={input}><option value="image">Image</option><option value="video">Video (the image is its poster)</option></select></label>
+                  </div>
+                  {item.asset_type === 'mockup' && <p className="rounded-xl bg-[var(--bg-section)] p-3 text-xs text-[var(--text-muted)]">Mockups are presentation images (a device, browser, packaging or feed composition). On a Case Study they are shown as “Presentation”, with a note that they are not performance results. Add alt text, and an optional title, description and caption. Real analytics or results screenshots are evidence: use another asset type and a caption that says so.</p>}
+                  <label className="block text-sm text-[var(--text-secondary)]">Alt text *<input value={item.alt_text} onChange={(e) => update(index, { alt_text: e.target.value })} className={input} /></label>
+                  <label className="block text-sm text-[var(--text-secondary)]">Title{isVideo ? ' *' : ' (optional)'}<input value={item.title ?? ''} maxLength={160} onChange={(e) => update(index, { title: e.target.value })} className={input} /></label>
+                  <label className="block text-sm text-[var(--text-secondary)]">Description{isVideo ? ' *' : ' (optional)'}<textarea value={item.description ?? ''} maxLength={600} rows={2} onChange={(e) => update(index, { description: e.target.value })} className={input} /></label>
+                  <label className="block text-sm text-[var(--text-secondary)]">Caption (optional)<textarea value={item.caption} onChange={(e) => update(index, { caption: e.target.value })} rows={2} className={input} /></label>
+                  {isVideo && <div className="space-y-3 rounded-xl border border-[var(--border)] p-3">
+                    <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Video</p>
+                    <p className="text-xs text-[var(--text-muted)]">Videos are linked, not uploaded. Use an HTTPS file URL (.mp4 or .webm) to play on the page; a YouTube or Vimeo page URL is shown as an external link.</p>
+                    <label className="block text-sm text-[var(--text-secondary)]">Video URL (HTTPS) *<input value={item.video_url ?? ''} onChange={(e) => update(index, { video_url: e.target.value })} className={input} /></label>
+                    <label className="block text-sm text-[var(--text-secondary)]">Captions URL (optional, .vtt)<input value={item.captions_url ?? ''} onChange={(e) => update(index, { captions_url: e.target.value })} className={input} /></label>
+                    <label className="block text-sm text-[var(--text-secondary)]">Transcript (optional)<textarea value={item.transcript ?? ''} maxLength={20000} rows={4} onChange={(e) => update(index, { transcript: e.target.value })} className={input} /></label>
+                  </div>}
+                  <div className="space-y-3 rounded-xl border border-[var(--border)] p-3">
+                    <p className="text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">Display</p>
+                    <label className="block text-sm text-[var(--text-secondary)]">Fit mode<select value={item.fit_mode} onChange={(e) => update(index, { fit_mode: e.target.value as PortfolioMedia['fit_mode'] })} className={input}><option value="auto">Automatic by asset type and size</option><option value="contain">Contain complete artwork</option><option value="cover">Cover frame (may crop)</option></select></label>
+                    <p className="text-xs text-[var(--text-muted)]">Logos, identity systems, palettes, typography and stationery always remain contained. Mockups, portrait screens and anything without a known size are contained by default; only a wide website or storefront screenshot fills its frame.</p>
+                    <label className="flex items-center gap-3 text-sm text-[var(--text-secondary)]"><input type="checkbox" checked={item.is_visible} onChange={(e) => update(index, { is_visible: e.target.checked })} />Visible on the published work page</label>
+                  </div>
+                </div>
+              </div>
+            </li>
+          })}
+        </ol>
+        <div className="flex flex-wrap gap-3">
+          <button type="button" className={action} onClick={() => add()}>Add asset by URL</button>
+          <button type="button" className={action} disabled={!media.length} onClick={removeAllMedia}>Clear all assets on save</button>
+        </div>
+        {clearMedia && <p role="status" className="text-sm text-[var(--text-muted)]">All saved creative assets will be removed when you save. Stored files are kept.</p>}
+        <ImageUpload key={uploadKey} label="Upload new creative asset" folder={`portfolio/${portfolioId}`} contain disabled={saving || disabled} onUploadingChange={uploadingChanged} onUpload={(url) => { if (url) { const id = add(url); void detect(id, url); setUploadKey((n) => n + 1) } }} />
+      </section>
+
+      <div className="sticky bottom-24 z-10 -mx-1 space-y-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 shadow-lg">
+        {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
+        {message && <p role="status" className="text-sm text-[var(--accent)]">{message}</p>}
+        {pendingUploads > 0 && <p role="status" className="text-sm text-[var(--text-muted)]">Uploading {pendingUploads} asset(s). Creative save is available when uploads finish.</p>}
+        <div className="flex flex-wrap items-center gap-4">
+          <button type="button" disabled={!dirty || saving || pendingUploads > 0 || conflict} onClick={save} className="rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-black text-[var(--btn-primary-text)] disabled:opacity-50">{saving ? 'Saving creative media…' : 'Save creative media & capabilities'}</button>
+          <span role="status" className="text-sm text-[var(--text-muted)]">{dirty ? 'Unsaved creative changes' : 'No unsaved creative changes'}</span>
+        </div>
       </div>
-      <ol className="space-y-5">
-        {media.map((item, index) => <li key={item.id} className="space-y-4 rounded-xl border border-[var(--border)] p-4">
-          <h3 className="font-bold text-[var(--text-primary)]">Asset {index + 1}</h3>
-          <div className="grid gap-5 lg:grid-cols-2">
-            <div className="space-y-3">
-              {validPortfolioImage(item.image_url) && <img src={item.image_url} alt={item.alt_text || 'Asset preview'} className="h-48 w-full bg-[var(--bg-section)] object-contain" />}
-              <ImageUpload key={item.image_url} label={`Upload replacement for asset ${index + 1}`} folder={`portfolio/${portfolioId}`} contain disabled={saving || disabled} onUploadingChange={uploadingChanged} onUpload={(url) => change(latestMedia.current.map((m) => m.id === item.id ? { ...m, image_url: url } : m))} />
-              <label className="block text-sm text-[var(--text-secondary)]">Image URL<input value={item.image_url} onChange={(e) => update(index, { image_url: e.target.value })} className={input} /></label>
-            </div>
-            <div className="space-y-3">
-              <label className="block text-sm text-[var(--text-secondary)]">Asset type<select value={item.asset_type} onChange={(e) => update(index, { asset_type: e.target.value as PortfolioMedia['asset_type'] })} className={input}>{Object.entries(ASSET_TYPES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-              <label className="block text-sm text-[var(--text-secondary)]">Alt text *<input value={item.alt_text} onChange={(e) => update(index, { alt_text: e.target.value })} className={input} /></label>
-              <label className="block text-sm text-[var(--text-secondary)]">Caption (optional)<textarea value={item.caption} onChange={(e) => update(index, { caption: e.target.value })} rows={3} className={input} /></label>
-              <label className="block text-sm text-[var(--text-secondary)]">Fit mode<select value={item.fit_mode} onChange={(e) => update(index, { fit_mode: e.target.value as PortfolioMedia['fit_mode'] })} className={input}><option value="auto">Automatic by asset type</option><option value="contain">Contain complete artwork</option><option value="cover">Cover frame (may crop)</option></select></label>
-              <p className="text-xs text-[var(--text-muted)]">Logos, identity systems, palettes, typography and stationery always remain contained.</p>
-              <div className="grid grid-cols-2 gap-3">{(['width', 'height'] as const).map((key) => <label key={key} className="text-sm capitalize text-[var(--text-secondary)]">{key} (px)<input type="number" min="1" max="20000" step="1" value={item[key] ?? ''} onChange={(e) => update(index, { [key]: e.target.value ? Number(e.target.value) : null })} className={input} /></label>)}</div>
-              <label className="flex items-center gap-3 text-sm text-[var(--text-secondary)]"><input type="checkbox" checked={item.is_visible} onChange={(e) => update(index, { is_visible: e.target.checked })} />Visible on the published work page</label>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <button type="button" className={action} disabled={index === 0} onClick={() => change(reorderMedia(media, index, -1))}>Move asset {index + 1} up</button>
-            <button type="button" className={action} disabled={index === media.length - 1} onClick={() => change(reorderMedia(media, index, 1))}>Move asset {index + 1} down</button>
-            <button type="button" className={action} onClick={() => {
-              const next = media.filter((m) => m.id !== item.id).map((m, display_order) => ({ ...m, display_order }))
-              change(next); if (!next.length) setClearMedia(true)
-            }}>Remove asset {index + 1}{media.length === 1 ? ' (clears collection on save)' : ''}</button>
-          </div>
-        </li>)}
-      </ol>
-      <button type="button" className={action} onClick={() => add()}>Add asset by URL</button>
-      <button type="button" className={action} disabled={!media.length} onClick={removeAllMedia}>Clear all assets on save</button>
-      {clearMedia && <p role="status" className="text-sm text-[var(--text-muted)]">All saved creative assets will be removed when you save. Stored files are kept.</p>}
-      <ImageUpload key={uploadKey} label="Upload new creative asset" folder={`portfolio/${portfolioId}`} contain disabled={saving || disabled} onUploadingChange={uploadingChanged} onUpload={(url) => { if (url) { add(url); setUploadKey((n) => n + 1) } }} />
-      {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
-      {message && <p role="status" className="text-sm text-[var(--accent)]">{message}</p>}
-      <button type="button" disabled={!dirty || saving || pendingUploads > 0 || conflict} onClick={save} className={action}>{saving ? 'Saving creative media…' : 'Save creative media & capabilities'}</button>
-      {pendingUploads > 0 && <p role="status" className="text-sm text-[var(--text-muted)]">Uploading {pendingUploads} asset(s). Creative save is available when uploads finish.</p>}
-      <span role="status" className="ml-3 text-sm text-[var(--text-muted)]">{dirty ? 'Unsaved creative changes' : 'No unsaved creative changes'}</span>
     </fieldset>
   )
 }

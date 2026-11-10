@@ -53,6 +53,8 @@ const mockedClient = {
   },
   storage: { from() { throw Error('Storage mutation attempted in offline test') } },
 }
+const imageSizes = {} // url -> [naturalWidth, naturalHeight]; absent => load error
+class FakeImage { set src(v) { setImmediate(() => { const size = imageSizes[v]; if (size) { this.naturalWidth = size[0]; this.naturalHeight = size[1]; this.onload && this.onload() } else this.onerror && this.onerror() }) } }
 const stubUpload = () => null
 const stubGallery = () => null
 const MockImage = ({ fill, priority, unoptimized, ...props }) => React.createElement('img', props)
@@ -83,11 +85,12 @@ function load(file) {
     if (name === 'react') return hooks
     if (name === '@/lib/supabase') return { supabase: mockedClient }
     if (name === '@/lib/blog-utils') return { SITE_URL: 'https://hbeedigitals.com', DEFAULT_OG_IMAGE: '/og-image.png', absoluteUrl: value => 'https://hbeedigitals.com' + value }
-    if (name === 'next/navigation') return { notFound: () => { throw Error('NEXT_NOT_FOUND') }, useParams: () => ({ id: 'sample-id' }), useRouter: () => ({ push: href => navigations.push(href) }) }
+    if (name === 'next/navigation') return { notFound: () => { throw Error('NEXT_NOT_FOUND') }, redirect: url => { throw Error('NEXT_REDIRECT:' + url) }, useParams: () => ({ id: 'sample-id' }), useRouter: () => ({ push: href => navigations.push(href) }) }
     if (name === 'next/link') return { __esModule: true, default: 'a' }
     if (name === 'next/image') return { __esModule: true, default: MockImage }
     if (name.endsWith('.module.css')) return new Proxy({}, { get: (_, key) => key === '__esModule' ? false : String(key) })
     if (name.endsWith('/motion/SiteReveal')) return { SiteReveal: ({ children }) => React.createElement('div', null, children) }
+    if (name === './WorkFilter') return { WorkFilter: ({ children }) => React.createElement('div', null, children) } // server-rendered listing check; the real filter is tested directly below
     if (name === '@/components/ImageUpload') return { __esModule: true, default: stubUpload }
     if (name === '@/components/admin/PortfolioGallery') return { __esModule: true, default: stubGallery }
     if (name.startsWith('@/')) return load('src/' + name.slice(2))
@@ -96,7 +99,7 @@ function load(file) {
   }
   const js = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText
   const MockFormData = class { constructor(form) { this.form = form } get(key) { return this.form[key] } }
-  vm.runInNewContext(js, { module: mod, exports: mod.exports, require: localRequire, URL, URLSearchParams, console, crypto: require('node:crypto').webcrypto, confirm: () => true, FormData: MockFormData, process: { env: testEnv }, ...(file.endsWith('WorkFilter.tsx') ? { window: browser } : {}) }, { filename: file })
+  vm.runInNewContext(js, { module: mod, exports: mod.exports, require: localRequire, URL, URLSearchParams, console, crypto: require('node:crypto').webcrypto, confirm: () => true, FormData: MockFormData, Image: FakeImage, setTimeout, clearTimeout, process: { env: testEnv }, ...(file.endsWith('WorkFilter.tsx') ? { window: browser } : {}) }, { filename: file })
   return mod.exports
 }
 function host(Component, props = {}) {
@@ -386,7 +389,8 @@ const submit = () => ({ preventDefault() {} })
   await button(concurrent, 'Save creative media & capabilities').props.onClick()
   assert.equal(calls.filter(c => c.table === 'rpc').length, rpcCount, 'Pending upload blocks RPC even if handler is invoked')
   upload().props.onUpload('/uploaded.png'); upload().props.onUploadingChange(false); concurrent.render()
-  find(concurrent, n => n.type === 'input' && n.props.type !== 'number' && n.props.value === '').props.onChange({ target: { value: 'Uploaded asset alt' } }); concurrent.render()
+  // Empty text inputs in order: asset 1 title, asset 2 alt text (the new upload), asset 2 title.
+  nodes(concurrent.tree).filter(n => n.type === 'input' && n.props.type !== 'number' && n.props.value === '')[1].props.onChange({ target: { value: 'Uploaded asset alt' } }); concurrent.render()
   rpcResponse = () => ({ data: null, error: { message: 'Metadata save failed' } })
   await button(concurrent, 'Save creative media & capabilities').props.onClick(); concurrent.render()
   assert.match(flattenText(concurrent.tree), /Metadata save failed/)
@@ -408,7 +412,7 @@ const submit = () => ({ preventDefault() {} })
   assert.ok(nodes(concurrent.tree).some(n => n.type === 'input' && n.props.value === '/late-upload.png'))
   assert.match(flattenText(concurrent.tree), /Newer local changes remain unsaved/)
   assert.match(flattenText(concurrent.tree), /Unsaved creative changes/)
-  const emptyAlt = find(concurrent, n => n.type === 'input' && n.props.type !== 'number' && n.props.value === '')
+  const emptyAlt = nodes(concurrent.tree).filter(n => n.type === 'input' && n.props.type !== 'number' && n.props.value === '')[2] // titles of assets 1-2, then asset 3 alt
   emptyAlt.props.onChange({ target: { value: 'Late asset alt' } }); concurrent.render()
   rpcResponse = modelSave
   await button(concurrent, 'Save creative media & capabilities').props.onClick(); concurrent.render()
@@ -508,5 +512,353 @@ const submit = () => ({ preventDefault() {} })
   const legacyDetail = await work.getWorkDetail(sample.slug)
   assert.deepEqual(plain(legacyDetail.gallery).map(m => m.src), sample.gallery_images)
   assert.ok(calls.every(call => call.table === 'portfolio_items'))
+  // ── C1.8 public creative experience ──────────────────────────────────────
+  const cls = load('src/lib/site/work-classification.ts')
+  assert.equal(cls.engagementTypeOf('client'), 'client')
+  for (const v of ['Client', 'CLIENT', ' client', 'studio_team', '', null, undefined, 1]) assert.equal(cls.engagementTypeOf(v), 'studio_team', 'only the exact string client is a client engagement')
+  assert.equal(cls.projectStatusOf('ongoing'), 'ongoing'); assert.equal(cls.projectStatusOf('Ongoing'), 'completed'); assert.equal(cls.projectStatusOf(undefined), 'completed')
+  assert.deepEqual(plain(cls.capabilityRefs(['retention-growth', 'bogus', 'brand-positioning', 'brand-positioning'])).map(c => c.slug), ['brand-positioning', 'retention-growth'])
+  assert.equal(cls.capabilityRefs(['brand-positioning'])[0].name, 'Brand & Positioning')
+  assert.equal(cls.videoPlayback('https://cdn.example.com/a/clip.mp4?x=1').mode, 'file')
+  assert.equal(cls.videoPlayback('https://youtube.com/watch?v=1').mode, 'link')
+  assert.equal(cls.videoPlayback('http://cdn.example.com/clip.mp4'), null); assert.equal(cls.videoPlayback('javascript:alert(1)'), null)
+
+  const vid = { ...asset, id: '00000000-0000-4000-8000-000000000010', asset_type: 'social-creative', image_url: '/poster.png', alt_text: 'Poster alt', media_kind: 'video', title: 'Launch film', description: 'Thirty second launch film', video_url: 'https://cdn.example.com/launch.mp4', captions_url: 'https://cdn.example.com/launch.vtt', transcript: 'Line one\nLine two', display_order: 5, is_visible: true, fit_mode: 'auto', caption: '' }
+  assert.equal(creative.validateCreativeMedia([vid], []), undefined)
+  assert.match(creative.validateCreativeMedia([{ ...vid, video_url: null }], []), /video URL/)
+  assert.match(creative.validateCreativeMedia([{ ...vid, title: ' ' }], []), /title and a description/)
+  assert.match(creative.validateCreativeMedia([{ ...vid, video_url: 'http://x.test/a.mp4' }], []), /HTTPS/)
+  assert.match(creative.validateCreativeMedia([{ ...asset, video_url: 'https://x.test/a.mp4' }], []), /Only video/)
+  assert.equal(creative.readCreativeMedia([{ ...flyer }])[0].media_kind, 'image', 'rows without v3 columns read as images')
+
+  const { renderToStaticMarkup: render } = require('react-dom/server')
+  const Detail = load('src/components/site/work/WorkDetail.tsx').WorkDetailPage
+  const mk = (row, media, caps, next) => render(React.createElement(Detail, { detail: work.toWorkDetail(row, media, caps && { capabilities: caps }), next }))
+  const hiddenImg = { ...flyer, id: '00000000-0000-4000-8000-000000000020', image_url: '/hidden.png', is_visible: false }
+  const second = { ...flyer, id: '00000000-0000-4000-8000-000000000021', image_url: '/second.png', display_order: 0, asset_type: 'logo' }
+  const base = { ...sample, engagement_type: 'client', project_status: 'completed' }
+
+  // Flag OFF: no creative model, no creative wording, identical legacy output.
+  assert.equal(work.toWorkDetail(base).creative, undefined)
+  assert.equal(work.buildWorkData([base]).items[0].creative, undefined)
+  const legacyHtml = mk(base, [])
+  for (const word of ['Client engagement', 'Studio work', 'Where Hbee', 'Next project', 'Progress so far']) assert.ok(!legacyHtml.includes(word), 'legacy has no ' + word)
+  assert.ok(legacyHtml.includes('Client') && legacyHtml.includes('What was delivered') && legacyHtml.includes('Outcome'))
+
+  // Client vs studio wording.
+  const clientHtml = mk(base, [], [])
+  assert.ok(clientHtml.includes('Client engagement') && clientHtml.includes('<dt>Client</dt>'))
+  const studio = { ...base, engagement_type: 'studio_team' }
+  const studioHtml = mk(studio, [], [])
+  assert.ok(studioHtml.includes('Studio work') && !studioHtml.includes('Client engagement') && !studioHtml.includes('<dt>Client</dt>'))
+  const unknownHtml = mk({ ...base, engagement_type: 'Client' }, [], [])
+  assert.ok(!unknownHtml.includes('Client engagement') && unknownHtml.includes('Studio work'), 'mis-cased value is never client wording')
+  const missingHtml = mk({ ...base, engagement_type: undefined, project_status: undefined }, [], [])
+  assert.ok(missingHtml.includes('Studio work') && missingHtml.includes('Completed'))
+
+  // Ongoing vs completed.
+  const ongoingHtml = mk({ ...base, project_status: 'ongoing' }, [], [])
+  assert.ok(ongoingHtml.includes('Ongoing') && ongoingHtml.includes('Progress so far') && ongoingHtml.includes('What is being built') && !ongoingHtml.includes('What was delivered') && !ongoingHtml.includes('>Outcome<'))
+  assert.ok(clientHtml.includes('What was delivered') && clientHtml.includes('Outcome') && !clientHtml.includes('Progress so far'))
+
+  // Media: hidden excluded, order respected, videos separated, poster/video metadata, captions, transcript.
+  const media = [flyer, hiddenImg, second, vid, { ...vid, id: '00000000-0000-4000-8000-000000000030', is_visible: false, title: 'Hidden film' }]
+  const d = work.toWorkDetail(base, media, { capabilities: [] })
+  assert.deepEqual(plain(d.gallery).filter(g => g.creative).map(g => g.src), ['/second.png', '/flyer.png'], 'ordered by display_order, hidden and video excluded from stills')
+  assert.equal(d.creative.videos.length, 1)
+  const mediaHtml = render(React.createElement(Detail, { detail: d }))
+  assert.ok(!mediaHtml.includes('/hidden.png') && !mediaHtml.includes('Hidden film'))
+  assert.ok(mediaHtml.includes('poster="/poster.png"') && mediaHtml.includes('src="https://cdn.example.com/launch.mp4"') && mediaHtml.includes('type="video/mp4"'))
+  assert.ok(mediaHtml.includes('Launch film') && mediaHtml.includes('Thirty second launch film') && mediaHtml.includes('<track kind="captions" src="https://cdn.example.com/launch.vtt"') && mediaHtml.includes('Transcript'))
+  assert.ok(mediaHtml.includes('preload="none"') && !mediaHtml.includes('autoPlay') && !mediaHtml.includes('autoplay'))
+  assert.ok(mediaHtml.includes('Logo'), 'asset kind label in creative mode')
+  assert.equal(work.toWorkDetail(base, [{ ...vid, video_url: 'http://insecure.test/a.mp4' }, { ...vid, title: '' }], { capabilities: [] }).creative.videos.length, 0, 'invalid video rows are not shown')
+  const linkHtml = mk(base, [{ ...vid, video_url: 'https://youtube.com/watch?v=abc' }], [])
+  assert.ok(!linkHtml.includes('<video') && linkHtml.includes('href="https://youtube.com/watch?v=abc"') && linkHtml.includes('noopener'), 'hosted-player pages are linked, never embedded')
+  assert.ok(work.toWorkDetail(base, [vid], { capabilities: [] }).gallery.every(g => g.src !== '/poster.png'), 'a video poster is not duplicated in the stills gallery')
+  assert.deepEqual(plain(work.toWorkDetail(base, [vid], { capabilities: [] }).gallery).map(g => g.src), sample.gallery_images, 'legacy gallery still shown when only a video exists')
+
+  // Capabilities: rendered with links; absent heading when none.
+  const capHtml = mk(base, [], ['commerce-experience', 'brand-positioning', 'invented'])
+  assert.ok(capHtml.includes('Where Hbee’s system was involved') && capHtml.includes('href="/services/brand-positioning"') && capHtml.includes('Commerce Experience') && !capHtml.includes('invented'))
+  assert.ok(capHtml.indexOf('Brand &amp; Positioning') < capHtml.indexOf('Commerce Experience'))
+
+  // Lean row: no empty optional sections or headings.
+  const lean = { id: 'lean', slug: 'lean-project', client_name: 'Lean', is_active: true, engagement_type: 'studio_team' }
+  const leanHtml = mk(lean, [], [])
+  for (const word of ['Where Hbee', 'Creative in motion', 'A closer look', 'Outcome', 'Progress so far', 'Next project', 'Platforms', 'What was delivered', 'What is being built', 'The challenge']) assert.ok(!leanHtml.includes(word), 'no empty ' + word)
+  assert.ok(leanHtml.includes('Lean'))
+  assert.ok(mk({ ...base, technologies_used: ['Shopify', 'Klaviyo'] }, [], []).includes('Shopify, Klaviyo'))
+  const nextHtml = mk(base, [], [], { client: 'Other', title: 'Other title', href: '/work/other', category: 'Fashion' })
+  assert.ok(nextHtml.includes('Next project') && nextHtml.includes('href="/work/other"'))
+  assert.ok(!render(React.createElement(Detail, { detail: work.toWorkDetail(base), next: { client: 'Other', href: '/work/other' } })).includes('Next project'), 'no next-project module without the flag')
+
+  // Listing: classification, capability, cover fallback, ordering rules preserved.
+  const idx = { capabilities: { a: ['creative-ugc', 'brand-positioning', 'digital-systems'] }, cover: { b: { src: '/typed-cover.png', alt: 'Typed cover alt' } } }
+  const listing = work.buildWorkData([
+    { ...sample, id: 'a', slug: 'a-proj', engagement_type: 'client', project_status: 'ongoing', featured: false },
+    { ...sample, id: 'b', slug: 'b-proj', image_url: '', featured_image: '', after_image: '', engagement_type: 'studio_team', featured: false },
+  ], idx)
+  assert.equal(listing.items[0].creative.engagement, 'client'); assert.equal(listing.items[0].creative.status, 'ongoing')
+  assert.deepEqual(plain(listing.items[0].creative.capabilities).map(c => c.slug), ['brand-positioning', 'digital-systems', 'creative-ugc'])
+  assert.equal(listing.items[1].image.src, '/typed-cover.png'); assert.equal(listing.items[1].image.alt, 'Typed cover alt')
+  assert.equal(listing.items[0].image.src, '/cover.png', 'parent cover wins over typed media')
+  const Sections = load('src/components/site/work/WorkSections.tsx')
+  const listHtml = render(React.createElement(Sections.WorkCollection, { data: listing }))
+  assert.ok(listHtml.includes('Client engagement') && listHtml.includes('Studio work') && listHtml.includes('Ongoing') && listHtml.includes('Brand &amp; Positioning · Digital Systems') && listHtml.includes('+1'))
+  const plainList = render(React.createElement(Sections.WorkCollection, { data: work.buildWorkData([sample]) }))
+  assert.ok(!plainList.includes('Client engagement') && !plainList.includes('Studio work') && !plainList.includes('Ongoing'))
+  assert.ok(render(React.createElement(Sections.WorkHero, { creative: true })).includes('Selected projects') && render(React.createElement(Sections.WorkHero, {})).includes('Case studies'))
+
+  // Admin: classification saves ONLY its two columns; video fields survive the save payload.
+  const vp = creative.creativeSavePayload('sample-id', [vid], [], '3').p_media[0]
+  assert.equal(vp.media_kind, 'video'); assert.equal(vp.video_url, vid.video_url); assert.equal(vp.transcript, vid.transcript)
+  assert.throws(() => creative.creativeSavePayload('sample-id', [{ ...vid, title: '' }], [], '3'), /title and a description/)
+  response = call => call.table === 'portfolio_items' ? { data: { engagement_type: 'weird', project_status: null, id: 'sample-id' }, error: null } : { data: null, error: null }
+  calls = []
+  const cl = host(load('src/components/admin/PortfolioClassification.tsx').default, { portfolioId: 'sample-id', disabled: false })
+  cl.render(); await tick(); cl.render()
+  assert.equal(find(cl, n => n.props?.name === 'engagement_type' && n.props.value === 'studio_team').props.checked, true, 'unknown stored value loads as the safe studio default')
+  assert.equal(find(cl, n => n.type === 'button').props.disabled, true, 'nothing to save until changed')
+  find(cl, n => n.props?.name === 'engagement_type' && n.props.value === 'client').props.onChange(); find(cl, n => n.props?.name === 'project_status' && n.props.value === 'ongoing').props.onChange(); cl.render()
+  calls = []
+  await find(cl, n => n.type === 'button').props.onClick(); cl.render()
+  const upd = calls.find(c => c.table === 'portfolio_items' && c.operations.some(op => op[0] === 'update'))
+  assert.deepEqual(plain(upd.operations.find(op => op[0] === 'update')[1]), { engagement_type: 'client', project_status: 'ongoing', is_case_study: false })
+  assert.ok(upd.operations.some(op => op[0] === 'eq' && op[1] === 'id' && op[2] === 'sample-id'))
+  assert.match(flattenText(cl.tree), /Saved. Public pages/)
+
+  // Data layer (flag on): bounded reads, hidden media filtered at the query, failures degrade.
+  testEnv.NEXT_PUBLIC_PORTFOLIO_CREATIVE_ENABLED = 'true'
+  calls = []
+  response = call => call.table === 'portfolio_capabilities' ? { data: [{ portfolio_id: 'p1', capability_slug: 'creative-ugc' }, { portfolio_id: 'p1', capability_slug: 'bogus' }], error: null }
+    : call.table === 'portfolio_media' ? { data: [{ portfolio_id: 'p1', id: 'm2', image_url: '/m2.png', alt_text: 'm2', display_order: 2 }, { portfolio_id: 'p1', id: 'm1', image_url: '/m1.png', alt_text: 'm1', display_order: 1 }], error: null }
+    : { data: [{ ...sample, id: 'p1', slug: 'p-one' }, { ...sample, id: 'p2', slug: 'p-two' }], error: null }
+  const index = await creativeData.getWorkCreativeIndex(['p1'])
+  assert.deepEqual(plain(index.capabilities), { p1: ['creative-ugc'] }); assert.equal(index.cover.p1.src, '/m1.png')
+  assert.ok(calls.some(c => c.table === 'portfolio_media' && c.operations.some(op => op[0] === 'eq' && op[1] === 'is_visible' && op[2] === true)))
+  const nextItem = await work.getNextWork('p-one'); assert.equal(nextItem.slug, 'p-two')
+  assert.equal((await work.getNextWork('p-two')).slug, 'p-one', 'wraps')
+  assert.equal(await work.getNextWork('missing'), null)
+  const flagged = await work.getWorkData(); assert.ok(flagged.items[0].creative)
+  response = call => call.table === 'portfolio_items' ? { data: [{ ...sample, id: 'p1', slug: 'p-one' }], error: null } : { data: null, error: { message: 'missing' } }
+  const degraded = await work.getWorkData(); assert.ok(degraded.items[0].image.src === '/cover.png' && degraded.items[0].creative.capabilities.length === 0, 'creative read failure degrades to legacy fields')
+  assert.equal(await work.getNextWork('p-one'), null, 'single project has no next')
+  delete testEnv.NEXT_PUBLIC_PORTFOLIO_CREATIVE_ENABLED
+  calls = []; response = () => ({ data: [sample], error: null })
+  assert.equal((await work.getWorkData()).items[0].creative, undefined); assert.ok(calls.every(c => c.table === 'portfolio_items'), 'flag off: no creative table reads from the listing')
+  assert.equal(await creativeData.getWorkCreativeIndex(['x']), undefined)
+
+  // ── C1.8.1 Work vs Case Studies ──────────────────────────────────────────
+  assert.equal(cls.isCaseStudy(true), true)
+  for (const v of [false, null, undefined, 'true', 1, 'yes']) assert.equal(cls.isCaseStudy(v), false, 'only boolean true is a Case Study')
+  const csIdx = { capabilities: {}, cover: {} }
+  const csRow = (over) => ({ ...sample, featured: false, ...over })
+  const listing2 = work.buildWorkData([
+    csRow({ id: 'cs1', slug: 'cs-one', is_case_study: true, engagement_type: 'client' }),
+    csRow({ id: 'sw1', slug: 'sw-one', engagement_type: 'client' }),
+    csRow({ id: 'sw2', slug: 'sw-two', is_case_study: false }),
+    csRow({ id: 'cs2', slug: 'cs-studio', is_case_study: true, engagement_type: 'studio_team', project_status: 'ongoing' }),
+  ], csIdx)
+  const byId = Object.fromEntries(listing2.items.map(i => [i.id, i]))
+  assert.equal(byId.cs1.href, '/case-studies/cs-one'); assert.equal(byId.cs1.creative.caseStudy, true)
+  assert.equal(byId.sw1.href, '/work/sw-one', 'client + Standard Work stays a Standard Work page'); assert.equal(byId.sw1.creative.caseStudy, false)
+  assert.equal(byId.sw2.href, '/work/sw-two')
+  assert.equal(byId.cs2.href, '/case-studies/cs-studio'); assert.equal(byId.cs2.creative.engagement, 'studio_team')
+  assert.equal(work.buildWorkData([csRow({ id: 'x', slug: 'x-proj', is_case_study: true })]).items[0].href, '/work/x-proj', 'flag off: never a Case Study route')
+  assert.equal(work.buildWorkData([csRow({ id: 'x', slug: 'x-proj' })], csIdx).items[0].creative.caseStudy, false, 'missing column => Standard Work')
+  assert.deepEqual(work.selectFeaturedCaseStudies([{ ...byId.cs1, featured: true }, { ...byId.sw1, featured: true }, { ...byId.cs2, featured: false }]).map(i => i.id), ['cs1'], 'only featured Case Studies qualify for a future homepage')
+  assert.deepEqual(work.relatedWork(listing2.items, 'cs-one', 2).map(i => i.slug).includes('cs-one'), false)
+  assert.equal(work.relatedWork(listing2.items, 'cs-one', 2).length, 2)
+
+  const Sections2 = load('src/components/site/work/WorkSections.tsx')
+  const csList = render(React.createElement(Sections2.WorkCollection, { data: listing2 }))
+  assert.ok(csList.includes('Read case study') && csList.includes('View project') && !csList.includes('View the project'))
+  assert.ok(csList.includes('href="/case-studies/cs-one"') && csList.includes('href="/work/sw-one"') && csList.includes('href="/work/sw-two"'), 'Work contains both kinds with the right destination')
+  assert.ok(render(React.createElement(Sections2.WorkCollection, { data: work.buildWorkData([sample]) })).includes('View the project'), 'flag off keeps the legacy label')
+  assert.ok(render(React.createElement(Sections2.WorkHero, { creative: true, caseStudies: true })).includes('href="/case-studies"'))
+  assert.ok(!render(React.createElement(Sections2.WorkHero, { creative: true })).includes('/case-studies'))
+
+  const CS = load('src/components/site/work/CaseStudySections.tsx')
+  const caseItems = listing2.items.filter(i => i.creative.caseStudy)
+  const csListing = render(React.createElement(CS.CaseStudiesCollection, { items: caseItems }))
+  assert.ok(csListing.includes('Read case study') && csListing.includes('/case-studies/cs-one') && !csListing.includes('/work/sw-one'), 'listing holds Case Studies only')
+  assert.ok(render(React.createElement(CS.CaseStudiesCollection, { items: [] })).includes('Case studies are on their way.'))
+
+  const mockup = { ...asset, id: '00000000-0000-4000-8000-000000000040', asset_type: 'mockup', image_url: '/mock.png', alt_text: 'Laptop mockup', title: 'Homepage on laptop', description: 'Desktop presentation', caption: 'Presentation only', fit_mode: 'auto', display_order: 0 }
+  const mockupHidden = { ...mockup, id: '00000000-0000-4000-8000-000000000041', image_url: '/mock-hidden.png', is_visible: false }
+  const storefront = { ...flyer, id: '00000000-0000-4000-8000-000000000042', asset_type: 'storefront', image_url: '/store.png', alt_text: 'Storefront', display_order: 1 }
+  const palette = { ...flyer, id: '00000000-0000-4000-8000-000000000043', asset_type: 'colour-palette', image_url: '/palette.png', alt_text: 'Palette', display_order: 2 }
+  const logo2 = { ...asset, id: '00000000-0000-4000-8000-000000000044', image_url: '/logo2.png', display_order: 3 }
+  const csBase = { ...sample, is_case_study: true, engagement_type: 'client', project_status: 'completed', gallery_images: [], before_image: '', after_image: '' }
+  const csDetail = (row, media, caps = []) => work.toWorkDetail(row, media, { capabilities: caps })
+  const csHtml = (row, media, related) => render(React.createElement(CS.CaseStudyPage, { detail: csDetail(row, media), related }))
+  const full = csHtml(csBase, [storefront, mockupHidden, mockup, logo2, palette, vid], [byId.sw1])
+  assert.ok(full.includes('Case study') && full.includes('href="/case-studies"') && full.includes('Back to all case studies'))
+  assert.ok(full.includes('/mock.png') && full.includes('Homepage on laptop') && full.includes('Presentation only'), 'mockup renders with title, description and caption')
+  assert.ok(!full.includes('/mock-hidden.png'), 'hidden mockup stays hidden')
+  assert.ok(full.includes('Mockups show how the work is presented. They are not performance results.'))
+  const at = (t) => full.indexOf(t)
+  assert.ok(at('Presentation') > -1 && at('Website and storefront') > -1 && at('Brand identity') > -1)
+  assert.ok(at('Presentation') < at('Website and storefront') && at('Website and storefront') < at('Brand identity'), 'groups follow the first appearance in editor order (mockup 0, storefront 1, identity 2)')
+  assert.ok(at('/palette.png') < at('/logo2.png'), 'order inside a group follows display_order')
+  assert.ok(full.includes('Related projects') && full.includes('href="/work/sw-one"') && full.includes('Creative in motion'))
+  const reordered = csHtml(csBase, [{ ...mockup, display_order: 5 }, { ...storefront, display_order: 0 }])
+  assert.ok(reordered.indexOf('Website and storefront') < reordered.indexOf('Presentation'), 'editor order controls the sequence, not a hardcoded one')
+  const onlyOther = csHtml(csBase, [{ ...flyer, asset_type: 'other' }])
+  assert.ok(!onlyOther.includes('More from the project'), 'a single generic group has no sub-heading')
+  const leanCs = csHtml({ id: 'lean', slug: 'lean-cs', client_name: 'Lean', is_case_study: true }, [])
+  for (const word of ['Related projects', 'A closer look', 'Creative in motion', 'The challenge', 'Outcome', 'Progress so far', 'Where Hbee', 'Presentation', 'Before and after']) assert.ok(!leanCs.includes(word), 'no empty module: ' + word)
+  assert.ok(csHtml({ ...csBase, before_image: '/b.png', after_image: '/a.png' }, []).includes('Before and after'))
+  // Ongoing and studio case studies.
+  const ongoingCs = csHtml({ ...csBase, project_status: 'ongoing' }, [])
+  assert.ok(ongoingCs.includes('Progress so far') && ongoingCs.includes('What is being built') && !ongoingCs.includes('What was delivered') && !ongoingCs.includes('>Outcome<'))
+  const studioCs = csHtml({ ...csBase, engagement_type: 'studio_team', project_status: 'ongoing' }, [mockup])
+  assert.ok(studioCs.includes('Studio work') && studioCs.includes('Case study') && !studioCs.includes('Client engagement') && !studioCs.includes('<dt>Client</dt>') && !/client/i.test(studioCs.replace(/example client/gi, '')), 'a studio Case Study never implies a client relationship')
+  assert.ok(csHtml(csBase, []).includes('Client engagement'))
+
+  assert.equal(creative.mediaPresentation(mockup).fit, 'contain', 'mockups are never cropped by default')
+  assert.equal(creative.mediaPresentation({ ...mockup, fit_mode: 'cover' }).fit, 'cover', 'an explicit editor choice is respected')
+  assert.equal(creative.mediaPresentation({ ...storefront, asset_type: 'brand-application' }).fit, 'contain')
+
+  // Routes (flag gated; redirect so only one canonical page exists).
+  const workRoute = load('src/app/(site)/work/[slug]/page.tsx')
+  const csRoute = load('src/app/(site)/case-studies/[slug]/page.tsx')
+  const csIndex = load('src/app/(site)/case-studies/page.tsx')
+  const csRows = (over) => ({ data: { ...sample, id: 'r1', slug: 'route-proj', ...over }, error: null })
+  testEnv.NEXT_PUBLIC_PORTFOLIO_CREATIVE_ENABLED = 'true'
+  response = call => call.table === 'portfolio_items' ? (call.operations.some(op => op[0] === 'maybeSingle') ? csRows({ is_case_study: true }) : { data: [{ ...sample, id: 'r1', slug: 'route-proj', is_case_study: true }, { ...sample, id: 'r2', slug: 'plain', is_case_study: false }], error: null }) : { data: [], error: null }
+  await assert.rejects(workRoute.default({ params: { slug: 'route-proj' } }), /NEXT_REDIRECT:\/case-studies\/route-proj/, 'Standard Work URL of a Case Study redirects to the canonical page')
+  const csPage = await csRoute.default({ params: { slug: 'route-proj' } }); assert.ok(csPage)
+  const indexPage = await csIndex.default(); assert.ok(indexPage)
+  assert.equal((await work.getCaseStudies()).map(i => i.slug).join(), 'route-proj', '/case-studies lists only Case Studies')
+  assert.equal((await work.getWorkData()).items.length, 2, 'Work still lists every active project')
+  response = call => call.table === 'portfolio_items' ? csRows({ is_case_study: false }) : { data: [], error: null }
+  await assert.rejects(csRoute.default({ params: { slug: 'route-proj' } }), /NEXT_REDIRECT:\/work\/route-proj/, 'a non-Case Study never has a second page')
+  assert.ok(await workRoute.default({ params: { slug: 'route-proj' } }), 'Standard Work renders under /work')
+  response = call => call.table === 'portfolio_items' ? { data: null, error: null } : { data: [], error: null }
+  await assert.rejects(csRoute.default({ params: { slug: 'missing' } }), /NEXT_NOT_FOUND/)
+  response = call => call.table === 'portfolio_items' ? csRows({ is_case_study: undefined }) : { data: [], error: null }
+  assert.ok(await workRoute.default({ params: { slug: 'route-proj' } }), 'column unavailable => Standard Work, no crash')
+  delete testEnv.NEXT_PUBLIC_PORTFOLIO_CREATIVE_ENABLED
+  response = call => call.table === 'portfolio_items' ? csRows({ is_case_study: true }) : { data: [], error: null }
+  await assert.rejects(csRoute.default({ params: { slug: 'route-proj' } }), /NEXT_NOT_FOUND/, 'flag off: /case-studies/[slug] does not exist')
+  await assert.rejects(csIndex.default(), /NEXT_NOT_FOUND/, 'flag off: /case-studies does not exist')
+  assert.ok(await workRoute.default({ params: { slug: 'route-proj' } }), 'flag off: /work/[slug] ignores is_case_study entirely')
+
+  // Admin: Presentation type, safe default, and graceful fallback without the column.
+  testEnv.NEXT_PUBLIC_PORTFOLIO_CREATIVE_ENABLED = 'true'
+  response = call => { const sel = call.operations.find(op => op[0] === 'select'); return sel && String(sel[1]).includes('is_case_study') ? { data: null, error: { message: 'column does not exist' } } : { data: { engagement_type: 'client', project_status: 'completed' }, error: null } }
+  const cl2 = host(load('src/components/admin/PortfolioClassification.tsx').default, { portfolioId: 'sample-id', disabled: false })
+  cl2.render(); await tick(); cl2.render(); await tick(); cl2.render()
+  assert.equal(find(cl2, n => n.props?.name === 'presentation_type' && n.props.value === 'standard').props.checked, true, 'default is Standard Work')
+  assert.equal(find(cl2, n => n.props?.name === 'presentation_type' && n.props.value === 'case_study').props.disabled, true, 'cannot choose Case Study before the column exists')
+  assert.match(flattenText(cl2.tree), /Case Study database change has not been applied/)
+  find(cl2, n => n.props?.name === 'project_status' && n.props.value === 'ongoing').props.onChange(); cl2.render()
+  calls = []; response = () => ({ data: { id: 'sample-id' }, error: null })
+  await find(cl2, n => n.type === 'button').props.onClick()
+  assert.deepEqual(plain(calls.find(c => c.operations.some(op => op[0] === 'update')).operations.find(op => op[0] === 'update')[1]), { engagement_type: 'client', project_status: 'ongoing' }, 'unavailable column is never written')
+  response = () => ({ data: { engagement_type: 'client', project_status: 'completed', is_case_study: false, id: 'sample-id' }, error: null })
+  const cl3 = host(load('src/components/admin/PortfolioClassification.tsx').default, { portfolioId: 'sample-id', disabled: false })
+  cl3.render(); await tick(); cl3.render()
+  assert.match(flattenText(cl3.tree), /Standard Work/); assert.match(flattenText(cl3.tree), /Case Study/)
+  find(cl3, n => n.props?.name === 'presentation_type' && n.props.value === 'case_study').props.onChange(); cl3.render()
+  calls = []
+  await find(cl3, n => n.type === 'button').props.onClick()
+  assert.equal(plain(calls.find(c => c.operations.some(op => op[0] === 'update')).operations.find(op => op[0] === 'update')[1]).is_case_study, true)
+  const mediaEditor = host(load('src/components/admin/PortfolioCreativeMedia.tsx').default, { portfolioId: 'sample-id', disabled: false })
+  response = call => call.table === 'portfolio_items' ? { data: { creative_revision: '0' }, error: null } : call.table === 'portfolio_media' ? { data: [mockup], error: null } : { data: [], error: null }
+  mediaEditor.render(); await tick(); mediaEditor.render()
+  assert.match(flattenText(mediaEditor.tree), /Mockup \(presentation image\)/); assert.match(flattenText(mediaEditor.tree), /not performance results/)
+  delete testEnv.NEXT_PUBLIC_PORTFOLIO_CREATIVE_ENABLED
+
+  // ── C1.8.2 completion ────────────────────────────────────────────────────
+  // Framing: explicit fit wins; unknown/portrait/mockup contained; only KNOWN landscape web fills; tall images height-capped.
+  const mp = (over) => creative.mediaPresentation({ ...asset, asset_type: 'storefront', fit_mode: 'auto', width: null, height: null, ...over })
+  assert.equal(mp({}).fit, 'contain', 'unknown size => contained (never destructive cover)')
+  assert.equal(mp({ width: 1600, height: 1000 }).fit, 'cover', 'known landscape website screenshot may fill its frame')
+  assert.equal(mp({ width: 800, height: 1600 }).fit, 'contain', 'portrait mobile screenshot is contained')
+  assert.equal(mp({ width: 800, height: 1600 }).ratio, '800 / 1600')
+  assert.equal(mp({ width: 1440, height: 6000 }).maxHeight, '88vh', 'very tall pages are height-capped, not cropped')
+  assert.equal(mp({ width: 1600, height: 1000 }).maxHeight, undefined)
+  assert.equal(mp({ width: 800, height: 1600, fit_mode: 'cover' }).fit, 'cover', 'explicit editor choice is respected even for portrait')
+  assert.equal(mp({ asset_type: 'mockup', width: 1600, height: 1000 }).fit, 'contain', 'landscape mockup still contained')
+  assert.equal(mp({ asset_type: 'campaign-graphic', width: 1600, height: 1000 }).fit, 'contain')
+  assert.equal(mp({ asset_type: 'logo', width: 800, height: 400, fit_mode: 'cover' }).fit, 'contain', 'artwork is always contained')
+  const tallHtml = render(React.createElement(Detail, { detail: work.toWorkDetail({ ...sample, gallery_images: [] }, [{ ...asset, id: '00000000-0000-4000-8000-000000000050', asset_type: 'storefront', image_url: '/tall.png', width: 800, height: 1600, fit_mode: 'auto', is_visible: true }], { capabilities: [] }) }))
+  assert.ok(/aspect-ratio:800 \/ 1600;max-height:88vh/.test(tallHtml) && /object-fit:contain/.test(tallHtml), 'portrait storefront renders contained with its real ratio')
+
+  // Dimension detection helper.
+  imageSizes['https://cdn.example.com/a.png'] = [1179, 2556]
+  imageSizes['/huge.png'] = [30000, 100]
+  assert.deepEqual(plain(await creative.detectImageSize('https://cdn.example.com/a.png')), { width: 1179, height: 2556 })
+  assert.equal(await creative.detectImageSize('https://cdn.example.com/missing.png'), null, 'load failure resolves null')
+  assert.equal(await creative.detectImageSize('/huge.png'), null, 'unusable dimensions resolve null')
+  assert.equal(await creative.detectImageSize('javascript:alert(1)'), null)
+  assert.equal(await creative.detectImageSize('http://insecure.test/a.png'), null)
+
+  // Editor: detection on upload, manual dims preserved, forced detect, failure never blocks.
+  testEnv.NEXT_PUBLIC_PORTFOLIO_CREATIVE_ENABLED = 'true'
+  const dimAsset = { ...asset, id: '00000000-0000-4000-8000-000000000060', image_url: 'https://cdn.example.com/a.png', alt_text: 'Portrait', width: null, height: null, is_visible: true }
+  const manualAsset = { ...asset, id: '00000000-0000-4000-8000-000000000061', image_url: 'https://cdn.example.com/a.png', alt_text: 'Manual', width: 500, height: 500, display_order: 1 }
+  response = call => call.table === 'portfolio_items' ? { data: { creative_revision: '0' }, error: null } : call.table === 'portfolio_media' ? { data: [dimAsset, manualAsset], error: null } : { data: [], error: null }
+  const dimHost = host(load('src/components/admin/PortfolioCreativeMedia.tsx').default, { portfolioId: 'sample-id', disabled: false })
+  dimHost.render(); await tick(); dimHost.render()
+  assert.match(flattenText(dimHost.tree), /Detect missing image sizes/)
+  assert.equal(button(dimHost, 'Save creative media & capabilities').props.disabled, true, 'loading never marks the form dirty')
+  const numberInputs = () => nodes(dimHost.tree).filter(n => n.type === 'input' && n.props.type === 'number').map(n => n.props.value)
+  assert.deepEqual(numberInputs(), ['', '', 500, 500])
+  await button(dimHost, 'Detect missing image sizes').props.onClick(); await tick(); dimHost.render()
+  assert.deepEqual(numberInputs(), [1179, 2556, 500, 500], 'missing sizes are filled; the manually sized asset is left alone')
+  assert.match(flattenText(dimHost.tree), /Detected from the image/)
+  assert.equal(button(dimHost, 'Save creative media & capabilities').props.disabled, false, 'a detected size is a real change to save')
+  // Manual correction is kept (not re-detected on blur), and marked manual.
+  const widthInput = nodes(dimHost.tree).filter(n => n.type === 'input' && n.props.type === 'number')[0]
+  widthInput.props.onChange({ target: { value: '1000' } }); dimHost.render()
+  assert.equal(numberInputs()[0], 1000)
+  await nodes(dimHost.tree).find(n => n.type === 'input' && n.props.value === dimAsset.image_url).props.onBlur(); await tick(); dimHost.render()
+  assert.equal(numberInputs()[0], 1000, 'blur does not overwrite a deliberate value')
+  // Explicit "Detect size" overrides on request.
+  await button(dimHost, 'Detect size for asset 1').props.onClick(); await tick(); dimHost.render()
+  assert.equal(numberInputs()[0], 1179)
+  // Failure is non-blocking.
+  imageSizes['https://cdn.example.com/a.png'] = undefined
+  await button(dimHost, 'Detect size for asset 2').props.onClick(); await tick(); dimHost.render()
+  assert.match(flattenText(dimHost.tree), /Could not read the size/)
+  assert.equal(numberInputs()[2], 500, 'failed detection leaves existing values alone')
+  assert.equal(button(dimHost, 'Save creative media & capabilities').props.disabled, false, 'save is still available')
+  // The payload carries the real dimensions.
+  assert.equal(creative.creativeSavePayload('sample-id', [{ ...dimAsset, width: 1179, height: 2556 }], [], '0').p_media[0].height, 2556)
+  delete testEnv.NEXT_PUBLIC_PORTFOLIO_CREATIVE_ENABLED
+
+  // Existing-field Case Study modules (process, services, testimonial, overview, technologies).
+  const legacyCs = { ...csBase, is_case_study: true, engagement_type: 'client', brief: '', overview: 'Older overview text', technologies_used: null, technologies: ['Shopify', 'Klaviyo'], technology: 'ignored when technologies exist',
+    services: ['Storefront design', { name: 'Email flows' }, { title: 'Analytics setup' }, 42, null],
+    process: [{ title: 'Discover', description: 'Mapped the range.' }, 'Build', { name: 'Launch', text: 'Went live.' }, {}, 7],
+    testimonial: 'They made the range far easier to understand and sell.' }
+  const legacyCsDetail = work.toWorkDetail(legacyCs, [], { capabilities: [] })
+  assert.equal(legacyCsDetail.context, 'Older overview text', 'overview is used as the brief when brief is empty (creative mode)')
+  assert.deepEqual(plain(legacyCsDetail.creative.technologies), ['Shopify', 'Klaviyo'])
+  assert.deepEqual(plain(legacyCsDetail.creative.services), ['Storefront design', 'Email flows', 'Analytics setup'])
+  assert.deepEqual(plain(legacyCsDetail.creative.process).map(p => p.title), ['Discover', 'Build', 'Launch'])
+  assert.equal(legacyCsDetail.creative.process[0].text, 'Mapped the range.'); assert.equal(legacyCsDetail.creative.process[1].text, undefined)
+  assert.equal(legacyCsDetail.creative.testimonial.quote, 'They made the range far easier to understand and sell.'); assert.equal(legacyCsDetail.creative.testimonial.author, undefined, 'no invented attribution')
+  assert.equal(work.toWorkDetail({ ...legacyCs, brief: '' }).context, undefined, 'flag off: overview fallback never applies')
+  const legacyHtml2 = render(React.createElement(CS.CaseStudyPage, { detail: legacyCsDetail }))
+  assert.ok(legacyHtml2.includes('How the work moved.') && legacyHtml2.includes('Discover') && legacyHtml2.includes('Mapped the range.'))
+  assert.ok(legacyHtml2.includes('Client feedback') && legacyHtml2.includes('far easier to understand'))
+  assert.ok(legacyHtml2.includes('Storefront design, Email flows, Analytics setup') && legacyHtml2.includes('Shopify, Klaviyo'))
+  // Standard Work stays lightweight; studio never gets a testimonial; empty/malformed data renders nothing.
+  const stdDetail = work.toWorkDetail({ ...legacyCs, is_case_study: false }, [], { capabilities: [] })
+  assert.deepEqual(plain([stdDetail.creative.services, stdDetail.creative.process]), [[], []]); assert.equal(stdDetail.creative.testimonial, undefined)
+  assert.equal(work.toWorkDetail({ ...legacyCs, engagement_type: 'studio_team' }, [], { capabilities: [] }).creative.testimonial, undefined, 'a studio project never shows client feedback')
+  const emptyLegacy = render(React.createElement(CS.CaseStudyPage, { detail: work.toWorkDetail({ ...legacyCs, process: [], services: [], testimonial: '   ', technologies: [] , technology: '' }, [], { capabilities: [] }) }))
+  for (const word of ['How the work moved', 'Client feedback', 'Services']) assert.ok(!emptyLegacy.includes(word), 'no empty module: ' + word)
+  for (const bad of ['[]', '{"x":1}', '{"quote":""}', 'ok', '{broken']) assert.equal(work.testimonialOf({ testimonial: bad }), undefined, 'rejects ' + bad)
+  assert.deepEqual(plain(work.testimonialOf({ testimonial: JSON.stringify({ quote: 'Great partner to work with.', author: 'A. Person', role: 'Founder' }) })), { quote: 'Great partner to work with.', author: 'A. Person', role: 'Founder' })
+  assert.deepEqual(plain(work.processOf({ process: JSON.stringify([{ title: 'One' }]) })), [{ title: 'One' }], 'JSON-string jsonb is accepted')
+  assert.equal(work.processOf({ process: 'not json' }).length, 0)
+  assert.deepEqual(plain(work.technologiesOf({ technology: 'Shopify, Klaviyo; Gorgias' })), ['Shopify', 'Klaviyo', 'Gorgias'])
+
   console.log('PASS: Phase B/C regression checks plus revision conflict/increment contract, stale replacement rejection, explicit clearing, empty preservation, pending/late upload safety, failed-save retry, failed/inconsistent load protection, and SQL/ACL static expectations. PostgreSQL execution/RLS remain unverified.')
 })().catch(error => { console.error(error); process.exitCode = 1 })

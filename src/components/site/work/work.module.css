@@ -405,3 +405,139 @@
    `flex` utility, whose display beats the browser's [hidden] rule; this
    restores it for the Work grid only (not a global rule). */
 .grid > [hidden] { display: none !important; }
+
+/* ── Creative mode (rollout flag on): context tags, capabilities, video, next project ── */
+
+.tags { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 0.75rem; }
+.tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--hb-border);
+  border-radius: 999px;
+  background: var(--hb-white);
+  font-size: var(--hb-text-eyebrow);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: var(--hb-fg-body);
+}
+.tagClient { border-color: var(--hb-structure-soft); color: var(--hb-link); }
+.tagOngoing { background: var(--hb-mist); border-color: var(--hb-structure-soft); color: var(--hb-fg); }
+
+.capabilityLine { margin-top: 0.875rem; font-size: 0.8125rem; font-weight: 600; line-height: 1.5; color: var(--hb-fg-body); }
+.capabilityTitle {
+  font-size: var(--hb-text-eyebrow);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hb-fg-body);
+}
+.capabilityList { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.875rem; list-style: none; padding: 0; }
+.capabilityChip {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 0 1rem;
+  border: 1px solid var(--hb-border);
+  border-radius: 999px;
+  background: var(--hb-white);
+  font-weight: 600;
+  color: var(--hb-fg);
+  transition: border-color var(--hb-dur-base) var(--hb-ease), color var(--hb-dur-base) var(--hb-ease);
+}
+.capabilityChip:hover, .capabilityChip:focus-visible { border-color: var(--hb-structure-soft); color: var(--hb-link); }
+
+.assetKicker { display: block; margin-bottom: 0.25rem; font-size: var(--hb-text-eyebrow); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--hb-link); }
+.assetTitle { display: block; font-weight: 600; color: var(--hb-fg); }
+.assetText { display: block; margin-top: 0.125rem; }
+
+.videoGrid { display: grid; gap: var(--hb-grid-gap); }
+@media (min-width: 768px) { .videoGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.videoGridSingle { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 768px) { .videoGridSingle { grid-template-columns: minmax(0, 1fr); max-width: 52rem; } }
+.videoItem { margin: 0; }
+.videoFrame {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--hb-border);
+  border-radius: var(--hb-radius-md) var(--hb-radius-md) 24px var(--hb-radius-md);
+  background: var(--hb-ink, #0b1b3a);
+}
+video.videoFrame { aspect-ratio: 16 / 9; object-fit: contain; }
+.videoLink {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0 1rem;
+  border-radius: 999px;
+  background: var(--hb-white);
+  font-weight: 600;
+  color: var(--hb-link);
+  box-shadow: var(--hb-shadow-2);
+}
+.videoLink:hover { text-decoration: underline; }
+.videoCaption { margin-top: 0.875rem; font-size: 0.9375rem; line-height: 1.5; color: var(--hb-fg-body); }
+.transcript { margin-top: 0.75rem; font-size: 0.9375rem; color: var(--hb-fg-body); }
+.transcript summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 600; color: var(--hb-link); }
+.transcript p { max-width: 46rem; padding-bottom: 0.5rem; line-height: 1.6; white-space: pre-line; }
+
+.nextProject { display: flex; flex-direction: column; gap: 1.5rem; align-items: flex-start; }
+@media (min-width: 768px) { .nextProject { flex-direction: row; align-items: center; justify-content: space-between; } }
+
+/* ── Case Studies (creative flag on) ── */
+
+.tagCaseStudy { background: var(--hb-fg); border-color: var(--hb-fg); color: var(--hb-white); }
+
+.csHero { padding: clamp(2.5rem, 5vw, 4.5rem) 0 var(--hb-space-section-compact); }
+
+.csGrid { display: grid; gap: var(--hb-grid-gap); list-style: none; padding: 0; }
+@media (min-width: 768px) { .csGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .csLead { grid-column: 1 / -1; } }
+
+.csCard {
+  position: relative;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--hb-border);
+  border-radius: var(--hb-radius-md) var(--hb-radius-md) 28px var(--hb-radius-md);
+  background: var(--hb-white);
+  transition: border-color var(--hb-dur-base) var(--hb-ease), box-shadow var(--hb-dur-base) var(--hb-ease);
+}
+.csCard:hover, .csCard:focus-within { border-color: var(--hb-structure-soft); box-shadow: var(--hb-shadow-2); }
+.csMedia { aspect-ratio: 16 / 10; }
+.csBody { display: flex; flex: 1; flex-direction: column; padding: 1.5rem; }
+@media (min-width: 768px) {
+  .csCardLead { flex-direction: row; }
+  .csCardLead .csMedia { flex: 1.25; aspect-ratio: auto; min-height: 22rem; }
+  .csCardLead .csBody { flex: 1; justify-content: center; padding: 2.5rem; }
+}
+
+.csGroup { margin-top: clamp(2.5rem, 5vw, 4rem); }
+.csGroupTitle { font-size: var(--hb-text-eyebrow); font-weight: 600; line-height: 1.2; letter-spacing: 0.12em; text-transform: uppercase; color: var(--hb-fg-body); }
+.csGroupNote { margin-top: 0.5rem; max-width: 40rem; font-size: 0.9375rem; line-height: 1.5; color: var(--hb-fg-body); }
+.csGroupTitle + * { margin-top: 1.25rem; }
+.csWide { grid-column: 1 / -1; }
+.csPair { display: grid; align-items: start; gap: var(--hb-grid-gap); margin-top: 1.25rem; }
+@media (min-width: 768px) { .csPair { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.csTrio { display: grid; align-items: start; gap: var(--hb-grid-gap); margin-top: 1.25rem; }
+@media (min-width: 640px) { .csTrio { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .csTrio { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+.processList { display: grid; gap: 1.25rem; margin-top: 2rem; list-style: none; padding: 0; counter-reset: none; }
+@media (min-width: 768px) { .processList { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem 3rem; } }
+.processStep { display: flex; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--hb-border); }
+.processNumber { flex: none; min-width: 1.75rem; font-size: var(--hb-text-eyebrow); font-weight: 600; letter-spacing: 0.12em; color: var(--hb-link); padding-top: 0.2rem; }
+.processText { margin-top: 0.25rem; max-width: 34rem; line-height: 1.6; color: var(--hb-fg-body); }
+.quote { margin: 1.25rem 0 0; padding-left: 1.25rem; border-left: 3px solid var(--hb-structure); }
+.quote blockquote { max-width: 46rem; font-family: var(--hb-font-display, inherit); font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.625rem); font-weight: 600; line-height: 1.35; letter-spacing: -0.015em; color: var(--hb-fg); }
+.quote figcaption { margin-top: 0.75rem; color: var(--hb-fg-body); }

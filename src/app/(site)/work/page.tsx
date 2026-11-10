@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { pageMetadata } from '@/lib/site/seo'
 
 import { WorkCollection, WorkCta, WorkHero } from '@/components/site/work/WorkSections'
+import { portfolioCreativeEnabled } from '@/lib/portfolio-creative'
 import { getWorkData } from '@/lib/site/work-data'
 
 /**
@@ -26,7 +27,7 @@ export default async function WorkPage() {
 
   return (
     <>
-      <WorkHero />
+      <WorkHero creative={portfolioCreativeEnabled()} caseStudies={data.items.some((item) => item.creative?.caseStudy)} />
       <WorkCollection data={data} />
       <WorkCta />
     </>

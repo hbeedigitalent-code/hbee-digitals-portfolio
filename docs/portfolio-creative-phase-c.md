@@ -1,5 +1,12 @@
 # Phase C: creative media and explicit capability attribution
 
+> **v3 revision (unexecuted, owner review):** the SQL drafts were revised to add typed video
+> assets (poster + alt text required) and controlled `engagement_type` / `project_status`
+> classification, plus a separate optional add-on and staging tests. Where this document
+> describes the asset model as image-only or the RPC as unchanged, read
+> `docs/portfolio-cms-refinement-plan.md` for the current design, risks and approval gates.
+> The RPC signature, ACL model and rollback philosophy below still apply.
+
 Status: implementation and SQL artifacts prepared for owner review. No SQL executed.
 `NEXT_PUBLIC_PORTFOLIO_CREATIVE_ENABLED` is absent/false by default. Do not enable
 it until the rollout below is approved and verified. This is a public feature

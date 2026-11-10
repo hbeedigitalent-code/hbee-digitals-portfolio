@@ -7,14 +7,16 @@ import { supabase } from '@/lib/supabase'
 import ImageUpload from '@/components/ImageUpload'
 import PortfolioGallery from '@/components/admin/PortfolioGallery'
 import PortfolioCreativeMedia from '@/components/admin/PortfolioCreativeMedia'
+import PortfolioClassification from '@/components/admin/PortfolioClassification'
 import { portfolioCreativeEnabled } from '@/lib/portfolio-creative'
+import { AdminActionBar, AdminActionBarActions, AdminActionBarStatus, AdminLoadingState, AdminNotice, AdminPageHeader, AdminSection, AdminStatusBadge, adminBtn } from '@/components/admin/ui/AdminUi'
 import {
   EMPTY_PORTFOLIO, loadPortfolioEditor, portfolioPayload, portfolioPublicHref, portfolioErrorMessage, slugify,
   validatePortfolio, validPortfolioImage, validWorkSlug, type PortfolioEditor, type PortfolioErrors,
 } from '@/lib/admin/portfolio-editor'
 
 const inputClass = 'mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] focus:border-[var(--accent)]'
-const actionClass = 'rounded-full border border-[var(--border)] px-5 py-3 text-sm font-bold text-[var(--text-primary)] disabled:opacity-50'
+const actionClass = adminBtn('secondary')
 type TextKey = { [K in keyof PortfolioEditor]: PortfolioEditor[K] extends string ? K : never }[keyof PortfolioEditor]
 
 function Field({ name, label, value, onChange, error, hint, rows, required, type = 'text' }: {
@@ -31,8 +33,8 @@ function Field({ name, label, value, onChange, error, hint, rows, required, type
   )
 }
 
-function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
-  return <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-6 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6"><h2 id={`${id}-title`} className="mb-5 text-xl font-black text-[var(--text-primary)]">{title}</h2><div className="space-y-5">{children}</div></section>
+function Section({ id, title, description, children }: { id: string; title: string; description?: string; children: React.ReactNode }) {
+  return <AdminSection id={id} title={title} description={description}><div className="space-y-5">{children}</div></AdminSection>
 }
 
 export default function EditPortfolioPage() {
@@ -125,30 +127,29 @@ export default function EditPortfolioPage() {
     return <Field name={key} label={label} value={form[key]} onChange={(value) => updateField(key, key === 'slug' ? slugify(value) : value)} error={errors[key]} {...options} />
   }
 
-  if (loading) return <p role="status" className="py-20 text-center text-[var(--text-muted)]">Loading portfolio item…</p>
-  if (!loaded) return <div className="space-y-5"><p role="alert" className="text-red-500">{errorMessage}</p><Link href="/admin/portfolio" className={actionClass}>Back to portfolio</Link></div>
+  if (loading) return <AdminLoadingState label="Loading portfolio item…" />
+  if (!loaded) return <div className="space-y-5"><AdminNotice tone="error">{errorMessage}</AdminNotice><Link href="/admin/portfolio" className={actionClass}>Back to portfolio</Link></div>
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="mb-2 text-xs font-black uppercase tracking-widest text-[var(--accent)]">Admin / Portfolio / Edit</p>
-          <h1 className="text-3xl font-black text-[var(--text-primary)]">Edit Portfolio Item</h1>
-          <p className="mt-2 text-sm text-[var(--text-muted)]">Manage the existing public work entry, story, images and SEO.</p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          {savedActive && validWorkSlug(savedSlug) && <Link href={portfolioPublicHref(savedSlug)} target="_blank" rel="noopener noreferrer" className={actionClass}>View saved /work page</Link>}
-          <Link href="/admin/portfolio" className={actionClass}>Back to portfolio</Link>
-        </div>
+      <AdminPageHeader
+        breadcrumbs={[{ label: 'Portfolio', href: '/admin/portfolio' }, { label: form.title || 'Edit project' }]}
+        title="Edit Portfolio Item"
+        description="Manage the public work entry: its story, classification, media and SEO."
+        meta={<AdminStatusBadge tone={savedActive ? 'green' : 'neutral'} dot>{savedActive ? 'Visible on /work' : 'Hidden from /work'}</AdminStatusBadge>}
+      >
+        {savedActive && validWorkSlug(savedSlug) && <Link href={portfolioPublicHref(savedSlug)} target="_blank" rel="noopener noreferrer" className={adminBtn('secondary')}>View saved /work page</Link>}
+        <Link href="/admin/portfolio" className={adminBtn('secondary')}>Back to portfolio</Link>
+      </AdminPageHeader>
+      {/* A div, not <nav>: the root layout's critical CSS pins every <nav> to the top of the viewport. */}
+      <div role="navigation" aria-label="Portfolio editor sections" className="sticky top-0 z-20 flex gap-1.5 overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/95 p-1.5 backdrop-blur">
+        {[['basics', 'Basics'], ['story', 'Story'], ['media', 'Media'], ['visibility', 'Visibility & ordering'], ['seo', 'SEO'], ...(portfolioCreativeEnabled() ? [['classification', 'Engagement & presentation'], ['creative-media', 'Creative media']] : [['creative-media', 'Creative media']])].map(([section, label]) => <a key={section} href={`#${section}`} className="shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-section)] hover:text-[var(--accent)]">{label}</a>)}
       </div>
-      <nav aria-label="Portfolio editor sections" className="flex flex-wrap gap-4 text-sm font-bold text-[var(--accent)]">
-        {['basics', 'story', 'media', 'visibility', 'seo'].map((section) => <a key={section} href={`#${section}`} className="capitalize underline underline-offset-4">{section}</a>)}
-      </nav>
-      {message && <p role="status" className="rounded-xl border border-[var(--accent)]/20 p-4 text-sm text-[var(--accent)]">{message}</p>}
-      {errorMessage && <p role="alert" className="rounded-xl border border-red-500/20 p-4 text-sm text-red-500">{errorMessage}</p>}
+      {message && <AdminNotice tone="success">{message}</AdminNotice>}
+      {errorMessage && <AdminNotice tone="error">{errorMessage}</AdminNotice>}
       <form onSubmit={handleSubmit} noValidate className="space-y-6">
         <fieldset disabled={saving} className="min-w-0 space-y-6">
-          <Section id="basics" title="Basics">
+          <Section id="basics" title="Basics" description="The project's name, its URL and how it is grouped on /work.">
             <div className="grid gap-5 lg:grid-cols-2">
               {field('title', 'Project title', { required: true })}
               {field('client_name', 'Client name', { hint: 'Shown as the client; the project title is used when this is blank.' })}
@@ -196,7 +197,7 @@ export default function EditPortfolioPage() {
             {errors.gallery_images && <p role="alert" className="text-sm text-red-500">{errors.gallery_images}</p>}
           </Section>
 
-          <Section id="visibility" title="Visibility & ordering">
+          <Section id="visibility" title="Visibility & ordering" description="Whether the project is public, featured, and where it appears.">
             <div className="grid gap-5 lg:grid-cols-2">
               {field('website_url', 'Website URL (optional)', { type: 'url', hint: 'Use HTTPS. Leave blank to omit the external website link when no legacy URL fallback is stored.' })}
               <Field name="display_order" label="Display order" value={String(form.display_order)} type="number" error={errors.display_order} hint="Lower numbers appear first within featured and non-featured groups." onChange={(value) => updateField('display_order', value.trim() === '' ? NaN : Number(value))} />
@@ -212,19 +213,26 @@ export default function EditPortfolioPage() {
             </details>
           </Section>
 
-          <Section id="seo" title="SEO">
+          <Section id="seo" title="SEO" description="Optional search and sharing text. Sensible fallbacks apply when left blank.">
             {field('seo_title', 'SEO title', { hint: 'Optional. Falls back to the client name on the public work page.' })}
             {field('seo_description', 'SEO description', { rows: 3, hint: 'Optional. Falls back to the short description, then the existing default.' })}
           </Section>
-          <Section id="creative-media" title="Creative media & capabilities">
+          {portfolioCreativeEnabled() && (
+            <Section id="classification" title="Engagement & presentation" description="How this project is described publicly: who it was for, where it stands and how deeply it is presented.">
+              <PortfolioClassification portfolioId={id} disabled={saving} />
+            </Section>
+          )}
+          <Section id="creative-media" title="Creative media & capabilities" description="Typed assets, mockups and videos, and the Hbee capabilities involved.">
             {portfolioCreativeEnabled() ? <PortfolioCreativeMedia portfolioId={id} disabled={saving} /> : <p className="text-sm text-[var(--text-muted)]">Typed creative assets and explicit capability assignments are awaiting the approved database rollout. The existing gallery remains available above.</p>}
           </Section>
         </fieldset>
-        <div className="flex flex-wrap items-center gap-4 pb-10">
-          <button type="submit" disabled={saving || !dirty} className="rounded-full bg-[var(--accent)] px-8 py-3 text-sm font-black text-[var(--btn-primary-text)] disabled:opacity-50">{saving ? 'Saving…' : 'Save portfolio item'}</button>
-          <span role="status" className="text-sm text-[var(--text-muted)]">{saving ? 'Saving changes…' : dirty ? 'Unsaved changes' : 'No unsaved changes'}</span>
-          <button type="button" disabled={saving} onClick={deleteItem} className="rounded-full border border-red-500/30 px-5 py-3 text-sm font-bold text-red-500 disabled:opacity-50">Delete item</button>
-        </div>
+        <AdminActionBar>
+          <AdminActionBarStatus dirty={dirty && !saving}>{saving ? 'Saving changes…' : dirty ? 'Unsaved changes' : 'No unsaved changes'}</AdminActionBarStatus>
+          <AdminActionBarActions>
+            <button type="button" disabled={saving} onClick={deleteItem} className={adminBtn('danger')}>Delete item</button>
+            <button type="submit" disabled={saving || !dirty} className={adminBtn('primary')}>{saving ? 'Saving…' : 'Save portfolio item'}</button>
+          </AdminActionBarActions>
+        </AdminActionBar>
       </form>
     </div>
   )

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { cn } from '@/lib/cn'
+import { engagementLabel, statusLabel } from '@/lib/site/work-classification'
 import type { WorkData, WorkItem } from '@/lib/site/work-data'
 import { CONTACT_HREF, GROWTH_REVIEW_HREF } from '@/lib/site/routes'
 import { HbeeModuleGlyph } from '../module/HbeeModule'
@@ -18,7 +19,11 @@ import styles from './work.module.css'
 
 /* ── 01 — Hero (Cloud). Text is server-rendered and visible immediately. ── */
 
-export function WorkHero() {
+/**
+ * `creative` (rollout flag on) only swaps the eyebrow: the listing then mixes
+ * client engagements with studio work, so it no longer says "Case studies".
+ */
+export function WorkHero({ creative = false, caseStudies = false }: { creative?: boolean; caseStudies?: boolean }) {
   return (
     <SiteSection tone="cloud" spacing="none" aria-labelledby="work-hero-title" className="overflow-hidden">
       <div aria-hidden="true" className={homeStyles.heroField}>
@@ -34,7 +39,7 @@ export function WorkHero() {
         <div className="col-span-4 md:col-span-8 lg:col-span-6">
           <p className={homeStyles.eyebrow}>
             <span aria-hidden="true" className={homeStyles.eyebrowSignal} />
-            {['Work', 'Case studies'].map((word, i) => (
+            {['Work', creative ? 'Selected projects' : 'Case studies'].map((word, i) => (
               <span key={word} className={i > 0 ? homeStyles.eyebrowItem : undefined}>
                 {i > 0 && <span className="sr-only">, </span>}
                 {word}
@@ -56,6 +61,11 @@ export function WorkHero() {
             <SiteButton href="#work-collection" variant="conversion" size="lg" arrow>
               Explore Our Work
             </SiteButton>
+            {caseStudies && (
+              <SiteButton href="/case-studies" variant="secondary" size="lg">
+                Explore Case Studies
+              </SiteButton>
+            )}
             <SiteButton href={CONTACT_HREF} variant="secondary" size="lg">
               Talk to Our Team
             </SiteButton>
@@ -115,6 +125,39 @@ export function WorkCollection({ data }: { data: WorkData }) {
   )
 }
 
+/** Legacy wording is unchanged; creative mode distinguishes Case Studies from Standard Work. */
+export function itemCta(item: WorkItem) {
+  return item.creative ? (item.creative.caseStudy ? 'Read case study' : 'View project') : 'View the project'
+}
+
+/** Creative mode only: engagement context, plus a status chip only for ongoing work. */
+export function Tags({ item }: { item: WorkItem }) {
+  const c = item.creative
+  if (!c) return null
+  return (
+    <p className={styles.tags}>
+      {c.caseStudy && <span className={cn(styles.tag, styles.tagCaseStudy)}>Case study</span>}
+      <span className={cn(styles.tag, c.engagement === 'client' && styles.tagClient)}>{engagementLabel(c.engagement)}</span>
+      {c.status === 'ongoing' && <span className={cn(styles.tag, styles.tagOngoing)}>{statusLabel(c.status)}</span>}
+    </p>
+  )
+}
+
+/** Creative mode only: at most two explicit capability names, never a taxonomy wall. */
+function CapabilityLine({ item }: { item: WorkItem }) {
+  const caps = item.creative?.capabilities ?? []
+  if (!caps.length) return null
+  const shown = caps.slice(0, 2).map((c) => c.name).join(' · ')
+  const more = caps.length - 2
+  return (
+    <p className={styles.capabilityLine}>
+      <span className="sr-only">Capabilities: </span>
+      {shown}
+      {more > 0 && <span> +{more}</span>}
+    </p>
+  )
+}
+
 function Meta({ item }: { item: WorkItem }) {
   const parts = [item.category, item.projectType].filter(Boolean)
   if (!parts.length) return null
@@ -154,15 +197,17 @@ function WorkFeatured({ item }: { item: WorkItem }) {
       <Media item={item} sizes="(min-width: 1024px) 50vw, 100vw" priority className={styles.featuredMedia} />
       <div className={styles.featuredBody}>
         <p className={styles.featuredLabel}>Featured project</p>
+        <Tags item={item} />
         <Meta item={item} />
         <h3 id={`work-${item.id}`} className="mt-3 font-hb-display text-[clamp(1.625rem,1.3rem+1vw,2.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-hb-fg">
           {item.client}
         </h3>
         {item.title && <p className="mt-2 text-[1.0625rem] font-medium text-hb-ink">{item.title}</p>}
         {item.description && <p className="mt-4 max-w-[36rem] leading-relaxed text-hb-fg-body">{item.description}</p>}
+        <CapabilityLine item={item} />
         <div className="mt-7 flex flex-wrap items-center gap-3">
           <SiteButton href={item.href} variant="secondary" arrow>
-            View the project<span className="sr-only">: {item.client}</span>
+            {itemCta(item)}<span className="sr-only">: {item.client}</span>
           </SiteButton>
           {item.websiteUrl && (
             <a href={item.websiteUrl} target="_blank" rel="noopener noreferrer" className={styles.externalLink}>
@@ -177,11 +222,12 @@ function WorkFeatured({ item }: { item: WorkItem }) {
   )
 }
 
-function WorkCard({ item, priority }: { item: WorkItem; priority?: boolean }) {
+export function WorkCard({ item, priority }: { item: WorkItem; priority?: boolean }) {
   return (
     <article className={cn(homeStyles.mediaHover, styles.card, 'group')}>
       <Media item={item} sizes="(min-width: 1152px) 30vw, (min-width: 768px) 45vw, 100vw" priority={priority} />
       <div className="flex flex-1 flex-col p-5 md:p-6">
+        <Tags item={item} />
         <Meta item={item} />
         <h3 className="mt-2 font-hb-display text-[1.25rem] font-bold leading-snug tracking-[-0.015em] text-hb-fg">
           <Link href={item.href} className="after:absolute after:inset-0 after:content-['']">
@@ -190,8 +236,9 @@ function WorkCard({ item, priority }: { item: WorkItem; priority?: boolean }) {
         </h3>
         {item.title && <p className="mt-1 font-medium text-hb-ink">{item.title}</p>}
         {item.description && <p className="mt-3 text-[0.9375rem] leading-relaxed text-hb-fg-body">{item.description}</p>}
+        <CapabilityLine item={item} />
         <span aria-hidden="true" className="mt-auto inline-flex items-center gap-1.5 pt-5 font-semibold text-hb-link group-hover:underline">
-          View the project <SiteArrow size={16} className="transition-transform duration-[var(--hb-dur-base)] group-hover:translate-x-[3px]" />
+          {itemCta(item)} <SiteArrow size={16} className="transition-transform duration-[var(--hb-dur-base)] group-hover:translate-x-[3px]" />
         </span>
       </div>
     </article>

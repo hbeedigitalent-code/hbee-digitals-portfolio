@@ -18,7 +18,7 @@ select a.attname, format_type(a.atttypid,a.atttypmod) as exact_type, a.atttypmod
        col_description(a.attrelid,a.attnum) as description
 from pg_attribute a join pg_type t on t.oid=a.atttypid join pg_namespace tn on tn.oid=t.typnamespace
 left join pg_attrdef d on d.adrelid=a.attrelid and d.adnum=a.attnum
-where a.attrelid=to_regclass('public.portfolio_items') and a.attname in ('id','gallery_images','creative_revision') and not a.attisdropped;
+where a.attrelid=to_regclass('public.portfolio_items') and a.attname in ('id','gallery_images','creative_revision','engagement_type','project_status','deliverables','og_image_url') and not a.attisdropped;
 
 -- Existing object names, kinds, owners and RLS, including missing objects.
 select wanted.name, c.relkind, pg_get_userbyid(c.relowner) as owner,
@@ -37,12 +37,17 @@ select c.relname, pg_get_userbyid(c.relowner) as owner,
           or (x.grantee=(select oid from pg_roles where rolname='anon') and x.privilege_type<>'SELECT')) then 'BLOCKER'
          when x.grantee not in (0,c.relowner) and pg_get_userbyid(x.grantee) not in ('anon','authenticated','service_role') then 'REVIEW UNEXPECTED ROLE' else 'REVIEW' end as assessment
 from pg_class c join pg_namespace n on n.oid=c.relnamespace
-cross join lateral aclexplode(coalesce(c.relacl,acldefault('r',c.relowner))) x
+cross join lateral aclexplode(case when c.relacl is null then acldefault('r',c.relowner) when cardinality(c.relacl)>0 then c.relacl end) x  -- an empty '{}' ACL is zero-dimensional: mapped to NULL (no rows) instead of raising 22023
 where n.nspname='public' and c.relname in ('portfolio_items','portfolio_media','portfolio_capabilities','admin_users');
-select c.relname,a.attname,a.attacl,case when x.grantee=0 then 'PUBLIC' else pg_get_userbyid(x.grantee) end as grantee,x.privilege_type,x.is_grantable
-from pg_class c join pg_namespace n on n.oid=c.relnamespace join pg_attribute a on a.attrelid=c.oid
-cross join lateral aclexplode(coalesce(a.attacl,'{}'::aclitem[])) x
-where n.nspname='public' and c.relname in ('portfolio_items','portfolio_media','portfolio_capabilities') and a.attnum>0 and not a.attisdropped;
+-- Column ACLs: only columns with a non-NULL, non-empty (one-dimensional) ACL reach aclexplode(); MATERIALIZED forces the filter first.
+with col_acls as materialized (
+  select c.relname,a.attname,a.attacl
+  from pg_class c join pg_namespace n on n.oid=c.relnamespace join pg_attribute a on a.attrelid=c.oid
+  where n.nspname='public' and c.relname in ('portfolio_items','portfolio_media','portfolio_capabilities')
+    and a.attnum>0 and not a.attisdropped and a.attacl is not null and cardinality(a.attacl)>0
+)
+select k.relname,k.attname,k.attacl,case when x.grantee=0 then 'PUBLIC' else pg_get_userbyid(x.grantee) end as grantee,x.privilege_type,x.is_grantable
+from col_acls k cross join lateral aclexplode(k.attacl) x;
 select c.relname,r.rolname,r.rolsuper,r.rolbypassrls,
        has_schema_privilege(r.oid,n.oid,'USAGE') as schema_usage,
        has_table_privilege(r.oid,c.oid,'SELECT') as can_select,
@@ -54,10 +59,16 @@ select c.relname,r.rolname,r.rolsuper,r.rolbypassrls,
        case when r.rolname='anon' and (has_table_privilege(r.oid,c.oid,'INSERT,UPDATE,DELETE,TRUNCATE') or has_any_column_privilege(r.oid,c.oid,'INSERT,UPDATE')) then 'BLOCKER' else 'RLS MUST STILL BE TESTED' end as assessment
 from pg_class c join pg_namespace n on n.oid=c.relnamespace cross join pg_roles r
 where n.nspname='public' and c.relname in ('portfolio_media','portfolio_capabilities') and r.rolname in ('anon','authenticated','service_role');
-select pg_get_userbyid(d.defaclrole) as owner,n.nspname,d.defaclobjtype,d.defaclacl,
+-- Default ACLs: same pattern (an empty defaclacl would also be zero-dimensional).
+with def_acls as materialized (
+  select d.defaclrole,d.defaclnamespace,d.defaclobjtype,d.defaclacl
+  from pg_default_acl d left join pg_namespace n on n.oid=d.defaclnamespace
+  where d.defaclobjtype in ('r','f') and (d.defaclnamespace=0 or n.nspname='public')
+    and d.defaclacl is not null and cardinality(d.defaclacl)>0
+)
+select pg_get_userbyid(d.defaclrole) as owner,(select nspname from pg_namespace where oid=d.defaclnamespace) as nspname,d.defaclobjtype,d.defaclacl,
        case when x.grantee=0 then 'PUBLIC' else pg_get_userbyid(x.grantee) end as grantee,x.privilege_type,x.is_grantable
-from pg_default_acl d left join pg_namespace n on n.oid=d.defaclnamespace
-cross join lateral aclexplode(d.defaclacl) x where d.defaclobjtype in ('r','f') and (d.defaclnamespace=0 or n.nspname='public');
+from def_acls d cross join lateral aclexplode(d.defaclacl) x;
 
 -- Complete function signatures, actual owner, body, security mode, path and ACL.
 select p.oid::regprocedure as signature,pg_get_userbyid(p.proowner) as owner,
@@ -74,7 +85,7 @@ select p.oid::regprocedure as signature,
          when p.oid=to_regprocedure('public.bump_portfolio_creative_revision()') and pg_get_userbyid(x.grantee) in ('authenticated','service_role') and not x.is_grantable then 'EXPECTED'
          else 'BLOCKER: UNEXPECTED RPC GRANT' end as assessment
 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-cross join lateral aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) x
+cross join lateral aclexplode(case when p.proacl is null then acldefault('f',p.proowner) when cardinality(p.proacl)>0 then p.proacl end) x
 where n.nspname='public' and p.proname in ('save_portfolio_creative','bump_portfolio_creative_revision');
 select p.oid::regprocedure as signature,r.rolname,has_function_privilege(r.oid,p.oid,'EXECUTE') as effective_execute,
        case when has_function_privilege(r.oid,p.oid,'EXECUTE') <>
@@ -88,7 +99,7 @@ where conrelid in (to_regclass('public.portfolio_items'),to_regclass('public.por
 select schemaname,tablename,indexname,indexdef from pg_indexes where schemaname='public' and tablename in ('portfolio_items','portfolio_media','portfolio_capabilities');
 select t.tgrelid::regclass as relation,t.tgname,pg_get_triggerdef(t.oid) as definition,t.tgenabled
 from pg_trigger t where not t.tgisinternal and t.tgrelid in (to_regclass('public.portfolio_media'),to_regclass('public.portfolio_capabilities'));
-select id,name,public,file_size_limit,allowed_mime_types from storage.buckets where id='project-images';
+select id,name,public,file_size_limit,allowed_mime_types from storage.buckets where id in ('project-images','portfolio-images');
 select version(),to_regprocedure('pg_catalog.gen_random_uuid()') as uuid_generator;
 -- ACLs alone cannot establish row access. authenticated CRUD grants are intended
 -- ONLY with the reviewed active-admin RLS predicates. Flag extra policies too.
@@ -111,6 +122,50 @@ from pg_policies where schemaname='public' and tablename in ('portfolio_media','
 select p.oid::regprocedure,not p.prosecdef as security_invoker,
        'search_path=pg_catalog, public'=any(coalesce(p.proconfig,'{}'::text[])) as expected_search_path
 from pg_proc p where p.oid in (to_regprocedure('public.save_portfolio_creative(text,jsonb,text[],bigint,boolean,boolean)'),to_regprocedure('public.bump_portfolio_creative_revision()'));
+-- ── v3 additions: typed video + classification. READ ONLY. Any MISSING/BLOCKER blocks activation.
+select wanted.col as media_column,
+       a.attname is not null as exists_,
+       format_type(a.atttypid,a.atttypmod) as exact_type, a.attnotnull as not_null,
+       pg_get_expr(d.adbin,d.adrelid) as default_expression,
+       case when a.attname is null then 'MISSING' else 'PRESENT' end as assessment
+from (values ('media_kind'),('title'),('description'),('video_url'),('captions_url'),('transcript')) wanted(col)
+left join pg_attribute a on a.attrelid=to_regclass('public.portfolio_media') and a.attname=wanted.col and not a.attisdropped
+left join pg_attrdef d on d.adrelid=a.attrelid and d.adnum=a.attnum;
+select wanted.col as parent_column, a.attname is not null as exists_,
+       format_type(a.atttypid,a.atttypmod) as exact_type, a.attnotnull as not_null,
+       pg_get_expr(d.adbin,d.adrelid) as default_expression,
+       case when a.attname is null then 'MISSING'
+            when wanted.col='engagement_type' and pg_get_expr(d.adbin,d.adrelid) not like '''studio_team''%' then 'BLOCKER: UNSAFE DEFAULT (must be studio_team)'
+            when wanted.col='project_status' and pg_get_expr(d.adbin,d.adrelid) not like '''completed''%' then 'BLOCKER: UNEXPECTED DEFAULT'
+            when not a.attnotnull then 'BLOCKER: MUST BE NOT NULL' else 'EXPECTED' end as assessment
+from (values ('engagement_type'),('project_status')) wanted(col)
+left join pg_attribute a on a.attrelid=to_regclass('public.portfolio_items') and a.attname=wanted.col and not a.attisdropped
+left join pg_attrdef d on d.adrelid=a.attrelid and d.adnum=a.attnum;
+select wanted.relation, wanted.conname, c.oid is not null as constraint_exists,
+       pg_get_constraintdef(c.oid) as definition,
+       case when c.oid is null then 'MISSING: BLOCKER' else 'REVIEW DEFINITION' end as assessment
+from (values ('portfolio_media','portfolio_media_kind_valid'),('portfolio_media','portfolio_media_text_lengths'),
+             ('portfolio_media','portfolio_media_video_url_safe'),('portfolio_media','portfolio_media_captions_url_safe'),
+             ('portfolio_media','portfolio_media_kind_shape'),
+             ('portfolio_items','portfolio_engagement_type_valid'),('portfolio_items','portfolio_project_status_valid')) wanted(relation,conname)
+left join pg_constraint c on c.conrelid=to_regclass('public.'||wanted.relation) and c.conname=wanted.conname;
+-- Existing parents must all hold a valid classification. Immediately after 01-forward
+-- NOTHING should be 'client': the owner sets engagement_type='client' deliberately.
+select engagement_type, project_status, count(*) as rows_ from public.portfolio_items group by 1,2 order by 1,2;
+select count(*) filter (where engagement_type not in ('client','studio_team')) as invalid_engagement_rows,
+       count(*) filter (where project_status not in ('completed','ongoing')) as invalid_status_rows from public.portfolio_items;
+-- The RPC must be the v3 body (carries the video columns) and keep the v3 marker.
+select p.oid::regprocedure, position('media_kind' in pg_get_functiondef(p.oid)) > 0 as rpc_handles_video_columns,
+       obj_description(p.oid,'pg_proc') = 'Hbee portfolio creative Phase C v3' as expected_marker
+from pg_proc p where p.oid = to_regprocedure('public.save_portfolio_creative(text,jsonb,text[],bigint,boolean,boolean)');
+-- Optional add-on columns (informational: absent is fine unless 04-optional-forward was approved).
+select wanted.col, a.attname is not null as present, format_type(a.atttypid,a.atttypmod) as exact_type
+from (values ('deliverables'),('og_image_url')) wanted(col)
+left join pg_attribute a on a.attrelid=to_regclass('public.portfolio_items') and a.attname=wanted.col and not a.attisdropped;
+-- Constraint BEHAVIOUR (rejects video without poster/title/description, image with a
+-- video URL, bad URLs, unknown classification) is exercised by
+-- scripts/portfolio-creative-05-staging-constraint-tests.sql — STAGING ONLY, rolled back.
+
 -- Compare every reported owner with the owner-approved migration role. Unexpected
 -- owners, grants (including inherited effective grants), missing revision triggers,
 -- extra permissive policies or incorrect definitions are BLOCKERS, not warnings.

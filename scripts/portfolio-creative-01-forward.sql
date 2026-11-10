@@ -1,10 +1,29 @@
--- PHASE C DRAFT — OWNER REVIEW ONLY. NOT EXECUTED.
+-- PHASE C v3 DRAFT — OWNER REVIEW ONLY. NOT EXECUTED.
 -- Run 00-preflight separately and review its output BEFORE this file.
 -- Requires reviewed parent/admin RLS + grants and public storage policy evidence.
+--
+-- v3 changes over the earlier draft (all additive; nothing is dropped or rewritten):
+--   * portfolio_media gains typed VIDEO support: media_kind ('image'|'video'),
+--     title, description, video_url, captions_url, transcript. For a video the
+--     existing image_url column IS the poster image and alt_text describes it, so
+--     "required poster + required alt text" reuse the existing NOT NULL / non-blank
+--     checks. Video rows additionally require video_url, a title and a description.
+--   * portfolio_items gains controlled classification: engagement_type
+--     ('client'|'studio_team', default 'studio_team') and project_status
+--     ('completed'|'ongoing', default 'completed'). Existing rows therefore become
+--     studio_team: NOTHING is labelled Client or Case study until an owner sets
+--     engagement_type = 'client' explicitly.
+--   * save_portfolio_creative keeps the SAME six-argument signature. New media keys
+--     are optional in the JSON payload; an older client that omits them neither
+--     fails nor overwrites stored video fields.
+--   * Safe to run on a database where the earlier draft was already applied: every
+--     step is create-if-missing / add-column-if-missing, and an unexpected existing
+--     object still aborts the transaction.
+-- OUT OF SCOPE here (see 04-optional-forward): deliverables list, social-image override.
 begin;
 
 do $migration$
-declare id_type text; rel text; fn record;
+declare id_type text; rel text; fn record; col text; col_type text;
 begin
   select format_type(a.atttypid, a.atttypmod) into id_type
   from pg_attribute a where a.attrelid = 'public.portfolio_items'::regclass and a.attname = 'id' and not a.attisdropped;
@@ -21,13 +40,21 @@ begin
   -- another role's functions or an unrelated revision column.
   for fn in select p.oid, p.proowner from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname='public' and p.proname in ('save_portfolio_creative','bump_portfolio_creative_revision') loop
-    if coalesce(obj_description(fn.oid,'pg_proc'),'') not in ('Hbee portfolio creative Phase C v1','Hbee portfolio creative Phase C v2') or pg_get_userbyid(fn.proowner) <> current_user then
+    if coalesce(obj_description(fn.oid,'pg_proc'),'') not in ('Hbee portfolio creative Phase C v1','Hbee portfolio creative Phase C v2','Hbee portfolio creative Phase C v3') or pg_get_userbyid(fn.proowner) <> current_user then
       raise exception 'Unexpected creative function owner/definition marker: %', fn.oid::regprocedure;
     end if;
   end loop;
   if exists (select 1 from pg_attribute a where a.attrelid='public.portfolio_items'::regclass and a.attname='creative_revision' and not a.attisdropped and (a.atttypid <> 'bigint'::regtype or not a.attnotnull or coalesce(col_description(a.attrelid,a.attnum),'') <> 'Hbee portfolio creative revision v1')) then
     raise exception 'Existing creative_revision column requires review';
   end if;
+  -- Classification columns must not pre-exist with an unreviewed shape.
+  foreach col in array array['engagement_type','project_status'] loop
+    select format_type(a.atttypid,a.atttypmod) into col_type from pg_attribute a
+      where a.attrelid='public.portfolio_items'::regclass and a.attname=col and not a.attisdropped;
+    if col_type is not null and (col_type <> 'text' or coalesce(col_description('public.portfolio_items'::regclass,(select attnum from pg_attribute where attrelid='public.portfolio_items'::regclass and attname=col)),'') <> 'Hbee portfolio classification v1') then
+      raise exception 'Existing portfolio_items.% column requires review', col;
+    end if;
+  end loop;
   execute format($ddl$
     create table if not exists public.portfolio_media (
       id uuid primary key default gen_random_uuid(),
@@ -64,8 +91,61 @@ begin
   end if;
 end $revision_check$;
 
+-- ── Controlled classification (parent) ─────────────────────────────────────
+-- Metadata-only defaults (constant defaults do not rewrite the table). The safe
+-- default for engagement_type is the NON-claiming value: an unset, legacy or
+-- hidden row can never be presented as Client work. The CHECK rejects every other
+-- spelling, so an "unknown" type cannot be stored; public code must ALSO treat
+-- anything other than the exact string 'client' as studio work (defence in depth,
+-- covers a database where this migration has not run yet).
+alter table public.portfolio_items add column if not exists engagement_type text not null default 'studio_team';
+alter table public.portfolio_items add column if not exists project_status text not null default 'completed';
+comment on column public.portfolio_items.engagement_type is 'Hbee portfolio classification v1';
+comment on column public.portfolio_items.project_status is 'Hbee portfolio classification v1';
+do $classification_check$
+begin
+  if not exists (select 1 from pg_constraint where conrelid='public.portfolio_items'::regclass and conname='portfolio_engagement_type_valid') then
+    alter table public.portfolio_items add constraint portfolio_engagement_type_valid check (engagement_type in ('client','studio_team'));
+  end if;
+  if not exists (select 1 from pg_constraint where conrelid='public.portfolio_items'::regclass and conname='portfolio_project_status_valid') then
+    alter table public.portfolio_items add constraint portfolio_project_status_valid check (project_status in ('completed','ongoing'));
+  end if;
+end $classification_check$;
+
 comment on table public.portfolio_media is 'Hbee portfolio creative Phase C v1';
 comment on table public.portfolio_capabilities is 'Hbee portfolio creative Phase C v1';
+
+-- ── Typed image + video assets (child) ─────────────────────────────────────
+-- For media_kind = 'video', image_url is the REQUIRED POSTER and alt_text its
+-- required description. video_url is an https file URL (hosting decision is an
+-- owner decision, see the plan); captions_url and transcript are optional.
+alter table public.portfolio_media add column if not exists media_kind text not null default 'image';
+alter table public.portfolio_media add column if not exists title text not null default '';
+alter table public.portfolio_media add column if not exists description text not null default '';
+alter table public.portfolio_media add column if not exists video_url text;
+alter table public.portfolio_media add column if not exists captions_url text;
+alter table public.portfolio_media add column if not exists transcript text not null default '';
+do $media_check$
+begin
+  if not exists (select 1 from pg_constraint where conrelid='public.portfolio_media'::regclass and conname='portfolio_media_kind_valid') then
+    alter table public.portfolio_media add constraint portfolio_media_kind_valid check (media_kind in ('image','video'));
+  end if;
+  if not exists (select 1 from pg_constraint where conrelid='public.portfolio_media'::regclass and conname='portfolio_media_text_lengths') then
+    alter table public.portfolio_media add constraint portfolio_media_text_lengths check (length(title) <= 160 and length(description) <= 600 and length(caption) <= 1000 and length(alt_text) <= 300 and length(transcript) <= 20000);
+  end if;
+  if not exists (select 1 from pg_constraint where conrelid='public.portfolio_media'::regclass and conname='portfolio_media_video_url_safe') then
+    alter table public.portfolio_media add constraint portfolio_media_video_url_safe check (video_url is null or (video_url ~* '^https://[^[:space:]<>]+$' and video_url !~* '^https://[^/]*@' and position(chr(92) in video_url) = 0 and position(chr(34) in video_url) = 0 and position(chr(39) in video_url) = 0 and length(video_url) <= 2048));
+  end if;
+  if not exists (select 1 from pg_constraint where conrelid='public.portfolio_media'::regclass and conname='portfolio_media_captions_url_safe') then
+    alter table public.portfolio_media add constraint portfolio_media_captions_url_safe check (captions_url is null or (captions_url ~* '^https://[^[:space:]<>]+$' and captions_url !~* '^https://[^/]*@' and position(chr(92) in captions_url) = 0 and position(chr(34) in captions_url) = 0 and position(chr(39) in captions_url) = 0 and length(captions_url) <= 2048));
+  end if;
+  if not exists (select 1 from pg_constraint where conrelid='public.portfolio_media'::regclass and conname='portfolio_media_kind_shape') then
+    alter table public.portfolio_media add constraint portfolio_media_kind_shape check (
+      (media_kind = 'image' and video_url is null and captions_url is null and transcript = '')
+      or (media_kind = 'video' and video_url is not null and length(btrim(title)) > 0 and length(btrim(description)) > 0));
+  end if;
+end $media_check$;
+
 create index if not exists portfolio_media_parent_order on public.portfolio_media(portfolio_id, display_order, id);
 create index if not exists portfolio_capabilities_slug_parent on public.portfolio_capabilities(capability_slug, portfolio_id);
 
@@ -113,7 +193,7 @@ begin
   if not found then raise exception 'Parent creative revision is not writable' using errcode='42501'; end if;
   return NEW;
 end $bump$;
-comment on function public.bump_portfolio_creative_revision() is 'Hbee portfolio creative Phase C v2';
+comment on function public.bump_portfolio_creative_revision() is 'Hbee portfolio creative Phase C v3';
 drop trigger if exists portfolio_media_revision on public.portfolio_media;
 create trigger portfolio_media_revision before insert or update or delete on public.portfolio_media for each row execute function public.bump_portfolio_creative_revision();
 drop trigger if exists portfolio_capabilities_revision on public.portfolio_capabilities;
@@ -121,6 +201,9 @@ create trigger portfolio_capabilities_revision before insert or update or delete
 
 -- One atomic save for child metadata + assignments; Phase B parent fields save separately.
 -- SECURITY INVOKER: browser session permissions/RLS apply throughout.
+-- Signature is UNCHANGED from v2. New asset keys (media_kind, title, description,
+-- video_url, captions_url, transcript) are OPTIONAL: when a key is absent on an
+-- existing asset its stored value is kept; on a new asset it takes the column default.
 create or replace function public.save_portfolio_creative(p_portfolio_id text, p_media jsonb, p_capabilities text[], p_expected_revision bigint, p_clear_media boolean default false, p_clear_capabilities boolean default false)
 returns text language plpgsql security invoker set search_path = pg_catalog, public
 as $function$
@@ -148,10 +231,18 @@ begin
   for asset in select value from jsonb_array_elements(p_media) loop
     -- Required metadata is constrained by the destination table. Any error rolls
     -- back this entire RPC, including removals and capability assignments.
-    insert into public.portfolio_media(id, portfolio_id, asset_type, image_url, alt_text, caption, display_order, is_visible, fit_mode, width, height)
-    select (asset->>'id')::uuid, p.id, asset->>'asset_type', asset->>'image_url', asset->>'alt_text', coalesce(asset->>'caption',''), (asset->>'display_order')::integer, (asset->>'is_visible')::boolean, asset->>'fit_mode', (asset->>'width')::integer, (asset->>'height')::integer
+    insert into public.portfolio_media(id, portfolio_id, asset_type, image_url, alt_text, caption, display_order, is_visible, fit_mode, width, height, media_kind, title, description, video_url, captions_url, transcript)
+    select (asset->>'id')::uuid, p.id, asset->>'asset_type', asset->>'image_url', asset->>'alt_text', coalesce(asset->>'caption',''), (asset->>'display_order')::integer, (asset->>'is_visible')::boolean, asset->>'fit_mode', (asset->>'width')::integer, (asset->>'height')::integer,
+           coalesce(asset->>'media_kind','image'), coalesce(asset->>'title',''), coalesce(asset->>'description',''), nullif(asset->>'video_url',''), nullif(asset->>'captions_url',''), coalesce(asset->>'transcript','')
     from public.portfolio_items p where p.id::text = p_portfolio_id
-    on conflict (id) do update set asset_type = excluded.asset_type, image_url = excluded.image_url, alt_text = excluded.alt_text, caption = excluded.caption, display_order = excluded.display_order, is_visible = excluded.is_visible, fit_mode = excluded.fit_mode, width = excluded.width, height = excluded.height, updated_at = now()
+    on conflict (id) do update set asset_type = excluded.asset_type, image_url = excluded.image_url, alt_text = excluded.alt_text, caption = excluded.caption, display_order = excluded.display_order, is_visible = excluded.is_visible, fit_mode = excluded.fit_mode, width = excluded.width, height = excluded.height,
+      media_kind = case when asset ? 'media_kind' then excluded.media_kind else public.portfolio_media.media_kind end,
+      title = case when asset ? 'title' then excluded.title else public.portfolio_media.title end,
+      description = case when asset ? 'description' then excluded.description else public.portfolio_media.description end,
+      video_url = case when asset ? 'video_url' then excluded.video_url else public.portfolio_media.video_url end,
+      captions_url = case when asset ? 'captions_url' then excluded.captions_url else public.portfolio_media.captions_url end,
+      transcript = case when asset ? 'transcript' then excluded.transcript else public.portfolio_media.transcript end,
+      updated_at = now()
     where public.portfolio_media.portfolio_id = excluded.portfolio_id;
     if not found then raise exception 'Asset does not belong to this engagement'; end if;
   end loop;
@@ -166,7 +257,7 @@ begin
   select p.creative_revision into current_revision from public.portfolio_items p where p.id::text=p_portfolio_id;
   return current_revision::text;
 end $function$;
-comment on function public.save_portfolio_creative(text,jsonb,text[],bigint,boolean,boolean) is 'Hbee portfolio creative Phase C v2';
+comment on function public.save_portfolio_creative(text,jsonb,text[],bigint,boolean,boolean) is 'Hbee portfolio creative Phase C v3';
 -- Reset explicit/default ACL entries on ALL overloads, including the superseded
 -- three-argument draft. Only the checked six-argument contract is re-granted.
 do $rpc_acl$
