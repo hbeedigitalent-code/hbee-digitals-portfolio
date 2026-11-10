@@ -46,8 +46,10 @@ code only ever needs an active admin) and **1 REVIEW policy**. All other policie
 | `trust_section` | `Allow authenticated manage trust section` | `trust_section_admin_all` |
 | `video_testimonials` | `Auth users can delete proofs`, `Auth users can insert proofs`, `Auth users can update proofs` | `video_testimonials_admin_all` |
 | `contact_submissions` | `Allow public contact form inserts` (**REVIEW**, the 13th) | nothing (see below) |
+| `about_stats` | nothing to drop: RLS on, **no policy today** | `about_stats_admin_all` (**new**) |
+| `about_values` | nothing to drop: RLS on, **no policy today** | `about_values_admin_all` (**new**) |
 
-Each replacement is `ALL` to `authenticated`, permissive, `USING` and `WITH CHECK` both `exists (select 1 from public.admin_users au where au.user_id = auth.uid() and au.is_active = true)`,
+Each of the 9 policies (7 replacements + 2 new) is `ALL` to `authenticated`, permissive, `USING` and `WITH CHECK` both `exists (select 1 from public.admin_users au where au.user_id = auth.uid() and au.is_active = true)`,
 the expression the audit calls ADMIN-CHECKED and the staging Portfolio behaviour test proved. **Preserved untouched:** every public/read policy
 (including `Public can view proofs`, the public pricing read and the trust-section active read), the public `subscribers` INSERT, `blog_comments`
 public insert and approved read, client-own policies, and the service role.
@@ -67,8 +69,8 @@ INSERT revoke before running. The rollback restores it.
 `admin_users`, has a different command, is not reachable by a browser role, if a replacement name is taken, a table has RLS off, PUBLIC holds
 privileges, the admin_users read policy the replacements rely on is missing, or the backup table already exists. Before changing anything it copies
 every policy and every anon/authenticated/PUBLIC/service_role grant of the 16 tables into `public._hbee_a4_rls_backup` (RLS on, no browser grants).
-Before COMMIT it proves: the 13 targets are gone and the policy count fell by exactly 13 − 7; every other policy is byte-identical (fingerprint);
-the 7 replacements are exactly the admin-only policy; no browser-reachable write policy without an admin check remains on the modified tables (the
+Before COMMIT it proves: the 13 targets are gone and the policy count changed by exactly −13 + 9; every other policy is byte-identical (fingerprint);
+the 9 policies are exactly the admin-only policy; no browser-reachable write policy without an admin check remains on the modified tables (the
 `subscribers` anon INSERT is the one exception); grants equal `before ∩ matrix`; no browser role holds TRUNCATE/TRIGGER/REFERENCES/MAINTAIN;
 service_role grants and every RLS flag are unchanged.
 
@@ -76,7 +78,7 @@ service_role grants and every RLS flag are unchanged.
 |---|---|
 | `prod-rls-03-verify-readonly.sql` | read-only; run before (shows the problems being fixed) and after (summary must read 0) |
 | `prod-rls-01-forward-PRODUCTION.sql` | the migration above |
-| `prod-rls-02-rollback-PRODUCTION.sql` | restores exactly the 13 dropped policies and the revoked privileges from the backup, drops the 7 replacements; proves equality with the backup; keeps the backup table |
+| `prod-rls-02-rollback-PRODUCTION.sql` | restores exactly the 13 dropped policies and the revoked privileges from the backup, drops the 9 created policies; proves equality with the backup; keeps the backup table |
 | `prod-rls-04-behaviour-test-ROLLBACK-ONLY.sql` | acts as anon, ordinary user, active admin, client and service role; always raises its report so nothing persists; requires an explicit opt-in; **not run** |
 
 ## 4. Browser-role grants: the matrix and its evidence
@@ -106,9 +108,11 @@ DML privilege the application does not need is revoked too. The migration **only
 
 Where `authenticated` keeps DML on an admin-managed table, the policies it passes through are admin-only after this migration (the forward proves it).
 Two conservative choices are deliberate: the client-own tables (`clients`, `notifications`, `project_requests`) keep their existing authenticated DML
-because their own-row policies bound it and the repository cannot prove a browser path is unused; tightening them is a follow-up. **Finding:** `about_stats`
-and `about_values` have RLS on and no policy, so the Admin About page's stats/values editor cannot read or write them today; this migration changes
-nothing about that (no policy is invented). If the editor should work, a separate, approved admin-only policy is the fix.
+because their own-row policies bound it and the repository cannot prove a browser path is unused; tightening them is a follow-up. **`about_stats` / `about_values`:** RLS is on and there is no policy, so the Admin About editor cannot read or write them today. The migration therefore
+**creates** `about_stats_admin_all` and `about_values_admin_all` (active-admin `ALL` to `authenticated`, same predicate as the others). There is no anonymous policy and
+`anon` keeps no privilege; `authenticated` keeps SELECT/INSERT/UPDATE/DELETE, which is what the editor uses (select, insert, update, delete); ordinary signed-in
+users are blocked by the policy. Nothing is dropped (there is nothing to drop), and the forward aborts if a policy already exists on either table. The rollback drops only these two
+new policies (with the other 7) and restores the grant state from the backup.
 
 Not covered, by design: column-level grants, and views over these tables (the verifier lists any view that reads them so you can review its owner and grants).
 

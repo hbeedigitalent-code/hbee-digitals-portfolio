@@ -147,6 +147,12 @@ begin
       ('anon', 'email_settings', 'select', 'NOROWS'), ('ordinary', 'email_settings', 'select', 'NOROWS'), ('admin', 'email_settings', 'select', 'NOERR'),
       ('anon', 'about_stats', 'select', 'NOROWS'), ('ordinary', 'about_stats', 'select', 'NOROWS'),
       ('anon', 'about_values', 'select', 'NOROWS'), ('ordinary', 'about_values', 'select', 'NOROWS'),
+      ('anon', 'about_stats', 'insert', 'BLOCK'), ('anon', 'about_stats', 'update', 'BLOCK'), ('anon', 'about_stats', 'delete', 'BLOCK'),
+      ('ordinary', 'about_stats', 'insert', 'BLOCK'), ('ordinary', 'about_stats', 'update', 'BLOCK'), ('ordinary', 'about_stats', 'delete', 'BLOCK'),
+      ('anon', 'about_values', 'insert', 'BLOCK'), ('anon', 'about_values', 'update', 'BLOCK'), ('anon', 'about_values', 'delete', 'BLOCK'),
+      ('ordinary', 'about_values', 'insert', 'BLOCK'), ('ordinary', 'about_values', 'update', 'BLOCK'), ('ordinary', 'about_values', 'delete', 'BLOCK'),
+      ('admin', 'about_stats', 'select', 'NOERR'), ('admin', 'about_stats', 'update', 'NOERR'), ('admin', 'about_stats', 'delete', 'NOERR'),
+      ('admin', 'about_values', 'select', 'NOERR'), ('admin', 'about_values', 'update', 'NOERR'), ('admin', 'about_values', 'delete', 'NOERR'),
       ('anon', 'client_onboarding_submissions', 'select', 'NOROWS'), ('ordinary', 'client_onboarding_submissions', 'select', 'NOROWS'),
       ('anon', 'client_onboarding_submissions', 'insert', 'BLOCK'), ('ordinary', 'client_onboarding_submissions', 'insert', 'BLOCK'),
       -- client-own tables

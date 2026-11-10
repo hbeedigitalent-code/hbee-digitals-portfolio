@@ -125,7 +125,7 @@ const UNSAFE12 = [
   ['video_testimonials', 'Auth users can delete proofs'], ['video_testimonials', 'Auth users can insert proofs'], ['video_testimonials', 'Auth users can update proofs'],
 ]
 const REVIEW1 = ['contact_submissions', 'Allow public contact form inserts']
-const NEW7 = ['about_page', 'blog_categories', 'contact_submissions', 'email_templates', 'pricing_packages', 'trust_section', 'video_testimonials']
+const NEW7 = ['about_page', 'blog_categories', 'contact_submissions', 'email_templates', 'pricing_packages', 'trust_section', 'video_testimonials', 'about_stats', 'about_values']
 const key = (r) => r[0] + '|' + r[1]
 const DANGEROUS = ['TRUNCATE', 'TRIGGER', 'REFERENCES', 'MAINTAIN']
 // every state-changing production script must carry a LIVE guard (a raise under the confirmation test), not just mention it in a comment
@@ -153,7 +153,7 @@ ok(T.smtpclr.literals.includes('hbee.confirm_irreversible'), 'SMTP cleanup: a li
   ok(targets.every((r) => ['ALL', 'INSERT', 'UPDATE', 'DELETE'].includes(r[2])), 'RLS forward: no SELECT policy is targeted (public/read policies are preserved)')
   ok(!/view proofs|active.read/i.test(code + literals.join(' ')), 'RLS forward: never names the preserved public read policies')
   const news = tuples(RAW.rlsfwd, '_hbee_a4_new')
-  ok(news.length === 7 && NEW7.every((t) => news.some((r) => r[0] === t && r[1] === t + '_admin_all')), 'RLS forward: 7 admin-only replacement policies; subscribers gets none')
+  ok(news.length === 9 && NEW7.every((t) => news.some((r) => r[0] === t && r[1] === t + '_admin_all')), 'RLS forward: 9 admin-only policies (7 replacements + new about_stats / about_values); subscribers gets none')
 
   // statements: the only drop is the dynamic one over the target list; the only revokes are the backup lockdown and the matrix excess
   ok(literals.filter((l) => /^drop policy/i.test(l)).join('|') === 'drop policy %I on public.%I' && (lower.replace(/on commit drop/g, '').match(/\bdrop\b/g) || []).length === 0, 'RLS forward: the only DROP is "drop policy" driven by the target table')
@@ -214,7 +214,7 @@ ok(T.smtpclr.literals.includes('hbee.confirm_irreversible'), 'SMTP cleanup: a li
   ok(/create policy %I on public\.%I as %s for %s to %s/.test(RAW.rlsrb) && /using \(/.test(RAW.rlsrb) && /with check \(/.test(RAW.rlsrb), 'RLS rollback: recreates each policy with its captured command, roles, USING and WITH CHECK')
   ok(literals.filter((l) => /^grant/i.test(l)).join('|') === 'grant %s on table public.%I to %I%s', 'RLS rollback: the only GRANT re-grants a captured privilege')
   ok(!/\bdrop table\b|\btruncate\b|\bdelete\b|\bupdate\b/i.test(code), 'RLS rollback: drops no table (the backup is kept) and changes no rows')
-  ok(literals.filter((l) => /^drop policy/i.test(l)).join('|') === 'drop policy %I on public.%I', 'RLS rollback: the only DROP is of the 7 replacement policies')
+  ok(literals.filter((l) => /^drop policy/i.test(l)).join('|') === 'drop policy %I on public.%I', 'RLS rollback: the only DROP is of the 9 policies the forward created')
   for (const m of ['target polic', 'The state is not "forward applied"', 'Someone altered them', 'rollback would not be exact', 'policies do not equal the backup', 'grants do not equal the backup'])
     ok(RAW.rlsrb.includes(m), `RLS rollback checks: ${m}`)
   ok(/The backup table is LEFT IN PLACE/.test(RAW.rlsrb), 'RLS rollback: documents that the backup table is kept')
@@ -285,6 +285,21 @@ ok(T.smtpclr.literals.includes('hbee.confirm_irreversible'), 'SMTP cleanup: a li
   ok(importers.length === 0, `subscribers: the legacy NewsletterSubscribe form has no importer, so its anon INSERT is kept only because the owner marked it intentional (${importers.join(', ') || 'none'})`)
   const aboutData = src.find((x) => x.f === 'src/lib/site/about-data.ts').s
   ok(!/from\(\s*['"`]about_(stats|values)['"`]/.test(aboutData) && !src.some((x) => !x.f.startsWith('src/app/admin/') && /from\(\s*['"`]about_(stats|values)['"`]/.test(x.s)), 'about_stats / about_values: no public page reads them; only the Admin About page does')
+}
+
+/* about_stats / about_values: new admin-only policies (RLS on, no policy today), no anonymous access */
+{
+  const fwdTargets = tuples(RAW.rlsfwd, '_hbee_a4_targets')
+  ok(!fwdTargets.some((r) => /^about_(stats|values)$/.test(r[0])), 'about_stats / about_values: nothing to drop (no existing policy), so they are not targets')
+  ok(/about_stats \/ about_values were audited with no policy but now have/.test(RAW.rlsfwd), 'about_stats / about_values: forward aborts if a policy already exists there')
+  ok(RAW.rlsfwd.includes("('about_stats', true), ('about_values', true)") && RAW.rlsver.includes("('about_stats', true), ('about_values', true)"), 'about_stats / about_values: covered by the no-unguarded-write post-check and the verifier')
+  ok(!/about_(stats|values)_(public|anon)/i.test(RAW.rlsfwd), 'about_stats / about_values: no anonymous policy')
+  for (const t of ['about_stats', 'about_values']) {
+    for (const who of ['anon', 'ordinary']) for (const op of ['insert', 'update', 'delete']) ok(RAW.rlsbeh.includes(`('${who}', '${t}', '${op}', 'BLOCK')`), `behaviour test: ${who} cannot ${op} ${t}`)
+    for (const op of ['select', 'update', 'delete']) ok(RAW.rlsbeh.includes(`('admin', '${t}', '${op}', 'NOERR')`), `behaviour test: an active admin can ${op} ${t}`)
+    ok(RAW.rlsbeh.includes(`('anon', '${t}', 'SELECT', false)`), `behaviour test: anon holds no SELECT on ${t}`)
+    ok(read('docs/admin-production-release-a4.md').includes(`${t}_admin_all`), `release document names ${t}_admin_all`)
+  }
 }
 
 /* ── The release document covers every required topic ────────────────────────────────────────────────────────── */

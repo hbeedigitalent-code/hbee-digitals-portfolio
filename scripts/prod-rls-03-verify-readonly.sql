@@ -6,7 +6,7 @@
 -- no secret value exists to be shown.
 --
 --   1 targets      the 13 dropped policies: PRESENT before, GONE after
---   2 replacements the 7 admin-only policies: ABSENT before, OK after
+--   2 replacements the 9 admin-only policies (7 replacements + about_stats / about_values): ABSENT before, OK after
 --   3 policies     every policy now on the 16 tables, with its class and its USING / WITH CHECK text; ATTENTION marks a
 --                  browser-reachable write policy that does not test an active admin on a modified table (only the subscribers
 --                  anon INSERT is an accepted exception)
@@ -22,7 +22,7 @@
 
 WITH
 tbl(tablename, modified) AS (
-  VALUES ('about_page', true), ('about_stats', false), ('about_values', false), ('blog_categories', true), ('blog_comments', false),
+  VALUES ('about_page', true), ('about_stats', true), ('about_values', true), ('blog_categories', true), ('blog_comments', false),
          ('client_onboarding_submissions', false), ('clients', false), ('contact_submissions', true), ('email_settings', false),
          ('email_templates', true), ('notifications', false), ('pricing_packages', true), ('project_requests', false),
          ('subscribers', true), ('trust_section', true), ('video_testimonials', true)
@@ -41,7 +41,8 @@ new_pol(tablename, policyname) AS (
   VALUES ('about_page', 'about_page_admin_all'), ('blog_categories', 'blog_categories_admin_all'),
          ('contact_submissions', 'contact_submissions_admin_all'), ('email_templates', 'email_templates_admin_all'),
          ('pricing_packages', 'pricing_packages_admin_all'), ('trust_section', 'trust_section_admin_all'),
-         ('video_testimonials', 'video_testimonials_admin_all')
+         ('video_testimonials', 'video_testimonials_admin_all'),
+         ('about_stats', 'about_stats_admin_all'), ('about_values', 'about_values_admin_all')
 ),
 matrix(tablename, role_name, allowed) AS (
   VALUES ('about_page', 'anon', ARRAY['SELECT']), ('about_page', 'authenticated', ARRAY['SELECT', 'INSERT', 'UPDATE', 'DELETE']),

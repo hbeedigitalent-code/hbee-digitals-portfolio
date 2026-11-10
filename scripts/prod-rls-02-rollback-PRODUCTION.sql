@@ -3,7 +3,7 @@
 --
 -- Restores EXACTLY what the forward migration changed, from public._hbee_a4_rls_backup (the copy of the policies and browser-role
 -- grants taken inside the forward transaction before anything was dropped):
---   * drops the 7 replacement policies the forward created (each must still be the admin-only policy it created, or this aborts);
+--   * drops the 9 policies the forward created (7 replacements plus the 2 new about_stats / about_values policies) (each must still be the admin-only policy it created, or this aborts);
 --   * recreates the 13 dropped policies with their original command, roles, permissive/restrictive flag, USING and WITH CHECK
 --     text, taken from the backup — the unsafe originals come back unchanged, because that is what "restore" means;
 --   * re-grants the anon / authenticated privileges that were revoked (with grant option where it was held);
@@ -26,7 +26,8 @@ insert into _hbee_a4_new values
   ('about_page', 'about_page_admin_all'), ('blog_categories', 'blog_categories_admin_all'),
   ('contact_submissions', 'contact_submissions_admin_all'), ('email_templates', 'email_templates_admin_all'),
   ('pricing_packages', 'pricing_packages_admin_all'), ('trust_section', 'trust_section_admin_all'),
-  ('video_testimonials', 'video_testimonials_admin_all');
+  ('video_testimonials', 'video_testimonials_admin_all'),
+  ('about_stats', 'about_stats_admin_all'), ('about_values', 'about_values_admin_all');
 
 create temp table _hbee_a4_targets (tablename text not null, policyname text not null, primary key (tablename, policyname)) on commit drop;
 insert into _hbee_a4_targets values
@@ -61,7 +62,7 @@ begin
   if v_txt is not null then raise exception 'ABORT (nothing changed): target polic(ies) already exist (%). The state is not "forward applied".', v_txt; end if;
   select count(*) into v_n from _hbee_a4_new n join pg_policies p on p.schemaname = 'public' and p.tablename = n.tablename and p.policyname = n.policyname
    where p.cmd = 'ALL' and p.roles = array['authenticated']::name[] and p.qual ~* 'admin_users' and p.with_check ~* 'admin_users';
-  if v_n <> 7 then raise exception 'ABORT (nothing changed): % of the 7 replacement policies are present and unchanged. Someone altered them; review by hand.', v_n; end if;
+  if v_n <> 9 then raise exception 'ABORT (nothing changed): % of the 9 created policies are present and unchanged. Someone altered them; review by hand.', v_n; end if;
 
   -- nothing outside the footprint drifted: policies that are neither target nor replacement equal the backup
   select count(*) into v_n from (

@@ -16,7 +16,7 @@
 --   subscribers           Public can unsubscribe  (UPDATE to public)             (nothing: unsubscribe is a signed server route)
 --   trust_section         Allow authenticated manage trust section               trust_section_admin_all
 --   video_testimonials    Auth users can delete proofs / insert proofs / update  video_testimonials_admin_all
---   -- 12 UNSAFE policies dropped, 7 replacement policies created (subscribers needs none). --
+--   -- 12 UNSAFE policies dropped; 9 admin-only policies created: 7 replace dropped ones, 2 are NEW for about_stats / about_values (RLS on, no policy today, so the Admin About editor cannot work); subscribers needs none. --
 --   contact_submissions   Allow public contact form inserts  (REVIEW)            (nothing)   <- the 13th, justified below
 --
 -- THE REVIEW POLICY (13th), decided from the code: the only writer of contact_submissions is src/app/api/contact/route.ts, which
@@ -44,7 +44,7 @@
 --   * before changing anything it copies the full policy set and the anon / authenticated / PUBLIC / service_role grants of the 16
 --     tables into public._hbee_a4_rls_backup (RLS on, no browser grants) — the rollback script restores from it exactly;
 --   * before COMMIT it proves: the 13 targets are gone and nothing else was dropped; every policy that was NOT a target is
---     byte-identical (fingerprint); the 7 replacements exist and test an active admin; no un-guarded browser write policy remains on
+--     byte-identical (fingerprint); the 9 replacements exist and test an active admin; no un-guarded browser write policy remains on
 --     the modified tables (only the subscribers anon INSERT is allowed); grants are exactly (before ∩ matrix); no browser role holds
 --     TRUNCATE / TRIGGER / REFERENCES / MAINTAIN; service_role grants and every table's RLS flag are unchanged.
 --   * no row data is read or written (catalog statements only).  No secret is selected.
@@ -65,7 +65,7 @@ set local statement_timeout = '120s';
 -- ── Constants (transaction-local temp tables) ────────────────────────────────────────────────────────────────────────
 create temp table _hbee_a4_tables (tablename text primary key, modified boolean not null) on commit drop;
 insert into _hbee_a4_tables values
-  ('about_page', true), ('about_stats', false), ('about_values', false), ('blog_categories', true), ('blog_comments', false),
+  ('about_page', true), ('about_stats', true), ('about_values', true), ('blog_categories', true), ('blog_comments', false),
   ('client_onboarding_submissions', false), ('clients', false), ('contact_submissions', true), ('email_settings', false),
   ('email_templates', true), ('notifications', false), ('pricing_packages', true), ('project_requests', false),
   ('subscribers', true), ('trust_section', true), ('video_testimonials', true);
@@ -87,14 +87,15 @@ insert into _hbee_a4_targets values
   (12, 'video_testimonials',  'Auth users can insert proofs',                   'INSERT', false, 'UNSAFE: any signed-in user may insert'),
   (13, 'video_testimonials',  'Auth users can update proofs',                   'UPDATE', false, 'UNSAFE: any signed-in user may update');
 
--- the 7 replacement policies (ALL to authenticated, active admin only)
+-- the 9 admin-only policies (ALL to authenticated, active admin only); about_stats / about_values have NO existing policy to drop
 create temp table _hbee_a4_new (tablename text primary key, policyname text not null unique) on commit drop;
 insert into _hbee_a4_new values
   ('about_page', 'about_page_admin_all'), ('blog_categories', 'blog_categories_admin_all'),
   ('contact_submissions', 'contact_submissions_admin_all'), ('email_templates', 'email_templates_admin_all'),
   ('pricing_packages', 'pricing_packages_admin_all'), ('trust_section', 'trust_section_admin_all'),
-  ('video_testimonials', 'video_testimonials_admin_all');
--- subscribers gets NO replacement (nothing in the application updates it from a browser).  Targets 13, replacements 7.
+  ('video_testimonials', 'video_testimonials_admin_all'),
+  ('about_stats', 'about_stats_admin_all'), ('about_values', 'about_values_admin_all');
+-- subscribers gets NO replacement (nothing in the application updates it from a browser).  Targets 13, created 9.
 
 -- The browser-role privilege matrix: the MOST each role may keep.  Derivation (who touches the table, from where) is in
 -- docs/admin-production-release-a4.md section 4.  An empty set means the role needs nothing.  TRUNCATE / TRIGGER / REFERENCES /
@@ -167,6 +168,9 @@ begin
   select string_agg(n.tablename || '.' || n.policyname, ', ') into v_txt
     from _hbee_a4_new n join pg_policies p on p.schemaname = 'public' and p.tablename = n.tablename and p.policyname = n.policyname;
   if v_txt is not null then raise exception 'ABORT (nothing changed): replacement policy name(s) already exist: %.', v_txt; end if;
+  -- about_stats / about_values were audited as RLS ON with NO policy: any policy there now is an unknown state
+  select string_agg(p.tablename || '.' || p.policyname, ', ') into v_txt from pg_policies p where p.schemaname = 'public' and p.tablename in ('about_stats', 'about_values');
+  if v_txt is not null then raise exception 'ABORT (nothing changed): about_stats / about_values were audited with no policy but now have: %. Re-run the audit.', v_txt; end if;
 
   -- every target: present exactly once, the command we expect, reachable by a browser role, and NOT already an admin check
   for r in select * from _hbee_a4_targets order by ord loop
