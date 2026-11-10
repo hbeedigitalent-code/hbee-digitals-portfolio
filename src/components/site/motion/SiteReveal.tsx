@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ElementType, type ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
-export type SiteMotion = 'reveal' | 'assemble' | 'shift' | 'focus' | 'none'
+export type SiteMotion = 'reveal' | 'assemble' | 'shift' | 'focus' | 'eyebrow' | 'headline' | 'soft' | 'item' | 'rule' | 'railv' | 'rail' | 'card' | 'visual' | 'step' | 'none'
 
 interface SiteRevealProps {
   /**
@@ -43,7 +43,9 @@ export function SiteReveal({ motion = 'reveal', index, as: Tag = 'div', classNam
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
+        // Also reveal anything the visitor has already scrolled past (a fast scroll or an anchor jump can skip
+        // the intersecting frame), so nothing above the viewport is ever left hidden.
+        if (entries.some((entry) => entry.isIntersecting || entry.boundingClientRect.bottom < 0)) {
           setRevealed(true)
           observer.disconnect()
         }

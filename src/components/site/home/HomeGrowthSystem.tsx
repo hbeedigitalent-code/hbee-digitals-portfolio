@@ -16,17 +16,17 @@ export function HomeGrowthSystem() {
   return (
     <SiteSection tone="cloud" aria-labelledby="home-system-title">
       <SiteGrid className="gap-y-6">
-        <div className="col-span-4 md:col-span-8 lg:col-span-6">
-          <SiteReveal>
-            <SiteEyebrow signal>The Hbee Growth System</SiteEyebrow>
-          </SiteReveal>
-          <SiteReveal index={1}>
-            <SiteDisplayHeading id="home-system-title" size="h2" className="mt-6">
-              We start with the business. <span className="block text-hb-blue">Not the service.</span>
-            </SiteDisplayHeading>
-          </SiteReveal>
-        </div>
-        <SiteReveal index={2} className="col-span-4 self-end md:col-span-8 lg:col-span-5 lg:col-start-8">
+        <SiteReveal motion="none" className="col-span-4 md:col-span-8 lg:col-span-6">
+          <SiteEyebrow signal motionIndex={0}>The Hbee Growth System</SiteEyebrow>
+          <SiteDisplayHeading
+            id="home-system-title"
+            size="h2"
+            className="mt-6"
+            motionIndex={1}
+            lines={['We start with', 'the business.', <span key="s" className="text-hb-blue">Not the service.</span>]}
+          />
+        </SiteReveal>
+        <SiteReveal motion="soft" index={5} className="col-span-4 self-end md:col-span-8 lg:col-span-5 lg:col-start-8">
           <SiteLede>
             Before recommending a website rebuild, a campaign, a creative system or any other deliverable, Hbee first
             identifies what deserves attention.
@@ -38,11 +38,11 @@ export function HomeGrowthSystem() {
       </SiteGrid>
 
       <SiteReveal motion="none" className={`${styles.track} mt-16`}>
-        <span aria-hidden="true" className={styles.trackLine} />
+        <span aria-hidden="true" data-motion="rail" className={styles.trackLine} />
         <span aria-hidden="true" className={styles.trackSignal} />
         <ol className={`${styles.stageList} grid gap-14 lg:grid-cols-5 lg:gap-6`}>
           {STAGES.map((stage, i) => (
-            <SiteReveal as="li" key={stage.name} index={i} className="lg:flex lg:flex-col lg:items-center lg:text-center">
+            <li key={stage.name} data-motion="step" style={{ '--hb-motion-index': i } as React.CSSProperties} className="lg:flex lg:flex-col lg:items-center lg:text-center">
               <span aria-hidden="true" className={styles.trackNode}>
                 {String(i + 1).padStart(2, '0')}
               </span>
@@ -51,7 +51,7 @@ export function HomeGrowthSystem() {
                 {stage.name}
               </h3>
               <p className="mt-3 max-w-[17rem] text-[1rem] leading-relaxed text-hb-fg-body">{stage.text}</p>
-            </SiteReveal>
+            </li>
           ))}
         </ol>
       </SiteReveal>

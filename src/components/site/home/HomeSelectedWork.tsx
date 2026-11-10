@@ -25,13 +25,9 @@ export function HomeSelectedWork({ work }: { work: FeaturedWork[] }) {
     <SiteSection tone="cloud" spacing={empty ? 'compact' : 'default'} aria-labelledby="home-work-title">
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <SiteReveal>
-            <SiteEyebrow>Selected work</SiteEyebrow>
-          </SiteReveal>
-          <SiteReveal index={1}>
-            <SiteDisplayHeading id="home-work-title" size="h2" className="mt-6">
-              Built around real businesses.
-            </SiteDisplayHeading>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0}>Selected work</SiteEyebrow>
+            <SiteDisplayHeading id="home-work-title" size="h2" className="mt-6" motionIndex={1} lines={['Built around real businesses.']} />
           </SiteReveal>
           {empty && (
             <p className="mt-4 max-w-[36rem] text-hb-fg-body">Featured case studies will appear here once projects are published.</p>
@@ -55,6 +51,7 @@ export function HomeSelectedWork({ work }: { work: FeaturedWork[] }) {
               <SiteReveal
                 as="li"
                 key={item.id}
+                motion="card"
                 index={i}
                 className={cn(
                   work.length >= 3 && (lead ? 'md:col-span-2 lg:col-span-7 lg:row-span-2' : 'lg:col-span-5'),

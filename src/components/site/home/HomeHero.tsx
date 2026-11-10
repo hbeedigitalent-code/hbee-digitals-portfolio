@@ -1,4 +1,4 @@
-import { HbeeModuleGroup } from '../module/HbeeModuleGroup'
+import { HomeHeroSystem } from './HomeHeroSystem'
 import { SiteButton } from '../primitives/SiteButton'
 import { SiteGrid } from '../primitives/SiteContainer'
 import { SiteSection } from '../primitives/SiteSection'
@@ -75,14 +75,7 @@ export function HomeHero() {
         </div>
 
         <div className={`col-span-4 md:col-span-8 lg:col-span-6 xl:col-span-7 ${styles.heroVisual}`}>
-          <HbeeModuleGroup
-            idPrefix="hero"
-            motion="hero"
-            spine="brand"
-            composition="homeHero"
-            label="The Hbee system: Brand, Experience, Technology, Creative, Discovery and Growth, connected."
-            className="mx-auto max-w-[680px]"
-          />
+          <HomeHeroSystem className="max-w-[460px] sm:max-w-[560px] lg:mr-0 lg:max-w-[600px] xl:max-w-[700px]" />
         </div>
       </SiteGrid>
     </SiteSection>

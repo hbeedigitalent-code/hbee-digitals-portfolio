@@ -110,8 +110,23 @@
 /* ── Six conditions: a structural rail, one node per condition ───── */
 .rail {
   position: relative;
-  border-left: 1px solid var(--hb-border);
 }
+/* The rail is a pseudo-element so the list stays a valid <ol>; it draws downward once when the list enters. */
+.rail::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--hb-border);
+  transform-origin: center top;
+}
+:global([data-surface='site'][data-motion-ready]) .rail:global([data-revealed='false'])::before { transform: scaleY(0); }
+:global([data-surface='site'][data-motion-ready]) .rail:global([data-revealed='true'])::before {
+  animation: railDraw 1100ms var(--hb-ease-in-out) both;
+}
+@keyframes railDraw { from { transform: scaleY(0); } to { transform: none; } }
 /* The node is anchored to the number, so it stays aligned with it at any
    name size or layout. 2rem = the item's left padding. */
 .railNumber {
@@ -177,10 +192,12 @@
   border-radius: 3px 999px 999px 3px;
   background: var(--hb-orange);
   box-shadow: 0 0 0 4px var(--hb-bg), 0 0 22px rgba(252, 93, 28, 0.55);
-  transition: left 1900ms var(--hb-ease-in-out) 350ms;
+  transition: left 1900ms var(--hb-ease-in-out) 350ms, opacity 280ms linear 330ms;
 }
+/* Held invisible at its start until the rail has begun to draw, so it never sits alone before the track exists. */
 :global([data-surface='site'][data-motion-ready]) :global([data-revealed='false']) .trackSignal {
   left: calc(10% + 58px);
+  opacity: 0;
 }
 
 @media (max-width: 1023px) {

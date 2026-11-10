@@ -1,5 +1,29 @@
-.footer { position: relative; isolation: isolate; overflow: hidden; padding-block: 3rem 1.5rem; }
-.boundary { position: absolute; inset: 0 0 auto; width: 100%; height: 1.5rem; color: var(--hb-blue); opacity: 0.8; pointer-events: none; }
+/* The Growth Review CTA above and this footer are both dark. The footer is the closing layer, so it is a step DEEPER
+   than the CTA's Night, lit by a thin electric edge along its top, with more air above its content and one orange
+   Signal on the divider. Still the Hbee navy family; no new colours beyond a darker navy. */
+.footer {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding-block: clamp(3.75rem, 6vw, 5.5rem) 1.5rem;
+  background:
+    radial-gradient(60% 9rem at 50% 0, rgba(29, 110, 255, 0.16), rgba(29, 110, 255, 0) 100%),
+    linear-gradient(180deg, #030a15 0%, #04101f 40%, #030b17 100%);
+  border-top: 1px solid rgba(29, 110, 255, 0.5);
+}
+/* Signal on the divider, aligned with the page content edge (same maths as .hb-container). */
+.footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: max(var(--hb-gutter), calc((100% - var(--hb-container)) / 2));
+  width: 4.5rem;
+  height: 3px;
+  border-radius: 0 999px 999px 0;
+  background: var(--hb-orange);
+  z-index: 1;
+}
+.boundary { position: absolute; inset: 0 0 auto; width: 100%; height: 1.5rem; color: var(--hb-blue); opacity: 1; pointer-events: none; }
 .top { display: grid; gap: 2rem; }
 .brand { display: flex; flex-direction: column; align-items: flex-start; gap: 1.25rem; min-width: 0; }
 .brand p { max-width: 22rem; font-size: 0.9375rem; line-height: 1.6; }

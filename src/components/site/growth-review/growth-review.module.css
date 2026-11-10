@@ -69,6 +69,11 @@
   100% { stroke-dashoffset: -0.86; opacity: 0; }
 }
 @keyframes grFade { from { opacity: 0; } }
+/* Only inside an element marked data-gate-motion (the homepage CTA): paused until its reveal group flips, so the one-time
+   sequence plays when the visitor arrives rather than on page load. /growth-review does not set the marker and is unchanged. */
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='false']) :global([data-gate-motion]) .diagnostic[data-variant='hero'] :is(.diagnosticSlot, .diagnosticSpine, .hubRing, .spoke, .hubNode, .spokeSignal) {
+  animation-play-state: paused;
+}
 :global([data-surface='site'][data-motion-ready]) .diagnostic[data-variant='hero'] .diagnosticSlot {
   animation: grAssemble 560ms var(--hb-ease) backwards;
   animation-delay: calc(60ms + var(--hb-motion-index, 0) * 80ms);

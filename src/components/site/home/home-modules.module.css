@@ -1,0 +1,91 @@
+/* ═════════════════════════════════════════════════
+   Canonical 3D module imagery on the homepage (Phase H2).
+
+   The module PNG/WebP assets already contain the material (gloss, edge light,
+   extrusion, translucent backing). Nothing here repaints, filters, recolours or
+   stretches them: motion only MOVES the objects (transform), and every
+   animation is gated on prefers-reduced-motion: no-preference.
+   ═════════════════════════════════════════════════ */
+
+/* ── Hero: the complete connected system ─────────────────────────── */
+
+.heroSystem { position: relative; width: 100%; margin: 0 auto; }
+.heroFloat { position: relative; }
+.heroImage { display: block; width: 100%; height: auto; }
+
+/* Connector-node pulse. The nodes are baked into the artwork; these rings sit
+   exactly over them and expand once per cycle, so the artwork is never altered. */
+.node {
+  position: absolute;
+  width: 2.1%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.node::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--hb-electric);
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Entrance is transform-only (no opacity): the image is the LCP candidate and must paint immediately. */
+  .heroSystem { animation: heroIn 900ms var(--hb-ease) both; }
+  .heroFloat { animation: heroFloat 11s ease-in-out infinite; }
+  .node::before { animation: nodePulse 4.6s ease-out infinite; animation-delay: calc(var(--i, 0) * 0.75s); }
+}
+@keyframes heroIn { from { transform: translate3d(0, 14px, 0) scale(0.985); } to { transform: none; } }
+@keyframes heroFloat { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, -7px, 0); } }
+@keyframes nodePulse { 0% { transform: scale(1); opacity: 0.6; } 65%, 100% { transform: scale(3.4); opacity: 0; } }
+
+/* ── Dark section: the six modules, separated across space ────────── */
+
+.field { position: relative; width: 100%; aspect-ratio: 100 / 92; }
+.fieldList { position: absolute; inset: 0; margin: 0; padding: 0; list-style: none; }
+
+/* Restrained central Hbee geometry: one flat glyph, deliberately quiet (the Hero carries the full emblem). */
+.fieldGlyph {
+  position: absolute;
+  left: 50%;
+  top: 41%;
+  width: 30%;
+  transform: translate(-50%, -50%);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.line { fill: none; stroke: var(--hb-structure); stroke-opacity: 0.7; stroke-width: 1.25; vector-effect: non-scaling-stroke; }
+.lineNode { fill: var(--hb-structure); }
+.lineNodeRing { fill: none; stroke: var(--hb-structure); stroke-width: 1.25; vector-effect: non-scaling-stroke; opacity: 0; transform-box: fill-box; transform-origin: center; }
+
+.item {
+  position: absolute;
+  left: calc(var(--x) * 1%);
+  top: calc(var(--y) / 92 * 100%);
+  width: calc(var(--w) * 1%);
+  z-index: var(--z, 1);
+}
+.itemDrift { display: block; }
+.itemImage { display: block; width: 100%; height: auto; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Independent, slow vertical drift - different period/amplitude per module gives depth without spin or bounce. */
+  .itemDrift { animation: drift var(--dur, 12s) ease-in-out infinite; animation-delay: var(--delay, 0s); }
+  .lineNodeRing { animation: lineNodePulse 5s ease-out infinite; animation-delay: calc(var(--i, 0) * 0.8s); }
+}
+@keyframes drift { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, var(--amp, -6px), 0); } }
+@keyframes lineNodePulse { 0% { transform: scale(1); opacity: 0.7; } 70%, 100% { transform: scale(4); opacity: 0; } }
+
+/* Mobile: no scattered field. Six modules in a staggered two-column grid, each ~half the width so its label stays readable. */
+@media (max-width: 767px) {
+  .field { aspect-ratio: auto; }
+  .fieldList { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 0.25rem; }
+  .item { position: static; width: 100%; }
+  .item:nth-child(even) { margin-top: 1.75rem; }
+  .lines, .fieldGlyph { display: none; }
+}

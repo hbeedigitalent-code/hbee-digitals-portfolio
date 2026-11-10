@@ -1,4 +1,6 @@
+import { Fragment } from 'react'
 import { SiteReveal } from '../motion/SiteReveal'
+import { SiteDisplayHeading } from '../primitives/SiteTypography'
 import { SiteSection } from '../primitives/SiteSection'
 import { BRIDGE } from './home-content'
 
@@ -10,26 +12,25 @@ import { BRIDGE } from './home-content'
 export function HomeBridge() {
   return (
     <SiteSection tone="white" aria-labelledby="home-bridge-title">
-      <div className="max-w-[60rem]">
-        <SiteReveal>
-          <p className="font-hb-display text-[length:var(--hb-text-h2)] font-bold leading-[1.15] tracking-[-0.03em] text-hb-muted">
-            {BRIDGE.parts.map((part, i) => (
-              <span key={part} className={i === BRIDGE.parts.length - 1 ? 'text-hb-blue' : undefined}>
-                {part}{' '}
-              </span>
-            ))}
-          </p>
-        </SiteReveal>
-        <SiteReveal index={1}>
-          <h2
-            id="home-bridge-title"
-            className="mt-8 font-hb-display text-[length:var(--hb-text-h2)] font-bold leading-[1.1] tracking-[-0.03em] text-hb-fg"
-          >
-            <span className="block">{BRIDGE.lineA}</span>{' '}
-            <span className="block text-hb-blue">{BRIDGE.lineB}</span>
-          </h2>
-        </SiteReveal>
-      </div>
+      <SiteReveal motion="none" className="max-w-[60rem]">
+        <p className="font-hb-display text-[length:var(--hb-text-h2)] font-bold leading-[1.15] tracking-[-0.03em] text-hb-muted">
+          {BRIDGE.parts.map((part, i) => (
+            <Fragment key={part}>
+              {/* Six distinct ideas, one after another; the last (Growth) is the one that resolves into blue. */}
+              <span data-motion="item" style={{ '--hb-motion-index': i * 0.55 } as React.CSSProperties} className={i === BRIDGE.parts.length - 1 ? 'inline-block text-hb-blue' : 'inline-block'}>
+                {part}
+              </span>{' '}
+            </Fragment>
+          ))}
+        </p>
+        <SiteDisplayHeading
+          id="home-bridge-title"
+          size="h2"
+          className="mt-8 leading-[1.1]"
+          motionIndex={4.2}
+          lines={[BRIDGE.lineA, <span key="b" className="text-hb-blue">{BRIDGE.lineB}</span>]}
+        />
+      </SiteReveal>
     </SiteSection>
   )
 }

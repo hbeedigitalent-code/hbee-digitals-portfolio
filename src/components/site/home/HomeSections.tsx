@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { cn } from '@/lib/cn'
 import type { InsightCard, ProofQuote } from '@/lib/site/home-data'
 import { ALL_INSIGHTS_HREF, CONTACT_HREF, GROWTH_REVIEW_HREF, insightHref } from '@/lib/site/routes'
-import { HbeeModuleGroup } from '../module/HbeeModuleGroup'
+import { DiagnosticSystem } from '../growth-review/DiagnosticSystem'
 import { SiteReveal } from '../motion/SiteReveal'
 import { SiteButton, SiteLinkArrow } from '../primitives/SiteButton'
 import { SiteGrid } from '../primitives/SiteContainer'
@@ -20,21 +20,17 @@ export function HomeDiagnosticSection() {
   return (
     <SiteSection tone="night" aria-labelledby="home-diagnostic-title">
       <SiteGrid className="mb-12 gap-y-6">
-        <div className="col-span-4 md:col-span-8 lg:col-span-6">
-          <SiteReveal>
-            <SiteEyebrow signal>Quick diagnostic</SiteEyebrow>
-          </SiteReveal>
-          <SiteReveal index={1}>
-            <SiteDisplayHeading id="home-diagnostic-title" size="h2" className="mt-6">
-              Where is growth getting stuck?
-            </SiteDisplayHeading>
-          </SiteReveal>
-        </div>
-        <SiteReveal index={2} className="col-span-4 self-end md:col-span-8 lg:col-span-5 lg:col-start-8">
+        <SiteReveal motion="none" className="col-span-4 md:col-span-8 lg:col-span-6">
+          <SiteEyebrow signal motionIndex={0}>Quick diagnostic</SiteEyebrow>
+          <SiteDisplayHeading id="home-diagnostic-title" size="h2" className="mt-6" motionIndex={1} lines={['Where is growth', 'getting stuck?']} />
+        </SiteReveal>
+        <SiteReveal motion="soft" index={4} className="col-span-4 self-end md:col-span-8 lg:col-span-5 lg:col-start-8">
           <SiteLede>Most growth problems show up as a symptom first. Pick the one you recognize.</SiteLede>
         </SiteReveal>
       </SiteGrid>
-      <HomeDiagnostic />
+      <SiteReveal motion="none">
+        <HomeDiagnostic />
+      </SiteReveal>
     </SiteSection>
   )
 }
@@ -61,19 +57,13 @@ export function HomePrinciples() {
   return (
     <SiteSection tone="white" aria-labelledby="home-principles-title">
       <SiteGrid className="gap-y-12">
-        <div className="col-span-4 md:col-span-8 lg:col-span-4">
-          <SiteReveal>
-            <SiteEyebrow>Principles</SiteEyebrow>
-          </SiteReveal>
-          <SiteReveal index={1}>
-            <SiteDisplayHeading id="home-principles-title" size="h2" className="mt-6">
-              Why the work starts differently.
-            </SiteDisplayHeading>
-          </SiteReveal>
-        </div>
+        <SiteReveal motion="none" className="col-span-4 md:col-span-8 lg:col-span-4">
+          <SiteEyebrow motionIndex={0}>Principles</SiteEyebrow>
+          <SiteDisplayHeading id="home-principles-title" size="h2" className="mt-6" motionIndex={1} lines={['Why the work', 'starts differently.']} />
+        </SiteReveal>
         <ol className="col-span-4 grid gap-10 md:col-span-8 md:grid-cols-3 lg:col-span-8 lg:col-start-5">
           {PRINCIPLES.map((p, i) => (
-            <SiteReveal as="li" key={p.name} index={i} className="relative pl-6">
+            <SiteReveal as="li" key={p.name} motion="item" index={i + 2} className="relative pl-6">
               <span aria-hidden="true" className="absolute left-0 top-1 block h-3 w-[4px] rounded-[1px] bg-hb-structure" />
               <span aria-hidden="true" className="absolute bottom-1 left-0 top-6 block w-[4px] rounded-[1px] bg-hb-structure opacity-30" />
               <h3 className="font-hb-display text-[length:var(--hb-text-h3)] font-semibold leading-tight tracking-[-0.02em] text-hb-fg">
@@ -97,22 +87,16 @@ export function HomeInsights({ posts }: { posts: InsightCard[] }) {
   return (
     <SiteSection tone="cloud" aria-labelledby="home-insights-title">
       <div className="flex flex-wrap items-end justify-between gap-6">
-        <div>
-          <SiteReveal>
-            <SiteEyebrow>Insights</SiteEyebrow>
-          </SiteReveal>
-          <SiteReveal index={1}>
-            <SiteDisplayHeading id="home-insights-title" size="h2" className="mt-6 max-w-[40rem]">
-              Ideas for building better digital businesses.
-            </SiteDisplayHeading>
-          </SiteReveal>
-        </div>
+        <SiteReveal motion="none">
+          <SiteEyebrow motionIndex={0}>Insights</SiteEyebrow>
+          <SiteDisplayHeading id="home-insights-title" size="h2" className="mt-6 max-w-[40rem]" motionIndex={1} lines={['Ideas for building better', 'digital businesses.']} />
+        </SiteReveal>
         <SiteLinkArrow href={ALL_INSIGHTS_HREF}>View all insights</SiteLinkArrow>
       </div>
 
       <ul className="mt-12 grid gap-x-[var(--hb-grid-gap)] gap-y-12 md:grid-cols-2 lg:grid-cols-3">
         {posts.map((post, i) => (
-          <SiteReveal as="li" key={post.id} index={i}>
+          <SiteReveal as="li" key={post.id} motion="card" index={i}>
             <article className={cn(styles.mediaHover, 'group relative flex h-full flex-col')}>
               <div className={cn(styles.media, 'aspect-[16/10]')}>
                 {post.image && (
@@ -143,36 +127,40 @@ export function HomeInsights({ posts }: { posts: InsightCard[] }) {
   )
 }
 
+/** Two balanced phrases for the masked headline reveal ("Find what should" / "move next."). */
+function splitHeadline(headline: string) {
+  const words = headline.split(' ')
+  const mid = Math.ceil(words.length / 2)
+  return [words.slice(0, mid).join(' '), words.slice(mid).join(' ')]
+}
+
 /* ── 13 — Final Growth Review CTA: the system, now connected ── */
 
 export function HomeFinalCta() {
   return (
     <SiteSection tone="night" aria-labelledby="home-final-title" className="overflow-hidden">
       <SiteGrid className="items-center gap-y-12">
-        <div className="col-span-4 md:col-span-8 lg:col-span-6">
-          <SiteReveal>
-            <SiteEyebrow signal>Growth Review</SiteEyebrow>
-          </SiteReveal>
-          <SiteReveal index={1}>
-            <SiteDisplayHeading id="home-final-title" size="h1" className="mt-6">
-              {FINAL_CTA.headline}
-            </SiteDisplayHeading>
-          </SiteReveal>
-          <SiteReveal index={2}>
-            <SiteLede className="mt-6">{FINAL_CTA.copy}</SiteLede>
-          </SiteReveal>
-          <SiteReveal index={3} className="mt-9 flex flex-wrap items-center gap-3">
+        <SiteReveal motion="none" className="col-span-4 md:col-span-8 lg:col-span-6">
+          <SiteEyebrow signal motionIndex={0}>Growth Review</SiteEyebrow>
+          <SiteDisplayHeading id="home-final-title" size="h1" className="mt-6" motionIndex={1} lines={splitHeadline(FINAL_CTA.headline)} />
+          <SiteLede className="mt-6" motionIndex={4}>{FINAL_CTA.copy}</SiteLede>
+          <div data-motion="soft" style={{ '--hb-motion-index': 5.5 } as React.CSSProperties} className="mt-9 flex flex-wrap items-center gap-3">
             <SiteButton href={GROWTH_REVIEW_HREF} variant="conversion" size="lg" arrow>
               Start Growth Review
             </SiteButton>
             <SiteButton href={CONTACT_HREF} variant="secondary" size="lg">
               Talk to Hbee
             </SiteButton>
-          </SiteReveal>
-        </div>
-        <div className="col-span-4 hidden md:col-span-8 md:block lg:col-span-5 lg:col-start-8">
-          <HbeeModuleGroup idPrefix="final" label="The six parts, connected." className="mx-auto max-w-[480px]" />
-        </div>
+          </div>
+        </SiteReveal>
+        {/* The Growth Review looks at five diagnostic areas, not the six business modules. Temporary: the existing CSS diagnostic system until the dedicated 3D diagnostic assets exist. */}
+        {/* The visual arrives last, with a restrained depth + fade. data-gate-motion holds the diagnostic's own one-time
+            assemble/connect/signal until this reveal fires, so it plays when the visitor reaches it, not on page load. */}
+        <SiteReveal motion="visual" index={6} className="col-span-4 md:col-span-8 lg:col-span-5 lg:col-start-8">
+          <div data-gate-motion="">
+            <DiagnosticSystem idPrefix="home-final" className="mx-auto max-w-[340px] md:max-w-[440px] lg:max-w-[480px]" />
+          </div>
+        </SiteReveal>
       </SiteGrid>
     </SiteSection>
   )

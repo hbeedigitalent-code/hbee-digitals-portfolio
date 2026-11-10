@@ -1,0 +1,132 @@
+/* ═════════════════════════════════════════════════
+   HBEE SURFACE — the flat (2D) expression of the module anatomy.
+
+   The dimensional HbeeModule (hbee-module.module.css) is the 3D block. Where a
+   module has to carry real content (a group of capabilities, a diagnostic
+   option, a statement), it uses this flat surface instead. It reuses the SAME
+   three ideas, so the two read as one family:
+
+     1  Sweep          one large-radius corner (the D) on an otherwise near-square
+                       shell (--hb-radius-xs). Always bottom-right unless told.
+     2  Open Channel   a slim line along the top edge that is deliberately BROKEN
+                       by a Connection Gap (the mark's separated stem): a solid
+                       run, a gap, then a softer continuation.
+     3  Signal Insert  the raised orange capsule, used on at most one surface
+                       per composition (.signal).
+
+   Tone-aware: the channel colours follow --hb-structure / --hb-structure-soft,
+   so the same markup works on Cloud, White and Night sections.
+   Variants:  .base (outlined, neutral)   .soft (Mist, blue-led)
+              .blue (Royal Blue, the stronger brand moment)   .night (raised on dark)
+   ═════════════════════════════════════════════════ */
+
+.surface {
+  --hbm-run: 2.75rem; /* length of the solid run */
+  --hbm-gap: 0.5rem; /* the Connection Gap */
+  --hbm-solid: var(--hb-structure);
+  --hbm-soft: var(--hb-structure-soft);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: var(--hb-radius-xs);
+  border-bottom-right-radius: var(--hb-radius-sweep);
+}
+.sweepBL { border-bottom-right-radius: var(--hb-radius-xs); border-bottom-left-radius: var(--hb-radius-sweep); }
+
+/* Compact: small surfaces (options, chips) get a restrained sweep, not the full D radius. */
+.compact { border-bottom-right-radius: 22px; }
+
+/* Open Channel: ::before is the solid run, ::after the softer continuation. */
+.surface::before,
+.surface::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  height: 3px;
+  pointer-events: none;
+  transition: width var(--hb-dur-base) var(--hb-ease), left var(--hb-dur-base) var(--hb-ease);
+}
+.surface::before { left: 0; width: var(--hbm-run); background: var(--hbm-solid); }
+.surface::after { left: calc(var(--hbm-run) + var(--hbm-gap)); right: 0; background: var(--hbm-soft); }
+
+/* The run extends on hover/focus: accent movement, no card lift. */
+.interactive:hover,
+.interactive:focus-within { --hbm-run: 4.5rem; }
+
+.base { background: var(--hb-white); border: 1px solid var(--hb-border); }
+.soft { background: var(--hb-mist); }
+
+.blue {
+  --hb-structure: var(--hb-white);
+  --hbm-solid: var(--hb-white);
+  --hbm-soft: rgba(207, 224, 255, 0.4);
+  background: var(--hb-blue);
+  /* Re-point the semantic roles so ordinary text classes stay legible on Royal Blue. */
+  --hb-fg: var(--hb-white);
+  --hb-fg-body: rgba(255, 255, 255, 0.84);
+  --hb-fg-muted: rgba(255, 255, 255, 0.7);
+  --hb-link: var(--hb-ice);
+  --hb-border: rgba(255, 255, 255, 0.18);
+  --hb-structure-soft: rgba(207, 224, 255, 0.45);
+  --hb-focus: var(--hb-white);
+  color: var(--hb-fg-body);
+}
+
+.night {
+  background: var(--hb-deep-navy);
+  border: 1px solid var(--hb-border);
+}
+.nightOption { background: rgba(13, 35, 64, 0.45); border: 1px solid var(--hb-border); }
+.nightOption::before, .nightOption::after { height: 2px; }
+
+/* Signal Insert: the raised orange capsule. At most one per composition. */
+.signal {
+  display: block;
+  width: 1.375rem;
+  height: 0.6rem;
+  border-radius: 2px 999px 999px 2px;
+  background: var(--hb-signal);
+  box-shadow: 0 0 0 3px rgba(252, 93, 28, 0.18);
+}
+
+/* A free-standing rule with the same Connection Gap, for items that are not boxed. */
+.rule { position: relative; padding-top: 1.5rem; }
+.rule::before,
+.rule::after { content: ''; position: absolute; top: 0; height: 2px; }
+.rule::before { left: 0; width: 3.25rem; background: var(--hb-structure); }
+.rule::after { left: calc(3.25rem + 0.5rem); right: 0; background: var(--hb-structure-soft); opacity: 0.55; }
+
+/* Entrance: the Open Channel draws in once when its reveal group enters (animation, so hover keeps its own
+   transition). Gated on motion-ready: reduced-motion and no-JS never hide or draw anything. */
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='false']) .surface::before { transform: scaleX(0); }
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='false']) .surface::after { opacity: 0; }
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='true']) .surface::before {
+  transform-origin: left center;
+  animation: channelDraw 640ms var(--hb-ease-in-out) calc(var(--hb-motion-index, 0) * var(--hb-stagger-card, 140ms) + 240ms) backwards;
+}
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='true']) .surface::after {
+  animation: channelFade 480ms var(--hb-ease) calc(var(--hb-motion-index, 0) * var(--hb-stagger-card, 140ms) + 520ms) backwards;
+}
+@keyframes channelDraw { from { transform: scaleX(0); } to { transform: none; } }
+@keyframes channelFade { from { opacity: 0; } to { opacity: 1; } }
+
+/* The free-standing rule draws the same way; the li carrying .rule is itself the reveal element. */
+:global([data-surface='site'][data-motion-ready]) .rule:global([data-revealed='false'])::before { transform: scaleX(0); }
+:global([data-surface='site'][data-motion-ready]) .rule:global([data-revealed='false'])::after { opacity: 0; }
+:global([data-surface='site'][data-motion-ready]) .rule:global([data-revealed='true'])::before {
+  transform-origin: left center;
+  animation: channelDraw 600ms var(--hb-ease-in-out) calc(var(--hb-motion-index, 0) * var(--hb-stagger-text, 90ms) + 120ms) backwards;
+}
+:global([data-surface='site'][data-motion-ready]) .rule:global([data-revealed='true'])::after {
+  animation: channelFade 520ms var(--hb-ease) calc(var(--hb-motion-index, 0) * var(--hb-stagger-text, 90ms) + 360ms) backwards;
+}
+
+@media (max-width: 767px) {
+  .surface { --hbm-run: 2.25rem; border-bottom-right-radius: 40px; }
+  .compact { border-bottom-right-radius: 18px; }
+  .sweepBL { border-bottom-right-radius: var(--hb-radius-xs); border-bottom-left-radius: 40px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surface::before, .surface::after { transition: none; }
+}

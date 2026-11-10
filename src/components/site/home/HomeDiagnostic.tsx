@@ -3,10 +3,13 @@
 import { useId, useState } from 'react'
 import { cn } from '@/lib/cn'
 import { growthReviewHref } from '@/lib/site/routes'
+import surface from '../module/hbee-surface.module.css'
 import { SiteButton } from '../primitives/SiteButton'
 import { CONDITIONS, DIAGNOSTIC, type ConditionKey } from './home-content'
 
 const NAME = Object.fromEntries(CONDITIONS.map((c) => [c.key, c.name])) as Record<ConditionKey, string>
+/** Each option shares its number with the matching condition on the rail above (01 Clarity … 06 Capacity). */
+const NUM = Object.fromEntries(CONDITIONS.map((c, i) => [c.key, String(i + 1).padStart(2, '0')])) as Record<ConditionKey, string>
 
 /**
  * 09 — Self-diagnostic (client leaf; the surrounding section is server-rendered).
@@ -26,17 +29,18 @@ export function HomeDiagnostic() {
       <fieldset className="lg:col-span-7">
         <legend className="sr-only">Which sounds most like your business?</legend>
         <ul className="grid gap-3 sm:grid-cols-2">
-          {DIAGNOSTIC.map((d) => {
+          {DIAGNOSTIC.map((d, i) => {
             const checked = selected === d.key
             return (
-              <li key={d.key}>
+              <li key={d.key} data-motion="item" style={{ '--hb-motion-index': i } as React.CSSProperties}>
                 <label
                   className={cn(
-                    'flex h-full min-h-[88px] cursor-pointer flex-col justify-between gap-3 rounded-[var(--hb-radius-md)] border p-5 transition-[border-color,background-color] duration-[var(--hb-dur-fast)]',
+                    surface.surface, surface.nightOption, surface.interactive, surface.compact,
+                    'group flex h-full min-h-[104px] cursor-pointer flex-col justify-between gap-4 px-5 pb-4 pt-6 transition-[border-color,background-color] duration-[var(--hb-dur-fast)]',
                     'focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[color:var(--hb-focus)]',
                     checked
                       ? 'border-[rgba(207,224,255,0.6)] bg-hb-midnight'
-                      : 'border-hb-border bg-[rgba(13,35,64,0.45)] hover:border-[rgba(207,224,255,0.35)]',
+                      : 'hover:border-[rgba(207,224,255,0.35)]',
                   )}
                 >
                   <input
@@ -47,15 +51,17 @@ export function HomeDiagnostic() {
                     onChange={() => setSelected(d.key)}
                     className="sr-only"
                   />
-                  <span className="font-medium leading-snug text-hb-fg">{d.symptom}</span>
-                  <span className="flex items-center gap-2 text-[0.8125rem] font-semibold uppercase tracking-[0.12em] text-hb-link">
+                  <span className="font-hb-display text-[1.0625rem] font-semibold leading-snug tracking-[-0.01em] text-hb-fg">{d.symptom}</span>
+                  <span className="flex items-center gap-2.5 text-[0.8125rem] font-semibold uppercase tracking-[0.12em] text-hb-link">
+                    {/* The capsule is the Signal Insert in miniature: it widens on hover and turns orange when chosen. */}
                     <span
                       aria-hidden="true"
                       className={cn(
-                        'block h-2 w-4 rounded-l-[2px] rounded-r-full transition-colors',
-                        checked ? 'bg-hb-orange' : 'bg-hb-structure',
+                        'block h-2 rounded-l-[2px] rounded-r-full transition-[width,background-color] duration-[var(--hb-dur-base)] ease-[var(--hb-ease)] motion-reduce:transition-none',
+                        checked ? 'w-7 bg-hb-orange' : 'w-4 bg-hb-structure group-hover:w-6',
                       )}
                     />
+                    <span aria-hidden="true" className="tabular-nums text-hb-fg-muted">{NUM[d.key]}</span>
                     {NAME[d.key]}
                   </span>
                 </label>
@@ -66,7 +72,9 @@ export function HomeDiagnostic() {
       </fieldset>
 
       <div
-        className="flex flex-col justify-between rounded-[var(--hb-radius-xs)] rounded-br-[var(--hb-radius-sweep)] border border-hb-border bg-hb-deep-navy p-7 md:p-9 lg:col-span-5"
+        data-motion="card"
+        style={{ '--hb-motion-index': 3 } as React.CSSProperties}
+        className={cn(surface.surface, surface.night, 'flex flex-col justify-between px-7 pb-8 pt-10 md:px-9 md:pb-10 lg:col-span-5')}
         aria-live="polite"
       >
         {choice ? (

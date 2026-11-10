@@ -276,12 +276,120 @@ body:has([data-surface-root]) {
   stroke-dashoffset: 1;
 }
 
+/* ── H3 motion families ───────────────────────────────────────
+   One grammar, a few treatments by information type. Same mechanism as above
+   (an ancestor SiteReveal flips data-revealed once; hidden states exist only
+   under data-motion-ready), so each group plays ONCE on first entry, settles,
+   and never replays. Compositor properties only (opacity, transform,
+   clip-path). Travel is small and shrinks on phones.
+
+     eyebrow   short left-to-right wipe + fade
+     headline  masked line reveal (data-hl is the mask, data-motion the line)
+     soft      supporting paragraph: low fade-up
+     item      one entry of a list or sequence
+     rule      a hairline drawing in from the left
+     railv     a vertical rail drawing downward
+     card      a surface rising with a hint of depth
+     visual    a graphic arriving with a restrained fade + scale
+     rail      the Growth System rail drawing across
+     step      a Growth System step, following the rail (delay set per index) */
+[data-surface='site'] {
+  --hb-stagger-text: 90ms;
+  --hb-stagger-card: 140ms;
+  --hb-travel: 14px;
+}
+@media (max-width: 767px) {
+  [data-surface='site'] { --hb-stagger-text: 60ms; --hb-stagger-card: 90ms; --hb-travel: 10px; }
+}
+
+[data-surface='site'] [data-motion='eyebrow'] {
+  transition: opacity 360ms var(--hb-ease), clip-path 520ms var(--hb-ease);
+  transition-delay: calc(var(--hb-motion-index, 0) * var(--hb-stagger-text));
+  clip-path: inset(-6px -6px -6px -6px);
+}
+[data-surface='site'][data-motion-ready] :is([data-motion='eyebrow'][data-revealed='false'], [data-revealed='false'] [data-motion='eyebrow']) {
+  clip-path: inset(-6px 100% -6px -6px);
+}
+
+/* The mask is generous below and above so descenders and tight leading are never clipped in the settled state. */
+[data-surface='site'] [data-hl] { display: block; overflow: hidden; padding: 0.14em 0.06em 0.3em; margin: -0.14em -0.06em -0.3em; }
+[data-surface='site'] [data-motion='headline'] {
+  display: block;
+  transition: transform 760ms var(--hb-ease), opacity 300ms linear;
+  transition-delay: calc(var(--hb-motion-index, 0) * var(--hb-stagger-text) * 1.15);
+}
+[data-surface='site'][data-motion-ready] :is([data-motion='headline'][data-revealed='false'], [data-revealed='false'] [data-motion='headline']) {
+  transform: translate3d(0, 112%, 0);
+}
+
+[data-surface='site'] :is([data-motion='soft'], [data-motion='item']) {
+  transition-delay: calc(var(--hb-motion-index, 0) * var(--hb-stagger-text));
+}
+[data-surface='site'] [data-motion='soft'] {
+  transition-duration: 620ms;
+}
+[data-surface='site'] [data-motion='item'] {
+  transition-duration: 520ms;
+}
+[data-surface='site'][data-motion-ready] :is(
+  [data-motion='soft'][data-revealed='false'], [data-revealed='false'] [data-motion='soft'],
+  [data-motion='item'][data-revealed='false'], [data-revealed='false'] [data-motion='item']
+) {
+  transform: translate3d(0, var(--hb-travel), 0);
+}
+
+[data-surface='site'] :is([data-motion='rule'], [data-motion='railv'], [data-motion='rail']) {
+  transition-property: transform, opacity;
+  transition-timing-function: var(--hb-ease-in-out);
+  transition-delay: calc(var(--hb-motion-index, 0) * var(--hb-stagger-text));
+}
+[data-surface='site'] [data-motion='rule'] { transform-origin: left center; transition-duration: 700ms; }
+[data-surface='site'] [data-motion='railv'] { transform-origin: center top; transition-duration: 1100ms; }
+[data-surface='site'] [data-motion='rail'] { transform-origin: left center; transition-duration: 1000ms; transition-delay: 160ms; }
+[data-surface='site'][data-motion-ready] :is([data-motion='rule'][data-revealed='false'], [data-revealed='false'] [data-motion='rule'], [data-motion='rail'][data-revealed='false'], [data-revealed='false'] [data-motion='rail']) {
+  transform: scaleX(0);
+  opacity: 1;
+}
+[data-surface='site'][data-motion-ready] :is([data-motion='railv'][data-revealed='false'], [data-revealed='false'] [data-motion='railv']) {
+  transform: scaleY(0);
+  opacity: 1;
+}
+
+[data-surface='site'] [data-motion='card'] {
+  transition-duration: 720ms;
+  transition-delay: calc(var(--hb-motion-index, 0) * var(--hb-stagger-card));
+}
+[data-surface='site'][data-motion-ready] :is([data-motion='card'][data-revealed='false'], [data-revealed='false'] [data-motion='card']) {
+  transform: translate3d(0, 22px, 0) scale(0.985);
+}
+
+[data-surface='site'] [data-motion='visual'] {
+  transition-duration: 900ms;
+  transition-delay: calc(var(--hb-motion-index, 0) * var(--hb-stagger-text));
+}
+[data-surface='site'][data-motion-ready] :is([data-motion='visual'][data-revealed='false'], [data-revealed='false'] [data-motion='visual']) {
+  transform: translate3d(0, 18px, 0) scale(0.97);
+}
+
+/* Growth System: step n follows the rail as it draws across. Narrower layouts have no rail, so they simply sequence. */
+[data-surface='site'] [data-motion='step'] {
+  transition-duration: 560ms;
+  transition-delay: calc(380ms + var(--hb-motion-index, 0) * 200ms);
+}
+@media (max-width: 1023px) {
+  [data-surface='site'] [data-motion='step'] { transition-delay: calc(60ms + var(--hb-motion-index, 0) * 90ms); }
+}
+[data-surface='site'][data-motion-ready] :is([data-motion='step'][data-revealed='false'], [data-revealed='false'] [data-motion='step']) {
+  transform: translate3d(0, var(--hb-travel), 0);
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-surface='site'] [data-motion],
   [data-surface='site'] [data-connect] {
     transition: none !important;
     opacity: 1 !important;
     transform: none !important;
+    clip-path: none !important;
     stroke-dashoffset: 0 !important;
   }
 }
