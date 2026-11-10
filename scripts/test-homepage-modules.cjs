@@ -49,7 +49,7 @@ const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
   /* ── Motion: transform-only, gated, never touching the artwork ── */
   const css = read('src/components/site/home/home-modules.module.css')
   assert.equal((css.match(/@media \(prefers-reduced-motion: no-preference\)/g) || []).length, 2, 'every animation block is gated on no-preference')
-  const outsideGate = css.replace(/@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*?\n\}\n/g, '')
+  const outsideGate = css.replace(/@media \(prefers-reduced-motion: no-preference\) \{[\s\S]*?\r?\n\}\r?\n/g, '')
   assert.doesNotMatch(outsideGate, /animation\s*:/, 'no animation declared outside the reduced-motion gate')
   assert.doesNotMatch(css, /filter\s*:|mix-blend-mode|backdrop-filter|object-fit\s*:\s*(cover|fill)/, 'artwork is never filtered, blended, cropped or stretched')
   assert.doesNotMatch(css, /rotate|skew|perspective|scale\(1\.[1-9]/, 'no spin or perspective distortion of the approved angle')
