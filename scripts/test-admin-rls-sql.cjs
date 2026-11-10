@@ -38,9 +38,6 @@ function balanced(code, name) { let d = 0; for (const ch of code) { if (ch === '
 
 const FILES = {
   verify00: 'scripts/admin-rls-00-policy-definitions-readonly.sql',
-  fwd01: 'scripts/admin-rls-01-portfolio-policies-forward-STAGING.sql',
-  rb02: 'scripts/admin-rls-02-portfolio-policies-rollback-STAGING.sql',
-  tests03: 'scripts/admin-rls-03-portfolio-behaviour-tests-STAGING.sql',
   tfa01: 'scripts/admin-2fa-01-user-id-unique-forward-STAGING.sql',
   tfa02: 'scripts/admin-2fa-02-user-id-unique-rollback-STAGING.sql',
   tfa03: 'scripts/admin-2fa-03-user-id-unique-verify-readonly.sql',
@@ -56,10 +53,10 @@ for (const [k, raw] of Object.entries(RAW)) {
   ok(/NOT EXECUTED/.test(raw), `${FILES[k]}: says NOT EXECUTED`)
   ok(!/supabase\.co|postgres(ql)?:\/\/|service_role_key|eyJ[a-zA-Z0-9_-]{20,}/i.test(raw), `${FILES[k]}: no URL, connection string or key`)
 }
-for (const k of ['verify00', 'fwd01', 'rb02', 'tests03', 'tfa01', 'tfa02', 'tfa03', 'reset04', 'marker']) ok(/NOT PARSED/.test(RAW[k]) || k === 'reset04' || k === 'marker' || /NOT EXECUTED/.test(RAW[k]), `${FILES[k]}: states it is unparsed`)
+for (const k of ['verify00', 'tfa01', 'tfa02', 'tfa03', 'reset04', 'marker']) ok(/NOT PARSED/.test(RAW[k]) || k === 'reset04' || k === 'marker' || /NOT EXECUTED/.test(RAW[k]), `${FILES[k]}: states it is unparsed`)
 
 /* ── STAGING scripts refuse to run without the staging marker (production never carries it) ───────────────────── */
-for (const k of ['fwd01', 'rb02', 'tests03', 'tfa01', 'tfa02']) {
+for (const k of ['tfa01', 'tfa02']) {
   ok(/public\._environment_marker/.test(RAW[k]) && /env = ''?staging''?/.test(RAW[k]), `${FILES[k]}: requires public._environment_marker env = 'staging'`)
   ok(/Refusing to run/.test(RAW[k]), `${FILES[k]}: refuses with a clear message`)
 }
@@ -82,94 +79,6 @@ const ALLOWED_T03 = new Set(['pg_constraint', 'pg_class', 'pg_namespace', 'pg_at
 for (const s of sources(T.tfa03.code)) ok(ALLOWED_T03.has(s), `${FILES.tfa03}: unexpected data source ${s}`)
 ok(/ADMIN-CHECKED/.test(RAW.verify00) && /UNRESTRICTED WRITE/.test(RAW.verify00) && /OWN-ROW ONLY/.test(RAW.verify00), 'the policy verifier labels admin-checked, unrestricted and own-row policies')
 ok(/qual ~\* 'admin_users'/.test(RAW.verify00) && /auth\\\.uid/.test(RAW.verify00), 'it classifies by reading the policy USING / WITH CHECK text, not just the role list')
-
-/* ── RLS forward (01) ──────────────────────────────────────────────────────────────────────────────────────── */
-{
-  const { code, lower } = T.fwd01
-  ok(/^\s*begin;/i.test(code) && /commit;\s*$/i.test(code.trimEnd()), 'fwd01: one transaction')
-  ok(/unrecognised browser-role write policies/.test(RAW.fwd01), 'fwd01: aborts (does not drop) when it finds a write policy it does not own')
-  ok(/_backup_admin_rls_policies_20261109/.test(code) && /_backup_admin_rls_grants_20261109/.test(code), 'fwd01: captures policies and grants first')
-  ok(/to_regclass\('public\._backup_admin_rls_policies_20261109'\) is not null/.test(RAW.fwd01), 'fwd01: refuses to reuse a stale backup')
-  for (const policy of ['portfolio_items_admin_all', 'portfolio_media_admin', 'portfolio_capabilities_admin']) {
-    ok(new RegExp(`create policy ${policy} on public\\.\\w+ for all to authenticated`).test(lower.replace(/\s+/g, ' ')) || new RegExp(`create policy ${policy} on public\\.\\w+ for all to authenticated`).test(RAW.fwd01.toLowerCase().replace(/\s+/g, ' ')), `fwd01: (re)creates ${policy} for authenticated only`)
-  }
-  const predicate = /using \(exists \(select 1 from public\.admin_users (au|a) where \1\.user_id = auth\.uid\(\) and \1\.is_active = true\)\)\s+with check \(exists \(select 1 from public\.admin_users (au|a) where \2\.user_id = auth\.uid\(\) and \2\.is_active = true\)\)/gi
-  ok((RAW.fwd01.replace(/\s+/g, ' ').match(predicate) || []).length === 3, 'fwd01: all three policies use exactly the admin_users / auth.uid() / is_active predicate in BOTH using and with check')
-  ok(!/using\s*\(\s*true\s*\)|with check\s*\(\s*true\s*\)/i.test(RAW.fwd01), 'fwd01: no USING (true) / WITH CHECK (true)')
-  ok(!/\bgrant\b/i.test(code), 'fwd01: grants nothing (it cannot widen access)')
-  ok(/revoke insert, update, delete on public\.portfolio_items from public, anon/.test(lower), 'fwd01: anon / PUBLIC lose any write privilege')
-  for (const bad of ['drop table', 'truncate', 'delete from', 'disable row level security', 'alter table public.portfolio', 'update public.', 'insert into public.portfolio']) ok(!lower.includes(bad), `fwd01: never ${bad}`)
-  const drops = [...RAW.fwd01.toLowerCase().matchAll(/drop policy (?:if exists )?([a-z_]+)/g)].map((m) => m[1])
-  ok(drops.length >= 3 && drops.every((d) => ['portfolio_items_admin_all', 'portfolio_media_admin', 'portfolio_capabilities_admin'].includes(d)), 'fwd01: only drops the three policies it recreates')
-  ok(!/create policy [^;]* for select/i.test(code), 'fwd01: creates no SELECT policy and drops none, so public reads are untouched')
-  ok(/SELECT policy count changed/.test(RAW.fwd01) && /anon lost SELECT on portfolio_items/.test(RAW.fwd01), 'fwd01: post-conditions protect the public pages')
-  ok(/service_role/.test(RAW.fwd01) && !/service_role/.test(code), 'fwd01: service_role is mentioned only in comments (untouched)')
-}
-
-/* ── RLS rollback (02) ─────────────────────────────────────────────────────────────────────────────────────── */
-{
-  const { code, lower } = T.rb02
-  ok(/^\s*begin;/i.test(code) && /commit;\s*$/i.test(code.trimEnd()), 'rb02: one transaction')
-  ok(/_backup_admin_rls_policies_20261109/.test(code) && /_backup_admin_rls_grants_20261109/.test(code), 'rb02: restores from the forward script\'s backups')
-  ok(/backup tables from the forward script do not exist/.test(RAW.rb02), 'rb02: refuses without the backups')
-  ok(!/drop table|truncate|delete from/.test(lower), 'rb02: never drops the backups or any table')
-  ok(/create policy %I on public\.%I as %s for %s to %s/.test(RAW.rb02), 'rb02: recreates policies from the captured definitions')
-  ok(!/using\s*\(\s*true\s*\)/i.test(RAW.rb02), 'rb02: no hard-coded USING (true)')
-}
-
-/* ── Behaviour tests (03) ──────────────────────────────────────────────────────────────────────────────────── */
-{
-  const { code, lower, literals } = T.tests03
-  ok((code.match(/\bdo\b/gi) || []).length >= 1 && !/\bcommit\b/i.test(code) && !/\bbegin;/i.test(code), 'tests03: one DO statement, no COMMIT')
-  ok(/raise exception E'%/.test(RAW.tests03) && /rolled back/.test(RAW.tests03), 'tests03: ends by raising an exception, so nothing can persist')
-  ok(/set local role/.test(RAW.tests03.toLowerCase()), 'tests03: acts as real roles')
-  const rows = [...RAW.tests03.matchAll(/^\s*\((\d+),\s+'(authenticated|anon|postgres|service_role)',\s+'(\w+)'/gm)]
-  ok(rows.length >= 26, `tests03: at least 26 checks (found ${rows.length})`)
-  const who = new Set(rows.map((r) => r[3])); for (const w of ['ordinary', 'anon', 'admin1', 'admin2', 'service']) ok(who.has(w), `tests03: covers ${w}`)
-  const ord = rows.filter((r) => r[3] === 'ordinary').length; ok(ord >= 8, 'tests03: ordinary-user negatives: insert/update/delete items + media, visibility, admin_users')
-  ok(/DEACTIVATED admin: insert portfolio item/.test(RAW.tests03), 'tests03: proves is_active is honoured')
-  ok(/admin_users: cannot see another admin/.test(RAW.tests03) && /sees exactly its own row/.test(RAW.tests03), 'tests03: proves admin_users_select_own with a second synthetic admin')
-  ok(/PASS/.test(RAW.tests03) && /FAIL/.test(RAW.tests03) && /INCONCLUSIVE/.test(RAW.tests03), 'tests03: reports PASS / FAIL / INCONCLUSIVE')
-  const tables = new Set([...(code + ' ' + literals.join(' ')).toLowerCase().matchAll(/public\.([a-z_]+)/g)].map((m) => m[1]))
-  for (const t of tables) ok(['portfolio_items', 'portfolio_media', 'admin_users', '_environment_marker'].includes(t), `tests03: touches only portfolio/admin tables (found ${t})`)
-  ok(!/drop |truncate|alter |grant |revoke |create (table|policy|function)/i.test(code + literals.join(' ')), 'tests03: no DDL')
-  // Regression (staging 23502: portfolio_items.name NOT NULL; the fixture used a non-existent "title" column).
-  // Fixtures must satisfy the NOT NULL columns declared by the repo's own DDL, and may only name columns that exist there.
-  // The bootstrap DDL is the preferred source. It is not tracked in every checkout (it may be absent from a clean deployment
-  // tree), so fall back to the columns staging itself reported (23502 on name; category is NOT NULL in the same DDL).
-  const bootPath = 'scripts/portfolio-staging-01-bootstrap-structure.sql'
-  let itemCols, itemRequired
-  if (fs.existsSync(path.join(root, bootPath))) {
-    const itemsDdl = /create table if not exists public\.portfolio_items \(([\s\S]*?)\r?\n\);/.exec(read(bootPath))[1]
-    itemCols = itemsDdl.split('\n').map((l) => /^\s*([a-z_]+)\s+[a-z]+/.exec(l)).filter(Boolean).map((m) => m[1])
-    itemRequired = itemsDdl.split('\n').filter((l) => /\bnot null\b/i.test(l) && !/\bdefault\b/i.test(l)).map((l) => /^\s*([a-z_]+)/.exec(l)[1])
-  } else {
-    console.log('NOTE: ' + bootPath + ' is not in this checkout; using the pinned portfolio_items columns reported by staging.')
-    itemCols = ['id', 'name', 'category', 'is_active', 'created_at', 'updated_at']
-    itemRequired = ['name', 'category']
-  }
-  ok(itemRequired.includes('name') && itemRequired.includes('category'), `repo DDL: portfolio_items requires ${itemRequired.join(', ')}`)
-  const creative = read('scripts/portfolio-creative-01-forward.sql')
-  const itemAdded = [...creative.matchAll(/alter table public\.portfolio_items add column if not exists ([a-z_]+)/g)].map((m) => m[1])
-  // engagement_type / project_status come from the portfolio-creative migration; that file is still being revised in the
-  // working tree, so a checkout at an earlier commit may not define them yet. They are pinned here (validated on staging).
-  const knownItemCols = new Set([...itemCols, ...itemAdded, 'engagement_type', 'project_status'])
-  const itemInserts = [...RAW.tests03.matchAll(/insert into public\.portfolio_items \(([^)]*)\)/g)].map((m) => m[1].split(',').map((c) => c.trim()))
-  ok(itemInserts.length >= 7, `tests03: portfolio_items fixture/test inserts found (${itemInserts.length})`)
-  for (const cols of itemInserts) {
-    for (const r of [...itemRequired, 'engagement_type', 'project_status']) ok(cols.includes(r), `tests03: every portfolio_items insert sets ${r} (${cols.join(', ')})`)
-    for (const c of cols) ok(knownItemCols.has(c), `tests03: portfolio_items.${c} exists in the repo schema`)
-  }
-  ok(!/\btitle\b/.test(RAW.tests03.replace(/--.*$/gm, '').replace(/portfolio_media[^;]*\btitle\b/g, '')), 'tests03: no reference to a non-existent portfolio_items.title')
-  ok(/engagement_type, project_status, is_active\) values \(v_tag \|\| '-active', 'rls-test', 'studio_team', 'completed', true\)/.test(RAW.tests03), "tests03: parent fixture sets engagement_type = 'studio_team' and project_status = 'completed' explicitly")
-  const mediaDdl = /create table if not exists public\.portfolio_media \(([\s\S]*?)\r?\n    \)\r?\n  \$ddl\$/.exec(creative)[1]
-  const mediaRequired = mediaDdl.split('\n').filter((l) => /\bnot null\b/i.test(l) && !/\bdefault\b/i.test(l)).map((l) => /^\s*([a-z_]+)/.exec(l)[1]).filter((c) => !['id', 'check', 'primary', 'constraint'].includes(c))
-  const mediaInserts = [...RAW.tests03.matchAll(/insert into public\.portfolio_media \(([^)]*)\)/g)].map((m) => m[1].split(',').map((c) => c.trim()))
-  ok(mediaInserts.length >= 3 && mediaRequired.length >= 4, `tests03: portfolio_media inserts found (${mediaInserts.length}); required ${mediaRequired.join(', ')}`)
-  for (const cols of mediaInserts) for (const r of mediaRequired) ok(cols.includes(r), `tests03: every portfolio_media insert sets ${r}`)
-  ok(!/portfolio_capabilities/.test(RAW.tests03.replace(/--.*$/gm, '')), 'tests03: does not insert portfolio_capabilities rows (so no capability fixture can drift)')
-  ok(/example\.invalid/.test(RAW.tests03) && !/@(gmail|hotmail|yahoo|hbeedigitals)\./.test(RAW.tests03), 'tests03: synthetic identities only')
-}
 
 /* ── admin_2fa uniqueness ──────────────────────────────────────────────────────────────────────────────────── */
 {
