@@ -130,24 +130,36 @@ export function itemCta(item: WorkItem) {
   return item.creative ? (item.creative.caseStudy ? 'Read case study' : 'View project') : 'View the project'
 }
 
-/** Creative mode only: engagement context, plus a status chip only for ongoing work. */
-export function Tags({ item }: { item: WorkItem }) {
+/**
+ * Creative mode only: marks that sit on the image corner, never in the text.
+ * "Case study" and "Ongoing" are the only two that change how a visitor reads
+ * the project; engagement is stated in {@link ContextLine} instead of a chip.
+ */
+export function CardBadges({ item, caseStudy = true }: { item: WorkItem; caseStudy?: boolean }) {
   const c = item.creative
-  if (!c) return null
+  const ongoing = c?.status === 'ongoing'
+  const showCase = Boolean(c?.caseStudy) && caseStudy
+  if (!c || (!showCase && !ongoing)) return null
   return (
-    <p className={styles.tags}>
-      {c.caseStudy && <span className={cn(styles.tag, styles.tagCaseStudy)}>Case study</span>}
-      <span className={cn(styles.tag, c.engagement === 'client' && styles.tagClient)}>{engagementLabel(c.engagement)}</span>
-      {c.status === 'ongoing' && <span className={cn(styles.tag, styles.tagOngoing)}>{statusLabel(c.status)}</span>}
+    <p className={styles.badges}>
+      {showCase && <span className={cn(styles.badge, styles.badgeCase)}>Case study</span>}
+      {ongoing && <span className={cn(styles.badge, styles.badgeOngoing)}>{statusLabel(c.status)}</span>}
     </p>
   )
 }
 
-/** Creative mode only: at most two explicit capability names, never a taxonomy wall. */
-function CapabilityLine({ item }: { item: WorkItem }) {
-  const caps = item.creative?.capabilities ?? []
-  if (!caps.length) return null
-  const shown = caps.slice(0, 2).map((c) => c.name).join(' · ')
+/**
+ * Creative mode only: one quiet line of context. At most two capability names
+ * (never a taxonomy wall); with none assigned, the engagement wording instead.
+ */
+export function ContextLine({ item }: { item: WorkItem }) {
+  const c = item.creative
+  if (!c) return null
+  const caps = c.capabilities
+  if (!caps.length) {
+    return <p className={styles.capabilityLine}>{engagementLabel(c.engagement)}</p>
+  }
+  const shown = caps.slice(0, 2).map((cap) => cap.name).join(' · ')
   const more = caps.length - 2
   return (
     <p className={styles.capabilityLine}>
@@ -179,13 +191,14 @@ function Meta({ item }: { item: WorkItem }) {
    the image is missing the plane shows on its own; if it fails to load the
    image renders transparent (no alt-text or broken-icon artefact) and the
    plane remains — never a stand-in that looks like project evidence. */
-function Media({ item, sizes, priority, className }: { item: WorkItem; sizes: string; priority?: boolean; className?: string }) {
+export function Media({ item, sizes, priority, className, caseStudyBadge = true }: { item: WorkItem; sizes: string; priority?: boolean; className?: string; caseStudyBadge?: boolean }) {
   return (
     <div className={cn(styles.media, className)}>
       <span aria-hidden="true" className={styles.mediaFallback}>
         <HbeeModuleGlyph size={48} signal="quiet" />
       </span>
       {item.image && <SiteImage src={item.image.src} alt={item.image.alt} sizes={sizes} priority={priority} className={styles.mediaImage} />}
+      <CardBadges item={item} caseStudy={caseStudyBadge} />
     </div>
   )
 }
@@ -197,14 +210,13 @@ function WorkFeatured({ item }: { item: WorkItem }) {
       <Media item={item} sizes="(min-width: 1024px) 50vw, 100vw" priority className={styles.featuredMedia} />
       <div className={styles.featuredBody}>
         <p className={styles.featuredLabel}>Featured project</p>
-        <Tags item={item} />
         <Meta item={item} />
         <h3 id={`work-${item.id}`} className="mt-3 font-hb-display text-[clamp(1.625rem,1.3rem+1vw,2.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-hb-fg">
           {item.client}
         </h3>
         {item.title && <p className="mt-2 text-[1.0625rem] font-medium text-hb-ink">{item.title}</p>}
         {item.description && <p className="mt-4 max-w-[36rem] leading-relaxed text-hb-fg-body">{item.description}</p>}
-        <CapabilityLine item={item} />
+        <ContextLine item={item} />
         <div className="mt-7 flex flex-wrap items-center gap-3">
           <SiteButton href={item.href} variant="secondary" arrow>
             {itemCta(item)}<span className="sr-only">: {item.client}</span>
@@ -227,7 +239,6 @@ export function WorkCard({ item, priority }: { item: WorkItem; priority?: boolea
     <article className={cn(homeStyles.mediaHover, styles.card, 'group')}>
       <Media item={item} sizes="(min-width: 1152px) 30vw, (min-width: 768px) 45vw, 100vw" priority={priority} />
       <div className="flex flex-1 flex-col p-5 md:p-6">
-        <Tags item={item} />
         <Meta item={item} />
         <h3 className="mt-2 font-hb-display text-[1.25rem] font-bold leading-snug tracking-[-0.015em] text-hb-fg">
           <Link href={item.href} className="after:absolute after:inset-0 after:content-['']">
@@ -235,8 +246,8 @@ export function WorkCard({ item, priority }: { item: WorkItem; priority?: boolea
           </Link>
         </h3>
         {item.title && <p className="mt-1 font-medium text-hb-ink">{item.title}</p>}
-        {item.description && <p className="mt-3 text-[0.9375rem] leading-relaxed text-hb-fg-body">{item.description}</p>}
-        <CapabilityLine item={item} />
+        {item.description && <p className="mt-3 line-clamp-3 text-[0.9375rem] leading-relaxed text-hb-fg-body">{item.description}</p>}
+        <ContextLine item={item} />
         <span aria-hidden="true" className="mt-auto inline-flex items-center gap-1.5 pt-5 font-semibold text-hb-link group-hover:underline">
           {itemCta(item)} <SiteArrow size={16} className="transition-transform duration-[var(--hb-dur-base)] group-hover:translate-x-[3px]" />
         </span>
@@ -266,7 +277,7 @@ function WorkEmptyState() {
 
 /* ── 05 — Final CTA (Night) ── */
 
-export function WorkCta() {
+export function WorkCta({ eyebrow = 'Ready to talk about your next project', heading = 'Let’s create what’s next.' }: { eyebrow?: string; heading?: string } = {}) {
   return (
     <SiteSection tone="night" aria-labelledby="work-cta-title" className="overflow-hidden">
       <div aria-hidden="true" className={capabilityStyles.ctaGeometry}>
@@ -276,11 +287,11 @@ export function WorkCta() {
       </div>
       <div className="relative max-w-[44rem]">
         <SiteReveal>
-          <SiteEyebrow signal>Ready to talk about your next project</SiteEyebrow>
+          <SiteEyebrow signal>{eyebrow}</SiteEyebrow>
         </SiteReveal>
         <SiteReveal index={1}>
           <SiteDisplayHeading id="work-cta-title" size="h1" className="mt-6">
-            Let’s create what’s next.
+            {heading}
           </SiteDisplayHeading>
         </SiteReveal>
         <SiteReveal index={2}>

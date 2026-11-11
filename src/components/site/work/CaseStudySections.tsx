@@ -5,29 +5,38 @@ import type { WorkDetail, WorkImage, WorkItem } from '@/lib/site/work-data'
 import { HbeeModuleGlyph } from '../module/HbeeModule'
 import { SiteReveal } from '../motion/SiteReveal'
 import { SiteButton } from '../primitives/SiteButton'
-import { SiteImage } from '../primitives/SiteImage'
 import { SiteArrow } from '../primitives/SiteIcons'
 import { SiteSection } from '../primitives/SiteSection'
 import { SiteEyebrow } from '../primitives/SiteTypography'
-import { EvidenceImage, WorkApproach, WorkDetailHero, WorkNarrative, WorkOutcome, WorkVideos } from './WorkDetail'
-import { Tags, WorkCard, WorkCta } from './WorkSections'
+import { CaseStudyContextStrip, EvidenceImage, WorkApproach, WorkDetailHero, WorkNarrative, WorkOutcome, WorkVideos } from './WorkDetail'
+import { Media, WorkCard, WorkCta } from './WorkSections'
+import homeStyles from '../home/home.module.css'
 import styles from './work.module.css'
 
 /* ── /case-studies listing ─────────────────────────────────────────────
-   Only projects deliberately marked as Case Studies. Visual first, one
-   concise summary, at most three capability names, one clear action. */
+   Only projects deliberately marked as Case Studies. The first is featured as
+   a full-width editorial block (so a single Case Study never sits in a sparse
+   grid); further ones follow in a two-column grid, and a lone remaining one
+   is featured the same way. Everything comes from the CMS. */
 
 export function CaseStudiesHero() {
   return (
     <SiteSection tone="cloud" spacing="none" aria-labelledby="case-studies-title" className="overflow-hidden">
+      <div aria-hidden="true" className={homeStyles.heroField}>
+        <svg className={homeStyles.heroGrid} viewBox="0 0 600 500" preserveAspectRatio="none" focusable="false">
+          <g stroke="var(--hb-structure)" strokeOpacity="0.08" strokeWidth="1">
+            <path d="M0 125H600M0 250H600M0 375H600" />
+            <path d="M150 0V500M300 0V500M450 0V500" />
+          </g>
+        </svg>
+      </div>
       <div className={styles.csHero}>
         <SiteEyebrow signal>Case studies</SiteEyebrow>
         <h1 id="case-studies-title" className="mt-6 max-w-[16ch] font-hb-display text-[clamp(2.5rem,1.7rem+2.5vw,3.6rem)] font-bold leading-[1.02] tracking-[-0.04em] text-hb-fg">
           The work, in depth.
         </h1>
         <p className="mt-6 max-w-[40rem] text-[length:var(--hb-text-lede)] leading-[1.55] text-hb-fg-body">
-          A small number of substantial projects, shown with the context, the work and what it connects to. For the wider range of what Hbee
-          makes, browse all work.
+          Selected projects, told with the context, the work and what it connects to. For the wider range of what Hbee makes, browse all work.
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <SiteButton href="#case-study-collection" variant="conversion" size="lg" arrow>
@@ -42,32 +51,35 @@ export function CaseStudiesHero() {
   )
 }
 
-function CaseStudyCard({ item, lead }: { item: WorkItem; lead?: boolean }) {
+function CaseStudyCard({ item, lead, reverse, label }: { item: WorkItem; lead?: boolean; reverse?: boolean; label?: string }) {
   const caps = item.creative?.capabilities.slice(0, 3).map((c) => c.name).join(' · ')
+  const meta = [item.category, item.projectType].filter(Boolean).join(' · ')
   return (
-    <article className={cn(styles.csCard, lead && styles.csCardLead, 'group')}>
-      <div className={cn(styles.media, styles.csMedia)}>
-        <span aria-hidden="true" className={styles.mediaFallback}>
-          <HbeeModuleGlyph size={48} signal="quiet" />
-        </span>
-        {item.image && <SiteImage src={item.image.src} alt={item.image.alt} sizes={lead ? '(min-width: 1024px) 60vw, 100vw' : '(min-width: 768px) 45vw, 100vw'} priority={lead} className={styles.mediaImage} />}
-      </div>
+    <article className={cn(styles.csCard, lead && styles.csCardLead, lead && reverse && styles.csCardReverse, 'group')}>
+      <Media
+        item={item}
+        caseStudyBadge={false}
+        sizes={lead ? '(min-width: 1024px) 55vw, 100vw' : '(min-width: 768px) 45vw, 100vw'}
+        priority={lead}
+        className={styles.csMedia}
+      />
       <div className={styles.csBody}>
-        <Tags item={item} />
+        {label && <p className={styles.featuredLabel}>{label}</p>}
+        {meta && <p className={styles.csMeta}>{meta}</p>}
         <h2 className="font-hb-display text-[clamp(1.375rem,1.15rem+0.8vw,1.875rem)] font-bold leading-[1.12] tracking-[-0.025em] text-hb-fg">
           <Link href={item.href} className="after:absolute after:inset-0 after:content-['']">
             {item.title ?? item.client}
           </Link>
         </h2>
-        {item.title && item.creative?.engagement === 'client' && <p className="mt-1 font-medium text-hb-ink">{item.client}</p>}
-        {item.description && <p className="mt-3 max-w-[38rem] leading-relaxed text-hb-fg-body">{item.description}</p>}
+        {item.title && <p className="mt-1.5 font-medium text-hb-ink">{item.client}</p>}
+        {item.description && <p className={cn('mt-3 max-w-[38rem] leading-relaxed text-hb-fg-body', !lead && 'line-clamp-4')}>{item.description}</p>}
         {caps && (
           <p className={styles.capabilityLine}>
             <span className="sr-only">Capabilities: </span>
             {caps}
           </p>
         )}
-        <span aria-hidden="true" className="mt-auto inline-flex items-center gap-1.5 pt-5 font-semibold text-hb-link group-hover:underline">
+        <span aria-hidden="true" className="mt-auto inline-flex items-center gap-1.5 pt-6 font-semibold text-hb-link group-hover:underline">
           Read case study <SiteArrow size={16} className="transition-transform duration-[var(--hb-dur-base)] group-hover:translate-x-[3px]" />
         </span>
         <span className="sr-only">: {item.client}</span>
@@ -77,6 +89,8 @@ function CaseStudyCard({ item, lead }: { item: WorkItem; lead?: boolean }) {
 }
 
 export function CaseStudiesCollection({ items }: { items: WorkItem[] }) {
+  // Featured treatment: the first Case Study, and a sole remaining one, so no row is ever left half-empty.
+  const wide = (i: number) => i === 0 || (items.length === 2 && i === 1)
   return (
     <SiteSection id="case-study-collection" tone="cloud" spacing="compact" aria-labelledby="case-study-collection-title" className={cn(styles.anchor, styles.collection)}>
       <h2 id="case-study-collection-title" className="sr-only">
@@ -96,15 +110,23 @@ export function CaseStudiesCollection({ items }: { items: WorkItem[] }) {
           </SiteButton>
         </SiteReveal>
       ) : (
-        <ul className={styles.csGrid}>
-          {items.map((item, i) => (
-            <li key={item.id} className={cn('flex', i === 0 && items.length > 2 && styles.csLead)}>
-              <SiteReveal index={i % 2} className="flex w-full">
-                <CaseStudyCard item={item} lead={i === 0 && items.length > 2} />
-              </SiteReveal>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className={styles.csGrid}>
+            {items.map((item, i) => (
+              <li key={item.id} className={cn('flex', wide(i) && styles.csLead)}>
+                <SiteReveal index={wide(i) ? 0 : i % 2} className="flex w-full">
+                  <CaseStudyCard item={item} lead={wide(i)} reverse={i % 2 === 1} label={i === 0 ? 'Featured case study' : undefined} />
+                </SiteReveal>
+              </li>
+            ))}
+          </ul>
+          <SiteReveal className={styles.csMore}>
+            <p>Case studies are added as projects are ready to be told in depth. The wider library shows the full range of work.</p>
+            <SiteButton href="/work#work-collection" variant="secondary" arrow>
+              Explore all work
+            </SiteButton>
+          </SiteReveal>
+        </>
       )}
     </SiteSection>
   )
@@ -168,8 +190,8 @@ export function CaseStudyMedia({ detail }: { detail: WorkDetail }) {
         <SiteReveal index={1} className={styles.csGroup}>
           <h3 className={styles.csGroupTitle}>Before and after</h3>
           <div className={styles.csPair}>
-            <EvidenceImage image={beforeAfter[0]} />
-            <EvidenceImage image={beforeAfter[1]} />
+            <EvidenceImage image={beforeAfter[0]} framed />
+            <EvidenceImage image={beforeAfter[1]} framed />
           </div>
         </SiteReveal>
       )}
@@ -227,6 +249,25 @@ function CaseStudyTestimonial({ detail }: { detail: WorkDetail }) {
   )
 }
 
+/** Closing navigation when there are no related projects to show. */
+function CaseStudyBack() {
+  return (
+    <SiteSection tone="cloud" spacing="compact" aria-label="More work" className={styles.caseBand}>
+      <SiteReveal className={styles.nextProject}>
+        <p className="font-hb-display text-[length:var(--hb-text-h3)] font-bold leading-tight tracking-[-0.02em] text-hb-fg">More from Hbee</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <SiteButton href="/case-studies" variant="secondary" arrow>
+            Back to all case studies
+          </SiteButton>
+          <SiteButton href="/work#work-collection" variant="secondary">
+            Explore all work
+          </SiteButton>
+        </div>
+      </SiteReveal>
+    </SiteSection>
+  )
+}
+
 function RelatedWork({ items }: { items: WorkItem[] }) {
   if (!items.length) return null
   return (
@@ -264,15 +305,17 @@ export function CaseStudyPage({ detail, related = [] }: { detail: WorkDetail; re
   return (
     <>
       <WorkDetailHero detail={detail} />
+      <CaseStudyContextStrip detail={detail} />
       <WorkNarrative detail={detail} />
-      <WorkApproach detail={detail} />
+      <WorkApproach detail={detail} glance={false} />
       <CaseStudyProcess detail={detail} />
       <CaseStudyMedia detail={detail} />
       <WorkVideos detail={detail} />
       <WorkOutcome detail={detail} />
       <CaseStudyTestimonial detail={detail} />
       <RelatedWork items={related} />
-      <WorkCta />
+      {!related.length && <CaseStudyBack />}
+      <WorkCta eyebrow="Start your own project" heading="Planning something like this?" />
     </>
   )
 }

@@ -10,6 +10,7 @@ import { SiteImage } from '../primitives/SiteImage'
 import { SiteArrow } from '../primitives/SiteIcons'
 import { SiteSection } from '../primitives/SiteSection'
 import { SiteEyebrow } from '../primitives/SiteTypography'
+import { StoryText } from './StoryText'
 import { WorkCta } from './WorkSections'
 import styles from './work.module.css'
 
@@ -62,16 +63,67 @@ function MetaLine({ detail }: { detail: WorkDetail }) {
   )
 }
 
-/** Engagement context + status, creative mode only. */
+/**
+ * Creative mode only: a "Case study" mark and an "Ongoing" mark where they apply.
+ * Engagement and status are stated once, in the project context (glance panel or
+ * context strip), not repeated here.
+ */
 export function ContextTags({ detail }: { detail: WorkDetail }) {
   const c = detail.creative
-  if (!c) return null
+  if (!c || (!c.caseStudy && c.status !== 'ongoing')) return null
   return (
     <p className={styles.tags}>
       {c.caseStudy && <span className={cn(styles.tag, styles.tagCaseStudy)}>Case study</span>}
-      <span className={cn(styles.tag, c.engagement === 'client' && styles.tagClient)}>{engagementLabel(c.engagement)}</span>
-      <span className={cn(styles.tag, c.status === 'ongoing' && styles.tagOngoing)}>{statusLabel(c.status)}</span>
+      {c.status === 'ongoing' && <span className={cn(styles.tag, styles.tagOngoing)}>{statusLabel(c.status)}</span>}
     </p>
+  )
+}
+
+/**
+ * Case Study context strip: one horizontal band of the facts the CMS holds.
+ * Each entry renders only when it has data, and nothing repeated in the hero
+ * (category, project type) is repeated here.
+ */
+export function CaseStudyContextStrip({ detail }: { detail: WorkDetail }) {
+  const c = detail.creative
+  if (!c) return null
+  const facts: { label: string; value: string }[] = [
+    { label: 'Engagement', value: engagementLabel(c.engagement) },
+    { label: 'Status', value: statusLabel(c.status) },
+    ...(detail.industry ? [{ label: 'Industry', value: detail.industry }] : []),
+  ]
+  const lists: { label: string; values: string[] }[] = [
+    { label: 'Services', values: c.services },
+    { label: 'Platforms & tools', values: c.technologies },
+  ].filter((l) => l.values.length > 0)
+  return (
+    <SiteSection tone="white" spacing="none" aria-labelledby="case-context" className={styles.caseBand}>
+      <h2 id="case-context" className="sr-only">
+        Project context
+      </h2>
+      <dl className={styles.strip}>
+        {facts.map((f) => (
+          <div key={f.label} className={styles.stripItem}>
+            <dt>{f.label}</dt>
+            <dd>{f.value}</dd>
+          </div>
+        ))}
+        {lists.map((l) => (
+          <div key={l.label} className={cn(styles.stripItem, styles.stripWide)}>
+            <dt>{l.label}</dt>
+            <dd>
+              <ul className={styles.stripTags}>
+                {l.values.map((v) => (
+                  <li key={v} className={styles.stripTag}>
+                    {v}
+                  </li>
+                ))}
+              </ul>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </SiteSection>
   )
 }
 
@@ -96,6 +148,11 @@ function LiveSiteLink({ detail, variant }: { detail: WorkDetail; variant: 'butto
       <SiteArrow size={14} className="-rotate-45" />
     </a>
   )
+}
+
+/** Creative mode renders stored long text as editorial copy (paragraphs and lists); legacy output is unchanged. */
+function Prose({ detail, text, className, legacy }: { detail: WorkDetail; text: string; className?: string; legacy: string }) {
+  return detail.creative ? <StoryText text={text} className={className} /> : <p className={legacy}>{text}</p>
 }
 
 /* ── 01 — Hero: project text left, real project image right ── */
@@ -159,7 +216,7 @@ export function WorkNarrative({ detail }: { detail: WorkDetail }) {
               {b.eyebrow}
             </SiteEyebrow>
             <h2 className="sr-only">{b.eyebrow}</h2>
-            <p className="mt-5 max-w-[38rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{b.text}</p>
+            <Prose detail={detail} text={b.text} className="mt-5" legacy="mt-5 max-w-[38rem] text-[1.0625rem] leading-relaxed text-hb-fg-body" />
           </SiteReveal>
         ))}
       </div>
@@ -169,7 +226,7 @@ export function WorkNarrative({ detail }: { detail: WorkDetail }) {
 
 /* ── 04/05 — Approach (only when stored) + Project at a glance (always) ── */
 
-export function WorkApproach({ detail }: { detail: WorkDetail }) {
+export function WorkApproach({ detail, glance = true }: { detail: WorkDetail; glance?: boolean }) {
   const c = detail.creative
   const ongoing = c?.status === 'ongoing'
   // Legacy: always "Client". Creative: that word only for a true client engagement.
@@ -186,9 +243,11 @@ export function WorkApproach({ detail }: { detail: WorkDetail }) {
   ].filter(([, v]) => v) as [string, string][]
   const capabilities = c?.capabilities ?? []
   const hasMain = Boolean(detail.approach) || capabilities.length > 0
+  // Case Studies state their context in the strip under the hero, so they omit the panel.
+  if (!glance && !hasMain) return null
   return (
     <SiteSection tone="white" spacing="compact" aria-labelledby={detail.approach ? 'case-approach' : capabilities.length ? 'case-capabilities' : 'case-glance'}>
-      <div className={cn(styles.approachGrid, !hasMain && styles.approachGridGlanceOnly)}>
+      <div className={cn(styles.approachGrid, !hasMain && styles.approachGridGlanceOnly, !glance && styles.approachGridSolo)}>
         {hasMain && (
           <SiteReveal>
             {detail.approach && (
@@ -197,7 +256,7 @@ export function WorkApproach({ detail }: { detail: WorkDetail }) {
                 <h2 id="case-approach" className="mt-5 font-hb-display text-[length:var(--hb-text-h3)] font-bold leading-tight tracking-[-0.02em] text-hb-fg">
                   {ongoing ? 'What is being built' : 'What was delivered'}
                 </h2>
-                <p className="mt-4 max-w-[40rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{detail.approach}</p>
+                <Prose detail={detail} text={detail.approach} className="mt-4" legacy="mt-4 max-w-[40rem] text-[1.0625rem] leading-relaxed text-hb-fg-body" />
               </>
             )}
             {capabilities.length > 0 && (
@@ -218,7 +277,7 @@ export function WorkApproach({ detail }: { detail: WorkDetail }) {
             )}
           </SiteReveal>
         )}
-        <SiteReveal index={1}>
+        {glance && <SiteReveal index={1}>
           <aside className={styles.glance} aria-labelledby="case-glance">
             <h2 id="case-glance" className={styles.glanceTitle}>
               <HbeeModuleGlyph size={18} signal="quiet" />
@@ -241,7 +300,7 @@ export function WorkApproach({ detail }: { detail: WorkDetail }) {
               )}
             </dl>
           </aside>
-        </SiteReveal>
+        </SiteReveal>}
       </div>
     </SiteSection>
   )
@@ -249,7 +308,11 @@ export function WorkApproach({ detail }: { detail: WorkDetail }) {
 
 /* ── 06 — Evidence: real media beyond the hero image (before/after first) ── */
 
-export function EvidenceImage({ image, wide, labelled }: { image: WorkImage; wide?: boolean; labelled?: boolean }) {
+/**
+ * `framed` (screenshots, e.g. before/after): shown whole in a browser-proportioned
+ * frame instead of being cropped to the card ratio. Creative mode only.
+ */
+export function EvidenceImage({ image, wide, labelled, framed }: { image: WorkImage; wide?: boolean; labelled?: boolean; framed?: boolean }) {
   if (image.creative) {
     const presentation = mediaPresentation(image.creative)
     const { caption, title, description, asset_type } = image.creative
@@ -273,7 +336,7 @@ export function EvidenceImage({ image, wide, labelled }: { image: WorkImage; wid
   }
   return (
     <figure className={cn(styles.evidenceItem, wide && styles.evidenceWide)}>
-      <div className={styles.media}>
+      <div className={cn(styles.media, framed && styles.shotFrame)}>
         <span aria-hidden="true" className={styles.mediaFallback}>
           <HbeeModuleGlyph size={40} signal="quiet" />
         </span>
@@ -297,8 +360,8 @@ function WorkEvidence({ detail }: { detail: WorkDetail }) {
       </SiteReveal>
       {beforeAfter && (
         <SiteReveal index={1} className={cn(styles.evidenceGrid, 'mt-10')}>
-          <EvidenceImage image={beforeAfter[0]} />
-          <EvidenceImage image={beforeAfter[1]} />
+          <EvidenceImage image={beforeAfter[0]} framed={Boolean(detail.creative)} />
+          <EvidenceImage image={beforeAfter[1]} framed={Boolean(detail.creative)} />
         </SiteReveal>
       )}
       {gallery.length > 0 && (
@@ -325,9 +388,13 @@ export function WorkOutcome({ detail }: { detail: WorkDetail }) {
         <h2 id="case-outcome" className="sr-only">
           {label}
         </h2>
-        <p className="mt-5 max-w-[46rem] font-hb-display text-[clamp(1.25rem,1.1rem+0.6vw,1.625rem)] font-semibold leading-snug tracking-[-0.015em] text-hb-fg">
-          {detail.outcome}
-        </p>
+        {detail.creative ? (
+          <StoryText text={detail.outcome} variant="result" className="mt-5" />
+        ) : (
+          <p className="mt-5 max-w-[46rem] font-hb-display text-[clamp(1.25rem,1.1rem+0.6vw,1.625rem)] font-semibold leading-snug tracking-[-0.015em] text-hb-fg">
+            {detail.outcome}
+          </p>
+        )}
       </SiteReveal>
     </SiteSection>
   )
@@ -406,9 +473,14 @@ function WorkNextProject({ next }: { next: WorkItem }) {
           </h2>
           {next.category && <p className="mt-2 text-hb-fg-body">{next.category}</p>}
         </div>
-        <SiteButton href={next.href} variant="secondary" arrow>
-          View the project<span className="sr-only">: {next.client}</span>
-        </SiteButton>
+        <div className="flex flex-wrap items-center gap-3">
+          <SiteButton href={next.href} variant="secondary" arrow>
+            View the project<span className="sr-only">: {next.client}</span>
+          </SiteButton>
+          <Link href="/work#work-collection" className={styles.backLink}>
+            Back to all work
+          </Link>
+        </div>
       </SiteReveal>
     </SiteSection>
   )

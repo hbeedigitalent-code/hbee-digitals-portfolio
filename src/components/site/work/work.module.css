@@ -158,7 +158,8 @@
 @media (min-width: 768px) {
   .featured { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
   .featuredBody { display: flex; flex-direction: column; justify-content: center; padding: 2.5rem; }
-  .featuredMedia.featuredMedia { aspect-ratio: auto; min-height: 100%; }
+  .featured { align-items: center; }
+  .featuredMedia.featuredMedia { aspect-ratio: 4 / 3; }
 }
 .featuredLabel {
   font-size: var(--hb-text-eyebrow);
@@ -299,7 +300,7 @@
 .caseHeroMedia {
   position: relative;
   overflow: hidden;
-  aspect-ratio: 16 / 11;
+  aspect-ratio: 4 / 3;
   border-radius: var(--hb-radius-md) var(--hb-radius-md) var(--hb-radius-sweep) var(--hb-radius-md);
   background: linear-gradient(150deg, var(--hb-mist), #dfe9fb);
   box-shadow: var(--hb-shadow-2);
@@ -346,6 +347,7 @@
 }
 
 .approachGrid { display: grid; gap: 2.5rem; align-items: start; }
+@media (min-width: 1024px) { .approachGrid.approachGridSolo { grid-template-columns: minmax(0, 46rem); } }
 @media (min-width: 1024px) {
   .approachGrid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: clamp(2rem, 4vw, 4rem); }
   /* Metadata only (no stored work text): one deliberate, centred panel at a
@@ -514,13 +516,19 @@ video.videoFrame { aspect-ratio: 16 / 9; object-fit: contain; }
   transition: border-color var(--hb-dur-base) var(--hb-ease), box-shadow var(--hb-dur-base) var(--hb-ease);
 }
 .csCard:hover, .csCard:focus-within { border-color: var(--hb-structure-soft); box-shadow: var(--hb-shadow-2); }
-.csMedia { aspect-ratio: 16 / 10; }
+.csMedia { aspect-ratio: 4 / 3; }
 .csBody { display: flex; flex: 1; flex-direction: column; padding: 1.5rem; }
+.csMeta { margin-bottom: 0.625rem; font-size: var(--hb-text-eyebrow); font-weight: 600; line-height: 1.4; letter-spacing: 0.12em; text-transform: uppercase; color: var(--hb-fg-body); }
 @media (min-width: 768px) {
-  .csCardLead { flex-direction: row; }
-  .csCardLead .csMedia { flex: 1.25; aspect-ratio: auto; min-height: 22rem; }
-  .csCardLead .csBody { flex: 1; justify-content: center; padding: 2.5rem; }
+  .csCardLead { flex-direction: row; align-items: center; }
+  .csCardLead .csMedia { flex: 1.15; aspect-ratio: 4 / 3; }
+  .csCardLead .csBody { flex: 1; align-self: stretch; justify-content: center; padding: clamp(2rem, 4vw, 3.5rem); }
+  .csCardLead .csBody > span[aria-hidden] { margin-top: 1.5rem; }
+  .csCardReverse { flex-direction: row-reverse; }
 }
+.csMore { display: flex; flex-direction: column; gap: 1rem; align-items: flex-start; margin-top: clamp(2rem, 4vw, 3rem); padding-top: 1.5rem; border-top: 1px solid var(--hb-border); }
+.csMore p { max-width: 38rem; line-height: 1.55; color: var(--hb-fg-body); }
+@media (min-width: 768px) { .csMore { flex-direction: row; align-items: center; justify-content: space-between; } }
 
 .csGroup { margin-top: clamp(2.5rem, 5vw, 4rem); }
 .csGroupTitle { font-size: var(--hb-text-eyebrow); font-weight: 600; line-height: 1.2; letter-spacing: 0.12em; text-transform: uppercase; color: var(--hb-fg-body); }
@@ -541,3 +549,113 @@ video.videoFrame { aspect-ratio: 16 / 9; object-fit: contain; }
 .quote { margin: 1.25rem 0 0; padding-left: 1.25rem; border-left: 3px solid var(--hb-structure); }
 .quote blockquote { max-width: 46rem; font-family: var(--hb-font-display, inherit); font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.625rem); font-weight: 600; line-height: 1.35; letter-spacing: -0.015em; color: var(--hb-fg); }
 .quote figcaption { margin-top: 0.75rem; color: var(--hb-fg-body); }
+
+/* ═════════════════════════════════════════════════════════════════
+   Phase C3 — Portfolio public experience refinement
+   ═════════════════════════════════════════════════════════════════ */
+
+/* Project cards: the image leads. Cover art is composed at 4:3, so cards and
+   heroes use 4:3 and show it whole instead of cropping it to a banner. */
+.card .media { aspect-ratio: 4 / 3; }
+.mediaImage { transition: transform 600ms var(--hb-ease); }
+.card:hover .mediaImage,
+.card:focus-within .mediaImage,
+.csCard:hover .mediaImage,
+.csCard:focus-within .mediaImage { transform: scale(1.03); }
+.card { transition: border-color var(--hb-dur-base) var(--hb-ease), box-shadow var(--hb-dur-base) var(--hb-ease), transform var(--hb-dur-base) var(--hb-ease); }
+.card:hover, .csCard:hover { transform: translateY(-2px); }
+@media (prefers-reduced-motion: reduce) {
+  .mediaImage, .card, .csCard { transition: none; }
+  .card:hover .mediaImage, .card:focus-within .mediaImage, .csCard:hover .mediaImage, .csCard:focus-within .mediaImage,
+  .card:hover, .csCard:hover { transform: none; }
+}
+
+/* Marks on the image corner (Case study / Ongoing): they never take text space. */
+.badges { position: absolute; top: 0.75rem; left: 0.75rem; z-index: 2; display: flex; flex-wrap: wrap; gap: 0.375rem; margin: 0; }
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.625rem;
+  padding: 0 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--hb-shadow-1);
+  font-size: var(--hb-text-eyebrow);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hb-fg);
+}
+.badgeCase { background: var(--hb-night); color: #ffffff; }
+.badgeOngoing { color: var(--hb-link); }
+
+/* Case Study context strip */
+.strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; padding-block: 0.5rem; }
+@media (min-width: 768px) { .strip { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .strip { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.stripItem { min-width: 0; padding: 1rem 1.25rem 1rem 0; }
+.stripItem dt { font-size: var(--hb-text-eyebrow); font-weight: 600; line-height: 1.2; letter-spacing: 0.12em; text-transform: uppercase; color: var(--hb-fg-body); }
+.stripItem dd { margin: 0.375rem 0 0; overflow-wrap: anywhere; font-weight: 600; color: var(--hb-fg); }
+.stripWide { grid-column: 1 / -1; border-top: 1px solid var(--hb-border); }
+.stripTags { display: flex; flex-wrap: wrap; gap: 0.375rem; margin: 0.125rem 0 0; padding: 0; list-style: none; }
+.stripTag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.875rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--hb-border);
+  border-radius: 999px;
+  background: var(--hb-mist);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--hb-fg);
+}
+
+/* Stored long text as editorial copy: paragraphs and lists, nothing added. */
+.story { max-width: 40rem; }
+.storyP { margin: 0; font-size: 1.0625rem; line-height: 1.65; color: var(--hb-fg-body); }
+.storyP + .storyP, .storyP + .storyList, .storyList + .storyP { margin-top: 1rem; }
+.storyList { display: grid; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.storyList + .storyList { margin-top: 1rem; }
+.storyList li { position: relative; padding-left: 1.5rem; line-height: 1.5; color: var(--hb-fg-body); overflow-wrap: anywhere; }
+.storyList li::before { content: ''; position: absolute; left: 0.125rem; top: 0.55em; width: 6px; height: 6px; border-radius: 1px 1px 3px 1px; background: var(--hb-structure); }
+/* Check marks are drawn, not typed, so they do not depend on a font having the glyph. */
+.storyChecks li::before {
+  left: 0;
+  top: 0.3em;
+  width: 0.875rem;
+  height: 0.5rem;
+  border-radius: 0;
+  background: none;
+  border-left: 2.5px solid var(--hb-link);
+  border-bottom: 2.5px solid var(--hb-link);
+  transform: rotate(-45deg) scale(0.8);
+  transform-origin: left top;
+  margin-top: 0.15rem;
+  margin-left: 0.15rem;
+}
+.storyChecks li { padding-left: 1.75rem; }
+
+/* Results: stored points laid out as a grid of check items, not one long paragraph. */
+.storyResult { max-width: 60rem; }
+.storyLead { margin: 0; max-width: 46rem; font-family: var(--hb-font-display, inherit); font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.625rem); font-weight: 600; line-height: 1.35; letter-spacing: -0.015em; color: var(--hb-fg); }
+.storyLead + .storyList { margin-top: 1.5rem; }
+.storyResultList { gap: 0.75rem; }
+@media (min-width: 768px) { .storyResultList { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem 2.5rem; } }
+.storyResultList li { padding-top: 0.75rem; border-top: 1px solid var(--hb-border); font-weight: 500; color: var(--hb-fg); }
+.storyResultList.storyChecks li::before { top: 1.1rem; }
+
+/* Screenshots (before / after) are shown whole, in a browser-proportioned frame. */
+.shotFrame.shotFrame { aspect-ratio: 2 / 1; border: 1px solid var(--hb-border); border-radius: var(--hb-radius-md); background: var(--hb-mist); }
+.shotFrame img.mediaImage { object-fit: contain; }
+
+/* Mobile: simplify rather than shrink. */
+@media (max-width: 767px) {
+  .badges { top: 0.5rem; left: 0.5rem; }
+  .csCard, .card, .featured { border-radius: var(--hb-radius-md); }
+  .tags, .meta { row-gap: 0.25rem; }
+  .stripItem { padding-right: 0.75rem; }
+  .outcome { padding-left: 1rem; }
+  .nextProject .backLink { min-height: 44px; }
+}

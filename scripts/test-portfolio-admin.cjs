@@ -605,7 +605,10 @@ const submit = () => ({ preventDefault() {} })
   assert.equal(listing.items[0].image.src, '/cover.png', 'parent cover wins over typed media')
   const Sections = load('src/components/site/work/WorkSections.tsx')
   const listHtml = render(React.createElement(Sections.WorkCollection, { data: listing }))
-  assert.ok(listHtml.includes('Client engagement') && listHtml.includes('Studio work') && listHtml.includes('Ongoing') && listHtml.includes('Brand &amp; Positioning · Digital Systems') && listHtml.includes('+1'))
+  // C3: engagement is not a chip on every card; it is the one context line only when a project has no capabilities. Ongoing is a badge on the image.
+  assert.ok(listHtml.includes('Studio work') && listHtml.includes('Ongoing') && listHtml.includes('Brand &amp; Positioning · Digital Systems') && listHtml.includes('+1'))
+  assert.ok(!listHtml.includes('Client engagement'), 'a card with capabilities shows them instead of an engagement chip')
+  assert.ok(listHtml.includes('badgeOngoing'), 'ongoing is marked on the image')
   const plainList = render(React.createElement(Sections.WorkCollection, { data: work.buildWorkData([sample]) }))
   assert.ok(!plainList.includes('Client engagement') && !plainList.includes('Studio work') && !plainList.includes('Ongoing'))
   assert.ok(render(React.createElement(Sections.WorkHero, { creative: true })).includes('Selected projects') && render(React.createElement(Sections.WorkHero, {})).includes('Case studies'))
@@ -847,7 +850,8 @@ const submit = () => ({ preventDefault() {} })
   const legacyHtml2 = render(React.createElement(CS.CaseStudyPage, { detail: legacyCsDetail }))
   assert.ok(legacyHtml2.includes('How the work moved.') && legacyHtml2.includes('Discover') && legacyHtml2.includes('Mapped the range.'))
   assert.ok(legacyHtml2.includes('Client feedback') && legacyHtml2.includes('far easier to understand'))
-  assert.ok(legacyHtml2.includes('Storefront design, Email flows, Analytics setup') && legacyHtml2.includes('Shopify, Klaviyo'))
+  // C3: the Case Study context strip lists services and platforms as separate items (no comma-joined string).
+  assert.ok(['Storefront design', 'Email flows', 'Analytics setup', 'Shopify', 'Klaviyo'].every(v => legacyHtml2.includes('>' + v + '</li>')) && legacyHtml2.includes('Services') && legacyHtml2.includes('Platforms &amp; tools'))
   // Standard Work stays lightweight; studio never gets a testimonial; empty/malformed data renders nothing.
   const stdDetail = work.toWorkDetail({ ...legacyCs, is_case_study: false }, [], { capabilities: [] })
   assert.deepEqual(plain([stdDetail.creative.services, stdDetail.creative.process]), [[], []]); assert.equal(stdDetail.creative.testimonial, undefined)
@@ -859,6 +863,37 @@ const submit = () => ({ preventDefault() {} })
   assert.deepEqual(plain(work.processOf({ process: JSON.stringify([{ title: 'One' }]) })), [{ title: 'One' }], 'JSON-string jsonb is accepted')
   assert.equal(work.processOf({ process: 'not json' }).length, 0)
   assert.deepEqual(plain(work.technologiesOf({ technology: 'Shopify, Klaviyo; Gorgias' })), ['Shopify', 'Klaviyo', 'Gorgias'])
+
+  // C3: stored long text renders as editorial copy; nothing is added, reworded or invented.
+  const Story = load('src/components/site/work/StoryText.tsx')
+  const parsed = plain(Story.parseStory('Intro line.\r\n\r\n• One\n• Two\nMiddle.\n✓ Done A\n✓ Done B\n- dash item'))
+  assert.deepEqual(parsed, [
+    { type: 'p', text: 'Intro line.' },
+    { type: 'list', items: ['One', 'Two'], check: false },
+    { type: 'p', text: 'Middle.' },
+    { type: 'list', items: ['Done A', 'Done B'], check: true },
+    { type: 'list', items: ['dash item'], check: false },
+  ])
+  assert.deepEqual(plain(Story.parseStory('Plain sentence - with a dash and 100% text.')), [{ type: 'p', text: 'Plain sentence - with a dash and 100% text.' }], 'only a leading marker makes a list')
+  assert.deepEqual(plain(Story.parseStory('  \n ')), [])
+  // The CMS text helper collapses newlines, so lists also arrive inline.
+  assert.deepEqual(plain(Story.parseStory('Our objective was growth. • Generic template • Weak identity')), [
+    { type: 'p', text: 'Our objective was growth.' },
+    { type: 'list', items: ['Generic template', 'Weak identity'], check: false },
+  ])
+  assert.deepEqual(plain(Story.parseStory('✓ Custom homepage ✓ Better hierarchy')), [{ type: 'list', items: ['Custom homepage', 'Better hierarchy'], check: true }])
+  assert.deepEqual(plain(Story.parseStory('Fast - and simple · and clear')), [{ type: 'p', text: 'Fast - and simple · and clear' }], 'dash and middle dot stay prose when inline')
+  const bv = { ...csBase, brief: 'Overview paragraph.\n• Weak brand differentiation\n• Poor product storytelling', challenge: 'The store lacked identity.', solution: 'A new direction.\n• Simplified navigation', results_summary: '✓ Custom homepage design created\n✓ Better visual hierarchy', before_image: '/b.png', after_image: '/a.png' }
+  const bvHtml = csHtml(bv, [])
+  assert.ok(bvHtml.includes('>Weak brand differentiation</li>') && bvHtml.includes('>Custom homepage design created</li>') && !bvHtml.includes('•') && !bvHtml.includes('✓'), 'markers become list items, not typed glyphs')
+  assert.ok(bvHtml.includes('Project context') && bvHtml.includes('Client engagement') && !bvHtml.includes('Project at a glance'), 'a Case Study states context once, in the strip')
+  assert.ok(bvHtml.includes('Planning something like this?') && bvHtml.includes('Back to all case studies') && bvHtml.includes('Before and after'), 'contextual CTA and closing navigation')
+  assert.ok(csHtml(bv, [], [byId.sw1]).includes('Related projects'), 'related work still renders')
+  const stdStory = mk(base, [], [])
+  assert.ok(stdStory.includes('Project at a glance') && !stdStory.includes('Project context'), 'Standard Work keeps the glance panel, not the strip')
+  assert.ok(!mk({ ...base, engagement_type: 'client' }, [], []).includes('class="tags"'), 'no engagement/status chips in the detail hero for completed Standard Work')
+  const legacyProse = render(React.createElement(Detail, { detail: work.toWorkDetail({ ...base, brief: 'A\n• B' }) }))
+  assert.ok(!legacyProse.includes('<li>B</li>') && !legacyProse.includes('class="story'), 'flag off: legacy paragraph rendering is unchanged')
 
   console.log('PASS: Phase B/C regression checks plus revision conflict/increment contract, stale replacement rejection, explicit clearing, empty preservation, pending/late upload safety, failed-save retry, failed/inconsistent load protection, and SQL/ACL static expectations. PostgreSQL execution/RLS remain unverified.')
 })().catch(error => { console.error(error); process.exitCode = 1 })
