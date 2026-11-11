@@ -187,6 +187,38 @@ assert.ok(!/influencer (?:management|outreach|seeding)|social[- ]media managemen
 assert.ok(!/storefront (?:build|design|redesign)|conversion rate optimi[sz]ation|attribution model/i.test(cuCopy), 'Page structure, CRO and measurement stay with their capabilities')
 assert.deepEqual(plain(cu.insightSlugs), ['types-of-ugc-ecommerce-brand-needs'], 'Existing, relevant Insight mapping is preserved')
 
+
+/* ── 4e. Brand & Positioning: fourth semantic capability ── */
+const bp = CAPABILITY_DETAILS['brand-positioning']
+const bps = bp.semantic
+assert.ok(bps, 'Brand & Positioning provides semantic content')
+assert.equal(bp.systemModule, 'Brand')
+assert.equal(bps.h1.lead + ' ' + bps.h1.accent, 'Ecommerce Brand Positioning & Strategy')
+assert.deepEqual(plain([bps.serviceArea.id, ...bps.moreServiceAreas.map((a) => a.id)]), ['ecommerce-brand-positioning', 'value-proposition-and-messaging'], 'Positioning and messaging are service areas')
+assert.ok(bps.moreServiceAreas[0].connection.link.href === '/services/commerce-experience#product-and-offer' && bps.serviceArea.connection.link.href === '/services/commerce-experience', 'Brand connects to Website & Conversion and Product & Offer')
+const bpSentences = bps.definition.split(/(?<=[.!?])\s+/).filter(Boolean)
+assert.ok(bpSentences.length >= 2 && bpSentences.length <= 4, 'Direct answer is 2-4 sentences')
+assert.ok(bps.symptoms.items.length >= 6 && bps.diagnose.items.length >= 6)
+assert.ok(bps.questions.items.length >= 8 && bps.questions.items.length <= 9, 'Focused question set')
+for (const intent of ['Definition', 'Comparison', 'Problem', 'Evaluation', 'Commercial']) assert.ok(bps.questions.items.some((q) => q.intent === intent), 'Intent covered: ' + intent)
+for (const q of bps.questions.items) assert.ok(q.question.endsWith('?') && q.answer.length >= 150, q.question)
+assert.deepEqual(plain(CAPABILITY_ENTITIES['brand-positioning'].adjacent.slice().sort()), ['commerce-experience', 'creative-ugc', 'discovery-traffic'], 'Related capabilities follow the semantic model')
+const bpAreas = [bps.serviceArea, ...bps.moreServiceAreas]
+const bpLinks = [...bpAreas.flatMap((a) => [a.connection.link, ...(a.links ?? [])]), ...bps.questions.items.flatMap((q) => q.links ?? [])]
+for (const link of bpLinks) {
+  assert.ok(link.href.startsWith('/') && link.label.length >= 12, 'Internal, descriptive link: ' + link.label)
+  assert.ok(!link.href.startsWith('/services/brand-positioning'), 'No self-link')
+}
+const bpCopy = JSON.stringify([bps, bp.opportunity, bp.approach, bp.systemFit, bp.cta, bp.seo])
+assert.ok(/brand identity describes how a brand looks and sounds/i.test(bps.serviceArea.answer) && /place the brand is trying to own in the customer/i.test(bps.serviceArea.answer), 'Positioning vs identity distinction is stated')
+assert.ok(!/\b(?:elevate|unforgettable|transform your|stand out in a crowded market|world-class|guarantee[ds]?)\b/i.test(bpCopy), 'No vague agency language or guarantees')
+assert.ok(!/(?:ethnograph|nationwide|consumer stud|trademark|packaging|naming workshop|logo design)/i.test(bpCopy), 'No unsupported brand-strategy disciplines')
+assert.ok(!/(?:survey|interview|focus group|customer panel|research program|test(?:ing)? (?:it )?with customers|ask customers)/i.test(bpCopy), 'No formal customer research or testing is implied')
+assert.ok(/validate the positioning against the evidence already available/i.test(bps.questions.items.map((q) => q.answer).join(' ')), 'Validation is framed as using available customer feedback, reviews, behavior and market evidence')
+assert.ok(!/storefront (?:build|design|redesign)|conversion rate optimi[sz]ation|attribution model|ad management|influencer/i.test(bpCopy), 'Storefront, CRO, acquisition, creative production and analytics stay with their capabilities')
+assert.ok(!/\d+(?:\.\d+)?\s*(?:%|x\b)/i.test(bpCopy) && !/prioritis|catalogue|recognis|behaviour|optimis|colour/i.test(bpCopy), 'No numeric proof; US spelling')
+assert.deepEqual(plain(bp.insightSlugs), ['brand-positioning-vs-brand-identity', 'first-five-things-customers-should-understand-about-your-brand', 'how-to-write-clear-ecommerce-value-proposition'], 'Existing relevant Insight mappings are preserved')
+
 /* ── 5. Claims and link hygiene ── */
 const copy = JSON.stringify([s, CAPABILITY_ENTITIES, MERCHANT_SYMPTOMS, SERVICES_HERO, CONNECT_INTRO, SERVICES_FAQ])
 assert.ok(!/\b(?:10x|skyrocket|dominate|guaranteed?|world-class|best agency|#1)\b/i.test(copy.replace(/does not promise a specific[^"]*/i, '')), 'No inflated claims')

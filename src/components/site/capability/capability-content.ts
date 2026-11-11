@@ -15,6 +15,7 @@
 
 import { SERVICE_GROUPS, type ServiceCapability, type ServiceGroup } from '../services/services-content'
 import type { CapabilitySemantic } from './capability-semantic'
+import { BRAND_POSITIONING_SEMANTIC } from './brand-positioning-semantic'
 import { CREATIVE_UGC_SEMANTIC } from './creative-ugc-semantic'
 import { DIGITAL_SYSTEMS_SEMANTIC } from './digital-systems-semantic'
 import { WEBSITE_CONVERSION_SEMANTIC } from './website-conversion-semantic'
@@ -85,9 +86,9 @@ export interface CapabilityDetail {
 export const BRAND_POSITIONING: CapabilityDetail = {
   slug: 'brand-positioning',
   seo: {
-    title: 'Ecommerce Brand Positioning Services',
+    title: 'Ecommerce Brand Positioning & Strategy',
     description:
-      'Clarify your ecommerce brand positioning, messaging and product story so customers understand the offer, the difference and why it matters.',
+      'Ecommerce brand positioning for Shopify brands: audience clarity, differentiation, value proposition and messaging that help customers understand and choose.',
   },
   systemModule: 'Brand',
   hero: {
@@ -96,7 +97,7 @@ export const BRAND_POSITIONING: CapabilityDetail = {
     summary:
       'We help ecommerce and product-led businesses clarify their positioning, value proposition and messaging — then carry that foundation into product storytelling, brand identity and the wider customer experience.',
     visualLabel:
-      'Brand & Positioning, highlighted as the active module of the Hbee system, connected to Experience, Creative, Technology, Discovery and Growth.',
+      'Brand & Positioning, the Brand module, highlighted as the active module of the Hbee system, connected to Experience, Creative and Discovery, with Technology and Growth further back.',
   },
   opportunity: {
     headline: 'Your brand is more than a logo.',
@@ -143,7 +144,7 @@ export const BRAND_POSITIONING: CapabilityDetail = {
     copy:
       'Brand & Positioning becomes most powerful when it connects with the other parts of the business — from creative and discovery to digital systems, commerce and retention — turning clarity into consistent, compounding growth.',
     relations: {
-      'digital-systems': 'Gives the platform a clear story to carry.',
+      'digital-systems': 'Shows whether the positioning is reflected in how customers behave.',
       'creative-ugc': 'Gives creative a message worth expressing.',
       'discovery-traffic': 'Tells the right audience why to look closer.',
       'commerce-experience': 'Makes the offer easier to choose.',
@@ -174,6 +175,7 @@ export const BRAND_POSITIONING: CapabilityDetail = {
         'Yes. The starting point is what already exists. We can retain useful brand elements while improving the positioning, messaging or application around them, with the exact scope agreed for the engagement.',
     },
   ],
+  semantic: BRAND_POSITIONING_SEMANTIC,
 }
 
 export const DIGITAL_SYSTEMS: CapabilityDetail = {
