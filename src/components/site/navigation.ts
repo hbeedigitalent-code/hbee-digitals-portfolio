@@ -96,7 +96,7 @@ export const NAV_MENUS: Record<string, NavMenu> = {
         layout: 'stack',
         links: [
           { label: 'Brand & Positioning', href: '/services/brand-positioning', description: 'Who you are for, and why you.' },
-          { label: 'Digital Systems', href: '/services/digital-systems', description: 'The platform the business runs on.' },
+          { label: 'Digital Systems & Analytics', href: '/services/digital-systems', description: 'The platform the business runs on.' },
         ],
       },
       {
@@ -104,15 +104,15 @@ export const NAV_MENUS: Record<string, NavMenu> = {
         layout: 'stack',
         links: [
           { label: 'Creative & UGC', href: '/services/creative-ugc', description: 'Assets that earn attention and belief.' },
-          { label: 'Discovery & Traffic', href: '/services/discovery-traffic', description: 'Reach the people most likely to buy.' },
+          { label: 'Traffic & Visibility', href: '/services/discovery-traffic', description: 'Reach the people most likely to buy.' },
         ],
       },
       {
         title: 'Growth',
         layout: 'stack',
         links: [
-          { label: 'Commerce Experience', href: '/services/commerce-experience', description: 'Less friction between interest and purchase.' },
-          { label: 'Retention & Growth', href: '/services/retention-growth', description: 'Value that lasts past the first order.' },
+          { label: 'Website & Conversion', href: '/services/commerce-experience', description: 'Less friction between interest and purchase.' },
+          { label: 'Retention & Customer Value', href: '/services/retention-growth', description: 'Value that lasts past the first order.' },
         ],
       },
     ],

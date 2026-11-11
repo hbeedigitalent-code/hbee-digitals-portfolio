@@ -1,0 +1,84 @@
+/* CAPABILITY MODULE — layout, states and motion for CapabilityModuleCard.
+   Surface anatomy (Sweep, Open Channel) comes from hbee-surface.module.css. */
+
+.card {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: 1.25rem;
+  align-items: start;
+  padding: 1.5rem 1.25rem;
+  transition: border-color var(--hb-dur-base) var(--hb-ease), box-shadow var(--hb-dur-base) var(--hb-ease);
+}
+.card:hover,
+.card:focus-within { border-color: var(--hb-structure); }
+
+.media { width: 5.5rem; aspect-ratio: 1; display: grid; place-items: center; }
+.image { width: 100%; height: auto; transition: transform var(--hb-dur-base) var(--hb-ease); }
+
+.body { min-width: 0; }
+.moduleTag {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font-family: var(--hb-font-body); font-size: 0.75rem; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--hb-fg-muted);
+}
+.name {
+  margin-top: 0.4rem;
+  font-family: var(--hb-font-display); font-size: 1.375rem; font-weight: 700;
+  line-height: 1.15; letter-spacing: -0.02em; color: var(--hb-fg);
+}
+.definition { margin-top: 0.75rem; font-size: 0.9375rem; line-height: 1.6; color: var(--hb-fg-body); }
+
+.facts { margin-top: 1.25rem; display: grid; gap: 1rem; }
+.factTitle { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.04em; color: var(--hb-fg); }
+.factList { margin-top: 0.4rem; display: grid; gap: 0.35rem; font-size: 0.875rem; line-height: 1.5; color: var(--hb-fg-body); }
+.factList li { padding-left: 1rem; position: relative; }
+.factList li::before { content: ''; position: absolute; left: 0; top: 0.6em; width: 0.4rem; height: 2px; background: var(--hb-structure); }
+
+.relation { margin-top: 0.9rem; font-size: 0.875rem; line-height: 1.55; color: var(--hb-fg-body); }
+
+/* Adjacent links sit ABOVE the stretched card link so each stays its own target. */
+.adjacent { margin-top: 1rem; font-size: 0.875rem; line-height: 1.7; color: var(--hb-fg-body); position: relative; z-index: 1; }
+.adjacentLabel { font-weight: 600; color: var(--hb-fg); }
+.adjacentLink { color: var(--hb-link); text-decoration: underline; text-underline-offset: 3px; display: inline-block; min-height: 1.5rem; }
+.adjacentLink:hover { text-decoration-thickness: 2px; }
+
+.cta {
+  margin-top: 1.1rem; display: inline-flex; align-items: center; gap: 0.5rem; min-height: 44px;
+  font-size: 0.9375rem; font-weight: 600; color: var(--hb-link);
+}
+.cta svg { transition: transform var(--hb-dur-base) var(--hb-ease); }
+.cta:hover svg,
+.cta:focus-visible svg { transform: translateX(3px); }
+/* The descriptive link covers the whole card. */
+.stretch::after { content: ''; position: absolute; inset: 0; z-index: 0; }
+.stretch:focus-visible { outline: 2px solid var(--hb-focus, currentColor); outline-offset: 2px; }
+
+.here { margin-top: 1.1rem; font-size: 0.875rem; font-weight: 600; color: var(--hb-fg); }
+
+/* Active: the page's own capability, dominant (Royal Blue surface). */
+.active { grid-template-columns: 7rem 1fr; padding: 2rem 1.5rem; }
+.active .media { width: 7rem; }
+.active .name { font-size: 1.75rem; }
+
+/* Muted: present, receded. */
+.muted { opacity: 0.78; }
+.muted:hover, .muted:focus-within { opacity: 1; }
+
+@media (min-width: 1024px) {
+  .card { grid-template-columns: 7.5rem 1fr; gap: 1.5rem; padding: 1.75rem 1.5rem; }
+  .media { width: 7.5rem; }
+  .facts { grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+}
+
+@media (max-width: 479px) {
+  /* Phones: artwork shrinks above the text; the card reads as a vertical sequence. */
+  .card, .active { grid-template-columns: 1fr; gap: 0.75rem; }
+  .media, .active .media { width: 4.5rem; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .card:hover .image, .card:focus-within .image { transform: translateY(-3px) scale(1.03); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card, .image, .cta svg { transition: none; }
+}

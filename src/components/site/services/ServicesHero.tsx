@@ -1,4 +1,4 @@
-import { HbeeModuleGroup } from '../module/HbeeModuleGroup'
+import { ServicesHeroSystem } from './ServicesHeroSystem'
 import { SiteButton } from '../primitives/SiteButton'
 import { SiteGrid } from '../primitives/SiteContainer'
 import { SiteSection } from '../primitives/SiteSection'
@@ -62,11 +62,9 @@ export function ServicesHero() {
         </div>
 
         <div className={`col-span-4 md:col-span-8 lg:col-span-5 xl:col-span-6 ${styles.heroVisual}`}>
-          <HbeeModuleGroup
-            idPrefix="services-hero"
-            motion="settle"
-            label="Six capabilities — Brand, Experience, Technology, Creative, Discovery and Growth — connected as one system."
-            className="mx-auto max-w-[520px] lg:mr-0 lg:max-w-[560px]"
+          <ServicesHeroSystem
+            label="Six capabilities — Brand, Experience, Technology, Creative, Discovery and Growth — connected as one system through the Hbee mark."
+            className="max-w-[540px] lg:mr-0 lg:max-w-[580px]"
           />
         </div>
       </SiteGrid>

@@ -5,6 +5,7 @@ import { SiteLede } from '../primitives/SiteTypography'
 import { CONTACT_HREF, GROWTH_REVIEW_HREF } from '@/lib/site/routes'
 import type { CapabilityDetail } from './capability-content'
 import { CapabilityFocusSystem } from './CapabilityFocusSystem'
+import { CapabilityHeroSystem } from './CapabilityHeroSystem'
 import homeStyles from '../home/home.module.css'
 import styles from './capability.module.css'
 
@@ -37,16 +38,29 @@ export function CapabilityHero({ detail, name }: { detail: CapabilityDetail; nam
               </span>
             ))}
           </p>
+          {detail.semantic && (
+            <p className={styles.moduleBadge}>
+              <span className="sr-only">Hbee module: </span>
+              {detail.systemModule} <span aria-hidden="true">·</span> <span className={styles.moduleBadgeName}>{name}</span>
+            </p>
+          )}
 
           <h1
             id="capability-hero-title"
             className="mt-6 font-hb-display text-[clamp(2.5rem,1.7rem+2.5vw,3.6rem)] font-bold leading-[1.02] tracking-[-0.04em] text-hb-fg"
           >
-            <span className="block">{detail.hero.headline}</span>
-            <span className="block text-hb-blue">{detail.hero.headlineAccent}</span>
+            {detail.semantic ? (
+              <>
+                <span className="block">{detail.semantic.h1.lead}</span> <span className="block text-hb-blue">{detail.semantic.h1.accent}</span>
+              </>
+            ) : (
+              <>
+                <span className="block">{detail.hero.headline}</span> <span className="block text-hb-blue">{detail.hero.headlineAccent}</span>
+              </>
+            )}
           </h1>
 
-          <SiteLede className="mt-6">{detail.hero.summary}</SiteLede>
+          <SiteLede className="mt-6">{detail.semantic ? detail.semantic.definition : detail.hero.summary}</SiteLede>
 
           <div className="mt-9 flex flex-wrap items-center gap-3">
             <SiteButton href={GROWTH_REVIEW_HREF} variant="conversion" size="lg" arrow>
@@ -59,13 +73,17 @@ export function CapabilityHero({ detail, name }: { detail: CapabilityDetail; nam
         </div>
 
         <div className={`col-span-4 md:col-span-8 lg:col-span-6 ${styles.heroVisual}`}>
-          <CapabilityFocusSystem
-            idPrefix={`${detail.slug}-hero`}
-            module={detail.systemModule}
-            featuredLabel={name}
-            label={detail.hero.visualLabel}
-            className="mx-auto max-w-[520px] lg:mr-0 lg:max-w-[600px]"
-          />
+          {detail.semantic ? (
+            <CapabilityHeroSystem activeSlug={detail.slug} label={detail.hero.visualLabel} className="mx-auto max-w-[540px] lg:mr-0 lg:max-w-[600px]" />
+          ) : (
+            <CapabilityFocusSystem
+              idPrefix={`${detail.slug}-hero`}
+              module={detail.systemModule}
+              featuredLabel={name}
+              label={detail.hero.visualLabel}
+              className="mx-auto max-w-[520px] lg:mr-0 lg:max-w-[600px]"
+            />
+          )}
         </div>
       </SiteGrid>
     </SiteSection>

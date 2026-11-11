@@ -10,6 +10,8 @@
  * overview anchors (/services#brand-positioning …).
  */
 
+import { CAPABILITY_ENTITIES } from './capability-entities'
+
 export type CapabilityIcon = 'brand' | 'systems' | 'creative' | 'discovery' | 'commerce' | 'retention'
 
 export interface ServiceCapability {
@@ -28,9 +30,35 @@ export interface ServiceGroup {
 
 export const SERVICES_HERO = {
   eyebrow: ['Services', 'Capabilities'],
-  headline: ['Different capabilities.', 'One growth system.'],
+  /** Explicit question the page answers; the H1 stays human-led but names the subject. */
+  question: 'What does Hbee Digitals help ecommerce brands with?',
+  headline: ['Ecommerce growth services', 'for Shopify and online brands.'],
   lede:
-    'Brand, technology, creative, customer experience, discovery and growth capabilities that work together — informed by a clear diagnosis and focused on measurable business progress.',
+    'Hbee Digitals helps ecommerce brands grow through six connected capabilities: brand positioning, website and conversion, digital systems and analytics, creative and UGC, traffic and visibility, and retention. Work starts with a diagnosis of what is limiting growth, so a business invests in the capability that matters first.',
+}
+
+/** Section between the capability system and the method: why isolated fixes fail. */
+export const CONNECT_INTRO = {
+  eyebrow: 'Why capabilities connect',
+  headline: 'Why fixing one part of a store often does not move growth.',
+  /** Direct answer first, then the explanation. */
+  answer:
+    'Growth in an ecommerce store depends on several parts working together, so a fix in one place can be cancelled out by a weakness in another.',
+  points: [
+    'Extra traffic cannot convert if the product page does not explain the offer.',
+    'A redesign cannot fix positioning that was never clear.',
+    'Lifecycle email cannot retain customers who never understood why the brand was different.',
+    'Analytics cannot guide priorities if tracking is incomplete or inconsistent.',
+  ],
+  close:
+    'Hbee diagnoses the connections first, then sequences the capabilities. Product presentation and offer structure, for example, sit inside Website & Conversion but depend on Brand & Positioning.',
+}
+
+export const SYMPTOMS_INTRO = {
+  eyebrow: 'Start from the problem',
+  headline: 'Which capability fits the problem you are seeing?',
+  copy:
+    'Most merchants recognize a symptom before they can name a service. Each symptom below points to the capability most likely to address it. If several apply, the Growth Review identifies which constraint to address first.',
 }
 
 export const SYSTEM_INTRO = {
@@ -53,7 +81,7 @@ export const SERVICE_GROUPS: ServiceGroup[] = [
       },
       {
         slug: 'digital-systems',
-        name: 'Digital Systems',
+        name: CAPABILITY_ENTITIES['digital-systems'].name,
         purpose:
           'Build and improve the technology, data and operational systems that support the customer experience and growth.',
         icon: 'systems',
@@ -74,7 +102,7 @@ export const SERVICE_GROUPS: ServiceGroup[] = [
       },
       {
         slug: 'discovery-traffic',
-        name: 'Discovery & Traffic',
+        name: CAPABILITY_ENTITIES['discovery-traffic'].name,
         purpose: 'Help the right audience find the business through the appropriate discovery and acquisition channels.',
         icon: 'discovery',
       },
@@ -87,13 +115,13 @@ export const SERVICE_GROUPS: ServiceGroup[] = [
     capabilities: [
       {
         slug: 'commerce-experience',
-        name: 'Commerce Experience',
+        name: CAPABILITY_ENTITIES['commerce-experience'].name,
         purpose: 'Reduce friction between interest and purchase across the customer journey.',
         icon: 'commerce',
       },
       {
         slug: 'retention-growth',
-        name: 'Retention & Growth',
+        name: CAPABILITY_ENTITIES['retention-growth'].name,
         purpose: 'Increase customer value, repeat engagement and the efficiency of future growth.',
         icon: 'retention',
       },
@@ -165,5 +193,25 @@ export const SERVICES_FAQ: { question: string; answer: string }[] = [
     question: 'What happens after the Growth Review?',
     answer:
       'We review what you share, identify what may be limiting progress and prioritize what deserves attention first. From there we recommend a plan: which capabilities, in what order. Implementation is agreed separately, based on that plan.',
+  },
+  {
+    question: 'Should I fix traffic or conversion first?',
+    answer:
+      'Fix conversion first when qualified visitors already arrive but leave without buying, because additional traffic would reach the same friction. Prioritize traffic and visibility when the storefront converts the visitors it receives but too few of the right buyers arrive. Hbee uses the store journey and the available data to decide which constraint comes first, and the Growth Review is built to answer exactly that.',
+  },
+  {
+    question: 'How can I tell what is limiting my store’s growth?',
+    answer:
+      'Compare four things in order: whether the brand and offer are clear, whether visitors move through the storefront to purchase, whether the right buyers are arriving, and whether customers come back. Tracking quality decides how confidently any of these can be judged. The Growth Review applies this diagnosis across positioning, conversion, visibility, retention and measurement.',
+  },
+  {
+    question: 'Where does product and offer work fit?',
+    answer:
+      'Product presentation, merchandising, bundles, value proposition and pricing communication are a service area inside Website & Conversion, connected to Brand & Positioning. They are not a separate capability because they are delivered through the storefront.',
+  },
+  {
+    question: 'What does an ecommerce growth agency do?',
+    answer:
+      'An ecommerce growth agency diagnoses what limits a store’s revenue and then improves the parts responsible, such as positioning, the storefront, creative, search and traffic, lifecycle email and measurement. Hbee Digitals works with Shopify and ecommerce brands and recommends a staged combination of capabilities rather than a fixed package.',
   },
 ]

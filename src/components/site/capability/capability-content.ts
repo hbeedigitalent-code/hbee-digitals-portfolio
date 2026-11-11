@@ -14,6 +14,8 @@
  */
 
 import { SERVICE_GROUPS, type ServiceCapability, type ServiceGroup } from '../services/services-content'
+import type { CapabilitySemantic } from './capability-semantic'
+import { WEBSITE_CONVERSION_SEMANTIC } from './website-conversion-semantic'
 
 /** The module of the six-part Hbee system a capability is drawn as. */
 export type SystemModule = 'Brand' | 'Experience' | 'Technology' | 'Creative' | 'Discovery' | 'Growth'
@@ -74,6 +76,8 @@ export interface CapabilityDetail {
     secondaryLabel: string
   }
   faq: { question: string; answer: string }[]
+  /** Opt-in semantic template (search / answer-engine layer). Absent = classic template. */
+  semantic?: CapabilitySemantic
 }
 
 export const BRAND_POSITIONING: CapabilityDetail = {
@@ -455,9 +459,9 @@ export const DISCOVERY_TRAFFIC: CapabilityDetail = {
 export const COMMERCE_EXPERIENCE: CapabilityDetail = {
   slug: 'commerce-experience',
   seo: {
-    title: 'Shopify Conversion Optimization',
+    title: 'Shopify Website Design & Conversion',
     description:
-      'Improve Shopify product pages, mobile UX and the buying journey so shoppers encounter less friction and more confidence from discovery to checkout.',
+      'Shopify website design and conversion optimization for product pages, offers, navigation, mobile UX, trust and checkout, helping qualified visitors buy.',
   },
   systemModule: 'Experience',
   hero: {
@@ -466,7 +470,7 @@ export const COMMERCE_EXPERIENCE: CapabilityDetail = {
     summary:
       'We improve Shopify conversion and ecommerce customer experience across product discovery, product pages, navigation, trust, mobile UX and the path to checkout — helping shoppers move forward with less friction and more confidence.',
     visualLabel:
-      'Commerce Experience, highlighted as the active module of the Hbee system, connected to Creative, Brand, Technology, Discovery and Growth.',
+      'Website & Conversion, the Experience module, highlighted as the active module of the Hbee system, connected to Creative, Brand, Technology, Discovery and Growth.',
     longHeadline: true,
   },
   opportunity: {
@@ -555,6 +559,7 @@ export const COMMERCE_EXPERIENCE: CapabilityDetail = {
         'A review can cover entry pages, navigation, collection and product discovery, product pages, mobile interactions, trust and reassurance, cart behavior and the route into checkout. Scope is agreed around the actual business problem.',
     },
   ],
+  semantic: WEBSITE_CONVERSION_SEMANTIC,
 }
 
 export const RETENTION_GROWTH: CapabilityDetail = {

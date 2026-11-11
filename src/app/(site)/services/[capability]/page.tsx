@@ -58,6 +58,10 @@ export default async function CapabilityPage({ params }: { params: { capability:
                 description: detail.seo.description,
                 url,
                 provider: { '@id': `${SITE_URL}#organization` },
+                // Only for capabilities whose page states its service type and audience in visible text.
+                ...(detail.semantic
+                  ? { serviceType: detail.semantic.serviceType, audience: { '@type': 'Audience', audienceType: 'Shopify and ecommerce brands' } }
+                  : {}),
               }),
             }}
           />

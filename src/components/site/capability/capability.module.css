@@ -427,3 +427,18 @@
   .heroLong h1 + p { margin-top: 0.75rem; }
   .heroLong h1 + p + div { margin-top: 1.125rem; }
 }
+
+/* Module identity paired with the capability name (semantic hero). */
+.moduleBadge {
+  display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem; margin-top: 0.9rem;
+  font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--hb-fg-muted);
+}
+.moduleBadgeName { letter-spacing: 0.02em; text-transform: none; color: var(--hb-fg); }
+
+/* Service-area panel (Product & Offer inside Website & Conversion). */
+.areaPanel { padding: clamp(1.5rem, 1rem + 2vw, 3rem); }
+
+/* Visible grouping label for intent-grouped questions. */
+.intentLabel {
+  font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--hb-fg-muted);
+}

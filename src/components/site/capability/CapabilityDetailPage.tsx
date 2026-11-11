@@ -4,6 +4,7 @@ import type { WorkItem } from '@/lib/site/work-data'
 import { CAPABILITY_DETAILS, capabilityIdentity } from './capability-content'
 import { CapabilityHero } from './CapabilityHero'
 import { CapabilityApproach, CapabilityCta, CapabilityFaq, CapabilityOpportunity, CapabilityWork } from './CapabilitySections'
+import { CapabilityConnected, CapabilityQuestions, CapabilityServiceArea, CapabilitySymptomsDiagnose } from './CapabilitySemanticSections'
 import { CapabilitySystemFit } from './CapabilitySystemFit'
 
 /**
@@ -11,8 +12,15 @@ import { CapabilitySystemFit } from './CapabilitySystemFit'
  * everything specific comes from the capability's content object
  * (capability-content.ts) and its identity in the Services system.
  *
- *   01 Hero · 02 Opportunity · 03 What we do · 04 Real work / Insights ·
- *   05 How it fits · 06 FAQ · 07 Growth Review CTA   (footer from the layout)
+ * Classic order (capabilities without `semantic` content):
+ *   Hero · Opportunity · What we do · Real work / Insights · How it fits ·
+ *   FAQ · Growth Review CTA
+ *
+ * Semantic order (capabilities that provide `semantic`, e.g. Website & Conversion):
+ *   Hero (explicit H1 + direct answer) · Symptoms + What we diagnose ·
+ *   Why it matters (opportunity) · What we do + process · Service area ·
+ *   Questions by intent · Proof (work / insights) · Connected capabilities ·
+ *   Growth Review CTA
  *
  * Server component throughout; client code is limited to the shared
  * SiteNav and SiteReveal triggers.
@@ -23,6 +31,23 @@ export function CapabilityDetailPage({ slug, work = [], insights = [] }: { slug:
   if (!detail || !identity) notFound()
 
   const name = identity.capability.name
+
+  if (detail.semantic) {
+    return (
+      <>
+        <CapabilityHero detail={detail} name={name} />
+        <CapabilitySymptomsDiagnose detail={detail} />
+        <CapabilityOpportunity detail={detail} />
+        <CapabilityApproach detail={detail} name={name} />
+        <CapabilityServiceArea detail={detail} />
+        <CapabilityQuestions detail={detail} />
+        <CapabilityWork detail={detail} work={work} insights={insights} />
+        <CapabilityConnected detail={detail} />
+        <CapabilityCta detail={detail} />
+      </>
+    )
+  }
+
   return (
     <>
       <CapabilityHero detail={detail} name={name} />

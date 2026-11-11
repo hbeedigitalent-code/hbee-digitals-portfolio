@@ -1,0 +1,376 @@
+/* ═════════════════════════════════════════════════════════════════
+   CAPABILITY HERO SYSTEM — one capability in focus inside the Hbee system.
+
+   Units: every position and size is in cqw (percent of the stage width), so
+   the whole composition scales as one object. Canonical module renders share
+   one camera; the only presentation differences are scale, ground shadow and
+   (for the distant pair) a light atmospheric softening. Nothing is rotated
+   or blurred, so edges stay crisp.
+   ═════════════════════════════════════════════════════════════════ */
+
+.figure {
+  position: relative;
+  container-type: inline-size;
+}
+
+.stage {
+  position: relative;
+  aspect-ratio: 100 / 104;
+  isolation: isolate;
+}
+
+/* Luminous field behind the active module — focal point of the composition. */
+.bloom {
+  position: absolute;
+  left: -12cqw;
+  top: 2cqw;
+  width: 82cqw;
+  height: 82cqw;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgba(29, 110, 255, 0.2), rgba(29, 110, 255, 0.07) 55%, transparent 100%);
+}
+
+/* ── Slots ───────────────────────────────────────────────────── */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.slot {
+  position: absolute;
+  left: calc(var(--dx) * 1cqw);
+  top: calc(var(--dy) * 1cqw);
+  width: calc(var(--dw) * 1cqw);
+  z-index: var(--z, 3);
+}
+.active {
+  z-index: 10;
+}
+
+.art {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.activeFloat,
+.satFloat {
+  position: relative;
+  display: block;
+}
+
+/* Ambient ground shadow — same direction for every module (light from the top-left). */
+.shadow {
+  position: absolute;
+  left: 14%;
+  right: 0%;
+  bottom: 2%;
+  height: 14%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(4, 18, 46, 0.34), transparent 72%);
+  filter: blur(0.6cqw);
+  transform: translate(3%, 55%);
+}
+.active .shadow {
+  background: radial-gradient(closest-side, rgba(4, 18, 46, 0.42), transparent 72%);
+  filter: blur(1cqw);
+}
+
+/* Related: full colour, mid scale. Distant: smaller, set back, slightly softened. */
+.related .art {
+  filter: drop-shadow(0 0.8cqw 1.4cqw rgba(6, 37, 110, 0.16));
+}
+.distant .art {
+  filter: saturate(0.78) brightness(1.06) contrast(0.93);
+  opacity: 0.94;
+}
+.active .art {
+  filter: drop-shadow(0 1.6cqw 2.6cqw rgba(6, 37, 110, 0.26));
+}
+
+/* Active tag — the semantic capability name, as real HTML. */
+.activeTag {
+  position: absolute;
+  left: 3%;
+  bottom: 3%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.4rem 0.8rem 0.4rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(29, 110, 255, 0.3);
+  box-shadow: 0 6px 18px rgba(6, 37, 110, 0.14);
+  font-family: var(--font-inter, inherit);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--hb-blue);
+  white-space: nowrap;
+}
+.activeDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--hb-signal);
+  box-shadow: 0 0 0 3px rgba(252, 93, 28, 0.18);
+}
+
+/* ── Links (related + distant) ───────────────────────────────── */
+
+.link {
+  position: relative;
+  display: block;
+  border-radius: 6cqw;
+  outline: none;
+}
+.link:focus-visible {
+  outline: 2px solid var(--hb-blue);
+  outline-offset: 3px;
+}
+.link .art {
+  transition: filter 220ms var(--hb-ease);
+}
+.link .satFloat {
+  transition: transform 220ms var(--hb-ease);
+}
+@media (hover: hover) {
+  .link:hover .art,
+  .link:focus-visible .art {
+    filter: brightness(1.07) saturate(1.12) drop-shadow(0 0.8cqw 1.4cqw rgba(6, 37, 110, 0.2));
+  }
+  .link:hover .satFloat,
+  .link:focus-visible .satFloat {
+    transform: translateY(-0.6cqw);
+  }
+}
+
+/* Semantic name, revealed on hover / focus. Decorative duplicate of the sr-only link text. */
+.chip {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: 3;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(29, 110, 255, 0.28);
+  box-shadow: 0 6px 16px rgba(6, 37, 110, 0.14);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--hb-blue);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, 35%);
+  transition: opacity 180ms var(--hb-ease), transform 180ms var(--hb-ease);
+  pointer-events: none;
+}
+.link:focus-visible .chip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+@media (hover: hover) {
+  .link:hover .chip {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* ── Connection bus ──────────────────────────────────────────── */
+
+.bus {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  overflow: visible;
+  pointer-events: none;
+}
+.busPhone {
+  display: none;
+}
+
+.trunk,
+.lk {
+  fill: none;
+  stroke: var(--hb-electric);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.trunk {
+  stroke-width: 0.5;
+  stroke-opacity: 0.55;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+.lk {
+  stroke-width: 0.42;
+  stroke-opacity: 0.45;
+  transition: stroke-opacity 200ms var(--hb-ease), stroke-width 200ms var(--hb-ease);
+}
+.signal {
+  fill: none;
+  stroke: var(--hb-signal);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+.node {
+  fill: #fff;
+  stroke: var(--hb-electric);
+  stroke-width: 0.45;
+}
+.signalNode {
+  fill: var(--hb-signal);
+  stroke: #fff;
+  stroke-width: 0.5;
+}
+
+/* A hovered / focused satellite lights its own run of the bus. */
+@media (hover: hover) {
+  .stage:has([data-slot='r1']:is(:hover, :focus-within)) .lkR1,
+  .stage:has([data-slot='r2']:is(:hover, :focus-within)) .lkR2,
+  .stage:has([data-slot='r3']:is(:hover, :focus-within)) .lkR3,
+  .stage:has([data-slot='d1']:is(:hover, :focus-within)) .lkTop,
+  .stage:has([data-slot='d1']:is(:hover, :focus-within)) .lkD1,
+  .stage:has([data-slot='d2']:is(:hover, :focus-within)) .lkD2 {
+    stroke-opacity: 1;
+    stroke-width: 0.85;
+  }
+}
+
+/* ── Phone composition ───────────────────────────────────────────
+   Deliberately simplified, not squeezed: active module dominant, three related
+   modules around it, the distant pair as small nodes along the lower bus. */
+@container (max-width: 440px) {
+  .stage {
+    aspect-ratio: 100 / 108;
+  }
+  .slot {
+    left: calc(var(--mx) * 1cqw);
+    top: calc(var(--my) * 1cqw);
+    width: calc(var(--mw) * 1cqw);
+  }
+  .busDesktop {
+    display: none;
+  }
+  .busPhone {
+    display: block;
+  }
+  .bloom {
+    left: -14cqw;
+    width: 92cqw;
+    height: 92cqw;
+  }
+  .activeTag {
+    left: 10%;
+    bottom: 2%;
+    padding: 0.3rem 0.65rem 0.3rem 0.55rem;
+    font-size: 0.75rem;
+  }
+  .chip {
+    display: none;
+  }
+}
+
+/* ── Motion ──────────────────────────────────────────────────────
+   FOCUS (active settles) → RELATE (related, then distant, settle) → CONNECT
+   (the bus draws, the orange link last) → rest. Gated on data-motion-ready so
+   nothing is hidden without JS; the rest state is the untouched composition.
+   After settling: one very slow breathing float on the active module and a
+   fainter drift on the distant pair — no orbit, no spin. */
+
+@keyframes capSysFocus {
+  from { opacity: 0; transform: translate3d(0, 2cqw, 0) scale(0.965); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes capSysSettle {
+  from { opacity: 0; transform: translate3d(0, 1.6cqw, 0) scale(0.95); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes capSysFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes capSysDraw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes capSysBreathe {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -0.8cqw, 0); }
+}
+@keyframes capSysDrift {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, 0.55cqw, 0); }
+}
+
+:global([data-surface='site'][data-motion-ready]) .figure .active {
+  animation: capSysFocus 640ms var(--hb-ease) 60ms backwards;
+}
+:global([data-surface='site'][data-motion-ready]) .figure .related {
+  animation: capSysSettle 560ms var(--hb-ease) backwards;
+  animation-delay: calc(300ms + var(--i, 0) * 80ms);
+}
+:global([data-surface='site'][data-motion-ready]) .figure .distant {
+  animation: capSysSettle 620ms var(--hb-ease) backwards;
+  animation-delay: calc(520ms + (var(--i, 3) - 3) * 90ms);
+}
+:global([data-surface='site'][data-motion-ready]) .figure .trunk {
+  animation: capSysDraw 620ms var(--hb-ease-in-out) 760ms both;
+}
+:global([data-surface='site'][data-motion-ready]) .figure .lk,
+:global([data-surface='site'][data-motion-ready]) .figure .node {
+  animation: capSysFade 360ms var(--hb-ease) 1100ms both;
+}
+:global([data-surface='site'][data-motion-ready]) .figure .signal {
+  animation: capSysDraw 420ms var(--hb-ease-in-out) 1250ms both;
+}
+:global([data-surface='site'][data-motion-ready]) .figure .signalNode {
+  animation: capSysFade 240ms var(--hb-ease) 1560ms both;
+}
+:global([data-surface='site'][data-motion-ready]) .figure .activeTag {
+  animation: capSysFade 400ms var(--hb-ease) 640ms backwards;
+}
+:global([data-surface='site'][data-motion-ready]) .figure .activeFloat {
+  animation: capSysBreathe 9s ease-in-out 1800ms infinite;
+}
+:global([data-surface='site'][data-motion-ready]) .figure .distant .satFloat {
+  animation: capSysDrift 11s ease-in-out 2000ms infinite;
+}
+:global([data-surface='site'][data-motion-ready]) .figure .distant:nth-child(even) .satFloat {
+  animation-duration: 13s;
+  animation-direction: reverse;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .active,
+  .related,
+  .distant,
+  .activeTag,
+  .activeFloat,
+  .satFloat,
+  .trunk,
+  .lk,
+  .node,
+  .signal,
+  .signalNode {
+    animation: none !important;
+  }
+  .link .art,
+  .link .satFloat,
+  .chip,
+  .lk {
+    transition: none !important;
+  }
+}

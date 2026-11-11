@@ -1,0 +1,165 @@
+/* ═════════════════════════════════════════════════════════════════
+   SERVICES HERO SYSTEM — six equal capabilities around the Hbee connector.
+   Shared grammar (bloom, shadows, channels, nodes, signal) comes from
+   capability-hero-system.module.css; only the composition lives here.
+   Units are cqw, as in the capability hero.
+   ═════════════════════════════════════════════════════════════════ */
+
+.figure {
+  margin-inline: auto;
+}
+
+.stage {
+  position: relative;
+  aspect-ratio: 100 / 98;
+  isolation: isolate;
+}
+
+/* One scene node: the collective drift moves everything together. */
+.scene {
+  position: absolute;
+  inset: 0;
+}
+
+.slot {
+  position: absolute;
+  left: calc(var(--dx) * 1cqw);
+  top: calc(var(--dy) * 1cqw);
+  width: calc(var(--dw) * 1cqw);
+  z-index: var(--z, 4);
+}
+
+.module .art {
+  filter: drop-shadow(0 0.9cqw 1.5cqw rgba(6, 37, 110, 0.2));
+}
+/* Depth planes: placement only, no change in colour or sharpness. */
+.forward .art {
+  filter: drop-shadow(0 1.3cqw 2.2cqw rgba(6, 37, 110, 0.28));
+}
+
+/* ── The Hbee connector ──────────────────────────────────────── */
+
+.hub {
+  aspect-ratio: 1;
+}
+.hubHalo {
+  position: absolute;
+  inset: -22%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(252, 93, 28, 0.22), rgba(29, 110, 255, 0.12) 55%, transparent 100%);
+}
+/* Extrusion: stacked offsets toward the lower-left, matching the module renders. */
+.hubDepth {
+  position: absolute;
+  inset: 0;
+  border-radius: 38% 50% 50% 38% / 38% 50% 50% 38%;
+  background: #0a2f86;
+  box-shadow:
+    -0.3cqw 0.3cqw 0 #0a3590,
+    -0.6cqw 0.6cqw 0 #08307f,
+    -0.9cqw 0.9cqw 0 #072a72,
+    -1.2cqw 1.2cqw 0 #062464,
+    -1.5cqw 1.5cqw 0 #051d55,
+    -1.8cqw 1.8cqw 0 #04163f,
+    -1.8cqw 3.4cqw 3.4cqw rgba(4, 18, 46, 0.34);
+}
+.hubFace {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 38% 50% 50% 38% / 38% 50% 50% 38%;
+  background: linear-gradient(145deg, #ffffff 0%, #eef4ff 55%, #dbe7ff 100%);
+  border: 0.35cqw solid var(--hb-electric);
+  box-shadow: inset 0.4cqw 0.4cqw 0.6cqw rgba(255, 255, 255, 0.95), inset -0.5cqw -0.5cqw 1cqw rgba(29, 110, 255, 0.18);
+}
+.hubMark {
+  width: 66%;
+  height: auto;
+  user-select: none;
+}
+
+/* ── Orange signal pulse — slow, occasional, decorative ──────── */
+
+.pulse {
+  fill: none;
+  stroke: #ffb48f;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 0.09 1;
+  stroke-dashoffset: 0.09;
+  opacity: 0;
+}
+
+/* ── Phone composition ───────────────────────────────────────── */
+
+@container (max-width: 440px) {
+  .stage {
+    aspect-ratio: 100 / 120;
+  }
+  .slot {
+    left: calc(var(--mx) * 1cqw);
+    top: calc(var(--my) * 1cqw);
+    width: calc(var(--mw) * 1cqw);
+  }
+}
+
+/* ── Motion ──────────────────────────────────────────────────────
+   1 the hub resolves → 2 modules settle in three small groups → 3 channels
+   draw (shared timing) → 4 the orange signal resolves. At rest the whole scene
+   drifts together by a few pixels; a faint orange pulse crosses a channel now
+   and then. Gated on data-motion-ready; reduced motion = the final state. */
+
+@keyframes svcHub {
+  from { opacity: 0; transform: scale(0.88); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes svcSettle {
+  from { opacity: 0; transform: translate3d(0, 1.8cqw, 0) scale(0.95); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes svcDrift {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -0.7cqw, 0); }
+}
+@keyframes svcPulse {
+  0% { stroke-dashoffset: 0.09; opacity: 0; }
+  8% { opacity: 0.95; }
+  38% { stroke-dashoffset: -1; opacity: 0.95; }
+  42%, 100% { stroke-dashoffset: -1; opacity: 0; }
+}
+
+:global([data-surface='site'][data-motion-ready]) .figure .hub {
+  animation: svcHub 560ms var(--hb-ease) 40ms backwards;
+}
+:global([data-surface='site'][data-motion-ready]) .figure .module[data-group='0'] {
+  animation: svcSettle 560ms var(--hb-ease) 240ms backwards;
+}
+:global([data-surface='site'][data-motion-ready]) .figure .module[data-group='1'] {
+  animation: svcSettle 560ms var(--hb-ease) 360ms backwards;
+}
+:global([data-surface='site'][data-motion-ready]) .figure .module[data-group='2'] {
+  animation: svcSettle 560ms var(--hb-ease) 480ms backwards;
+}
+:global([data-surface='site'][data-motion-ready]) .figure .scene {
+  animation: svcDrift 12s ease-in-out 2200ms infinite;
+}
+:global([data-surface='site'][data-motion-ready]) .figure .pulseA {
+  animation: svcPulse 9s linear 3200ms infinite;
+}
+:global([data-surface='site'][data-motion-ready]) .figure .pulseB {
+  animation: svcPulse 9s linear 7700ms infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub,
+  .module,
+  .scene,
+  .pulse {
+    animation: none !important;
+  }
+  .pulse {
+    display: none;
+  }
+}
