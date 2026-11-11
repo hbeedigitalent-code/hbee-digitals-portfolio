@@ -15,6 +15,7 @@
 
 import { SERVICE_GROUPS, type ServiceCapability, type ServiceGroup } from '../services/services-content'
 import type { CapabilitySemantic } from './capability-semantic'
+import { DIGITAL_SYSTEMS_SEMANTIC } from './digital-systems-semantic'
 import { WEBSITE_CONVERSION_SEMANTIC } from './website-conversion-semantic'
 
 /** The module of the six-part Hbee system a capability is drawn as. */
@@ -177,86 +178,87 @@ export const BRAND_POSITIONING: CapabilityDetail = {
 export const DIGITAL_SYSTEMS: CapabilityDetail = {
   slug: 'digital-systems',
   seo: {
-    title: 'Shopify Store Development & Redesign',
+    title: 'Ecommerce Analytics, Tracking & Systems',
     description:
-      'Build or redesign a Shopify storefront with clearer architecture, stronger mobile usability, reliable integrations and a foundation ready to grow.',
+      'Ecommerce analytics, tracking and digital systems for Shopify brands: reliable measurement, connected tools and diagnostics that show what limits growth.',
   },
   systemModule: 'Technology',
   hero: {
     headline: 'Better systems.',
     headlineAccent: 'Stronger foundations.',
     summary:
-      'We build and redesign Shopify stores and ecommerce websites, connecting storefront architecture, theme implementation, integrations, analytics and workflows into a reliable system the business can grow on.',
+      'We connect Shopify stores and ecommerce systems to the analytics, tracking, integrations and automation needed to measure performance and diagnose growth constraints.',
     visualLabel:
-      'Digital Systems, highlighted as the active module of the Hbee system, connected to Experience, Creative, Brand, Discovery and Growth.',
+      'Digital Systems & Analytics, the Technology module, highlighted as the active module of the Hbee system, connected to Experience, Growth and Discovery, with Brand and Creative further back.',
+    longHeadline: true,
   },
   opportunity: {
-    headline: 'Growth becomes harder when the systems underneath it can’t keep up.',
+    headline: 'Growth decisions are only as good as the data and systems behind them.',
     copy:
-      'A store can look finished while mobile navigation, product discovery, integrations or the underlying theme still make it difficult to shop and operate. Fragmented tools and manual work then turn every new growth initiative into another workaround.',
+      'When tracking is incomplete, tools are disconnected and reporting is manual, every growth initiative starts with an argument about the numbers. Reliable measurement and connected systems turn that argument into a decision, and make it clear which part of the business to improve first.',
     bestFor:
-      'Businesses building a Shopify store, redesigning an outdated storefront or replacing a fragile technical foundation without becoming a generic software project.',
+      'Shopify and ecommerce brands whose analytics disagree, whose tools are disconnected, or whose growth problem is visible but whose cause is not yet clear.',
     outcomes: [
-      { name: 'Reliability', text: 'Stable systems that reduce errors, downtime and dependence on manual work.' },
-      { name: 'Integration', text: 'A connected platform, tools and data so every part of the business can work together.' },
-      { name: 'Capacity', text: 'A scalable foundation that can support more traffic, orders, customers and new opportunities.' },
+      { name: 'Trust in the numbers', text: 'Tracking and reporting that agree with real orders, so decisions rest on evidence.' },
+      { name: 'Connected systems', text: 'Store, marketing and retention tools that share the data each of them depends on.' },
+      { name: 'Less manual work', text: 'Automation and reporting that run reliably and fail visibly when something breaks.' },
     ],
   },
   approach: {
     headline: 'From audit',
-    headlineAccent: 'to systems that scale.',
+    headlineAccent: 'to measurement you can act on.',
     copy:
-      'We combine technical expertise with practical execution to build, integrate and optimize the systems that support your business today and are ready for tomorrow’s growth.',
+      'We work across the Shopify ecosystem, analytics and tracking, email and retention platform connections such as Klaviyo, reporting views and automation workflows that reduce manual work. Storefront design and conversion changes stay with Website & Conversion.',
     steps: [
-      { name: 'Audit', text: 'Understand the current platform, workflows, integrations, data and constraints.' },
-      { name: 'Architect', text: 'Define the systems, architecture and connections required to support the business and its growth plans.' },
-      { name: 'Build', text: 'Implement or improve the required digital infrastructure, tools, integrations and automations.' },
-      { name: 'Connect', text: 'Integrate customer experience, data and operational components so the business works as one system.' },
+      { name: 'Audit', text: 'Map the current tracking, integrations, automations and reporting, and test them against real orders.' },
+      { name: 'Define', text: 'Decide what the business needs to measure and which questions its growth decisions depend on.' },
+      { name: 'Build and connect', text: 'Implement the tracking, integrations and automations that close the gaps you approve.' },
+      { name: 'Verify', text: 'Check that events, reports and workflows match what actually happens, and that failures are visible.' },
     ],
   },
   work: {
-    headline: 'Digital systems applied to real businesses.',
+    headline: 'Analytics and systems work applied to real businesses.',
     empty: 'Real capability examples will appear here as related case studies are published.',
   },
-  insightSlugs: ['shopify-redesign-vs-optimization'],
+  insightSlugs: [],
   systemFit: {
-    headline: 'Strong systems.',
-    headlineAccent: 'A stronger whole.',
+    headline: 'Reliable data.',
+    headlineAccent: 'A clearer whole.',
     copy:
-      'Digital Systems becomes most valuable when the technology underneath the business supports every other growth capability — giving brand, creative, discovery, commerce and retention a reliable system to run on.',
-    /* Owner-supplied relations, condensed to fit the diagram's node lines. */
+      'Digital Systems & Analytics makes every other capability measurable. It shows where the storefront loses shoppers, which channels bring qualified visitors and whether customers come back, and it connects the tools that act on those answers.',
     relations: {
-      'brand-positioning': 'Turns positioning into a platform the business can deliver through.',
-      'creative-ugc': 'Gives creative the pages and workflows to move customers forward.',
-      'discovery-traffic': 'Lands acquired traffic on reliable, measurable experiences.',
-      'commerce-experience': 'Powers the customer journey, transaction and operational flow.',
-      'retention-growth': 'Connects customer data, automation and repeat-value systems.',
+      'brand-positioning': 'Shows whether positioning changes are reflected in how customers behave.',
+      'creative-ugc': 'Shows which creative and content actually moves shoppers forward.',
+      'discovery-traffic': 'Shows which channels bring qualified visitors and what they do next.',
+      'commerce-experience': 'Measures where the storefront journey loses shoppers.',
+      'retention-growth': 'Connects customer data and automation so repeat purchasing can be measured and acted on.',
     },
   },
   cta: {
-    eyebrow: 'Ready to build stronger systems for growth',
-    headline: 'Let’s build what growth needs.',
+    eyebrow: 'Ready to see what the data is telling you',
+    headline: 'Let’s make growth measurable.',
     copy:
-      'Start with a focused Growth Review and get a clearer view of how Digital Systems can strengthen the foundation your next stage of growth depends on.',
-    secondaryLabel: 'Discuss Your Shopify Store',
+      'Start with a focused Growth Review and get a clearer view of whether measurement, traffic, conversion or retention should come first.',
+    secondaryLabel: 'Discuss Your Analytics and Systems',
   },
   faq: [
     {
-      question: 'Does Hbee build Shopify stores?',
+      question: 'Does Hbee set up ecommerce tracking and analytics?',
       answer:
-        'Yes. Digital Systems can include a Shopify store build, theme implementation, storefront architecture, integrations and analytics foundations. The exact work depends on the products, customer journey and operational requirements.',
+        'Yes. Digital Systems & Analytics includes auditing and setting up tracking, funnel measurement and reporting for Shopify stores. The exact work depends on the tools in use and what the business needs to decide.',
     },
     {
-      question: 'Can Hbee redesign an existing Shopify store?',
+      question: 'Can Hbee connect the tools my store already uses?',
       answer:
-        'Yes. We first assess the current theme, navigation, content structure, mobile experience, integrations and operational constraints, then define what should be improved, retained or rebuilt.',
+        'Often, yes. We first assess which tools hold which data and where manual work or failures occur, then connect what is worth connecting. That decision follows the audit rather than being assumed in advance.',
     },
     {
-      question: 'Can you work with an existing Shopify theme?',
+      question: 'Is this the same as redesigning my storefront?',
       answer:
-        'Often, yes. Whether an existing theme should be customized or replaced depends on its condition, maintainability and ability to support the required experience. That decision follows the audit rather than being assumed in advance.',
+        'No. Storefront design, redesign and conversion work sit with Website & Conversion. Digital Systems & Analytics covers the measurement, integrations and automation behind the store.',
     },
   ],
+  semantic: DIGITAL_SYSTEMS_SEMANTIC,
 }
 
 export const CREATIVE_UGC: CapabilityDetail = {

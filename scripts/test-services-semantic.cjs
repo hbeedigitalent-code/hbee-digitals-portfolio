@@ -117,6 +117,43 @@ for (const question of required) {
   assert.ok(asked.some((a) => a === normalised || a.replace('what does a', 'what should a') === normalised), `Answers: ${question}`)
 }
 
+
+/* ── 4b. Digital Systems & Analytics: second semantic capability ── */
+const ds = CAPABILITY_DETAILS['digital-systems']
+const dss = ds.semantic
+assert.ok(dss, 'Digital Systems & Analytics provides semantic content')
+assert.equal(`${dss.h1.lead} ${dss.h1.accent}`, 'Ecommerce Analytics, Tracking & Digital Systems')
+assert.equal(ds.systemModule, 'Technology')
+assert.equal(dss.serviceArea.id, 'analytics-and-diagnostics', 'Analytics & Diagnostics is a service area, not a capability')
+assert.ok(dss.serviceArea.links.some((l) => l.href === '/growth-review'), 'Analytics & Diagnostics links to the Growth Review')
+const dsSentences = dss.definition.split(/(?<=[.!?])\s+/).filter(Boolean)
+assert.ok(dsSentences.length >= 2 && dsSentences.length <= 4, 'Direct answer is 2-4 sentences')
+assert.ok(dss.symptoms.items.length >= 6 && dss.diagnose.items.length >= 6)
+assert.ok(dss.questions.items.length >= 8 && dss.questions.items.length <= 9, 'Focused question set')
+assert.equal(new Set(dss.questions.items.map((q) => q.intent)).size, 6, 'All six intents covered')
+for (const q of dss.questions.items) assert.ok(q.question.endsWith('?') && q.answer.length >= 150, q.question)
+assert.deepEqual(plain(CAPABILITY_ENTITIES['digital-systems'].adjacent.slice().sort()), ['commerce-experience', 'discovery-traffic', 'retention-growth'], 'Related capabilities follow the semantic model')
+const dsLinks = [dss.serviceArea.connection.link, ...(dss.serviceArea.links ?? []), ...dss.questions.items.flatMap((q) => q.links ?? [])]
+for (const link of dsLinks) {
+  assert.ok(link.href.startsWith('/') && link.label.length >= 12, `Internal, descriptive link: ${link.label}`)
+  assert.notEqual(link.href, '/services/digital-systems', 'No self-link')
+}
+const dsCopy = JSON.stringify([dss, ds.opportunity, ds.approach, ds.systemFit, ds.cta, ds.seo])
+assert.ok(!/storefront (?:build|design|redesign)|redesign(?:ing)? (?:a|the|your) (?:store|storefront)|conversion rate optimi[sz]ation/i.test(dsCopy.replace(/Storefront design and conversion changes stay with Website & Conversion./, '')), 'Storefront design / CRO stay with Website & Conversion')
+assert.ok(!/GA4|Google Analytics|Tag Manager|Meta Pixel|Looker|Zapier|Triple Whale|Hotjar|enterprise|data warehouse|guarantee/i.test(dsCopy), 'No unevidenced platforms or enterprise claims')
+assert.ok(!/d+(?:.d+)?s*(?:%|x)/i.test(dsCopy) && !/prioritis|catalogue|recognis|behaviour|optimis/i.test(dsCopy), 'No numeric proof; US spelling')
+assert.deepEqual(plain(ds.insightSlugs), [], 'No off-topic Insight is mapped to Digital Systems & Analytics')
+
+
+/* ── 4c. Ownership boundary and dead-link safety ── */
+assert.ok(!/websites?|storefront|platforms?/i.test(JSON.stringify([CAPABILITY_ENTITIES['digital-systems'].coreWork, dss.deliverables])), 'Digital Systems card and side list claim no website/storefront build')
+assert.ok(!/build(?:s|ing)? (?:ecommerce )?(?:websites?|stores?)/i.test(JSON.stringify([ds.hero.summary, CAPABILITY_ENTITIES['digital-systems'], SERVICE_GROUPS])), 'Digital Systems is not described as building websites')
+assert.deepEqual(plain(dss.deliverables), ['Tracking & integrations', 'Automation workflows', 'Reporting & diagnostics'])
+const detailPageSource = read('src/app/(site)/services/[capability]/page.tsx')
+assert.ok(detailPageSource.includes('publishedInsightSlugs') && detailPageSource.includes('semanticInsightSlugs'), 'Page resolves which linked Insights are published')
+const semanticSections = read('src/components/site/capability/CapabilitySemanticSections.tsx')
+assert.ok(semanticSections.includes('liveLinks(item.links, publishedInsightSlugs)') && semanticSections.includes('liveLinks(area.links, publishedInsightSlugs)'), 'Insight links render only when published')
+
 /* ── 5. Claims and link hygiene ── */
 const copy = JSON.stringify([s, CAPABILITY_ENTITIES, MERCHANT_SYMPTOMS, SERVICES_HERO, CONNECT_INTRO, SERVICES_FAQ])
 assert.ok(!/\b(?:10x|skyrocket|dominate|guaranteed?|world-class|best agency|#1)\b/i.test(copy.replace(/does not promise a specific[^"]*/i, '')), 'No inflated claims')

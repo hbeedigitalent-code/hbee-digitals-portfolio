@@ -9,12 +9,17 @@ import { SiteSection } from '../primitives/SiteSection'
 import { SiteDisplayHeading, SiteEyebrow } from '../primitives/SiteTypography'
 import { CAPABILITY_ENTITIES, CAPABILITY_ORDER, capabilityEntity } from '../services/capability-entities'
 import type { CapabilityDetail } from './capability-content'
-import type { QuestionIntent } from './capability-semantic'
+import type { QuestionIntent, SemanticLink } from './capability-semantic'
 import styles from './capability.module.css'
 
 /* Semantic sections for capability pages that provide `detail.semantic`.
    Each answer-bearing passage is plain HTML under a meaningful heading, so it
    can be read, quoted and linked on its own. */
+
+/** Editorial links to an Insight render only when that Insight is confirmed published. */
+function liveLinks(links: SemanticLink[] | undefined, publishedInsightSlugs: string[]): SemanticLink[] {
+  return (links ?? []).filter((link) => !link.href.startsWith('/insights/') || publishedInsightSlugs.includes(link.href.slice('/insights/'.length)))
+}
 
 /* ── Merchant symptoms + what we diagnose (White) ── */
 
@@ -76,9 +81,10 @@ export function CapabilitySymptomsDiagnose({ detail }: { detail: CapabilityDetai
 
 /* ── Service area inside the capability (White, Mist panel) ── */
 
-export function CapabilityServiceArea({ detail }: { detail: CapabilityDetail }) {
+export function CapabilityServiceArea({ detail, publishedInsightSlugs = [] }: { detail: CapabilityDetail; publishedInsightSlugs?: string[] }) {
   const area = detail.semantic?.serviceArea
   if (!area) return null
+  const areaLinks = liveLinks(area.links, publishedInsightSlugs)
   return (
     <SiteSection id={area.id} tone="white" spacing="compact" aria-labelledby="capability-area-title" className={styles.anchor}>
       <div className={`${surface.surface} ${surface.soft} ${styles.areaPanel}`}>
@@ -108,9 +114,9 @@ export function CapabilityServiceArea({ detail }: { detail: CapabilityDetail }) 
           </Link>
           .
         </p>
-        {area.links && (
+        {areaLinks.length > 0 && (
           <ul className="mt-3 space-y-1">
-            {area.links.map((link) => (
+            {areaLinks.map((link) => (
               <li key={link.href}>
                 <SiteLinkArrow href={link.href} className="min-h-[44px]">
                   {link.label}
@@ -137,7 +143,7 @@ const INTENT_LABEL: Record<QuestionIntent, string> = {
   Diagnostic: 'Finding the cause',
 }
 
-export function CapabilityQuestions({ detail }: { detail: CapabilityDetail }) {
+export function CapabilityQuestions({ detail, publishedInsightSlugs = [] }: { detail: CapabilityDetail; publishedInsightSlugs?: string[] }) {
   const q = detail.semantic?.questions
   if (!q) return null
   const groups = (Object.keys(INTENT_LABEL) as QuestionIntent[])
@@ -170,9 +176,9 @@ export function CapabilityQuestions({ detail }: { detail: CapabilityDetail }) {
                   <SiteReveal key={item.question} className={surface.rule}>
                     <h3 className="font-hb-display text-[1.25rem] font-bold leading-snug tracking-[-0.02em] text-hb-fg">{item.question}</h3>
                     <p className="mt-3 max-w-[46rem] text-[1rem] leading-relaxed text-hb-fg-body">{item.answer}</p>
-                    {item.links && (
+                    {liveLinks(item.links, publishedInsightSlugs).length > 0 && (
                       <ul className="mt-2 flex flex-wrap gap-x-6">
-                        {item.links.map((link) => (
+                        {liveLinks(item.links, publishedInsightSlugs).map((link) => (
                           <li key={link.href}>
                             <SiteLinkArrow href={link.href} className="min-h-[44px]">
                               {link.label}

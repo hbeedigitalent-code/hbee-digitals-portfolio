@@ -73,9 +73,9 @@ export const CAPABILITY_ENTITIES: Record<CapabilitySlug, CapabilityEntity> = {
     module: 'Technology',
     name: 'Digital Systems & Analytics',
     definition:
-      'Builds and connects the ecommerce technology, integrations, automation and measurement that let a business see what is happening in its store and act on it.',
+      'Connects the ecommerce tools, integrations and automation behind a store and sets up the tracking and measurement that let a business see what is happening and act on it.',
     problems: ['Performance data is unclear, incomplete or untrusted', 'Tools and workflows are disconnected and depend on manual work'],
-    coreWork: ['Storefront and integration build', 'Tracking and analytics setup', 'Automation and operational systems'],
+    coreWork: ['Tracking, integrations & automation', 'Analytics and reporting foundations', 'Diagnostics and measurement reliability'],
     adjacent: ['commerce-experience', 'retention-growth', 'discovery-traffic'],
     linkLabel: 'Explore Digital Systems & Analytics',
   },

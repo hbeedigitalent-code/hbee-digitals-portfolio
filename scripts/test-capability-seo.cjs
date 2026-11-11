@@ -87,7 +87,7 @@ const approvedPublishedInsights = new Set([
 ])
 const expectedInsights = {
   'brand-positioning': [brandPositioningInsight, brandClarityInsight, valuePropositionInsight],
-  'digital-systems': [redesignInsight],
+  'digital-systems': [],
   'creative-ugc': [ugcInsight],
   'discovery-traffic': [searchInsight],
   'commerce-experience': [conversionInsight, productPageInsight, frictionInsight],
@@ -127,7 +127,7 @@ for (const slug of slugs) {
 
 const expectedTerms = {
   'brand-positioning': /ecommerce.+positioning/i,
-  'digital-systems': /Shopify stores? and ecommerce websites?/i,
+  'digital-systems': /Shopify stores and ecommerce systems/i,
   'creative-ugc': /UGC videos?, product demonstrations?/i,
   'discovery-traffic': /Shopify and ecommerce SEO/i,
   'commerce-experience': /Shopify conversion and ecommerce customer experience/i,
@@ -175,17 +175,26 @@ async function resolvedInsights(slug, publishedSlugs) {
   })
   const tree = await resolver.default({ params: { capability: slug } })
   const children = [].concat(tree.props.children)
-  return children.find((child) => child && child.props && 'insights' in child.props).props.insights.map((item) => item.slug)
+  const props = children.find((child) => child && child.props && 'insights' in child.props).props
+  resolvedInsights.lastPublished = props.publishedInsightSlugs.slice()
+  return props.insights.map((item) => item.slug)
 }
 const allPublished = [...approvedPublishedInsights, seasonalInsight, novemberSeasonalInsight, 'unmapped-published-article'].reverse()
 ;(async () => {
   for (const slug of slugs) {
-    assert.deepEqual(await resolvedInsights(slug, allPublished), expectedInsights[slug], `${slug} resolves exactly its approved Insights in mapping order`)
-    assert.deepEqual(await resolvedInsights(slug, []), [], `${slug} renders no Insight block when nothing is published`)
-    assert.deepEqual(await resolvedInsights(slug, [seasonalInsight, novemberSeasonalInsight, 'unmapped-published-article']), [], `${slug} has no unrelated or seasonal fallback`)
+    assert.deepEqual(plain(await resolvedInsights(slug, allPublished)), expectedInsights[slug], `${slug} resolves exactly its approved Insights in mapping order`)
+    assert.deepEqual(plain(await resolvedInsights(slug, [])), [], `${slug} renders no Insight block when nothing is published`)
+    assert.deepEqual(plain(await resolvedInsights(slug, [seasonalInsight, novemberSeasonalInsight, 'unmapped-published-article'])), [], `${slug} has no unrelated or seasonal fallback`)
   }
-  assert.deepEqual(await resolvedInsights('commerce-experience', [frictionInsight, conversionInsight]), [conversionInsight, frictionInsight], 'A missing or unpublished mapped article is dropped without disturbing order')
-  assert.deepEqual(expectedInsights['brand-positioning'].length + expectedInsights['digital-systems'].length + expectedInsights['creative-ugc'].length + expectedInsights['discovery-traffic'].length + expectedInsights['commerce-experience'].length + expectedInsights['retention-growth'].length, 11)
+  assert.deepEqual(plain(await resolvedInsights('commerce-experience', [frictionInsight, conversionInsight])), [conversionInsight, frictionInsight], 'A missing or unpublished mapped article is dropped without disturbing order')
+  // Editorial Insight links inside semantic content are passed to the renderer only when published.
+  await resolvedInsights('digital-systems', [frictionInsight, 'unmapped-published-article'])
+  assert.deepEqual(plain(resolvedInsights.lastPublished), [frictionInsight], 'A linked Insight that is published is available to the renderer')
+  await resolvedInsights('digital-systems', ['unmapped-published-article'])
+  assert.deepEqual(plain(resolvedInsights.lastPublished), [], 'A linked Insight that is not published is never rendered as a link')
+  await resolvedInsights('digital-systems', [])
+  assert.deepEqual(plain(resolvedInsights.lastPublished), [], 'No published Insights means no editorial Insight links')
+  assert.deepEqual(expectedInsights['brand-positioning'].length +expectedInsights['digital-systems'].length + expectedInsights['creative-ugc'].length + expectedInsights['discovery-traffic'].length + expectedInsights['commerce-experience'].length + expectedInsights['retention-growth'].length, 10)
   console.log('PASS: capability → Insight resolution (exact mappings, order, safe omission, no fallback, seasonal/broad articles unmapped)')
 })().catch((error) => { console.error(error); process.exit(1) })
 
@@ -205,7 +214,7 @@ assert.match(pageSource, /'@type': 'Service'/)
 assert.match(pageSource, /'@type': 'BreadcrumbList'/)
 assert.ok(!pageSource.includes("'@type': 'FAQPage'"), 'B3 does not add FAQ structured data')
 assert.match(pageSource, /detail\.seo\.description/)
-assert.match(pageSource, /detail\?\.insightSlugs\.length \? getInsightsData\(\) : Promise\.resolve/, 'Empty Insight mappings avoid unnecessary content reads')
+assert.match(pageSource, /detail\?\.insightSlugs\.length \|\| linkedInsightSlugs\.length \? getInsightsData\(\) : Promise\.resolve/, 'Pages with no mapped or linked Insights avoid unnecessary content reads')
 
 const changedCommercialSources = [
   'src/components/site/capability/capability-content.ts',

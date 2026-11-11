@@ -25,7 +25,18 @@ import { CapabilitySystemFit } from './CapabilitySystemFit'
  * Server component throughout; client code is limited to the shared
  * SiteNav and SiteReveal triggers.
  */
-export function CapabilityDetailPage({ slug, work = [], insights = [] }: { slug: string; work?: WorkItem[]; insights?: InsightSummary[] }) {
+export function CapabilityDetailPage({
+  slug,
+  work = [],
+  insights = [],
+  publishedInsightSlugs = [],
+}: {
+  slug: string
+  work?: WorkItem[]
+  insights?: InsightSummary[]
+  /** Insight slugs confirmed published; editorial links to any other Insight are omitted. */
+  publishedInsightSlugs?: string[]
+}) {
   const detail = CAPABILITY_DETAILS[slug]
   const identity = capabilityIdentity(slug)
   if (!detail || !identity) notFound()
@@ -39,8 +50,8 @@ export function CapabilityDetailPage({ slug, work = [], insights = [] }: { slug:
         <CapabilitySymptomsDiagnose detail={detail} />
         <CapabilityOpportunity detail={detail} />
         <CapabilityApproach detail={detail} name={name} />
-        <CapabilityServiceArea detail={detail} />
-        <CapabilityQuestions detail={detail} />
+        <CapabilityServiceArea detail={detail} publishedInsightSlugs={publishedInsightSlugs} />
+        <CapabilityQuestions detail={detail} publishedInsightSlugs={publishedInsightSlugs} />
         <CapabilityWork detail={detail} work={work} insights={insights} />
         <CapabilityConnected detail={detail} />
         <CapabilityCta detail={detail} />

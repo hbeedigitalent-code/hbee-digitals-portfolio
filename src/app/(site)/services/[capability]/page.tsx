@@ -29,13 +29,26 @@ export function generateMetadata({ params }: { params: { capability: string } })
   })
 }
 
+/** Insight slugs referenced by editorial links in a capability's semantic content. */
+function semanticInsightSlugs(detail: (typeof CAPABILITY_DETAILS)[string] | undefined): string[] {
+  const s = detail?.semantic
+  if (!s) return []
+  const links = [s.serviceArea?.connection.link, ...(s.serviceArea?.links ?? []), ...s.questions.items.flatMap((q) => q.links ?? [])]
+  const slugs = links.flatMap((link) => (link?.href.startsWith('/insights/') ? [link.href.slice('/insights/'.length)] : []))
+  return Array.from(new Set(slugs))
+}
+
 export default async function CapabilityPage({ params }: { params: { capability: string } }) {
   const detail = CAPABILITY_DETAILS[params.capability]
   const name = capabilityIdentity(params.capability)?.capability.name
+  /* Editorial links inside the semantic content are only rendered when the Insight is
+     currently published, so an unpublished or renamed article never becomes a dead link. */
+  const linkedInsightSlugs = semanticInsightSlugs(detail)
   const [work, insightData] = await Promise.all([
     getCapabilityWork(params.capability),
-    detail?.insightSlugs.length ? getInsightsData() : Promise.resolve({ items: [], topics: [] }),
+    detail?.insightSlugs.length || linkedInsightSlugs.length ? getInsightsData() : Promise.resolve({ items: [], topics: [] }),
   ])
+  const publishedInsightSlugs = linkedInsightSlugs.filter((slug) => insightData.items.some((item) => item.slug === slug))
   const insightOrder = new Map(detail?.insightSlugs.map((slug, index) => [slug, index]) ?? [])
   const insights = insightData.items
     .filter((item) => insightOrder.has(item.slug))
@@ -81,7 +94,7 @@ export default async function CapabilityPage({ params }: { params: { capability:
           />
         </>
       )}
-      <CapabilityDetailPage slug={params.capability} work={work} insights={insights} />
+      <CapabilityDetailPage slug={params.capability} work={work} insights={insights} publishedInsightSlugs={publishedInsightSlugs} />
     </>
   )
 }

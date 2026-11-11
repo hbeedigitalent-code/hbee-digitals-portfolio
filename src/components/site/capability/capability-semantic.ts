@@ -48,6 +48,8 @@ export interface CapabilitySemantic {
   definition: string
   symptoms: { eyebrow: string; headline: string; items: { name: string; text: string }[] }
   diagnose: { eyebrow: string; headline: string; intro: string; items: { name: string; text: string }[] }
+  /** Overrides the homepage deliverables list shown beside "What we do", where that list does not match the capability's ownership. */
+  deliverables?: string[]
   serviceArea?: ServiceArea
   questions: { headline: string; intro: string; items: SemanticQuestion[] }
 }

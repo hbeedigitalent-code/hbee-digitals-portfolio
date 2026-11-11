@@ -83,7 +83,7 @@ export const SERVICE_GROUPS: ServiceGroup[] = [
         slug: 'digital-systems',
         name: CAPABILITY_ENTITIES['digital-systems'].name,
         purpose:
-          'Build and improve the technology, data and operational systems that support the customer experience and growth.',
+          'Connect and improve the tracking, integrations and automation that let a business measure performance and diagnose what limits growth.',
         icon: 'systems',
       },
     ],

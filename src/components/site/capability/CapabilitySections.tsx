@@ -62,8 +62,10 @@ export function CapabilityOpportunity({ detail }: { detail: CapabilityDetail }) 
 export function CapabilityApproach({ detail, name }: { detail: CapabilityDetail; name: string }) {
   const a = detail.approach
   // Reuse the existing homepage material rather than inventing a second service list.
-  const deliverables = CAPABILITY_GROUPS.flatMap((group) => group.capabilities)
-    .find((capability) => capability.slug === detail.slug)?.deliverables ?? []
+  const deliverables =
+    detail.semantic?.deliverables ??
+    CAPABILITY_GROUPS.flatMap((group) => group.capabilities).find((capability) => capability.slug === detail.slug)?.deliverables ??
+    []
   return (
     <SiteSection id="what-we-do" tone="cloud" aria-labelledby="capability-approach-title" className={styles.anchor}>
       <SiteGrid className="gap-y-12">
