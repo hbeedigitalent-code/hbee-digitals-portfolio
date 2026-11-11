@@ -570,7 +570,7 @@ const loadWorkSeo = cache(async (slug: string): Promise<WorkSeo | null> => {
     return {
       title: text(row.seo_title) ?? detail.client,
       description:
-        text(row.seo_description) ?? detail.summary ?? 'Conversion-focused ecommerce and digital growth case study.',
+        text(row.seo_description) ?? detail.summary ?? `${detail.client}: selected work by Hbee Digitals.`,
       image: hero?.src ? absoluteUrl(hero.src) : undefined,
       imageAlt: hero?.alt,
     }
