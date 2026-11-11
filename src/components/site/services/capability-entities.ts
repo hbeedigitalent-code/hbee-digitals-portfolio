@@ -100,7 +100,7 @@ export const CAPABILITY_ENTITIES: Record<CapabilitySlug, CapabilityEntity> = {
       'Helps the right buyers find an ecommerce brand through search, content and acquisition channels that fit the business.',
     problems: ['The store is hard to find in search', 'Traffic is inconsistent or does not match likely buyers'],
     coreWork: ['Ecommerce SEO and content', 'Campaign and landing-page alignment', 'Channel fit and traffic quality'],
-    adjacent: ['commerce-experience', 'creative-ugc', 'digital-systems'],
+    adjacent: ['commerce-experience', 'creative-ugc', 'brand-positioning'],
     linkLabel: 'Explore Traffic & Visibility',
   },
   'retention-growth': {

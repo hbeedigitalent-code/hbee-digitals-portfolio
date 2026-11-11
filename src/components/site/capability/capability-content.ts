@@ -17,6 +17,7 @@ import { SERVICE_GROUPS, type ServiceCapability, type ServiceGroup } from '../se
 import type { CapabilitySemantic } from './capability-semantic'
 import { BRAND_POSITIONING_SEMANTIC } from './brand-positioning-semantic'
 import { CREATIVE_UGC_SEMANTIC } from './creative-ugc-semantic'
+import { DISCOVERY_TRAFFIC_SEMANTIC } from './discovery-traffic-semantic'
 import { DIGITAL_SYSTEMS_SEMANTIC } from './digital-systems-semantic'
 import { WEBSITE_CONVERSION_SEMANTIC } from './website-conversion-semantic'
 
@@ -359,9 +360,9 @@ export const CREATIVE_UGC: CapabilityDetail = {
 export const DISCOVERY_TRAFFIC: CapabilityDetail = {
   slug: 'discovery-traffic',
   seo: {
-    title: 'Shopify & Ecommerce SEO Services',
+    title: 'Ecommerce Traffic & Search Visibility',
     description:
-      'Improve Shopify and ecommerce discoverability through technical SEO, search architecture, content relevance and purposeful internal linking.',
+      'Ecommerce traffic and search visibility for Shopify brands: organic discovery, traffic quality and landing-page alignment that bring relevant buyers.',
   },
   systemModule: 'Discovery',
   hero: {
@@ -370,7 +371,7 @@ export const DISCOVERY_TRAFFIC: CapabilityDetail = {
     summary:
       'We improve Shopify and ecommerce SEO through technical foundations, search architecture, relevant page content and internal linking — helping the right products, services and ideas become easier to discover over time.',
     visualLabel:
-      'Discovery & Traffic, highlighted as the active module of the Hbee system, connected to Experience, Creative, Brand, Technology and Growth.',
+      'Traffic & Visibility, the Discovery module, highlighted as the active module of the Hbee system, connected to Experience, Creative and Brand, with Technology and Growth further back.',
   },
   opportunity: {
     headline: 'Great products don’t grow without visibility.',
@@ -394,26 +395,26 @@ export const DISCOVERY_TRAFFIC: CapabilityDetail = {
     ],
   },
   approach: {
-    headline: 'From search diagnosis',
-    headlineAccent: 'to discoverability that compounds.',
+    headline: 'From diagnosis',
+    headlineAccent: 'to discovery that reaches the right buyers.',
     copy:
-      'We connect technical foundations, commercial search intent, useful page content and measurement so the right products and services are easier to find — then improve the system as search behavior and the business evolve.',
+      'We connect technical search foundations, commercial intent, useful page content and acquisition pathways so the right products are easier for the right buyers to find, then adjust as search behavior and the business change.',
     steps: [
       {
         name: 'Audit',
-        text: 'Review crawlability, indexing, site structure, page targeting, internal links, current visibility and measurement.',
+        text: 'Review crawlability, indexing, site structure, page targeting, internal links, the current traffic mix and search visibility.',
       },
       {
         name: 'Map',
-        text: 'Define priority commercial searches, intent ownership, page architecture, content gaps and measurement priorities.',
+        text: 'Define priority commercial searches, intent ownership, page architecture, content gaps and which channels fit the business.',
       },
       {
         name: 'Improve',
         text: 'Strengthen technical signals, metadata, page content, product or service discoverability and purposeful internal linking.',
       },
       {
-        name: 'Measure',
-        text: 'Track search visibility, landing-page quality and downstream behavior, then prioritize the next useful improvement.',
+        name: 'Review',
+        text: 'Check search visibility and landing-page quality against reliable data, then prioritize the next useful improvement. Tracking setup sits with Digital Systems & Analytics.',
       },
     ],
   },
@@ -430,7 +431,7 @@ export const DISCOVERY_TRAFFIC: CapabilityDetail = {
     /* Owner-supplied relations, condensed to fit the diagram's node lines. */
     relations: {
       'brand-positioning': 'Gives discovery a clear message and a reason for the right audience to pay attention.',
-      'digital-systems': 'Lands traffic on reliable, measurable experiences with the data to understand performance.',
+      'digital-systems': 'Shows which sources bring qualified visitors, and whether the tracking can be trusted.',
       'creative-ugc': 'Provides the hooks, stories and assets that earn attention across channels.',
       'commerce-experience': 'Turns traffic into a clearer, more confident path toward purchase.',
       'retention-growth': 'Turns acquired customers into repeat value, so growth relies less on buying the next visit.',
@@ -440,8 +441,8 @@ export const DISCOVERY_TRAFFIC: CapabilityDetail = {
     eyebrow: 'Ready to grow your audience',
     headline: 'Let’s get the right people to you.',
     copy:
-      'Start with a focused Growth Review and get a clearer view of where search discoverability is constrained — and how organic visibility should connect with the rest of your growth system.',
-    secondaryLabel: 'Discuss Ecommerce SEO',
+      'Start with a focused Growth Review and get a clearer view of where traffic or visibility is constrained, and how discovery should connect with the rest of your growth system.',
+    secondaryLabel: 'Discuss Traffic & Visibility',
   },
   faq: [
     {
@@ -460,6 +461,7 @@ export const DISCOVERY_TRAFFIC: CapabilityDetail = {
         'There is no responsible universal timeline or ranking guarantee. Progress depends on the site, competition, technical condition, content, authority and how quickly approved improvements are implemented. We define priorities and measure movement over time.',
     },
   ],
+  semantic: DISCOVERY_TRAFFIC_SEMANTIC,
 }
 
 export const COMMERCE_EXPERIENCE: CapabilityDetail = {

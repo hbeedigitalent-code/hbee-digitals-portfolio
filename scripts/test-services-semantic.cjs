@@ -219,6 +219,41 @@ assert.ok(!/storefront (?:build|design|redesign)|conversion rate optimi[sz]ation
 assert.ok(!/\d+(?:\.\d+)?\s*(?:%|x\b)/i.test(bpCopy) && !/prioritis|catalogue|recognis|behaviour|optimis|colour/i.test(bpCopy), 'No numeric proof; US spelling')
 assert.deepEqual(plain(bp.insightSlugs), ['brand-positioning-vs-brand-identity', 'first-five-things-customers-should-understand-about-your-brand', 'how-to-write-clear-ecommerce-value-proposition'], 'Existing relevant Insight mappings are preserved')
 
+
+/* ── 4f. Traffic & Visibility: fifth semantic capability ── */
+const tv = CAPABILITY_DETAILS['discovery-traffic']
+const tvs = tv.semantic
+assert.ok(tvs, 'Traffic & Visibility provides semantic content')
+assert.equal(tv.systemModule, 'Discovery')
+assert.equal(tvs.h1.lead + ' ' + tvs.h1.accent, 'Ecommerce Traffic, Discovery & Visibility')
+assert.deepEqual(plain([tvs.serviceArea.id, ...tvs.moreServiceAreas.map((a) => a.id)]), ['search-and-organic-visibility', 'content-led-discovery'], 'Search and content-led discovery are service areas')
+assert.ok(tvs.serviceArea.connection.link.href === '/services/commerce-experience' && tvs.moreServiceAreas[0].connection.link.href === '/services/brand-positioning', 'Storefront changes stay with Website & Conversion; message foundations with Brand')
+const tvSentences = tvs.definition.split(/(?<=[.!?])\s+/).filter(Boolean)
+assert.ok(tvSentences.length >= 2 && tvSentences.length <= 4, 'Direct answer is 2-4 sentences')
+assert.ok(tvs.symptoms.items.length >= 6 && tvs.diagnose.items.length >= 6)
+assert.ok(tvs.questions.items.length >= 8 && tvs.questions.items.length <= 9, 'Focused question set')
+for (const intent of ['Definition', 'Problem', 'Diagnostic', 'Comparison', 'Evaluation', 'Commercial']) assert.ok(tvs.questions.items.some((q) => q.intent === intent), 'Intent covered: ' + intent)
+for (const q of tvs.questions.items) assert.ok(q.question.endsWith('?') && q.answer.length >= 150, q.question)
+assert.deepEqual(plain(CAPABILITY_ENTITIES['discovery-traffic'].adjacent.slice().sort()), ['brand-positioning', 'commerce-experience', 'creative-ugc'], 'Related capabilities follow the approved model (Brand related; Technology and Growth distant)')
+const tvAreas = [tvs.serviceArea, ...tvs.moreServiceAreas]
+const tvLinks = [...tvAreas.flatMap((a) => [a.connection.link, ...(a.links ?? [])]), ...tvs.questions.items.flatMap((q) => q.links ?? [])]
+for (const link of tvLinks) {
+  assert.ok(link.href.startsWith('/') && link.label.length >= 12, 'Internal, descriptive link: ' + link.label)
+  assert.ok(!link.href.startsWith('/services/discovery-traffic'), 'No self-link')
+}
+const tvCopy = JSON.stringify([tvs, tv.opportunity, tv.approach, tv.systemFit, tv.cta, tv.seo])
+const tvCopyNoDisclaimers = tvCopy.replace(/does not promise rankings[^"]*/i, '').replace(/no ranking or timeline can be promised/i, '').replace(/so Hbee does not promise rankings or a timeline/i, '')
+assert.ok(!/(?:rank(?:ing)?s? (?:#|number )?1\b|#1|first[- ]page|page one|top (?:3|three|5|10|ten) (?:results|rankings|positions)|guarantee[ds]?)/i.test(tvCopyNoDisclaimers), 'No ranking, first-page or traffic guarantees')
+assert.ok(!/\b(?:ROAS|CPA|CAC|cost per (?:click|acquisition)|return on ad spend)\b/i.test(tvCopy), 'No unsupported ad-performance claims')
+assert.ok(!/(?:manag(?:e|es|ing|ement of) (?:your |the |paid )?(?:ads?|campaigns?|media|ad spend|budgets?)|media buying|buy(?:ing)? media|Meta Ads|Google Ads|Facebook Ads|daily optimi[sz]ation|ad account|influencer)/i.test(tvCopy), 'No paid-media, ad-management or influencer ownership is claimed')
+assert.ok(!/\bWTO\b/.test(tvCopy), 'No unexplained internal acronym')
+assert.ok(!/\b(?:elevate|unforgettable|skyrocket|supercharge|boost your|drive massive|dominate|explosive|unlock)\b/i.test(tvCopy), 'No vague agency language')
+assert.ok(!/\d+(?:\.\d+)?\s*(?:%|x\b)/i.test(tvCopy) && !/prioritis|catalogue|recognis|behaviour|optimis|colour|organis/i.test(tvCopy), 'No numeric proof; US spelling')
+assert.ok(!/storefront (?:build|design|redesign)|conversion rate optimi[sz]ation|attribution model/i.test(tvCopy), 'Storefront, CRO and attribution stay with their capabilities')
+assert.ok(/more traffic is not automatically better traffic/i.test(tvs.diagnose.intro), 'States that more traffic is not automatically better traffic')
+assert.deepEqual(plain(tv.insightSlugs), ['why-shopify-store-not-appearing-google'], 'Existing relevant Insight mapping is preserved')
+assert.ok(!/paid media/i.test(JSON.stringify(tvs.deliverables)), 'Side list does not claim paid media')
+
 /* ── 5. Claims and link hygiene ── */
 const copy = JSON.stringify([s, CAPABILITY_ENTITIES, MERCHANT_SYMPTOMS, SERVICES_HERO, CONNECT_INTRO, SERVICES_FAQ])
 assert.ok(!/\b(?:10x|skyrocket|dominate|guaranteed?|world-class|best agency|#1)\b/i.test(copy.replace(/does not promise a specific[^"]*/i, '')), 'No inflated claims')
