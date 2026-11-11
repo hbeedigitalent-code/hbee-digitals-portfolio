@@ -51,5 +51,7 @@ export interface CapabilitySemantic {
   /** Overrides the homepage deliverables list shown beside "What we do", where that list does not match the capability's ownership. */
   deliverables?: string[]
   serviceArea?: ServiceArea
+  /** Further service areas, rendered after the primary one (for capabilities with more than one). */
+  moreServiceAreas?: ServiceArea[]
   questions: { headline: string; intro: string; items: SemanticQuestion[] }
 }

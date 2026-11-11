@@ -94,7 +94,14 @@ const expectedInsights = {
   'retention-growth': [conversionInsight, klaviyoInsight],
 }
 const bannedClaims = /\b(?:10x|skyrocket|dominate|guaranteed|world-class|best agency|number one|#1)\b/i
-const unsupportedProof = /\b\d+(?:\.\d+)?\s*(?:%|x)\b/i
+const unsupportedProof = /(?<![\w.])\+?\d+(?:\.\d+)?\s*(?:%|x\b|per\s?cent\b)/i
+// Guard self-check: the proof regex must catch performance-proof formats and leave ordinary numerals alone.
+for (const claim of ['conversion increased 20%', 'revenue grew 3x', 'ROAS improved 2.5x', 'up +20% on last year', 'a 20 percent lift']) {
+  assert.ok(unsupportedProof.test(claim), 'unsupportedProof rejects: ' + claim)
+}
+for (const fine of ['Four steps from audit to launch', 'Updated in 2026', 'A 1920x1080 hero image', 'Version 2.5 of the template', 'Shopify 2.0 themes', 'Review 8 areas in order']) {
+  assert.ok(!unsupportedProof.test(fine), 'unsupportedProof allows: ' + fine)
+}
 
 for (const slug of slugs) {
   const detail = CAPABILITY_DETAILS[slug]
@@ -163,7 +170,7 @@ for (const slug of slugs) {
 
 // Resolution: mapped slugs only, mapping order, missing/unpublished dropped, no fallback.
 async function resolvedInsights(slug, publishedSlugs) {
-  const items = publishedSlugs.map((itemSlug) => ({ id: itemSlug, slug: itemSlug, href: `/insights/${itemSlug}` }))
+  const items = publishedSlugs.map((itemSlug) => ({ id: itemSlug, slug: itemSlug, title: `Title of ${itemSlug}`, href: `/insights/${itemSlug}` }))
   const resolver = loadTypeScript('src/app/(site)/services/[capability]/page.tsx', {
     'react/jsx-runtime': require('react/jsx-runtime'),
     '@/lib/site/seo': { pageMetadata },
@@ -176,7 +183,8 @@ async function resolvedInsights(slug, publishedSlugs) {
   const tree = await resolver.default({ params: { capability: slug } })
   const children = [].concat(tree.props.children)
   const props = children.find((child) => child && child.props && 'insights' in child.props).props
-  resolvedInsights.lastPublished = props.publishedInsightSlugs.slice()
+  resolvedInsights.lastPublished = Object.keys(props.insightTitles)
+  resolvedInsights.lastTitles = { ...props.insightTitles }
   return props.insights.map((item) => item.slug)
 }
 const allPublished = [...approvedPublishedInsights, seasonalInsight, novemberSeasonalInsight, 'unmapped-published-article'].reverse()
@@ -190,6 +198,7 @@ const allPublished = [...approvedPublishedInsights, seasonalInsight, novemberSea
   // Editorial Insight links inside semantic content are passed to the renderer only when published.
   await resolvedInsights('digital-systems', [frictionInsight, 'unmapped-published-article'])
   assert.deepEqual(plain(resolvedInsights.lastPublished), [frictionInsight], 'A linked Insight that is published is available to the renderer')
+  assert.equal(resolvedInsights.lastTitles[frictionInsight], `Title of ${frictionInsight}`, 'The link label is the published post’s real title, not a slug-derived string')
   await resolvedInsights('digital-systems', ['unmapped-published-article'])
   assert.deepEqual(plain(resolvedInsights.lastPublished), [], 'A linked Insight that is not published is never rendered as a link')
   await resolvedInsights('digital-systems', [])

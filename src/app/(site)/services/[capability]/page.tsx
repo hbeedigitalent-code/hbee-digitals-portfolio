@@ -33,7 +33,8 @@ export function generateMetadata({ params }: { params: { capability: string } })
 function semanticInsightSlugs(detail: (typeof CAPABILITY_DETAILS)[string] | undefined): string[] {
   const s = detail?.semantic
   if (!s) return []
-  const links = [s.serviceArea?.connection.link, ...(s.serviceArea?.links ?? []), ...s.questions.items.flatMap((q) => q.links ?? [])]
+  const areas = [s.serviceArea, ...(s.moreServiceAreas ?? [])]
+  const links = [...areas.flatMap((area) => [area?.connection.link, ...(area?.links ?? [])]), ...s.questions.items.flatMap((q) => q.links ?? [])]
   const slugs = links.flatMap((link) => (link?.href.startsWith('/insights/') ? [link.href.slice('/insights/'.length)] : []))
   return Array.from(new Set(slugs))
 }
@@ -48,7 +49,12 @@ export default async function CapabilityPage({ params }: { params: { capability:
     getCapabilityWork(params.capability),
     detail?.insightSlugs.length || linkedInsightSlugs.length ? getInsightsData() : Promise.resolve({ items: [], topics: [] }),
   ])
-  const publishedInsightSlugs = linkedInsightSlugs.filter((slug) => insightData.items.some((item) => item.slug === slug))
+  /* slug → the published post's real title (used as the link label). Unpublished slugs are absent. */
+  const insightTitles: Record<string, string> = {}
+  for (const slug of linkedInsightSlugs) {
+    const post = insightData.items.find((item) => item.slug === slug)
+    if (post?.title) insightTitles[slug] = post.title
+  }
   const insightOrder = new Map(detail?.insightSlugs.map((slug, index) => [slug, index]) ?? [])
   const insights = insightData.items
     .filter((item) => insightOrder.has(item.slug))
@@ -94,7 +100,7 @@ export default async function CapabilityPage({ params }: { params: { capability:
           />
         </>
       )}
-      <CapabilityDetailPage slug={params.capability} work={work} insights={insights} publishedInsightSlugs={publishedInsightSlugs} />
+      <CapabilityDetailPage slug={params.capability} work={work} insights={insights} insightTitles={insightTitles} />
     </>
   )
 }

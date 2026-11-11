@@ -15,6 +15,7 @@
 
 import { SERVICE_GROUPS, type ServiceCapability, type ServiceGroup } from '../services/services-content'
 import type { CapabilitySemantic } from './capability-semantic'
+import { CREATIVE_UGC_SEMANTIC } from './creative-ugc-semantic'
 import { DIGITAL_SYSTEMS_SEMANTIC } from './digital-systems-semantic'
 import { WEBSITE_CONVERSION_SEMANTIC } from './website-conversion-semantic'
 
@@ -264,9 +265,9 @@ export const DIGITAL_SYSTEMS: CapabilityDetail = {
 export const CREATIVE_UGC: CapabilityDetail = {
   slug: 'creative-ugc',
   seo: {
-    title: 'UGC & Ecommerce Product Video',
+    title: 'Ecommerce UGC & Creative Strategy',
     description:
-      'Turn product value into UGC, demonstrations and campaign-ready ecommerce creative that helps shoppers understand, believe and take the next step.',
+      'Ecommerce UGC and creative for Shopify brands: product demonstrations, hooks, creator-led content and ad creative that help shoppers understand and act.',
   },
   systemModule: 'Creative',
   hero: {
@@ -275,7 +276,7 @@ export const CREATIVE_UGC: CapabilityDetail = {
     summary:
       'We plan and produce UGC videos, product demonstrations and ecommerce creative that make products easier to understand — with concepts, hooks and adaptable assets for storefronts, social content and paid campaigns.',
     visualLabel:
-      'Creative & UGC, highlighted as the active module of the Hbee system, connected to Experience, Brand, Technology, Discovery and Growth.',
+      'Creative & UGC, the Creative module, highlighted as the active module of the Hbee system, connected to Discovery, Experience and Brand, with Technology and Growth further back.',
     longHeadline: true,
   },
   opportunity: {
@@ -320,7 +321,7 @@ export const CREATIVE_UGC: CapabilityDetail = {
       'Creative & UGC becomes more effective when it connects with the rest of the growth system — supported by clear positioning, reliable technology, the right discovery channels, a strong buying experience and systems that keep customer value growing.',
     relations: {
       'brand-positioning': 'Gives creative a clear message and point of view.',
-      'digital-systems': 'Gives creative the pages, tools and workflows needed to move customers forward.',
+      'digital-systems': 'Shows which creative and formats are producing results.',
       'discovery-traffic': 'Places creative in front of the audiences most likely to respond.',
       'commerce-experience': 'Turns creative interest into a clear path toward purchase.',
       'retention-growth': 'Extends creative into repeat engagement and customer value.',
@@ -350,6 +351,7 @@ export const CREATIVE_UGC: CapabilityDetail = {
         'Physical product requirements depend on the concept and production plan. Product access, shipping, creator requirements and usage needs are confirmed as part of scoping before production begins.',
     },
   ],
+  semantic: CREATIVE_UGC_SEMANTIC,
 }
 
 export const DISCOVERY_TRAFFIC: CapabilityDetail = {

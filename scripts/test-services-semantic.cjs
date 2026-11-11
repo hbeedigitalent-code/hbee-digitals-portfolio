@@ -141,23 +141,56 @@ for (const link of dsLinks) {
 const dsCopy = JSON.stringify([dss, ds.opportunity, ds.approach, ds.systemFit, ds.cta, ds.seo])
 assert.ok(!/storefront (?:build|design|redesign)|redesign(?:ing)? (?:a|the|your) (?:store|storefront)|conversion rate optimi[sz]ation/i.test(dsCopy.replace(/Storefront design and conversion changes stay with Website & Conversion./, '')), 'Storefront design / CRO stay with Website & Conversion')
 assert.ok(!/GA4|Google Analytics|Tag Manager|Meta Pixel|Looker|Zapier|Triple Whale|Hotjar|enterprise|data warehouse|guarantee/i.test(dsCopy), 'No unevidenced platforms or enterprise claims')
-assert.ok(!/d+(?:.d+)?s*(?:%|x)/i.test(dsCopy) && !/prioritis|catalogue|recognis|behaviour|optimis/i.test(dsCopy), 'No numeric proof; US spelling')
+assert.ok(!/\d+(?:\.\d+)?\s*(?:%|x\b)/i.test(dsCopy) && !/prioritis|catalogue|recognis|behaviour|optimis/i.test(dsCopy), 'No numeric proof; US spelling')
 assert.deepEqual(plain(ds.insightSlugs), [], 'No off-topic Insight is mapped to Digital Systems & Analytics')
 
 
 /* ── 4c. Ownership boundary and dead-link safety ── */
-assert.ok(!/websites?|storefront|platforms?/i.test(JSON.stringify([CAPABILITY_ENTITIES['digital-systems'].coreWork, dss.deliverables])), 'Digital Systems card and side list claim no website/storefront build')
+assert.ok(!/websites?|storefront|platforms?\b/i.test(JSON.stringify([CAPABILITY_ENTITIES['digital-systems'].coreWork, dss.deliverables])), 'Digital Systems card and side list claim no website/storefront build')
 assert.ok(!/build(?:s|ing)? (?:ecommerce )?(?:websites?|stores?)/i.test(JSON.stringify([ds.hero.summary, CAPABILITY_ENTITIES['digital-systems'], SERVICE_GROUPS])), 'Digital Systems is not described as building websites')
 assert.deepEqual(plain(dss.deliverables), ['Tracking & integrations', 'Automation workflows', 'Reporting & diagnostics'])
 const detailPageSource = read('src/app/(site)/services/[capability]/page.tsx')
-assert.ok(detailPageSource.includes('publishedInsightSlugs') && detailPageSource.includes('semanticInsightSlugs'), 'Page resolves which linked Insights are published')
+assert.ok(detailPageSource.includes('insightTitles') && detailPageSource.includes('semanticInsightSlugs'), 'Page resolves which linked Insights are published')
 const semanticSections = read('src/components/site/capability/CapabilitySemanticSections.tsx')
-assert.ok(semanticSections.includes('liveLinks(item.links, publishedInsightSlugs)') && semanticSections.includes('liveLinks(area.links, publishedInsightSlugs)'), 'Insight links render only when published')
+assert.ok(semanticSections.includes('liveLinks(item.links, insightTitles)') && semanticSections.includes('liveLinks(area.links, insightTitles)') && semanticSections.includes('label: title'), 'Insight links render only when published')
+
+
+/* ── 4d. Creative & UGC: third semantic capability ── */
+const cu = CAPABILITY_DETAILS['creative-ugc']
+const cus = cu.semantic
+assert.ok(cus, 'Creative & UGC provides semantic content')
+assert.equal(`${cus.h1.lead} ${cus.h1.accent}`, 'Ecommerce UGC & Creative Strategy')
+assert.equal(cu.systemModule, 'Creative')
+assert.deepEqual(plain([cus.serviceArea.id, ...cus.moreServiceAreas.map((a) => a.id)]), ['ugc-for-ecommerce', 'creative-strategy-for-ecommerce'], 'UGC and Creative strategy are both service areas')
+assert.ok(cus.moreServiceAreas[0].connection.link.href === '/services/commerce-experience#product-and-offer', 'Creative connects to Product & Offer inside Website & Conversion')
+assert.ok(cus.serviceArea.connection.link.href.startsWith('/services/commerce-experience'), 'UGC page placement belongs to Website & Conversion')
+const cuSentences = cus.definition.split(/(?<=[.!?])\s+/).filter(Boolean)
+assert.ok(cuSentences.length >= 2 && cuSentences.length <= 4, 'Direct answer is 2-4 sentences')
+assert.ok(cus.symptoms.items.length >= 6 && cus.diagnose.items.length >= 6)
+assert.ok(cus.questions.items.length >= 8 && cus.questions.items.length <= 9, 'Focused question set')
+assert.equal(new Set(cus.questions.items.map((q) => q.intent)).size, 6, 'All six intents covered')
+for (const q of cus.questions.items) assert.ok(q.question.endsWith('?') && q.answer.length >= 150, q.question)
+assert.deepEqual(plain(CAPABILITY_ENTITIES['creative-ugc'].adjacent.slice().sort()), ['brand-positioning', 'commerce-experience', 'discovery-traffic'], 'Related capabilities follow the semantic model')
+const cuAreas = [cus.serviceArea, ...cus.moreServiceAreas]
+const cuLinks = [...cuAreas.flatMap((a) => [a.connection.link, ...(a.links ?? [])]), ...cus.questions.items.flatMap((q) => q.links ?? [])]
+for (const link of cuLinks) {
+  assert.ok(link.href.startsWith('/') && link.label.length >= 12, `Internal, descriptive link: ${link.label}`)
+  assert.ok(!link.href.startsWith('/services/creative-ugc'), 'No self-link')
+}
+const cuCopy = JSON.stringify([cus, cu.opportunity, cu.approach, cu.systemFit, cu.cta, cu.seo])
+assert.ok(!/\b(?:always|guarantee[ds]?|ROAS|CPA|CAC|outperform(?:s|ed)?|higher conversion|lower(?:s|ing)? (?:your )?(?:cost|CPA))\b/i.test(cuCopy.replace(/does not promise specific[^"]*/i, '')), 'No ad-performance claims')
+assert.ok(!/\d+(?:\.\d+)?\s*(?:%|x\b)/i.test(cuCopy) && !/prioritis|catalogue|recognis|behaviour|optimis/i.test(cuCopy), 'No numeric proof; US spelling')
+assert.ok(/created by customers/i.test(cus.serviceArea.answer) && /commission creators/i.test(cus.serviceArea.answer) && /influencer marketing/i.test(cus.serviceArea.answer), 'Customer-generated UGC, commissioned UGC-style content and influencer marketing are distinguished')
+assert.ok(cus.questions.items.some((q) => /influencer marketing/i.test(q.question) && /existing audience/i.test(q.answer) && /genuinely created by customers/i.test(q.answer)), 'The UGC vs influencer answer separates the three categories')
+assert.ok(!/\b(?:measure[ds]?|measuring|measurement|track(?:ing)?|attribution)\b/i.test(JSON.stringify(cus.moreServiceAreas)), 'Creative strategy area claims no measurement')
+assert.ok(!/influencer (?:management|outreach|seeding)|social[- ]media management|photograph(?:y|er) studio|studio production/i.test(cuCopy), 'Not an influencer-management, social-management or studio page')
+assert.ok(!/storefront (?:build|design|redesign)|conversion rate optimi[sz]ation|attribution model/i.test(cuCopy), 'Page structure, CRO and measurement stay with their capabilities')
+assert.deepEqual(plain(cu.insightSlugs), ['types-of-ugc-ecommerce-brand-needs'], 'Existing, relevant Insight mapping is preserved')
 
 /* ── 5. Claims and link hygiene ── */
 const copy = JSON.stringify([s, CAPABILITY_ENTITIES, MERCHANT_SYMPTOMS, SERVICES_HERO, CONNECT_INTRO, SERVICES_FAQ])
 assert.ok(!/\b(?:10x|skyrocket|dominate|guaranteed?|world-class|best agency|#1)\b/i.test(copy.replace(/does not promise a specific[^"]*/i, '')), 'No inflated claims')
-assert.ok(!/\b\d+(?:\.\d+)?\s*(?:%|x)\b/i.test(copy), 'No unsupported numeric proof')
+assert.ok(!/\b\d+(?:\.\d+)?\s*(?:%|x\b)/i.test(copy), 'No unsupported numeric proof')
 assert.ok(!/learn more|click here|read more/i.test(copy), 'No generic link text')
 const links = [...(s.serviceArea.links ?? []), ...s.questions.items.flatMap((q) => q.links ?? [])]
 for (const link of links) {

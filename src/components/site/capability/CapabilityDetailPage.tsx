@@ -29,13 +29,13 @@ export function CapabilityDetailPage({
   slug,
   work = [],
   insights = [],
-  publishedInsightSlugs = [],
+  insightTitles = {},
 }: {
   slug: string
   work?: WorkItem[]
   insights?: InsightSummary[]
-  /** Insight slugs confirmed published; editorial links to any other Insight are omitted. */
-  publishedInsightSlugs?: string[]
+  /** Published Insights by slug → real title. Editorial links to any other Insight are omitted. */
+  insightTitles?: Record<string, string>
 }) {
   const detail = CAPABILITY_DETAILS[slug]
   const identity = capabilityIdentity(slug)
@@ -50,8 +50,8 @@ export function CapabilityDetailPage({
         <CapabilitySymptomsDiagnose detail={detail} />
         <CapabilityOpportunity detail={detail} />
         <CapabilityApproach detail={detail} name={name} />
-        <CapabilityServiceArea detail={detail} publishedInsightSlugs={publishedInsightSlugs} />
-        <CapabilityQuestions detail={detail} publishedInsightSlugs={publishedInsightSlugs} />
+        <CapabilityServiceArea detail={detail} insightTitles={insightTitles} />
+        <CapabilityQuestions detail={detail} insightTitles={insightTitles} />
         <CapabilityWork detail={detail} work={work} insights={insights} />
         <CapabilityConnected detail={detail} />
         <CapabilityCta detail={detail} />
