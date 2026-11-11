@@ -18,6 +18,7 @@ import type { CapabilitySemantic } from './capability-semantic'
 import { BRAND_POSITIONING_SEMANTIC } from './brand-positioning-semantic'
 import { CREATIVE_UGC_SEMANTIC } from './creative-ugc-semantic'
 import { DISCOVERY_TRAFFIC_SEMANTIC } from './discovery-traffic-semantic'
+import { RETENTION_GROWTH_SEMANTIC } from './retention-growth-semantic'
 import { DIGITAL_SYSTEMS_SEMANTIC } from './digital-systems-semantic'
 import { WEBSITE_CONVERSION_SEMANTIC } from './website-conversion-semantic'
 
@@ -573,9 +574,9 @@ export const COMMERCE_EXPERIENCE: CapabilityDetail = {
 export const RETENTION_GROWTH: CapabilityDetail = {
   slug: 'retention-growth',
   seo: {
-    title: 'Klaviyo & Shopify Email Marketing',
+    title: 'Ecommerce Retention & Lifecycle Marketing',
     description:
-      'Build Shopify and Klaviyo lifecycle systems across welcome, abandonment, post-purchase and winback journeys to support repeat customer value.',
+      'Ecommerce retention and lifecycle marketing for Shopify brands: welcome, cart follow-up, post-purchase and win-back journeys that support repeat customer value.',
   },
   systemModule: 'Growth',
   hero: {
@@ -584,7 +585,7 @@ export const RETENTION_GROWTH: CapabilityDetail = {
     summary:
       'We build and improve Shopify email marketing and Klaviyo lifecycle systems — including welcome, abandonment, post-purchase, winback, segmentation and campaign planning — to support stronger customer relationships and repeat value.',
     visualLabel:
-      'Retention & Growth, highlighted as the active module of the Hbee system, connected to Experience, Creative, Brand, Technology and Discovery.',
+      'Retention & Customer Value, the Growth module, highlighted as the active module of the Hbee system, connected to Experience, Technology and Creative, with Brand and Discovery further back.',
   },
   opportunity: {
     headline: 'Growth is stronger when customers stay.',
@@ -593,38 +594,38 @@ export const RETENTION_GROWTH: CapabilityDetail = {
     bestFor:
       'Shopify businesses with weak repeat purchase, disconnected email activity or a Klaviyo account that needs clearer flows, segmentation and lifecycle direction.',
     outcomes: [
-      { name: 'Retention', text: 'Keep more of the customers the business has already worked to acquire.' },
+      { name: 'Retention', text: 'Stay useful to the customers the business has already worked to acquire.' },
       {
-        name: 'Lifetime Value',
-        text: 'Increase the value each customer creates over time through stronger repeat engagement and purchase behavior.',
+        name: 'Customer value',
+        text: 'Support more value from each customer over time through relevant, well-timed communication and repeat engagement.',
       },
       {
-        name: 'Sustainable Growth',
-        text: 'Build more predictable growth by combining new customer acquisition with stronger repeat value and ongoing customer relationships.',
+        name: 'Less reacquisition',
+        text: 'Reduce reliance on winning a brand-new customer for every sale by building value after acquisition.',
       },
     ],
   },
   approach: {
-    headline: 'From customer relationships',
-    headlineAccent: 'to lasting growth.',
+    headline: 'From lifecycle review',
+    headlineAccent: 'to reasons to return.',
     copy:
-      'We combine customer understanding, lifecycle strategy, creative context and technology to build retention systems that help businesses stay connected, increase repeat value and create more predictable growth.',
+      'We review what customers receive at each stage, then plan and build the lifecycle communication in Shopify and Klaviyo that keeps the brand useful and gives customers timely reasons to come back.',
     steps: [
       {
         name: 'Analyze',
-        text: 'Review current customer behavior, retention patterns, lifecycle touchpoints, segmentation, repeat purchase behavior and growth opportunities.',
+        text: 'Review lifecycle touchpoints, segments, repeat-purchase behavior and the existing Klaviyo setup, and find where customer value is being lost.',
       },
       {
         name: 'Strategy',
-        text: 'Define retention priorities, customer segments, lifecycle journeys, engagement opportunities, offers, content direction and measurement.',
+        text: 'Define retention priorities, customer segments, lifecycle journeys and content direction.',
       },
       {
         name: 'Implement',
-        text: 'Build or improve the required retention systems, lifecycle experiences, customer communication, offers and automation across the relevant customer journey.',
+        text: 'Build or improve the flows, segments and campaigns you approve, across the stages where customers need them.',
       },
       {
-        name: 'Optimize',
-        text: 'Measure customer behavior and repeat-value performance, learn from results and refine journeys, segments, content, offers and automation over time.',
+        name: 'Review',
+        text: 'Check how journeys perform against reliable data, then refine flows, segments and content. Tracking and integration reliability sit with Digital Systems & Analytics.',
       },
     ],
   },
@@ -632,7 +633,7 @@ export const RETENTION_GROWTH: CapabilityDetail = {
     headline: 'Retention and growth applied to real businesses.',
     empty: 'Real capability examples will appear here as related case studies are published.',
   },
-  insightSlugs: ['ecommerce-conversion-mistakes-costing-sales', 'klaviyo-flows-shopify-store-needs-first'],
+  insightSlugs: ['klaviyo-flows-shopify-store-needs-first'],
   systemFit: {
     headline: 'Stronger customers.',
     headlineAccent: 'A stronger whole.',
@@ -641,7 +642,7 @@ export const RETENTION_GROWTH: CapabilityDetail = {
     /* Owner-supplied relations, condensed (meaning unchanged) to fit the diagram's node lines. */
     relations: {
       'brand-positioning': 'Gives customers a clear reason to stay connected and keep choosing the brand.',
-      'digital-systems': 'Provides the customer data, integrations and automation retention depends on.',
+      'digital-systems': 'Keeps the tracking and integrations behind lifecycle flows reliable.',
       'creative-ugc': 'Brings relevant stories, offers and communication beyond the first purchase.',
       'discovery-traffic': 'Brings in qualified new customers, so retention can grow the value of acquisition.',
       'commerce-experience': 'Creates the buying and post-purchase experience that gives customers reasons to return.',
@@ -651,8 +652,8 @@ export const RETENTION_GROWTH: CapabilityDetail = {
     eyebrow: 'Ready to grow longer together',
     headline: 'Let’s build a more valuable customer base.',
     copy:
-      'Start with a focused Growth Review and get a clearer view of how customer retention, repeat value and lifecycle systems can support more predictable growth.',
-    secondaryLabel: 'Discuss Retention & Growth',
+      'Start with a focused Growth Review and get a clearer view of how retention and lifecycle communication can build more value from the customers you already have.',
+    secondaryLabel: 'Discuss Retention & Customer Value',
   },
   faq: [
     {
@@ -671,6 +672,7 @@ export const RETENTION_GROWTH: CapabilityDetail = {
         'No. Email and Klaviyo can be important delivery systems, but retention also depends on the product, customer experience, post-purchase journey, segmentation, offers, service and reasons customers have to return.',
     },
   ],
+  semantic: RETENTION_GROWTH_SEMANTIC,
 }
 
 /** Capabilities that have a detail page — the complete six-capability set (Phase 10). */

@@ -254,6 +254,42 @@ assert.ok(/more traffic is not automatically better traffic/i.test(tvs.diagnose.
 assert.deepEqual(plain(tv.insightSlugs), ['why-shopify-store-not-appearing-google'], 'Existing relevant Insight mapping is preserved')
 assert.ok(!/paid media/i.test(JSON.stringify(tvs.deliverables)), 'Side list does not claim paid media')
 
+
+/* ── 4g. Retention & Customer Value: sixth semantic capability ── */
+const rg = CAPABILITY_DETAILS['retention-growth']
+const rgs = rg.semantic
+assert.ok(rgs, 'Retention & Customer Value provides semantic content')
+assert.equal(rg.systemModule, 'Growth')
+assert.equal(rgs.h1.lead + ' ' + rgs.h1.accent, 'Ecommerce Retention & Customer Value')
+assert.deepEqual(plain([rgs.serviceArea.id, ...rgs.moreServiceAreas.map((a) => a.id)]), ['ecommerce-lifecycle-automation', 'customer-value'], 'Lifecycle automation and customer value are service areas')
+assert.ok(rgs.serviceArea.connection.link.href === '/services/digital-systems' && rgs.moreServiceAreas[0].connection.link.href === '/services/brand-positioning', 'Tracking reliability stays with Digital Systems; brand voice with Brand')
+const rgSentences = rgs.definition.split(/(?<=[.!?])\s+/).filter(Boolean)
+assert.ok(rgSentences.length >= 2 && rgSentences.length <= 4, 'Direct answer is 2-4 sentences')
+assert.ok(rgs.symptoms.items.length >= 6 && rgs.diagnose.items.length >= 6)
+assert.ok(rgs.questions.items.length >= 8 && rgs.questions.items.length <= 9, 'Focused question set')
+for (const intent of ['Definition', 'Comparison', 'Evaluation', 'Problem', 'Commercial']) assert.ok(rgs.questions.items.some((q) => q.intent === intent), 'Intent covered: ' + intent)
+for (const q of rgs.questions.items) assert.ok(q.question.endsWith('?') && q.answer.length >= 150, q.question)
+const rgAreas = [rgs.serviceArea, ...rgs.moreServiceAreas]
+const rgLinks = [...rgAreas.flatMap((a) => [a.connection.link, ...(a.links ?? [])]), ...rgs.questions.items.flatMap((q) => q.links ?? [])]
+for (const link of rgLinks) {
+  assert.ok(link.href.startsWith('/') && link.label.length >= 12, 'Internal, descriptive link: ' + link.label)
+  assert.ok(!link.href.startsWith('/services/retention-growth'), 'No self-link')
+}
+const rgCopy = JSON.stringify([rgs, rg.opportunity, rg.approach, rg.systemFit, rg.cta, rg.seo])
+assert.ok(!/guarantee[ds]?|(?:will|can|to) (?:recover|bring back|win back) (?:all|every|most)|recovery rate of|ensure(?:s)? (?:repeat|retention|revenue)/i.test(rgCopy), 'No guaranteed repeat purchase, recovery, LTV or revenue claims')
+assert.ok(!/predictive|machine[- ]learning|\bAI\b|artificial intelligence|propensity|churn model|CRM (?:engineering|build|implementation)|data science/i.test(rgCopy), 'No predictive, machine-learning or CRM-engineering claims')
+assert.ok(!/loyalty|rewards? program|subscription (?:program|box|service|platform|model|management)|customer (?:service|support) (?:operations|team|desk)/i.test(rgCopy), 'No loyalty, subscription-implementation or customer-service operations claims')
+assert.ok(!/media buying|ad management|paid acquisition|google ads|meta ads|storefront (?:build|design|redesign)|conversion rate optimi[sz]ation/i.test(rgCopy), 'Paid acquisition and storefront work stay with their capabilities')
+assert.ok(/customer lifetime value is the value a customer contributes across their relationship with a brand, rather than from one transaction/i.test(rgs.questions.items.map((q) => q.answer).join(' ')), 'CLV is defined simply')
+assert.ok(/a cart is abandoned before checkout begins and a checkout after it has begun/i.test(rgCopy), 'Cart and checkout abandonment are distinguished')
+assert.ok(/acquisition gets a customer into the relationship; retention determines what happens after that/i.test(rgs.diagnose.intro), 'States the acquisition/retention distinction')
+assert.ok(!/\b(?:elevate|unforgettable|skyrocket|supercharge|boost your|drive massive|dominate|explosive|unlock|squeeze)\b/i.test(rgCopy), 'No vague agency language')
+assert.ok(!/\d+(?:\.\d+)?\s*(?:%|x\b)/i.test(rgCopy) && !/prioritis|catalogue|recognis|behaviour|optimis|colour|organis|personalis/i.test(rgCopy), 'No numeric proof; US spelling')
+assert.deepEqual(plain(rg.insightSlugs), ['klaviyo-flows-shopify-store-needs-first'], 'Only the relevant Klaviyo Insight is mapped; the conversion-friction article stays with Website & Conversion')
+assert.ok(!rg.insightSlugs.includes('ecommerce-conversion-mistakes-costing-sales'), 'Off-topic conversion Insight is not mapped to Retention')
+assert.ok(/where the buying cycle supports it/i.test(JSON.stringify(rgs.serviceArea.topics)) && /where the data supports it/i.test(JSON.stringify(rgs.moreServiceAreas[0].topics)), 'Replenishment and next-product logic stay conditional on buying cycle and data')
+assert.ok(!/loyalty|subscription/i.test(JSON.stringify(rgs.deliverables)), 'Side list claims no loyalty or subscriptions')
+
 /* ── 5. Claims and link hygiene ── */
 const copy = JSON.stringify([s, CAPABILITY_ENTITIES, MERCHANT_SYMPTOMS, SERVICES_HERO, CONNECT_INTRO, SERVICES_FAQ])
 assert.ok(!/\b(?:10x|skyrocket|dominate|guaranteed?|world-class|best agency|#1)\b/i.test(copy.replace(/does not promise a specific[^"]*/i, '')), 'No inflated claims')

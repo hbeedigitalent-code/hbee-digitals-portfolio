@@ -91,7 +91,7 @@ const expectedInsights = {
   'creative-ugc': [ugcInsight],
   'discovery-traffic': [searchInsight],
   'commerce-experience': [conversionInsight, productPageInsight, frictionInsight],
-  'retention-growth': [conversionInsight, klaviyoInsight],
+  'retention-growth': [klaviyoInsight],
 }
 const bannedClaims = /\b(?:10x|skyrocket|dominate|guaranteed|world-class|best agency|number one|#1)\b/i
 const unsupportedProof = /(?<![\w.])\+?\d+(?:\.\d+)?\s*(?:%|x\b|per\s?cent\b)/i
@@ -203,7 +203,7 @@ const allPublished = [...approvedPublishedInsights, seasonalInsight, novemberSea
   assert.deepEqual(plain(resolvedInsights.lastPublished), [], 'A linked Insight that is not published is never rendered as a link')
   await resolvedInsights('digital-systems', [])
   assert.deepEqual(plain(resolvedInsights.lastPublished), [], 'No published Insights means no editorial Insight links')
-  assert.deepEqual(expectedInsights['brand-positioning'].length +expectedInsights['digital-systems'].length + expectedInsights['creative-ugc'].length + expectedInsights['discovery-traffic'].length + expectedInsights['commerce-experience'].length + expectedInsights['retention-growth'].length, 10)
+  assert.deepEqual(expectedInsights['brand-positioning'].length +expectedInsights['digital-systems'].length + expectedInsights['creative-ugc'].length + expectedInsights['discovery-traffic'].length + expectedInsights['commerce-experience'].length + expectedInsights['retention-growth'].length, 9)
   console.log('PASS: capability → Insight resolution (exact mappings, order, safe omission, no fallback, seasonal/broad articles unmapped)')
 })().catch((error) => { console.error(error); process.exit(1) })
 
