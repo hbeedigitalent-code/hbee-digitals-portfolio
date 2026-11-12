@@ -12,7 +12,7 @@ export const HERO = {
   eyebrow: ['Brand', 'Experience', 'Technology', 'Creative', 'Discovery', 'Growth'],
   headline: ['Growth works better', 'when everything', 'connects.'],
   lede:
-    'Hbee Digitals is a digital growth studio for Shopify and e-commerce brands, connecting brand, digital systems, creative, discovery, commerce, retention and growth.',
+    'Hbee Digitals is a digital growth studio for Shopify and ecommerce brands, connecting brand and positioning, website and conversion, digital systems and analytics, creative and UGC, traffic and visibility, and retention and customer value.',
 }
 
 export const BRIDGE = {

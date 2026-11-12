@@ -16,11 +16,22 @@
   .heroVisual > figure { max-width: 520px; }
 }
 
-/* ═══ Hero — process system ═══ */
+/* ═══ Hero — process system (S3.1) ═══
+   Three deliberate compositions, chosen by viewport (tablet) and container (phone):
+   desktop 100 × 92 · tablet (640–1023px) 100 × 70 · phone (container ≤ 400px) 100 × 140. */
 .systemViewport.systemViewport { aspect-ratio: 100 / 92; }
-@container (max-width: 400px) {
-  .systemViewport.systemViewport { aspect-ratio: 100 / 118; }
+@media (min-width: 640px) and (max-width: 1023px) {
+  .systemViewport.systemViewport { aspect-ratio: 100 / 70; }
+  .stageSlot.stageSlot { --x: var(--tx); --y: var(--ty); --w-num: var(--tw); --hit: var(--hit-t); }
 }
+@container (max-width: 400px) {
+  .systemViewport.systemViewport { aspect-ratio: 100 / 140; }
+  .stageSlot.stageSlot { --hit: var(--hit-m); }
+}
+.stageSlot { --hit: var(--hit-d); }
+
+/* Material: a deeper contact shadow than the default module, on top of the shared gloss/glass/Signal Insert. */
+.stageModule { --hbm-contact-y: 2.4em; --hbm-contact-blur: 3.2em; --hbm-contact-a: 0.5; }
 .stageNumber {
   display: block;
   font-family: var(--hb-font-display);
@@ -29,27 +40,103 @@
   line-height: 1;
   letter-spacing: -0.02em;
 }
-/* The orange signal: a short segment that travels the route once and rests
-   at Optimize. Rest state (no motion) = the segment at the end. */
-.routeSignal {
-  stroke-dasharray: 0.07 1;
-  stroke-dashoffset: -0.93;
+
+/* Route layers sit on the stage floor, below the modules. Only the set for the current composition is shown. */
+.route {
+  position: absolute;
+  inset: 0;
+  display: none;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: translateZ(-3cqw);
 }
+.routeDesktop { display: block; }
+@media (min-width: 640px) and (max-width: 1023px) {
+  .routeDesktop { display: none; }
+  .routeTablet { display: block; }
+}
+@container (max-width: 400px) {
+  .routeDesktop, .routeTablet { display: none; }
+  .routePhone { display: block; }
+}
+.routeBase {
+  stroke: var(--hb-electric);
+  stroke-opacity: 0.5;
+  stroke-width: 0.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.routeReturn {
+  stroke: var(--hb-electric);
+  stroke-opacity: 0.4;
+  stroke-width: 0.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 0.014 0.022;
+}
+.routeNode {
+  fill: var(--hb-white);
+  stroke: var(--hb-electric);
+  stroke-width: 0.45;
+}
+.returnNode {
+  fill: none;
+  stroke: var(--hb-electric);
+  stroke-opacity: 0.6;
+  stroke-width: 0.4;
+}
+/* The orange signal: a short segment that travels 01 → 05 once and rests at Optimize. Rest state = the segment at the end. */
+.routeSignal {
+  stroke: var(--hb-signal);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 0.06 1;
+  stroke-dashoffset: -0.94;
+}
+/* One faint pulse back toward Assess (learning feeds the next assessment). Hidden at rest. */
+.returnPulse {
+  stroke: #ffb48f;
+  stroke-width: 0.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 0.08 1;
+  stroke-dashoffset: 0.08;
+  opacity: 0;
+}
+
 @keyframes procAssemble {
   from { transform: translate3d(-1.5cqw, 1.5cqw, calc((var(--z) - 4) * 1cqw)); }
   to { transform: translate3d(0, 0, calc(var(--z) * 1cqw)); }
 }
+/* A very small response as the signal arrives: the stage lifts toward the viewer and settles. */
+@keyframes procHit {
+  0%, 100% { transform: translate3d(0, 0, calc(var(--z) * 1cqw)); }
+  42% { transform: translate3d(0, -0.5cqw, calc((var(--z) + 1.6) * 1cqw)); }
+}
 @keyframes procFade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes procTravel { from { stroke-dashoffset: 0.07; } to { stroke-dashoffset: -0.93; } }
+@keyframes procTravel { from { stroke-dashoffset: 0.06; } to { stroke-dashoffset: -0.94; } }
+@keyframes procReturn {
+  0% { stroke-dashoffset: 0.08; opacity: 0; }
+  12% { opacity: 0.85; }
+  88% { opacity: 0.85; }
+  100% { stroke-dashoffset: -1; opacity: 0; }
+}
 :global([data-surface='site'][data-motion-ready]) .systemMotion .stageSlot {
-  animation: procAssemble 520ms var(--hb-ease) backwards;
-  animation-delay: calc(80ms + var(--hb-motion-index, 0) * 70ms);
+  animation-name: procAssemble, procHit;
+  animation-duration: 520ms, 720ms;
+  animation-timing-function: var(--hb-ease), var(--hb-ease-in-out);
+  animation-delay: calc(80ms + var(--hb-motion-index, 0) * 70ms), var(--hit);
+  animation-fill-mode: backwards, none;
 }
 /* fill BOTH for SVG in the 3D stage (end values = base values). */
 :global([data-surface='site'][data-motion-ready]) .systemMotion .route { animation: procFade 380ms var(--hb-ease) 520ms both; }
-:global([data-surface='site'][data-motion-ready]) .systemMotion .routeSignal { animation: procTravel 1100ms var(--hb-ease-in-out) 760ms both; }
+:global([data-surface='site'][data-motion-ready]) .systemMotion .routeSignal { animation: procTravel var(--signal-ms) var(--hb-ease-in-out) var(--signal-start) both; }
+:global([data-surface='site'][data-motion-ready]) .systemMotion .returnPulse { animation: procReturn 1500ms var(--hb-ease-in-out) var(--return-start) 1 both; }
 @media (prefers-reduced-motion: reduce) {
-  .stageSlot, .route, .routeSignal { animation: none !important; }
+  .stageSlot, .route, .routeSignal, .returnPulse { animation: none !important; }
+  .returnPulse { display: none; }
 }
 
 /* ═══ Why isolated fixes fail — connected system ═══ */

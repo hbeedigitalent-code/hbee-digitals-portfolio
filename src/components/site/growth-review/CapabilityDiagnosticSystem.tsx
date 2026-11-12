@@ -1,147 +1,244 @@
+import Image from 'next/image'
 import type { CSSProperties } from 'react'
 import { cn } from '@/lib/cn'
-import { HbeeModule, HbeeSpine, type ModuleSweep } from '../module/HbeeModule'
-import moduleStyles from '../module/hbee-module.module.css'
-import { CAPABILITY_ICONS } from '../capability/capability-icons'
-import { CAPABILITY_ENTITIES, CAPABILITY_ORDER, type CapabilitySlug } from '../services/capability-entities'
-import styles from './growth-review.module.css'
+import { roundedPath, type Pt } from '../module/route-geometry'
+import { CAPABILITY_ENTITIES, CAPABILITY_ORDER, MODULE_IMAGE, type ModuleName } from '../services/capability-entities'
+import styles from './diagnostic-hero.module.css'
 
 /**
- * CAPABILITY DIAGNOSTIC SYSTEM — the Growth Review visual (S2.2).
+ * CAPABILITY DIAGNOSTIC SYSTEM — the Growth Review hero visual (S3.1).
  *
- * The six Hbee capabilities, as modules around the Hbee spine, each routed
- * into one hub. Same dimensional language as the other heroes (HbeeModule,
- * HbeeSpine, the module group's 3D stage). It means one thing: the diagnosis
- * may point into one or more parts of the Hbee system. It is NOT a scoring
- * diagram: the form feeds five internal pillars, and nothing here suggests
- * the six capabilities are individually scored.
+ * The connected Hbee system being examined to find where a constraint may sit.
+ * It uses the six canonical module renders (public/brand/modules/*.webp) as
+ * supplied: never redrawn, relabeled, recoloured, rotated or stretched. Only
+ * placement, uniform scale, layering and ground shadow vary.
  *
- * Motion (CSS, gated on data-motion-ready, once): modules settle in → routes
- * draw to the hub → one orange signal enters → settle. Reduced motion: the
- * final, connected state.
+ * It is deliberately NOT the Services hero: the composition is asymmetric, the
+ * Hbee hub sits off-centre like a lens over the system, modules sit at
+ * different scales and depths, and a quiet scan sends a signal from the hub to
+ * ONE module at a time. Depth is placement only; it never ranks a capability.
+ * There are no numbers, scores or "6 of 6": the figure means "the diagnosis may
+ * point into any part of the system".
  *
- * Variants: `hero` (introduction, plays once) · `received` (confirmation:
- * routes complete, hub nodes filled, signal lit) · `idle` (direct-visit
- * recovery: system at rest, NO signal, hollow nodes, never reads as success).
+ * Variants
+ *   hero      introduction: modules settle → channels draw → the scan runs
+ *             (one slow cycle, restrained), CSS only, gated on data-motion-ready.
+ *   received  confirmation: settled, channels complete, nodes filled, the hub's
+ *             orange signal lit. No scan.
+ *   idle      direct-visit recovery: the system at rest, dashed channels,
+ *             hollow nodes, NO orange signal anywhere. Never reads as success.
+ * Reduced motion: the settled system, no scan.
  *
- * Stage 100 × 96 on desktop; 100 × 112 on phones (container ≤ 400px).
- * The homepage closing section keeps using the original DiagnosticSystem.
+ * Three compositions: desktop 100 × 104, tablet (viewport 640–1023px) 100 × 98,
+ * phone (container ≤ 440px): hub above, a 2 × 3 grid below, short stubs.
  */
 
 export type DiagnosticVariant = 'hero' | 'received' | 'idle'
 
-const ICON_KEY = {
-  'brand-positioning': 'brand',
-  'digital-systems': 'systems',
-  'creative-ugc': 'creative',
-  'discovery-traffic': 'discovery',
-  'commerce-experience': 'commerce',
-  'retention-growth': 'retention',
-} as const
+/** Intrinsic size of each trimmed render. */
+const ASSET_SIZE: Record<ModuleName, readonly [number, number]> = {
+  Brand: [999, 1014],
+  Experience: [917, 915],
+  Technology: [1035, 1020],
+  Creative: [958, 951],
+  Discovery: [919, 909],
+  Growth: [1015, 992],
+}
 
 interface Box { x: number; y: number; w: number }
-interface Slot { d: Box; m: Box; z: number; sweep: ModuleSweep }
-type Point = readonly [number, number]
-
-/* x / w in % of stage width; y in stage units (desktop 0–96, phones 0–112). Module height = 0.86 × width.
-   Two columns of three flank the spine; reading order runs down the left, then the right. */
-const SLOTS: Record<CapabilitySlug, Slot> = {
-  'brand-positioning': { d: { x: 5, y: 5, w: 26 }, m: { x: 2, y: 2, w: 30 }, z: 6, sweep: 'tr' },
-  'commerce-experience': { d: { x: 69, y: 5, w: 26 }, m: { x: 68, y: 2, w: 30 }, z: 4, sweep: 'br' },
-  'digital-systems': { d: { x: 5, y: 37, w: 26 }, m: { x: 2, y: 43, w: 30 }, z: 3, sweep: 'bl' },
-  'creative-ugc': { d: { x: 69, y: 37, w: 26 }, m: { x: 68, y: 43, w: 30 }, z: 5, sweep: 'tr' },
-  'discovery-traffic': { d: { x: 5, y: 69, w: 26 }, m: { x: 2, y: 84, w: 30 }, z: 2, sweep: 'bl' },
-  'retention-growth': { d: { x: 69, y: 69, w: 26 }, m: { x: 68, y: 84, w: 30 }, z: 4, sweep: 'br' },
+interface Layout {
+  height: number
+  boxes: Record<ModuleName, Box>
+  hub: Box
+  paths: Record<ModuleName, readonly Pt[]>
 }
-/* The spine is square; the hub is its centre. */
-const SPINE = { d: { x: 35, y: 33, w: 30 }, m: { x: 35, y: 41, w: 30 }, z: -4 }
-const HUB_D: Point = [SPINE.d.x + SPINE.d.w / 2, SPINE.d.y + SPINE.d.w / 2]
-const HUB_M: Point = [SPINE.m.x + SPINE.m.w / 2, SPINE.m.y + SPINE.m.w / 2]
-const RING_D = 18
-const RING_M = 17
 
-function centre(b: Box): Point {
-  return [b.x + b.w / 2, b.y + (b.w * 0.86) / 2]
+const DESKTOP: Layout = {
+  height: 104,
+  hub: { x: 27, y: 41, w: 22 },
+  boxes: {
+    Brand: { x: 2, y: 4, w: 26 },
+    Experience: { x: 32, y: 0, w: 22 },
+    Creative: { x: 70, y: 6, w: 30 },
+    Technology: { x: 54, y: 40, w: 34 },
+    Discovery: { x: 28, y: 70, w: 28 },
+    Growth: { x: 66, y: 78, w: 24 },
+  },
+  paths: {
+    Brand: [[31, 41], [31, 17], [28, 17]],
+    Experience: [[38, 41], [38, 22]],
+    Creative: [[45, 41], [45, 28], [70, 28]],
+    Technology: [[49, 52], [54, 52]],
+    Discovery: [[38, 63], [38, 70]],
+    Growth: [[44, 63], [44, 84], [66, 84]],
+  },
 }
-/** Where the route from `from` crosses the hub ring. */
-function onRing(from: Point, hub: Point, r: number): Point {
-  const dx = from[0] - hub[0]
-  const dy = from[1] - hub[1]
-  const len = Math.hypot(dx, dy) || 1
-  return [hub[0] + (dx / len) * r, hub[1] + (dy / len) * r]
-}
-const route = (from: Point, to: Point) => `M${from[0].toFixed(2)} ${from[1].toFixed(2)}L${to[0].toFixed(2)} ${to[1].toFixed(2)}`
 
-function slotStyle(b: Box, m: Box, z: number, index: number, vh: { d: number; m: number }) {
+const TABLET: Layout = {
+  height: 98,
+  hub: { x: 27, y: 38, w: 23 },
+  boxes: {
+    Brand: { x: 4, y: 4, w: 25 },
+    Experience: { x: 33, y: 0, w: 22 },
+    Creative: { x: 68, y: 6, w: 30 },
+    Technology: { x: 54, y: 36, w: 33 },
+    Discovery: { x: 27, y: 67, w: 28 },
+    Growth: { x: 63, y: 72, w: 25 },
+  },
+  paths: {
+    Brand: [[31, 38], [31, 16], [29, 16]],
+    Experience: [[38, 38], [38, 22]],
+    Creative: [[45, 38], [45, 26], [68, 26]],
+    Technology: [[50, 49], [54, 49]],
+    Discovery: [[38, 61], [38, 67]],
+    Growth: [[44, 61], [44, 80], [63, 80]],
+  },
+}
+
+/* Phone: hub above, 2 × 3 grid of equal canonical renders, a spine between the columns with short stubs. */
+const PHONE: Layout = {
+  height: 152,
+  hub: { x: 33, y: 2, w: 34 },
+  boxes: {
+    Brand: { x: 5, y: 40, w: 38 },
+    Experience: { x: 57, y: 40, w: 38 },
+    Technology: { x: 5, y: 76, w: 38 },
+    Creative: { x: 57, y: 76, w: 38 },
+    Discovery: { x: 5, y: 112, w: 38 },
+    Growth: { x: 57, y: 112, w: 38 },
+  },
+  paths: {
+    Brand: [[50, 36], [50, 58.6], [43, 58.6]],
+    Experience: [[50, 36], [50, 58.6], [57, 58.6]],
+    Technology: [[50, 36], [50, 94.6], [43, 94.6]],
+    Creative: [[50, 36], [50, 94.6], [57, 94.6]],
+    Discovery: [[50, 36], [50, 130.6], [43, 130.6]],
+    Growth: [[50, 36], [50, 130.6], [57, 130.6]],
+  },
+}
+
+/** Depth is placement only. Forward modules get a deeper ground shadow; none is recoloured, softened or rotated. */
+const DEPTH: Record<ModuleName, 'fwd' | 'mid' | 'back'> = {
+  Brand: 'back',
+  Experience: 'back',
+  Creative: 'fwd',
+  Technology: 'fwd',
+  Discovery: 'mid',
+  Growth: 'mid',
+}
+const Z: Record<ModuleName, number> = { Brand: 3, Experience: 2, Creative: 6, Technology: 7, Discovery: 4, Growth: 4 }
+
+/** The scan visits the modules in an order that is deliberately not their reading order. */
+const SCAN_ORDER: ModuleName[] = ['Creative', 'Discovery', 'Brand', 'Technology', 'Growth', 'Experience']
+const MODULES = CAPABILITY_ORDER.map((slug) => CAPABILITY_ENTITIES[slug].module) as ModuleName[]
+const NAMES = CAPABILITY_ORDER.map((slug) => CAPABILITY_ENTITIES[slug].name).join(', ')
+
+const CAPTIONS: Record<DiagnosticVariant, string> = {
+  hero: `The connected Hbee system being examined: ${NAMES}. The diagnosis may point into any part of it.`,
+  received: 'Your answers, received into the Hbee review.',
+  idle: 'The connected Hbee system at rest: the diagnosis may point into any part of it.',
+}
+
+function slotStyle(m: ModuleName, i: number): CSSProperties {
+  const d = DESKTOP.boxes[m]
+  const t = TABLET.boxes[m]
+  const p = PHONE.boxes[m]
   return {
-    '--dx': b.x,
-    '--dy': (b.y / vh.d) * 100,
-    '--dw': b.w,
-    '--mx': m.x,
-    '--my': (m.y / vh.m) * 100,
-    '--mw': m.w,
-    '--z': z,
-    '--hb-motion-index': index,
+    '--dx': d.x,
+    '--dy': d.y,
+    '--dw': d.w,
+    '--tx': t.x,
+    '--ty': t.y,
+    '--tw': t.w,
+    '--mx': p.x,
+    '--my': p.y,
+    '--mw': p.w,
+    '--z': Z[m],
+    '--i': i,
+    '--k': SCAN_ORDER.indexOf(m),
   } as CSSProperties
 }
 
-const NAMES = CAPABILITY_ORDER.map((slug) => CAPABILITY_ENTITIES[slug].name).join(', ')
-const CAPTIONS: Record<DiagnosticVariant, string> = {
-  hero: `The six Hbee capabilities the diagnosis can point into (${NAMES}), connected to one centre.`,
-  received: 'Your answers, received into the Hbee review.',
-  idle: 'The six Hbee capabilities the diagnosis can point into, connected to one centre.',
+function hubStyle(): CSSProperties {
+  return {
+    '--dx': DESKTOP.hub.x,
+    '--dy': DESKTOP.hub.y,
+    '--dw': DESKTOP.hub.w,
+    '--tx': TABLET.hub.x,
+    '--ty': TABLET.hub.y,
+    '--tw': TABLET.hub.w,
+    '--mx': PHONE.hub.x,
+    '--my': PHONE.hub.y,
+    '--mw': PHONE.hub.w,
+  } as CSSProperties
 }
 
-function Routes({ box, hub, ring, viewBox, className }: { box: 'd' | 'm'; hub: Point; ring: number; viewBox: string; className: string }) {
-  const first = CAPABILITY_ORDER[0]
+function Channels({ layout, className }: { layout: Layout; className: string }) {
   return (
-    <svg viewBox={viewBox} aria-hidden="true" focusable="false" className={cn(className, styles.spokes)}>
-      <circle className={styles.hubRing} cx={hub[0]} cy={hub[1]} r={ring} pathLength={1} fill="none" />
-      {CAPABILITY_ORDER.map((slug, i) => (
-        <path
-          key={slug}
-          className={styles.spoke}
-          d={route(centre(SLOTS[slug][box]), onRing(centre(SLOTS[slug][box]), hub, ring))}
-          pathLength={1}
-          fill="none"
-          style={{ '--hb-motion-index': i } as CSSProperties}
-        />
+    <svg viewBox={`0 0 100 ${layout.height}`} aria-hidden="true" focusable="false" className={cn(styles.bus, className)}>
+      {MODULES.map((m) => (
+        <path key={m} className={styles.channel} d={roundedPath(layout.paths[m], 2)} pathLength={1} fill="none" />
       ))}
-      <path className={styles.spokeSignal} d={route(centre(SLOTS[first][box]), onRing(centre(SLOTS[first][box]), hub, ring))} pathLength={1} fill="none" />
-      {CAPABILITY_ORDER.map((slug, i) => {
-        const [cx, cy] = onRing(centre(SLOTS[slug][box]), hub, ring)
-        return <circle key={slug} className={styles.hubNode} cx={cx} cy={cy} r={1.1} style={{ '--hb-motion-index': i } as CSSProperties} />
+      {SCAN_ORDER.map((m, k) => (
+        <path key={m} className={styles.pulse} d={roundedPath(layout.paths[m], 2)} pathLength={1} fill="none" style={{ '--k': k } as CSSProperties} />
+      ))}
+      {SCAN_ORDER.map((m, k) => {
+        const p = layout.paths[m]
+        const [sx, sy] = p[0]
+        const [ex, ey] = p[p.length - 1]
+        return (
+          <g key={m} style={{ '--k': k } as CSSProperties}>
+            <circle className={styles.node} cx={sx} cy={sy} r={0.9} />
+            <circle className={cn(styles.node, styles.nodeEnd)} cx={ex} cy={ey} r={1} />
+          </g>
+        )
       })}
     </svg>
   )
 }
 
-export function CapabilityDiagnosticSystem({ variant = 'hero', className, idPrefix = 'diagnostic' }: { variant?: DiagnosticVariant; className?: string; idPrefix?: string }) {
-  const vh = { d: 96, m: 112 }
+export function CapabilityDiagnosticSystem({ variant = 'hero', className }: { variant?: DiagnosticVariant; className?: string }) {
   return (
-    <figure className={cn(moduleStyles.figure, styles.diagnostic, className)} data-variant={variant}>
+    <figure className={cn(styles.figure, className)} data-variant={variant}>
       <figcaption className="sr-only">{CAPTIONS[variant]}</figcaption>
-      <div className={cn(moduleStyles.viewport, styles.diagnosticViewport)}>
-        <span aria-hidden="true" className={moduleStyles.floor} />
-        <div className={cn(moduleStyles.stage, styles.diagnosticStage)}>
-          <Routes box="d" hub={HUB_D} ring={RING_D} viewBox="0 0 100 96" className={moduleStyles.connectors} />
-          <Routes box="m" hub={HUB_M} ring={RING_M} viewBox="0 0 100 112" className={moduleStyles.connectorsMobile} />
+      <div className={styles.stage} aria-hidden="true">
+        <span className={styles.bloom} />
 
-          <div className={cn(moduleStyles.slot, styles.diagnosticSpine)} style={slotStyle(SPINE.d, SPINE.m, SPINE.z, 0, vh)} aria-hidden="true">
-            <HbeeSpine idPrefix={idPrefix} signal={variant !== 'idle'} />
+        <div className={styles.scene}>
+          <Channels layout={DESKTOP} className={styles.busDesktop} />
+          <Channels layout={TABLET} className={styles.busTablet} />
+          <Channels layout={PHONE} className={styles.busPhone} />
+
+          {MODULES.map((m, i) => {
+            const [w, h] = ASSET_SIZE[m]
+            return (
+              <div key={m} className={cn(styles.slot, styles.module, styles[DEPTH[m]])} style={slotStyle(m, i)} data-module={m.toLowerCase()}>
+                <span className={styles.shadow} />
+                <span className={styles.lift}>
+                  <Image
+                    src={MODULE_IMAGE[m]}
+                    alt=""
+                    width={w}
+                    height={h}
+                    loading="eager"
+                    sizes="(min-width: 1024px) 200px, 40vw"
+                    className={styles.art}
+                    draggable={false}
+                  />
+                </span>
+              </div>
+            )
+          })}
+
+          {/* The Hbee mark as the diagnostic hub — a lens over the system, off-centre. */}
+          <div className={cn(styles.slot, styles.hub)} style={hubStyle()}>
+            <span className={styles.hubHalo} />
+            <span className={styles.hubDepth} />
+            <span className={styles.hubFace}>
+              <Image src="/svgs/logo.png" alt="" width={512} height={512} sizes="120px" className={styles.hubMark} draggable={false} />
+            </span>
+            {variant === 'received' && <span className={styles.hubSignal} />}
           </div>
-
-          <ul className={moduleStyles.stageList}>
-            {CAPABILITY_ORDER.map((slug, i) => {
-              const s = SLOTS[slug]
-              const entity = CAPABILITY_ENTITIES[slug]
-              return (
-                <li key={slug} className={cn(moduleStyles.slot, styles.diagnosticSlot)} style={slotStyle(s.d, s.m, s.z, i + 1, vh)}>
-                  <HbeeModule label={entity.module} icon={CAPABILITY_ICONS[ICON_KEY[slug]]} sweep={s.sweep} className={styles.diagnosticModule} />
-                </li>
-              )
-            })}
-          </ul>
         </div>
       </div>
     </figure>

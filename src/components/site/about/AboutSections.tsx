@@ -1,20 +1,8 @@
+import Link from 'next/link'
 import type { ReactNode } from 'react'
-import {
-  BadgeCheck,
-  Compass,
-  Eye,
-  Handshake,
-  Layers,
-  Lightbulb,
-  Link2,
-  Route,
-  ShoppingBag,
-  Sprout,
-  TrendingUp,
-  Users,
-} from 'lucide-react'
+import { Compass, Eye, Layers, Link2, Route, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import { CONTACT_HREF, GROWTH_REVIEW_HREF } from '@/lib/site/routes'
+import { ALL_WORK_HREF, CONTACT_HREF, GROWTH_REVIEW_HREF } from '@/lib/site/routes'
 import { HbeeModuleGlyph } from '../module/HbeeModule'
 import { SiteReveal } from '../motion/SiteReveal'
 import { SiteButton, SiteLinkArrow } from '../primitives/SiteButton'
@@ -22,22 +10,24 @@ import { SiteGrid } from '../primitives/SiteContainer'
 import { SiteImage } from '../primitives/SiteImage'
 import { SiteSection } from '../primitives/SiteSection'
 import { SiteDisplayHeading, SiteEyebrow, SiteLede } from '../primitives/SiteTypography'
+import { CAPABILITY_ENTITIES, CAPABILITY_ORDER } from '../services/capability-entities'
+import { PROCESS_STAGES } from '../how-we-work/how-we-work-content'
 import {
   ABOUT_CTA,
   ABOUT_HERO,
-  BELIEFS,
-  BELIEFS_INTRO,
-  DIFFERENCES,
-  DIFFERENCE_INTRO,
-  REACH,
-  THINKING,
-  WHO_WE_ARE,
+  ABOUT_QUESTIONS,
+  ABOUT_QUESTIONS_INTRO,
+  METHOD,
+  PRINCIPLES,
+  PRINCIPLES_INTRO,
+  TOGETHER,
+  WHY_EXISTS,
+  WORK_PROOF,
   WORK_WITH,
   WORK_WITH_INTRO,
-  type BeliefIcon,
-  type DifferenceIcon,
+  type PrincipleIcon,
 } from './about-content'
-import { AboutPeopleSystem, ConnectedThinking, ReachField, type HeroPhoto } from './AboutVisuals'
+import { AboutPeopleSystem, type HeroPhoto } from './AboutVisuals'
 import homeStyles from '../home/home.module.css'
 import capabilityStyles from '../capability/capability.module.css'
 import styles from './about.module.css'
@@ -79,13 +69,9 @@ export function AboutHero({ photos }: { photos: HeroPhoto[] }) {
             <span aria-hidden="true" className={homeStyles.eyebrowSignal} />
             {ABOUT_HERO.eyebrow}
           </p>
-          <h1 id="about-hero-title" className="mt-6 font-hb-display text-[clamp(2.5rem,1.7rem+2.5vw,3.6rem)] font-bold leading-[1.02] tracking-[-0.04em] text-hb-fg">
-            {ABOUT_HERO.headline.map((line, i) => (
-              <span key={line} className={i < 2 ? 'block' : undefined}>
-                {line}
-              </span>
-            ))}{' '}
-            <span className="text-hb-blue">{ABOUT_HERO.headlineAccent}</span>
+          <h1 id="about-hero-title" className="mt-6 font-hb-display text-[clamp(2.1rem,1.5rem+2vw,3.2rem)] font-bold leading-[1.05] tracking-[-0.04em] text-hb-fg">
+            <span className="block">{ABOUT_HERO.headline}</span>
+            <span className="block text-hb-blue">{ABOUT_HERO.headlineAccent}</span>
           </h1>
           <SiteLede className="mt-6 max-w-[34rem]">{ABOUT_HERO.lede}</SiteLede>
           <div className="mt-9 flex flex-wrap items-center gap-3">
@@ -105,32 +91,20 @@ export function AboutHero({ photos }: { photos: HeroPhoto[] }) {
   )
 }
 
-/* ── 02 — Who we are: identity, not a services list. No counters (unverified). ── */
+/* ── 02 — Why Hbee exists: the problem and the point of view (no counters, no claims) ── */
 
-export function WhoWeAre({ image }: { image?: string }) {
+export function WhyHbeeExists({ image }: { image?: string }) {
   return (
-    <SiteSection tone="white" aria-labelledby="about-who-title">
+    <SiteSection tone="white" aria-labelledby="about-why-title">
       <SiteGrid className="items-center gap-y-12">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-6">
-          <Intro eyebrow={WHO_WE_ARE.eyebrow} id="about-who-title" headline={WHO_WE_ARE.headline} />
+          <Intro eyebrow={WHY_EXISTS.eyebrow} id="about-why-title" headline={WHY_EXISTS.headline} />
           <SiteReveal index={2}>
-            {WHO_WE_ARE.copy.map((p) => (
+            {WHY_EXISTS.copy.map((p) => (
               <p key={p} className="mt-6 max-w-[36rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">
                 {p}
               </p>
             ))}
-          </SiteReveal>
-          <SiteReveal index={3} className="mt-10">
-            <p className={styles.listLabel}>{WHO_WE_ARE.togetherLabel}</p>
-            <ul className={styles.together}>
-              {WHO_WE_ARE.together.map((item) => (
-                <li key={item.name} className={styles.togetherItem}>
-                  <span aria-hidden="true" className={styles.togetherNode} />
-                  <span className={styles.togetherName}>{item.name}</span>
-                  <span className={styles.togetherText}>{item.text}</span>
-                </li>
-              ))}
-            </ul>
           </SiteReveal>
         </div>
         <SiteReveal motion="focus" index={1} className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-6">
@@ -147,16 +121,16 @@ export function WhoWeAre({ image }: { image?: string }) {
             <div className={styles.purposeCard}>
               <p className={styles.purposeLabel}>
                 <span aria-hidden="true" className={styles.purposeLabelSignal} />
-                {WHO_WE_ARE.purpose.label}
+                {WHY_EXISTS.point.label}
               </p>
               <p className={styles.purposeTitle}>
-                {WHO_WE_ARE.purpose.headline.map((l) => (
+                {WHY_EXISTS.point.headline.map((l) => (
                   <span key={l} className="block">
                     {l}
                   </span>
                 ))}
               </p>
-              <p className={styles.purposeText}>{WHO_WE_ARE.purpose.text}</p>
+              <p className={styles.purposeText}>{WHY_EXISTS.point.text}</p>
             </div>
           </div>
         </SiteReveal>
@@ -165,36 +139,106 @@ export function WhoWeAre({ image }: { image?: string }) {
   )
 }
 
-/* ── 03 — What we believe: editorial statements, revealed progressively ── */
+/* ── 03 — What we bring together: the six final capabilities, each linked (compact) ── */
 
-const BELIEF_ICONS: Record<BeliefIcon, ReactNode> = {
-  people: <Users {...ICON} />,
-  practical: <Lightbulb {...ICON} />,
-  value: <Sprout {...ICON} />,
-  openness: <Eye {...ICON} />,
-  standard: <BadgeCheck {...ICON} />,
+export function BringTogether() {
+  return (
+    <SiteSection tone="cloud" aria-labelledby="about-together-title">
+      <SiteGrid className="gap-y-10">
+        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-5">
+          <Intro eyebrow={TOGETHER.eyebrow} id="about-together-title" headline={TOGETHER.headline} />
+          <SiteReveal index={2}>
+            <p className="mt-6 max-w-[32rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{TOGETHER.copy}</p>
+            <SiteLinkArrow href="/services" className="mt-4 min-h-[44px]">
+              {TOGETHER.link}
+            </SiteLinkArrow>
+          </SiteReveal>
+        </div>
+        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-7">
+          <ul className={styles.caps}>
+            {CAPABILITY_ORDER.map((slug, i) => {
+              const entity = CAPABILITY_ENTITIES[slug]
+              return (
+                <SiteReveal as="li" key={slug} index={i % 2}>
+                  <Link href={entity.href} className={styles.cap} aria-label={entity.linkLabel}>
+                    <span className={styles.capName}>{entity.name}</span>
+                    <span className={styles.capText}>{entity.coreWork.slice(0, 2).join(' · ')}</span>
+                  </Link>
+                </SiteReveal>
+              )
+            })}
+          </ul>
+        </div>
+      </SiteGrid>
+    </SiteSection>
+  )
 }
 
-export function Beliefs() {
+/* ── 04 — How we work: a short bridge to the five stages (not the whole process) ── */
+
+export function MethodBridge() {
   return (
-    <SiteSection tone="cloud" aria-labelledby="about-beliefs-title">
-      <SiteGrid className="gap-y-6">
-        <div className="col-span-4 md:col-span-8 lg:col-span-5">
-          <Intro eyebrow={BELIEFS_INTRO.eyebrow} id="about-beliefs-title" headline={BELIEFS_INTRO.headline} />
+    <SiteSection id="approach" tone="white" aria-labelledby="about-method-title" className={styles.anchor}>
+      <SiteGrid className="items-center gap-y-10">
+        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-5">
+          <Intro eyebrow={METHOD.eyebrow} id="about-method-title" headline={METHOD.headline} />
+          <SiteReveal index={2}>
+            <p className="mt-6 max-w-[32rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{METHOD.copy}</p>
+            <SiteLinkArrow href="/how-we-work" className="mt-4 min-h-[44px]">
+              {METHOD.link}
+            </SiteLinkArrow>
+          </SiteReveal>
         </div>
-        <SiteReveal index={2} className="col-span-4 md:col-span-8 lg:col-span-6 lg:col-start-7 lg:self-end">
-          <p className="max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{BELIEFS_INTRO.copy}</p>
+        <SiteReveal index={1} className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-7">
+          <ol className={styles.stages} aria-label="The five stages Hbee works through">
+            {PROCESS_STAGES.map((stage, i) => (
+              <li key={stage.id} className={styles.stage}>
+                <span aria-hidden="true" className={styles.stageNode}>
+                  {i + 1}
+                </span>
+                <Link href={`/how-we-work#${stage.id}`} className={styles.stageName}>
+                  {stage.name}
+                </Link>
+              </li>
+            ))}
+          </ol>
         </SiteReveal>
       </SiteGrid>
-      <ol className={styles.beliefs}>
-        {BELIEFS.map((b, i) => (
-          <SiteReveal as="li" key={b.key} index={i} className={styles.belief}>
+    </SiteSection>
+  )
+}
+
+/* ── 06 — Operating principles (working rules, not generic values) ── */
+
+const PRINCIPLE_ICONS: Record<PrincipleIcon, ReactNode> = {
+  diagnosis: <Compass {...ICON} />,
+  connected: <Link2 {...ICON} />,
+  priorities: <Route {...ICON} />,
+  execution: <Layers {...ICON} />,
+  measurement: <TrendingUp {...ICON} />,
+  honesty: <Eye {...ICON} />,
+}
+
+export function Principles() {
+  return (
+    <SiteSection tone="cloud" aria-labelledby="about-principles-title">
+      <SiteGrid className="gap-y-6">
+        <div className="col-span-4 md:col-span-8 lg:col-span-5">
+          <Intro eyebrow={PRINCIPLES_INTRO.eyebrow} id="about-principles-title" headline={PRINCIPLES_INTRO.headline} />
+        </div>
+        <SiteReveal index={2} className="col-span-4 md:col-span-8 lg:col-span-6 lg:col-start-7 lg:self-end">
+          <p className="max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{PRINCIPLES_INTRO.copy}</p>
+        </SiteReveal>
+      </SiteGrid>
+      <ol className={cn(styles.beliefs, styles.principles)}>
+        {PRINCIPLES.map((p, i) => (
+          <SiteReveal as="li" key={p.key} index={i % 3} className={styles.belief}>
             <span aria-hidden="true" className={styles.beliefIcon}>
-              {BELIEF_ICONS[b.key]}
+              {PRINCIPLE_ICONS[p.key]}
             </span>
             <div>
-              <h3 className={styles.beliefName}>{b.name}</h3>
-              <p className={styles.beliefText}>{b.text}</p>
+              <h3 className={styles.beliefName}>{p.name}</h3>
+              <p className={styles.beliefText}>{p.text}</p>
             </div>
           </SiteReveal>
         ))}
@@ -203,98 +247,22 @@ export function Beliefs() {
   )
 }
 
-/* ── 05 — How we think: a philosophy (not the five-stage process) ── */
+/* ── 07 — Our work: a bridge to the CMS-backed Work page (no invented proof) ── */
 
-export function HowWeThink() {
+export function AboutWork() {
   return (
-    <SiteSection id="approach" tone="cloud" aria-labelledby="about-think-title" className={cn(styles.anchor, styles.thinkSection)}>
-      <SiteGrid className="items-center gap-y-12">
-        <div className="col-span-4 md:col-span-8 lg:col-span-6">
-          <Intro eyebrow={THINKING.eyebrow} id="about-think-title" headline={THINKING.headline} flow />
-          <SiteReveal index={2}>
-            <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{THINKING.copy}</p>
-            <SiteLinkArrow href="/how-we-work" className="mt-4 min-h-[44px]">
-              {THINKING.link}
-            </SiteLinkArrow>
-          </SiteReveal>
+    <SiteSection tone="white" spacing="compact" aria-labelledby="about-work-title">
+      <SiteGrid className="items-center gap-y-8">
+        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-6">
+          <Intro eyebrow={WORK_PROOF.eyebrow} id="about-work-title" headline={WORK_PROOF.headline} />
         </div>
-        <div className="col-span-4 md:col-span-8 lg:col-span-6 ">
-          <ConnectedThinking className="mx-auto max-w-[500px]" />
-        </div>
-      </SiteGrid>
-    </SiteSection>
-  )
-}
-
-/* ── 06 — What makes us different: grounded, benefit-led (no superlatives) ── */
-
-const DIFFERENCE_ICONS: Record<DifferenceIcon, ReactNode> = {
-  clarity: <Compass {...ICON} />,
-  connected: <Link2 {...ICON} />,
-  commerce: <ShoppingBag {...ICON} />,
-  commercial: <TrendingUp {...ICON} />,
-  endToEnd: <Route {...ICON} />,
-  partnership: <Handshake {...ICON} />,
-}
-
-export function Difference() {
-  return (
-    <SiteSection tone="white" aria-labelledby="about-difference-title">
-      <SiteGrid className="gap-y-12">
-        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-4">
-          <Intro eyebrow={DIFFERENCE_INTRO.eyebrow} id="about-difference-title" headline={DIFFERENCE_INTRO.headline} accent />
-          <SiteReveal index={2}>
-            <p className="mt-6 max-w-[30rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{DIFFERENCE_INTRO.copy}</p>
-          </SiteReveal>
-          <SiteReveal index={3} className={styles.contrast}>
-            <span aria-hidden="true" className={styles.contrastIcon}>
-              <Layers {...ICON} />
-            </span>
-            <p>
-              <span className="font-semibold text-hb-fg">One connected team</span> instead of separate suppliers to coordinate.
-            </p>
-          </SiteReveal>
-        </div>
-        <ul className={cn(styles.differences, 'col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-8')}>
-          {DIFFERENCES.map((d, i) => (
-            <SiteReveal as="li" key={d.key} index={i % 2} className={styles.difference}>
-              <span aria-hidden="true" className={styles.differenceIcon}>
-                {DIFFERENCE_ICONS[d.key]}
-              </span>
-              <div>
-                <h3 className={styles.differenceName}>{d.name}</h3>
-                <p className={styles.differenceText}>{d.text}</p>
-              </div>
-            </SiteReveal>
-          ))}
-        </ul>
-      </SiteGrid>
-    </SiteSection>
-  )
-}
-
-/* ── 07 — Our home and our reach: West Africa (identity) · Abuja (base) · everywhere (reach) ── */
-
-export function Reach() {
-  return (
-    <SiteSection tone="cloud" aria-labelledby="about-reach-title">
-      <SiteGrid className="gap-y-8">
-        <div className="col-span-4 md:col-span-8 lg:col-span-6">
-          <Intro eyebrow={REACH.eyebrow} id="about-reach-title" headline={REACH.headline} />
-        </div>
-        <SiteReveal index={2} className="col-span-4 md:col-span-8 lg:col-span-6 lg:self-end">
-          <p className="max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{REACH.copy}</p>
-          <dl className={styles.reachPoints}>
-            {REACH.points.map((p) => (
-              <div key={p.name} className={styles.reachPoint}>
-                <dt>{p.name}</dt>
-                <dd>{p.text}</dd>
-              </div>
-            ))}
-          </dl>
+        <SiteReveal index={2} className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-6">
+          <p className="max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{WORK_PROOF.copy}</p>
+          <SiteLinkArrow href={ALL_WORK_HREF} className="mt-4 min-h-[44px]">
+            {WORK_PROOF.link}
+          </SiteLinkArrow>
         </SiteReveal>
       </SiteGrid>
-      <ReachField className="mt-12 md:mt-14" />
     </SiteSection>
   )
 }
@@ -303,7 +271,7 @@ export function Reach() {
 
 export function WhoWeWorkWith() {
   return (
-    <SiteSection tone="white" aria-labelledby="about-fit-title">
+    <SiteSection tone="cloud" aria-labelledby="about-fit-title">
       <SiteGrid className="gap-y-12">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-5">
           <Intro eyebrow={WORK_WITH_INTRO.eyebrow} id="about-fit-title" headline={WORK_WITH_INTRO.headline} flow />
@@ -325,19 +293,44 @@ export function WhoWeWorkWith() {
               </SiteReveal>
             ))}
           </ul>
-          <SiteReveal index={2} className={styles.fitNote}>
-            <p>{WORK_WITH_INTRO.fit}</p>
-            <SiteLinkArrow href={GROWTH_REVIEW_HREF} className="min-h-[44px]">
-              Start Growth Review
-            </SiteLinkArrow>
-          </SiteReveal>
         </div>
       </SiteGrid>
     </SiteSection>
   )
 }
 
-/* ── 09 — Final CTA (Night) ── */
+/* ── 09 — Questions about Hbee Digitals (visible HTML; no FAQPage schema) ── */
+
+export function AboutQuestions() {
+  return (
+    <SiteSection tone="white" aria-labelledby="about-questions-title">
+      <SiteGrid className="gap-y-10">
+        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-4">
+          <SiteReveal>
+            <SiteEyebrow signal>{ABOUT_QUESTIONS_INTRO.eyebrow}</SiteEyebrow>
+          </SiteReveal>
+          <SiteReveal index={1}>
+            <SiteDisplayHeading id="about-questions-title" size="h2" className="mt-6">
+              {ABOUT_QUESTIONS_INTRO.headline}
+            </SiteDisplayHeading>
+          </SiteReveal>
+        </div>
+        <dl className={cn(styles.questions, 'col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-8')}>
+          {ABOUT_QUESTIONS.map((q, i) => (
+            <SiteReveal key={q.question} index={i % 3} className={styles.question}>
+              <dt>
+                <h3 className={styles.questionTitle}>{q.question}</h3>
+              </dt>
+              <dd className={styles.questionAnswer}>{q.answer}</dd>
+            </SiteReveal>
+          ))}
+        </dl>
+      </SiteGrid>
+    </SiteSection>
+  )
+}
+
+/* ── 10 — Final CTA (Night). Primary: Growth Review · Secondary: Contact. ── */
 
 export function AboutCta() {
   return (

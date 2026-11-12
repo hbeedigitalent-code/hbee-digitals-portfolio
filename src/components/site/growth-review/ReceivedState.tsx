@@ -55,7 +55,7 @@ export function ReceivedState() {
         </div>
         {/* The system at rest: no signal, no completion — this is not a confirmation. */}
         <div className={styles.neutralVisual}>
-          <CapabilityDiagnosticSystem variant="idle" idPrefix="neutral" className="mx-auto max-w-[300px] sm:max-w-[360px] lg:mr-0 lg:max-w-[460px]" />
+          <CapabilityDiagnosticSystem variant="idle" className="mx-auto max-w-[300px] sm:max-w-[360px] lg:mr-0 lg:max-w-[460px]" />
         </div>
       </div>
     )
@@ -104,7 +104,7 @@ export function ReceivedState() {
         </div>
       </div>
       <div className={styles.receivedVisual}>
-        <CapabilityDiagnosticSystem variant="received" idPrefix="received" className="mx-auto max-w-[420px]" />
+        <CapabilityDiagnosticSystem variant="received" className="mx-auto max-w-[420px]" />
       </div>
     </div>
   )

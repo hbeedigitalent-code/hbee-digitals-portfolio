@@ -9,7 +9,7 @@ import { SiteGrid } from '../primitives/SiteContainer'
 import { SiteImage } from '../primitives/SiteImage'
 import { SiteSection } from '../primitives/SiteSection'
 import { SiteDisplayHeading, SiteEyebrow } from '../primitives/SiteTypography'
-import { TEAM_INTRO } from './about-content'
+import { TEAM_EMPTY, TEAM_INTRO } from './about-content'
 import { TeamRail } from './TeamRail'
 import styles from './about.module.css'
 
@@ -110,13 +110,11 @@ function TeamEmptyState() {
         <HbeeModuleGlyph size={40} signal="quiet" />
       </span>
       <div>
-        <p className="font-hb-display text-[1.375rem] font-bold leading-tight tracking-[-0.02em] text-hb-fg">Team profiles are on their way.</p>
-        <p className="mt-2 max-w-[34rem] leading-relaxed text-hb-fg-body">
-          Real team profiles will appear here when team data is available in the isolated preview environment.
-        </p>
+        <p className="font-hb-display text-[1.375rem] font-bold leading-tight tracking-[-0.02em] text-hb-fg">{TEAM_EMPTY.title}</p>
+        <p className="mt-2 max-w-[34rem] leading-relaxed text-hb-fg-body">{TEAM_EMPTY.text}</p>
       </div>
       <SiteButton href={CONTACT_HREF} variant="secondary" arrow className="self-start">
-        Talk to Our Team
+        {TEAM_EMPTY.cta}
       </SiteButton>
     </SiteReveal>
   )
@@ -138,6 +136,7 @@ export function AboutTeam({ team }: { team: TeamMember[] }) {
           </SiteReveal>
           <SiteReveal index={2}>
             <p className="mt-6 max-w-[32rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{TEAM_INTRO.copy}</p>
+            <p className="mt-3 max-w-[32rem] text-[0.9375rem] leading-relaxed text-hb-fg-body">{TEAM_INTRO.base}</p>
           </SiteReveal>
         </div>
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-7">

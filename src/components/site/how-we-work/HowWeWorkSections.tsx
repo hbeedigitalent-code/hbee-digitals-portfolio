@@ -77,7 +77,7 @@ export function HowWeWorkHero() {
           </div>
         </div>
         <div className={`col-span-4 md:col-span-8 lg:col-span-6 ${styles.heroVisual}`}>
-          <ProcessSystem className="mx-auto max-w-[520px] lg:mr-0 lg:max-w-[580px]" />
+          <ProcessSystem className="mx-auto max-w-[640px] lg:mr-0 lg:max-w-[580px]" />
         </div>
       </SiteGrid>
     </SiteSection>

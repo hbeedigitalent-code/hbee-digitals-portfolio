@@ -1,0 +1,263 @@
+/* ═════════════════════════════════════════════════════════════════
+   GROWTH REVIEW HERO — the connected Hbee system under examination.
+
+   Units are cqw (percent of the stage width) so each composition scales as one
+   object. The six canonical renders share one camera and are never rotated,
+   recoloured or stretched; presentation differs only by placement, uniform
+   scale, layering and ground shadow. Depth is placement, not priority.
+
+   Compositions: desktop (stage 100 × 104) · tablet, viewport 640–1023px
+   (100 × 98) · phone, container ≤ 440px (hub above, 2 × 3 grid, 100 × 152).
+   ═════════════════════════════════════════════════════════════════ */
+
+.figure {
+  position: relative;
+  container-type: inline-size;
+}
+
+.stage {
+  position: relative;
+  aspect-ratio: 100 / 104;
+  isolation: isolate;
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .stage { aspect-ratio: 100 / 98; }
+}
+@container (max-width: 440px) {
+  .stage { aspect-ratio: 100 / 152; }
+}
+
+.bloom {
+  position: absolute;
+  left: -8cqw;
+  top: 6cqw;
+  width: 84cqw;
+  height: 84cqw;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgba(29, 110, 255, 0.18), rgba(29, 110, 255, 0.06) 55%, transparent 100%);
+}
+@container (max-width: 440px) {
+  .bloom { left: -12cqw; top: 0; width: 124cqw; height: 124cqw; }
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+}
+
+/* One slot per object. Position comes from --x/--y/--w, which are re-pointed per composition. */
+.slot {
+  --x: var(--dx);
+  --y: var(--dy);
+  --w: var(--dw);
+  position: absolute;
+  left: calc(var(--x) * 1cqw);
+  top: calc(var(--y) * 1cqw);
+  width: calc(var(--w) * 1cqw);
+  z-index: var(--z, 4);
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .slot { --x: var(--tx); --y: var(--ty); --w: var(--tw); }
+}
+@container (max-width: 440px) {
+  .slot { --x: var(--mx); --y: var(--my); --w: var(--mw); }
+}
+
+.lift { position: relative; display: block; }
+.art {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Ground shadow: same direction for every module (light from the top-left). */
+.shadow {
+  position: absolute;
+  left: 14%;
+  right: 0;
+  bottom: 2%;
+  height: 14%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(4, 18, 46, 0.3), transparent 72%);
+  filter: blur(0.6cqw);
+  transform: translate(3%, 55%);
+}
+.fwd .shadow { background: radial-gradient(closest-side, rgba(4, 18, 46, 0.42), transparent 72%); filter: blur(1cqw); }
+.back .shadow { background: radial-gradient(closest-side, rgba(4, 18, 46, 0.22), transparent 72%); }
+.back .art { filter: drop-shadow(0 0.7cqw 1.2cqw rgba(6, 37, 110, 0.14)); }
+.mid .art { filter: drop-shadow(0 0.9cqw 1.5cqw rgba(6, 37, 110, 0.2)); }
+.fwd .art { filter: drop-shadow(0 1.3cqw 2.2cqw rgba(6, 37, 110, 0.28)); }
+
+/* ── The hub: the Hbee mark as a lens over the system ─────────── */
+.hub { --z: 9; aspect-ratio: 1; }
+.hubHalo {
+  position: absolute;
+  inset: -22%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(252, 93, 28, 0.2), rgba(29, 110, 255, 0.12) 55%, transparent 100%);
+}
+.hubDepth {
+  position: absolute;
+  inset: 0;
+  border-radius: 38% 50% 50% 38% / 38% 50% 50% 38%;
+  background: #0a2f86;
+  box-shadow:
+    -0.3cqw 0.3cqw 0 #0a3590,
+    -0.6cqw 0.6cqw 0 #08307f,
+    -0.9cqw 0.9cqw 0 #072a72,
+    -1.2cqw 1.2cqw 0 #062464,
+    -1.5cqw 1.5cqw 0 #051d55,
+    -1.8cqw 1.8cqw 0 #04163f,
+    -1.8cqw 3.4cqw 3.4cqw rgba(4, 18, 46, 0.34);
+}
+.hubFace {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 38% 50% 50% 38% / 38% 50% 50% 38%;
+  background: linear-gradient(145deg, #ffffff 0%, #eef4ff 55%, #dbe7ff 100%);
+  border: 0.35cqw solid var(--hb-electric);
+  box-shadow: inset 0.4cqw 0.4cqw 0.6cqw rgba(255, 255, 255, 0.95), inset -0.5cqw -0.5cqw 1cqw rgba(29, 110, 255, 0.18);
+}
+.hubMark { width: 66%; height: auto; user-select: none; }
+/* Confirmation only: the orange Signal lit on the hub. */
+.hubSignal {
+  position: absolute;
+  top: 8%;
+  right: 6%;
+  width: 24%;
+  height: 11%;
+  border-radius: 0.12em 0.5em 0.5em 0.12em;
+  background: linear-gradient(180deg, #ff7a45, var(--hb-orange) 55%, #e5490f);
+  box-shadow: -0.2cqw 0.3cqw 0 #b8380a, 0 0 1.6cqw rgba(252, 93, 28, 0.5);
+}
+
+/* ── Channels ─────────────────────────────────────────────────── */
+.bus {
+  position: absolute;
+  inset: 0;
+  display: none;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  z-index: 1;
+}
+.busDesktop { display: block; }
+@media (min-width: 640px) and (max-width: 1023px) {
+  .busDesktop { display: none; }
+  .busTablet { display: block; }
+}
+@container (max-width: 440px) {
+  .busDesktop, .busTablet { display: none; }
+  .busPhone { display: block; }
+}
+.channel {
+  stroke: var(--hb-electric);
+  stroke-opacity: 0.5;
+  stroke-width: 0.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+.node {
+  fill: var(--hb-white);
+  stroke: var(--hb-electric);
+  stroke-width: 0.45;
+}
+/* The scan pulse: one short orange segment, hub → one module. Hidden at rest. */
+.pulse {
+  stroke: var(--hb-signal);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 0.12 1;
+  stroke-dashoffset: 0.12;
+  opacity: 0;
+}
+
+/* Confirmation: channels complete, nodes filled. */
+.figure[data-variant='received'] .channel { stroke-opacity: 0.75; }
+.figure[data-variant='received'] .node { fill: var(--hb-blue); stroke: var(--hb-blue); }
+.figure[data-variant='received'] .pulse,
+.figure[data-variant='idle'] .pulse { display: none; }
+/* Idle (direct visit): muted dashed channels, hollow nodes, nothing orange. Must never read as a success. */
+.figure[data-variant='idle'] .channel { stroke: var(--hb-structure-soft); stroke-opacity: 1; stroke-dasharray: 0.03 0.04; }
+.figure[data-variant='idle'] .node { stroke: var(--hb-structure-soft); }
+
+/* ── Motion ───────────────────────────────────────────────────────
+   hero only. SETTLE (hub, then modules in order) → DRAW (channels) → SCAN:
+   a slow 15 s cycle in which the hub sends one pulse to one module at a time;
+   the module lifts a little as the pulse arrives, its node resolves, and the
+   emphasis moves on. No module is ever left highlighted. Gated on
+   data-motion-ready; reduced motion = the settled system, no scan. */
+@keyframes dxSettle {
+  from { opacity: 0; transform: translate3d(0, 1.8cqw, 0) scale(0.95); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes dxHub {
+  from { opacity: 0; transform: scale(0.88); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes dxFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dxDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes dxScan {
+  0% { stroke-dashoffset: 0.12; opacity: 0; }
+  0.8% { opacity: 1; }
+  5.6% { stroke-dashoffset: -1; opacity: 1; }
+  6.4% { stroke-dashoffset: -1; opacity: 0; }
+  100% { stroke-dashoffset: -1; opacity: 0; }
+}
+@keyframes dxLift {
+  0%, 4.8% { transform: none; }
+  7.2% { transform: translate3d(0, -0.9cqw, 0); }
+  12%, 100% { transform: none; }
+}
+@keyframes dxNode {
+  0%, 5% { fill: #ffffff; stroke: var(--hb-electric); }
+  6%, 9.5% { fill: var(--hb-signal); stroke: #ffffff; }
+  13%, 100% { fill: #ffffff; stroke: var(--hb-electric); }
+}
+
+:global([data-surface='site'][data-motion-ready]) .figure[data-variant='hero'] {
+  --scan-start: 2800ms;
+  --scan-step: 2300ms;
+}
+:global([data-surface='site'][data-motion-ready]) .figure[data-variant='hero'] .hub {
+  animation: dxHub 560ms var(--hb-ease) 40ms backwards;
+}
+:global([data-surface='site'][data-motion-ready]) .figure[data-variant='hero'] .module {
+  animation: dxSettle 560ms var(--hb-ease) backwards;
+  animation-delay: calc(240ms + var(--i, 0) * 90ms);
+}
+:global([data-surface='site'][data-motion-ready]) .figure[data-variant='hero'] .channel {
+  animation: dxDraw 620ms var(--hb-ease-in-out) 900ms both;
+}
+:global([data-surface='site'][data-motion-ready]) .figure[data-variant='hero'] .node {
+  animation: dxFade 360ms var(--hb-ease) 1300ms both;
+}
+:global([data-surface='site'][data-motion-ready]) .figure[data-variant='hero'] .nodeEnd {
+  animation-name: dxFade, dxNode;
+  animation-duration: 360ms, 15s;
+  animation-timing-function: var(--hb-ease), linear;
+  animation-delay: 1300ms, calc(var(--scan-start) + var(--k, 0) * var(--scan-step));
+  animation-iteration-count: 1, infinite;
+  animation-fill-mode: both, none;
+}
+:global([data-surface='site'][data-motion-ready]) .figure[data-variant='hero'] .pulse {
+  animation: dxScan 15s linear calc(var(--scan-start) + var(--k, 0) * var(--scan-step)) infinite;
+}
+:global([data-surface='site'][data-motion-ready]) .figure[data-variant='hero'] .module .lift {
+  animation: dxLift 15s var(--hb-ease-in-out) calc(var(--scan-start) + var(--k, 0) * var(--scan-step)) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub, .module, .lift, .channel, .node, .pulse { animation: none !important; }
+  .pulse { display: none; }
+}

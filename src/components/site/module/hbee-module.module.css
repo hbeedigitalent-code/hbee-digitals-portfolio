@@ -61,7 +61,8 @@
   }
 }
 .layerLast {
-  box-shadow: 0 1.8em 2.6em -1.2em rgba(6, 20, 38, 0.42);
+  /* The contact shadow can be deepened per composition (defaults keep every existing module unchanged). */
+  box-shadow: 0 var(--hbm-contact-y, 1.8em) var(--hbm-contact-blur, 2.6em) -1.2em rgba(6, 20, 38, var(--hbm-contact-a, 0.42));
 }
 
 /* 1 · STRUCTURAL SHELL — the Royal Blue face (3 · SWEEP via --hbm-radius) */
@@ -104,6 +105,18 @@
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
+}
+
+/* Optional gloss: a soft diagonal highlight and a faint specular near the sweep corner (opt-in via the `gloss` prop). */
+.gloss {
+  position: absolute;
+  inset: 0;
+  z-index: -1; /* the face is a stacking context: above its background, below the icon and label */
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(118deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 20%, rgba(255, 255, 255, 0) 38%),
+    radial-gradient(60% 46% at 88% 92%, rgba(190, 215, 255, 0.28), transparent 70%);
 }
 
 /* 4 · OPEN CHANNEL — a recessed slot, with a Connection Gap below it */

@@ -1,11 +1,9 @@
 import type { CSSProperties, ReactNode } from 'react'
-import { BarChart3, Boxes, Lightbulb, MapPin, Settings2, TrendingUp, Users } from 'lucide-react'
+import { BarChart3, Boxes, TrendingUp, Users } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { HbeeModule, HbeeModuleGlyph, type ModuleSweep } from '../module/HbeeModule'
-import { SiteReveal } from '../motion/SiteReveal'
 import { SiteImage } from '../primitives/SiteImage'
-import { ABOUT_HERO, HERO_MODULES, REACH, THINKING, type ModuleConcept } from './about-content'
-import { ABUJA, LAND_PATH, REGION_SCENE, WEST_AFRICA_PATH, WORLD_SCENE, project, routePath, type MapScene as MapSceneData } from './world-map'
+import { ABOUT_HERO, HERO_MODULES, type ModuleConcept } from './about-content'
 import styles from './about.module.css'
 
 const ICON = { strokeWidth: 1.75, width: '100%', height: '100%', 'aria-hidden': true, focusable: false } as const
@@ -92,8 +90,8 @@ export function AboutPeopleSystem({ photos, className }: { photos: HeroPhoto[]; 
     <figure className={cn(styles.people, className)}>
       <figcaption className="sr-only">
         {photos.length
-          ? `Members of the Hbee Digitals team, connected by the Hbee system: people, strategy, systems and impact.`
-          : 'The Hbee system: people, strategy, systems and impact, connected.'}
+          ? `Members of the Hbee Digitals team, connected by the Hbee system: people, strategy, systems and growth.`
+          : 'The Hbee system: people, strategy, systems and growth, connected.'}
       </figcaption>
       <div className={styles.peopleStage}>
         {FRAMES.map((frame, i) => {
@@ -143,211 +141,5 @@ export function AboutPeopleSystem({ photos, className }: { photos: HeroPhoto[]; 
         </p>
       </div>
     </figure>
-  )
-}
-
-/* ═════════════════════════════════════════════════════════════════
-   HOW WE THINK — three connected ideas around one Hbee point.
-   A philosophy, not the five-stage process. Labels are real HTML over the
-   drawing. CONNECT (circles draw) → FOCUS (hub) → one SIGNAL around the
-   whole, once. Reduced motion: complete drawing, no signal travel.
-   ═════════════════════════════════════════════════════════════════ */
-
-const THINK_ICONS: Record<(typeof THINKING.nodes)[number]['key'], ReactNode> = {
-  strategy: <Lightbulb {...ICON} />,
-  implementation: <Settings2 {...ICON} />,
-  growth: <BarChart3 {...ICON} />,
-}
-
-export function ConnectedThinking({ className }: { className?: string }) {
-  return (
-    <SiteReveal motion="none" as="figure" className={cn(styles.think, className)}>
-      <figcaption className="sr-only">
-        Strategy, implementation and growth shown as three overlapping circles joined at one Hbee connection point.
-      </figcaption>
-      <svg viewBox="0 0 400 340" aria-hidden="true" focusable="false" className={styles.thinkSvg}>
-        <circle className={styles.thinkOrbit} cx="200" cy="180" r="150" fill="none" />
-        {[
-          [200, 110],
-          [122, 236],
-          [278, 236],
-        ].map(([cx, cy], i) => (
-          <circle
-            key={i}
-            data-connect=""
-            style={{ '--hb-motion-index': i * 2 } as CSSProperties}
-            className={styles.thinkCircle}
-            cx={cx}
-            cy={cy}
-            r="92"
-            pathLength={1}
-            transform={`rotate(-90 ${cx} ${cy})`}
-          />
-        ))}
-        <circle className={styles.thinkSignal} cx="200" cy="180" r="150" fill="none" pathLength={1} transform="rotate(-90 200 180)" />
-      </svg>
-      <ul className={styles.thinkNodes}>
-        {THINKING.nodes.map((node, i) => (
-          <li key={node.key} data-motion="reveal" className={styles.thinkNode} data-node={node.key} style={{ '--hb-motion-index': i + 1 } as CSSProperties}>
-            <span aria-hidden="true" className={styles.thinkIcon}>
-              {THINK_ICONS[node.key]}
-            </span>
-            <h3 className={styles.thinkName}>{node.name}</h3>
-            <p className={styles.thinkText}>{node.text}</p>
-          </li>
-        ))}
-      </ul>
-      <span aria-hidden="true" data-motion="focus" className={styles.thinkHub} style={{ '--hb-motion-index': 6 } as CSSProperties}>
-        <HbeeModuleGlyph signal="none" className={styles.thinkHubGlyph} />
-      </span>
-    </SiteReveal>
-  )
-}
-
-/* ═════════════════════════════════════════════════════════════════
-   REACH — a stylised world map. Rooted in West Africa, working beyond
-   borders: the home region is highlighted, Abuja, Nigeria (Hbee's real
-   base) is the anchor, and routes extend outward to unlabelled points in
-   other world regions. Those points are ILLUSTRATIVE — not offices,
-   clients or project locations — and the visual says so in plain text.
-   No photograph: no verified Abuja image is available.
-
-   Two framings of the same map: the world (≥640px) and a regional frame
-   on Africa, Europe and the Gulf for phones. Each SVG's box matches its
-   wrapper's aspect ratio exactly (no slice), so nothing is ever cropped.
-
-   Motion (CSS, gated on data-motion-ready, on reveal): the home region
-   lights → Abuja pulses → routes draw outward one by one → a signal
-   travels each route once and the point it reaches activates → the other
-   points activate. After the sequence the only movement is a slow beacon
-   at Abuja (the one deliberate loop on the page). Reduced motion: the
-   final state — every route drawn, every point lit, no beacon.
-   ═════════════════════════════════════════════════════════════════ */
-
-const pct = (v: number, start: number, size: number) => `${(((v - start) / size) * 100).toFixed(2)}%`
-
-function MapScene({ scene, id, className }: { scene: MapSceneData; id: string; className: string }) {
-  const [bx, by, bw, bh] = scene.box
-  const [ax, ay] = project(ABUJA)
-  const [lx, ly] = project(scene.regionLabel)
-  const routes = scene.points.filter((p) => p.route)
-  const others = scene.points.filter((p) => !p.route)
-  const anchor = { '--ax': pct(ax, bx, bw), '--ay': pct(ay, by, bh) } as CSSProperties
-
-  return (
-    <div className={cn(styles.mapScene, className)} style={{ aspectRatio: `${bw} / ${bh}` }}>
-      <svg viewBox={scene.box.join(' ')} aria-hidden="true" focusable="false" className={styles.mapSvg}>
-        <defs>
-          <pattern id={`${id}-dots`} width="2" height="2" patternUnits="userSpaceOnUse">
-            <circle cx="1" cy="1" r="0.42" fill="#cfe0ff" />
-          </pattern>
-          <pattern id={`${id}-home`} width="2" height="2" patternUnits="userSpaceOnUse">
-            <circle cx="1" cy="1" r="0.55" fill="#4d8dff" />
-          </pattern>
-          <clipPath id={`${id}-land`}>
-            <path d={LAND_PATH} />
-          </clipPath>
-          <clipPath id={`${id}-wa`}>
-            <path d={WEST_AFRICA_PATH} />
-          </clipPath>
-          <radialGradient id={`${id}-halo`}>
-            <stop offset="0" stopColor="#1d6eff" stopOpacity="0.38" />
-            <stop offset="1" stopColor="#1d6eff" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-
-        {/* Graticule — the globe's grid, very faint */}
-        <g className={styles.mapGrid}>
-          {[-120, -90, -60, -30, 0, 30, 60, 90, 120, 150].map((lon) => (
-            <line key={lon} x1={lon + 180} x2={lon + 180} y1={by} y2={by + bh} />
-          ))}
-          {[60, 30, 0, -30].map((lat) => (
-            <line key={lat} x1={bx} x2={bx + bw} y1={75 - lat} y2={75 - lat} className={lat === 0 ? styles.mapEquator : undefined} />
-          ))}
-        </g>
-
-        <ellipse className={styles.mapHalo} cx={ax - 4} cy={ay - 3} rx="26" ry="18" fill={`url(#${id}-halo)`} />
-        <rect x={bx} y={by} width={bw} height={bh} fill={`url(#${id}-dots)`} clipPath={`url(#${id}-land)`} className={styles.mapLand} />
-        <g clipPath={`url(#${id}-land)`}>
-          <rect x={bx} y={by} width={bw} height={bh} fill={`url(#${id}-home)`} clipPath={`url(#${id}-wa)`} className={styles.mapHome} />
-        </g>
-
-        {routes.map((p, i) => (
-          <path key={`r${i}`} className={styles.mapRoute} d={routePath(p.at)} pathLength={1} style={{ '--i': i } as CSSProperties} />
-        ))}
-        {routes.map((p, i) => (
-          <path key={`s${i}`} className={styles.mapSignal} d={routePath(p.at)} pathLength={1} style={{ '--i': i } as CSSProperties} />
-        ))}
-        {scene.points.map((p, i) => {
-          const [x, y] = project(p.at)
-          const order = p.route ? routes.indexOf(p) : routes.length + others.indexOf(p)
-          return (
-            <g key={`n${i}`} className={cn(styles.mapPoint, !p.route && styles.mapPointQuiet)} style={{ '--i': order } as CSSProperties}>
-              <circle className={styles.mapPointRing} cx={x} cy={y} r="1.6" />
-              <circle className={styles.mapPointCore} cx={x} cy={y} r="0.85" />
-            </g>
-          )
-        })}
-
-        <circle className={styles.mapBeacon} cx={ax} cy={ay} r="2" />
-        <circle className={styles.mapPulse} cx={ax} cy={ay} r="2" />
-        <circle cx={ax} cy={ay} r="2" fill="none" stroke="#cfe0ff" strokeOpacity="0.6" strokeWidth="0.35" />
-        <circle cx={ax} cy={ay} r="1.1" fill="#1d6eff" stroke="#ffffff" strokeWidth="0.45" />
-      </svg>
-
-      <span aria-hidden="true" className={cn(styles.mapRegion, scene.regionAlign === 'end' && styles.mapRegionEnd)} style={{ left: pct(lx, bx, bw), top: pct(ly, by, bh) }}>
-        West Africa
-      </span>
-      <span aria-hidden="true" className={styles.mapAnchor} style={anchor}>
-        <span className={styles.mapAnchorPin}>
-          <MapPin {...ICON} />
-        </span>
-        {REACH.location.name}
-      </span>
-    </div>
-  )
-}
-
-export function ReachField({ className }: { className?: string }) {
-  return (
-    <SiteReveal motion="none" as="figure" className={cn(styles.reach, className)}>
-      <figcaption className="sr-only">
-        A stylised world map. Hbee’s home base, Abuja, Nigeria, is highlighted within West Africa, with connections extending outward to
-        other regions of the world. The distant points are illustrative, not office or client locations.
-      </figcaption>
-      <MapScene scene={WORLD_SCENE} id="about-map-world" className={styles.mapWorld} />
-      <MapScene scene={REGION_SCENE} id="about-map-region" className={styles.mapRegionScene} />
-      <div className={styles.reachFoot}>
-        <p aria-hidden="true" className={styles.mapLegend}>
-          <span className={styles.mapLegendItem}>
-            <span className={styles.mapLegendHome} /> Home base
-          </span>
-          <span className={styles.mapLegendItem}>
-            <span className={styles.mapLegendPoint} /> Illustrative reach — not client or office locations
-          </span>
-        </p>
-        <div className={styles.reachCards}>
-          <div data-motion="reveal" className={styles.reachLocation} style={{ '--hb-motion-index': 2 } as CSSProperties}>
-            <span aria-hidden="true" className={styles.reachPin}>
-              <MapPin {...ICON} />
-            </span>
-            <div>
-              <p className={styles.reachLocationName}>{REACH.location.name}</p>
-              <p className={styles.reachLocationText}>{REACH.location.text}</p>
-            </div>
-          </div>
-          <div data-motion="reveal" className={styles.reachMindset} style={{ '--hb-motion-index': 4 } as CSSProperties}>
-            <p className={styles.reachMindsetTitle}>
-              {REACH.card.headline.map((l) => (
-                <span key={l} className="block">
-                  {l}
-                </span>
-              ))}
-            </p>
-            <p className={styles.reachMindsetText}>{REACH.card.text}</p>
-          </div>
-        </div>
-      </div>
-    </SiteReveal>
   )
 }

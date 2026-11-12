@@ -207,9 +207,9 @@ assert.ok(/path: '\/how-we-work'/.test(howPage) && /path: '\/growth-review'/.tes
 
 /* ── 12. Diagnostic visual, idle and received states ── */
 assert.ok(!/GR_AREAS/.test(diagnostic), 'The diagnostic visual does not use the five legacy areas')
-const slotKeys = [...diagnostic.matchAll(/^\s{2}'([a-z-]+)': \{ d:/gm)].map((m) => m[1]).sort()
-assert.deepEqual(slotKeys, JSON.parse(JSON.stringify([...CAPABILITY_ORDER].sort())), 'Six module slots, one per capability')
-assert.ok(/received/.test(diagnostic) && /idle/.test(diagnostic) && /signal=\{variant !== 'idle'\}/.test(diagnostic), 'Idle has no signal; received keeps its own state')
+const heroModules = [...diagnostic.matchAll(/^ {4}(Brand|Experience|Technology|Creative|Discovery|Growth): \{ x:/gm)].map((m) => m[1])
+assert.equal(heroModules.slice(0, 6).sort().join(','), 'Brand,Creative,Discovery,Experience,Growth,Technology', 'The six canonical module identities are placed')
+assert.ok(/variant === 'received'/.test(diagnostic) && /idle/.test(diagnostic), 'Received keeps its own state (the hub signal appears only there)')
 assert.ok(/variant="idle"/.test(received) && /variant="received"/.test(received), 'Both states use the capability visual')
 assert.ok(/receiptIsValid\(raw\)/.test(received) && /setState\(valid \? 'received' : 'neutral'\)/.test(received), 'The no-fake-success receipt gate is intact')
 assert.ok(/GR_AREAS/.test(read('src/components/site/growth-review/DiagnosticSystem.tsx')), 'Homepage DiagnosticSystem is left as it was')

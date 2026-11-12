@@ -4,7 +4,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const read = (file) => fs.readFileSync(path.join(__dirname, '..', file), 'utf8')
-const SENTENCE = 'Hbee Digitals is a digital growth studio for Shopify and e-commerce brands, connecting brand, digital systems, creative, discovery, commerce, retention and growth.'
+const SENTENCE = 'Hbee Digitals is a digital growth studio for Shopify and ecommerce brands, connecting brand and positioning, website and conversion, digital systems and analytics, creative and UGC, traffic and visibility, and retention and customer value.'
 
 /* -- BlogPosting references the canonical Organization; no second node -- */
 const insights = read('src/lib/site/insights-data.ts')

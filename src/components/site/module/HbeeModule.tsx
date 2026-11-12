@@ -67,12 +67,14 @@ export interface HbeeModuleProps {
   signal?: boolean
   /** Translucent glass plane behind the block. Selected modules only. */
   glass?: boolean
+  /** A soft diagonal highlight across the face (glossier surface). Off by default; used by the process hero. */
+  gloss?: boolean
   /** Which corner carries the large Sweep Radius. */
   sweep?: ModuleSweep
   className?: string
 }
 
-export function HbeeModule({ label, icon, signal = false, glass = false, sweep = 'br', className }: HbeeModuleProps) {
+export function HbeeModule({ label, icon, signal = false, glass = false, gloss = false, sweep = 'br', className }: HbeeModuleProps) {
   return (
     <div className={cn(styles.module, SWEEP_CLASS[sweep], className)}>
       {glass && <span aria-hidden="true" className={styles.glass} />}
@@ -88,6 +90,7 @@ export function HbeeModule({ label, icon, signal = false, glass = false, sweep =
         )
       })}
       <div className={styles.face}>
+        {gloss && <span aria-hidden="true" className={styles.gloss} />}
         <span aria-hidden="true" className={styles.channel} />
         {signal && <span aria-hidden="true" className={styles.signal} />}
         {icon ? (
