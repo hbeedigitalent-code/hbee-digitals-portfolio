@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { SiteButton, SiteLinkArrow } from '../primitives/SiteButton'
 import { SiteDisplayHeading, SiteEyebrow } from '../primitives/SiteTypography'
-import { DiagnosticSystem } from './DiagnosticSystem'
+import { CapabilityDiagnosticSystem } from './CapabilityDiagnosticSystem'
 import { RECEIVED } from './growth-review-content'
 import { RECEIPT_KEY, receiptIsValid } from './form-model'
 import styles from './growth-review.module.css'
@@ -50,12 +50,12 @@ export function ReceivedState() {
           <p className={styles.neutralBody}>{RECEIVED.neutralBody}</p>
           <p className={styles.neutralExplain}>{RECEIVED.neutralExplain}</p>
           <SiteButton href="/growth-review" variant="conversion" size="lg" arrow className={styles.neutralCta}>
-            Start the Growth Review
+            Start Growth Review
           </SiteButton>
         </div>
         {/* The system at rest: no signal, no completion — this is not a confirmation. */}
         <div className={styles.neutralVisual}>
-          <DiagnosticSystem variant="idle" idPrefix="neutral" className="mx-auto max-w-[300px] sm:max-w-[360px] lg:mr-0 lg:max-w-[460px]" />
+          <CapabilityDiagnosticSystem variant="idle" idPrefix="neutral" className="mx-auto max-w-[300px] sm:max-w-[360px] lg:mr-0 lg:max-w-[460px]" />
         </div>
       </div>
     )
@@ -104,7 +104,7 @@ export function ReceivedState() {
         </div>
       </div>
       <div className={styles.receivedVisual}>
-        <DiagnosticSystem variant="received" idPrefix="received" className="mx-auto max-w-[420px]" />
+        <CapabilityDiagnosticSystem variant="received" idPrefix="received" className="mx-auto max-w-[420px]" />
       </div>
     </div>
   )

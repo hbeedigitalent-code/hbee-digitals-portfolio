@@ -1,6 +1,5 @@
 import Link from 'next/link'
-import type { CSSProperties, ReactNode } from 'react'
-import { BarChart3, Compass, Layers, MousePointerClick, Search, ShieldCheck } from 'lucide-react'
+import type { CSSProperties } from 'react'
 import { cn } from '@/lib/cn'
 import { CONTACT_HREF, GROWTH_REVIEW_HREF } from '@/lib/site/routes'
 import { UTILITY_NAV } from '../navigation'
@@ -10,14 +9,17 @@ import { SiteButton, SiteLinkArrow } from '../primitives/SiteButton'
 import { SiteGrid } from '../primitives/SiteContainer'
 import { SiteSection } from '../primitives/SiteSection'
 import { SiteDisplayHeading, SiteEyebrow, SiteLede } from '../primitives/SiteTypography'
-import { SERVICE_GROUPS } from '../services/services-content'
+import { CAPABILITY_ENTITIES, CAPABILITY_ORDER, type CapabilitySlug } from '../services/capability-entities'
 import { CAPABILITY_ICONS } from '../capability/capability-icons'
+import { ConnectedSystem } from './ConnectedSystem'
 import {
   CAPABILITIES_INTRO,
-  CONDITIONS_INTRO,
-  GROWTH_CONDITIONS,
   HOW_CTA,
   HOW_HERO,
+  HOW_QUESTIONS,
+  HOW_QUESTIONS_INTRO,
+  ISOLATED_EXAMPLES,
+  ISOLATED_INTRO,
   PORTAL_BENEFITS,
   PORTAL_INTRO,
   PORTAL_NAV,
@@ -25,21 +27,20 @@ import {
   PROCESS_STAGES,
   WORKING_INTRO,
   WORKING_PRINCIPLES,
-  type ConditionIcon,
 } from './how-we-work-content'
 import { ProcessSystem } from './ProcessSystem'
 import homeStyles from '../home/home.module.css'
 import capabilityStyles from '../capability/capability.module.css'
 import styles from './how-we-work.module.css'
 
-const ICON = { strokeWidth: 1.75, width: '100%', height: '100%', 'aria-hidden': true, focusable: false } as const
-const CONDITION_ICONS: Record<ConditionIcon, ReactNode> = {
-  clarity: <Compass {...ICON} />,
-  confidence: <ShieldCheck {...ICON} />,
-  discovery: <Search {...ICON} />,
-  decision: <MousePointerClick {...ICON} />,
-  value: <BarChart3 {...ICON} />,
-  capacity: <Layers {...ICON} />,
+/** Icon per capability (same mapping as the Services capability system). */
+const CAPABILITY_ICON: Record<CapabilitySlug, 'brand' | 'systems' | 'creative' | 'discovery' | 'commerce' | 'retention'> = {
+  'brand-positioning': 'brand',
+  'digital-systems': 'systems',
+  'creative-ugc': 'creative',
+  'discovery-traffic': 'discovery',
+  'commerce-experience': 'commerce',
+  'retention-growth': 'retention',
 }
 
 /* ── 01 — Hero (Cloud). Text visible immediately; the process system plays once. ── */
@@ -59,7 +60,7 @@ export function HowWeWorkHero() {
         <div className="col-span-4 md:col-span-8 lg:col-span-6">
           <p className={homeStyles.eyebrow}>
             <span aria-hidden="true" className={homeStyles.eyebrowSignal} />
-            How we work
+            {HOW_HERO.eyebrow}
           </p>
           <h1 id="how-hero-title" className="mt-6 font-hb-display text-[clamp(2.5rem,1.7rem+2.5vw,3.6rem)] font-bold leading-[1.02] tracking-[-0.04em] text-hb-fg">
             <span className="block">{HOW_HERO.headline}</span>
@@ -83,41 +84,38 @@ export function HowWeWorkHero() {
   )
 }
 
-/* ── 02 — Why diagnosis comes first: six DIAGNOSTIC conditions (not services) ── */
+/* ── 02 — Why isolated fixes fail: ecommerce problems are connected (the six capabilities, as one system) ── */
 
-export function GrowthConditions() {
+export function IsolatedFixes() {
   return (
-    <SiteSection tone="white" aria-labelledby="how-conditions-title">
+    <SiteSection tone="white" aria-labelledby="how-isolated-title">
       <SiteGrid className="gap-y-12">
-        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-5 min-[1152px]:self-center">
+        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-5">
           <SiteReveal>
-            <SiteEyebrow signal>The bigger picture</SiteEyebrow>
+            <SiteEyebrow signal>The connected system</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
-            <SiteDisplayHeading id="how-conditions-title" size="h2" className="mt-6 max-w-[32rem]">
-              {CONDITIONS_INTRO.headline[0]} <span className="block">{CONDITIONS_INTRO.headline[1]}</span>
+            <SiteDisplayHeading id="how-isolated-title" size="h2" className="mt-6 max-w-[32rem]">
+              {ISOLATED_INTRO.headline}
             </SiteDisplayHeading>
           </SiteReveal>
           <SiteReveal index={2}>
-            <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{CONDITIONS_INTRO.copy}</p>
+            <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{ISOLATED_INTRO.copy}</p>
           </SiteReveal>
         </div>
-        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-7 min-[1152px]:self-center">
-          <p className={styles.conditionsLabel}>Six growth conditions we assess</p>
-          <ul className={styles.conditions}>
-            {GROWTH_CONDITIONS.map((c, i) => (
-              <SiteReveal as="li" key={c.key} index={i % 3} className={styles.condition}>
-                <span aria-hidden="true" className={styles.conditionIcon}>
-                  {CONDITION_ICONS[c.key]}
-                </span>
-                <div>
-                  <h3 className="font-hb-display text-[1.0625rem] font-semibold leading-snug text-hb-fg">{c.name}</h3>
-                  <p className="mt-1 text-[0.9375rem] leading-snug text-hb-fg-body">{c.text}</p>
-                </div>
-              </SiteReveal>
-            ))}
-          </ul>
-        </div>
+        <ul className={cn(styles.isolated, 'col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-7')}>
+          {ISOLATED_EXAMPLES.map((e, i) => (
+            <SiteReveal as="li" key={e.fix} index={i % 3} className={styles.isolatedItem}>
+              <span aria-hidden="true" className={styles.isolatedNode} />
+              <p className="text-[1rem] leading-snug text-hb-fg-body">
+                <strong className="font-hb-display font-semibold text-hb-fg">{e.fix}</strong> {e.text}
+              </p>
+            </SiteReveal>
+          ))}
+        </ul>
+        <SiteReveal motion="focus" className="col-span-4 md:col-span-8 lg:col-span-12">
+          <ConnectedSystem />
+        </SiteReveal>
       </SiteGrid>
     </SiteSection>
   )
@@ -145,7 +143,7 @@ export function GrowthProcess() {
         <span aria-hidden="true" className={styles.flowSignal} />
         <ol className={styles.flowList}>
           {PROCESS_STAGES.map((stage, i) => (
-            <SiteReveal as="li" key={stage.name} index={i} className={styles.flowStage}>
+            <SiteReveal as="li" id={stage.id} key={stage.name} index={i} className={cn(styles.flowStage, styles.anchor)}>
               <span aria-hidden="true" className={styles.flowNode} data-first={i === 0 ? '' : undefined}>
                 {String(i + 1).padStart(2, '0')}
               </span>
@@ -189,23 +187,20 @@ export function ProcessCapabilities() {
 
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-7 min-[1152px]:self-center">
           <SiteReveal className={styles.capGroups}>
-            {SERVICE_GROUPS.map((group) => (
-              <div key={group.key} className={styles.capGroup}>
-                <h3 className={styles.capGroupName}>{group.name}</h3>
-                <ul className={styles.capTiles}>
-                  {group.capabilities.map((cap) => (
-                    <li key={cap.slug}>
-                      <Link href={`/services/${cap.slug}`} className={styles.capTile}>
-                        <span aria-hidden="true" className={styles.capTileIcon}>
-                          {CAPABILITY_ICONS[cap.icon]}
-                        </span>
-                        {cap.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+            <div className={styles.capGroup}>
+              <ul className={styles.capTiles}>
+                {CAPABILITY_ORDER.map((slug) => (
+                  <li key={slug}>
+                    <Link href={CAPABILITY_ENTITIES[slug].href} className={styles.capTile} aria-label={CAPABILITY_ENTITIES[slug].linkLabel}>
+                      <span aria-hidden="true" className={styles.capTileIcon}>
+                        {CAPABILITY_ICONS[CAPABILITY_ICON[slug]]}
+                      </span>
+                      {CAPABILITY_ENTITIES[slug].name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </SiteReveal>
           {/* The relationship: capabilities feed INTO the process, stage by stage. */}
           <SiteReveal index={1} className={styles.rail}>
@@ -346,13 +341,13 @@ export function ClientPortalSection() {
               </SiteReveal>
             ))}
           </ul>
-          <SiteReveal index={3} className="mt-8 flex flex-wrap items-center gap-3">
-            <SiteButton href={GROWTH_REVIEW_HREF} variant="conversion" size="lg" arrow>
-              Start Growth Review
-            </SiteButton>
-            <SiteButton href={UTILITY_NAV.href} variant="secondary" size="lg">
-              Open Client Portal
-            </SiteButton>
+          <SiteReveal index={3} className="mt-6">
+            <p className="text-[0.9375rem] text-hb-fg-body">
+              Already a client?{' '}
+              <Link href={UTILITY_NAV.href} className="font-semibold text-hb-link underline underline-offset-4">
+                Sign in to the Client Portal
+              </Link>
+            </p>
           </SiteReveal>
         </div>
         <SiteReveal motion="focus" index={1} className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-7">
@@ -363,7 +358,38 @@ export function ClientPortalSection() {
   )
 }
 
-/* ── 07 — Final CTA (Night) ── */
+/* ── 07 — Questions merchants ask (visible HTML; no FAQPage schema) ── */
+
+export function HowWeWorkQuestions() {
+  return (
+    <SiteSection tone="white" aria-labelledby="how-questions-title">
+      <SiteGrid className="gap-y-10">
+        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-4">
+          <SiteReveal>
+            <SiteEyebrow signal>Questions</SiteEyebrow>
+          </SiteReveal>
+          <SiteReveal index={1}>
+            <SiteDisplayHeading id="how-questions-title" size="h2" className="mt-6">
+              {HOW_QUESTIONS_INTRO.headline}
+            </SiteDisplayHeading>
+          </SiteReveal>
+        </div>
+        <dl className={cn(styles.questions, 'col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-8')}>
+          {HOW_QUESTIONS.map((q, i) => (
+            <SiteReveal key={q.question} index={i % 3} className={styles.question}>
+              <dt>
+                <h3 className="font-hb-display text-[1.125rem] font-bold leading-snug tracking-[-0.01em] text-hb-fg">{q.question}</h3>
+              </dt>
+              <dd className="mt-2 text-[1rem] leading-relaxed text-hb-fg-body">{q.answer}</dd>
+            </SiteReveal>
+          ))}
+        </dl>
+      </SiteGrid>
+    </SiteSection>
+  )
+}
+
+/* ── 08 — Final CTA (Night) ── */
 
 export function HowWeWorkCta() {
   return (

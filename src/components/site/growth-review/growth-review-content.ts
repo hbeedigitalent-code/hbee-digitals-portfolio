@@ -15,16 +15,19 @@ export interface Option {
 
 export const GR_HERO = {
   eyebrow: 'Growth Review',
-  headline: 'Understand what should',
-  headlineAccent: 'move next.',
-  lede: 'The Hbee Growth Review is a focused assessment that helps identify the most important gaps, priorities and next steps in your e-commerce growth system. Tell us about your business and where growth feels stuck. We look at the whole picture — how customers find you, buy from you and come back — before recommending anything.',
-  cta: 'Start the Growth Review',
+  headline: 'Ecommerce Growth Review:',
+  headlineAccent: 'Find What to Fix First',
+  lede: 'The Hbee Growth Review helps us understand where growth feels stuck in your ecommerce business, review the business and storefront, and recommend what should happen next.',
+  cta: 'Start Growth Review',
   trust: ['Reviewed by the Hbee team', 'No account needed', 'No obligation'],
 } as const
 
 export type AreaKey = 'visibility' | 'conversion' | 'retention' | 'authority' | 'scalability'
 
-/** The five Growth Readiness diagnostic areas (not the 5-stage process, not the capabilities). */
+/**
+ * The five legacy Growth Readiness areas. NOT shown on /growth-review any more (S2.2 presents the six capabilities there).
+ * Still read by the homepage's closing DiagnosticSystem, so it stays until the homepage is revisited.
+ */
 export const GR_AREAS: { key: AreaKey; name: string; text: string }[] = [
   { key: 'visibility', name: 'Visibility', text: 'How customers find you' },
   { key: 'conversion', name: 'Conversion', text: 'How visits turn into sales' },
@@ -33,23 +36,104 @@ export const GR_AREAS: { key: AreaKey; name: string; text: string }[] = [
   { key: 'scalability', name: 'Scalability', text: 'Whether the business is ready to grow' },
 ]
 
-export const GR_LOOK_AT = {
-  title: 'What we look at',
-  line: 'We look at these together, because they affect each other.',
+/** Merchant symptoms (S2.2). Wording follows the S1 symptom set; no mapping to scores is implied. */
+export const GR_SYMPTOMS_INTRO = {
+  title: 'Who the Growth Review is for',
+  copy: 'It suits ecommerce brands that know something is limiting growth but not which part to fix first.',
+  closing: 'Recognize more than one? That is common. Growth problems are connected, and the review looks at how they relate.',
+} as const
+
+export const GR_SYMPTOMS: string[] = [
+  'Traffic arrives but sales remain weak.',
+  'The brand is difficult to tell apart from competitors.',
+  'The store gets little relevant discovery.',
+  'Product pages are viewed but shoppers hesitate.',
+  'Tracking or reporting cannot explain the problem.',
+  'Creative exists but does not communicate the product clearly.',
+  'Core lifecycle automations are missing.',
+  'There are too many possible fixes and no clear priority.',
+]
+
+/**
+ * The six capabilities are Hbee's execution/diagnostic framework. They are NOT the automated scoring model
+ * (the form feeds five internal pillars) and the page must never say they are individually scored.
+ */
+export const GR_CAPABILITIES = {
+  title: 'Where the diagnosis can lead',
+  copy:
+    'The form gives Hbee structured signals about the business. The team then reviews your answers alongside your store and business context, and decides which capability, or combination of capabilities, should receive attention first.',
+  note: 'These are the areas Hbee can investigate. They are how Hbee organizes the work that can follow, not six separate scores.',
+  how: 'See how Hbee works',
 } as const
 
 export const GR_NEXT = {
   title: 'What happens after you submit',
   steps: [
     { title: 'We confirm we have it.', text: "You'll get an email as soon as your answers arrive." },
-    { title: 'We look at your business.', text: 'Someone from the Hbee team reviews your answers alongside your website or store.' },
+    { title: 'We review the business.', text: 'Someone from the Hbee team reviews your answers alongside your website or store.' },
     { title: 'We work out what matters first.', text: "Where it's useful, we identify the priorities that deserve attention." },
     {
       title: 'We tell you the next step.',
-      text: "That might be a Growth Profile, a conversation with the team, or our honest view that now isn't the right time.",
+      text: "That might be a conversation, a Growth Profile where applicable, another recommended path, or our honest view that now isn't the right time.",
     },
   ],
   closing: "Submitting isn't an approval or a commitment — on either side.",
+  /** Hedged on purpose: not every review leads to a Growth Profile, and it is prepared by the team, not generated on submission. */
+  profile:
+    'A Growth Profile, where one applies, may include diagnosis information, recommendations and growth context. It is prepared by the Hbee team after the review and is not generated instantly.',
+} as const
+
+/** Rendered as visible HTML (no FAQPage schema). Every answer matches the real workflow. */
+export const GR_QUESTIONS_INTRO = { title: 'Questions merchants ask' } as const
+export const GR_QUESTIONS: { question: string; answer: string }[] = [
+  {
+    question: 'What is an ecommerce Growth Review?',
+    answer:
+      'A focused assessment used to understand where growth appears constrained and what should be investigated first. You answer questions about your business, and the Hbee team reviews them alongside your store.',
+  },
+  {
+    question: 'What does Hbee review?',
+    answer:
+      'Your answers, together with your business and store context. From that, Hbee works out which of its capabilities, one or a combination, deserves attention first. The six capabilities organize the work that can follow; the form does not score each one separately.',
+  },
+  {
+    question: 'What happens after I submit?',
+    answer:
+      "You receive an email confirming your answers arrived. The Hbee team reviews them alongside your business and store, then tells you the next step. That might be a conversation, a Growth Profile where applicable, another recommended path, or an honest view that now isn't the right time.",
+  },
+  {
+    question: 'Do I need an account?',
+    answer: 'No. You can submit the Growth Review without creating an account.',
+  },
+  {
+    question: 'Is the Growth Review a sales call?',
+    answer:
+      'No. Submitting is not an approval, a commitment or a scheduled sales call. The Hbee team reviews your answers first and then tells you the next step.',
+  },
+  {
+    question: 'Should I fix traffic, conversion or retention first?',
+    answer:
+      'It depends on the primary constraint and how the parts of the business depend on each other. More traffic does little for a broken buying journey, and retention needs first orders to build on. The review looks for the constraint instead of assuming an answer.',
+  },
+]
+
+export const GR_FOLLOW = {
+  how: 'See how Hbee works',
+  contactLead: 'Prefer to talk first?',
+  contact: 'Contact Hbee',
+} as const
+
+/** Shown above the form. No completion time is stated (unverified). */
+export const GR_FORM_NOTE =
+  "You'll answer five short sections about the business, current position, goals, challenge and priority."
+
+/**
+ * Homepage self-check continuity. Keys are exactly the ConditionKey values the homepage emits as
+ * /growth-review?constraint=<key>. Display-only: nothing here reaches the form, the API or scoring.
+ */
+export const GR_CONSTRAINT_CONTEXT = {
+  lead: 'You told us:',
+  tail: 'The Growth Review looks at that alongside the rest of your business.',
 } as const
 
 export const GR_ASSESSMENT = {

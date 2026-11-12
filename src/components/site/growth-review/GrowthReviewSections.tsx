@@ -1,26 +1,40 @@
-import type { ReactNode } from 'react'
-import { BarChart3, Repeat2, Search, ShieldCheck, ShoppingCart } from 'lucide-react'
+import Link from 'next/link'
 import { cn } from '@/lib/cn'
+import { CONTACT_HREF } from '@/lib/site/routes'
 import { SiteReveal } from '../motion/SiteReveal'
-import { SiteButton } from '../primitives/SiteButton'
+import { SiteButton, SiteLinkArrow } from '../primitives/SiteButton'
 import { SiteGrid } from '../primitives/SiteContainer'
 import { SiteSection } from '../primitives/SiteSection'
 import { SiteDisplayHeading, SiteEyebrow, SiteLede } from '../primitives/SiteTypography'
-import { DiagnosticSystem } from './DiagnosticSystem'
+import { CAPABILITY_ICONS } from '../capability/capability-icons'
+import { CAPABILITY_ENTITIES, CAPABILITY_ORDER, type CapabilitySlug } from '../services/capability-entities'
+import { CapabilityDiagnosticSystem } from './CapabilityDiagnosticSystem'
+import { ConstraintContext } from './ConstraintContext'
 import { GrowthReviewForm } from './GrowthReviewForm'
-import { GR_AREAS, GR_ASSESSMENT, GR_HERO, GR_LOOK_AT, GR_NEXT, type AreaKey } from './growth-review-content'
+import {
+  GR_ASSESSMENT,
+  GR_CAPABILITIES,
+  GR_FOLLOW,
+  GR_FORM_NOTE,
+  GR_HERO,
+  GR_NEXT,
+  GR_QUESTIONS,
+  GR_QUESTIONS_INTRO,
+  GR_SYMPTOMS,
+  GR_SYMPTOMS_INTRO,
+} from './growth-review-content'
 import homeStyles from '../home/home.module.css'
 import styles from './growth-review.module.css'
 
 export const ASSESSMENT_ID = 'growth-review-assessment'
 
-const ICON = { strokeWidth: 1.75, width: '100%', height: '100%', 'aria-hidden': true, focusable: false } as const
-const AREA_ICONS: Record<AreaKey, ReactNode> = {
-  visibility: <Search {...ICON} />,
-  conversion: <ShoppingCart {...ICON} />,
-  retention: <Repeat2 {...ICON} />,
-  authority: <ShieldCheck {...ICON} />,
-  scalability: <BarChart3 {...ICON} />,
+const CAPABILITY_ICON: Record<CapabilitySlug, 'brand' | 'systems' | 'creative' | 'discovery' | 'commerce' | 'retention'> = {
+  'brand-positioning': 'brand',
+  'digital-systems': 'systems',
+  'creative-ugc': 'creative',
+  'discovery-traffic': 'discovery',
+  'commerce-experience': 'commerce',
+  'retention-growth': 'retention',
 }
 
 /* ── 01 — Introduction (Cloud). Text is server-rendered and visible immediately. ── */
@@ -42,10 +56,12 @@ export function GrowthReviewHero() {
             <span aria-hidden="true" className={homeStyles.eyebrowSignal} />
             {GR_HERO.eyebrow}
           </p>
-          <h1 id="gr-hero-title" className="mt-6 font-hb-display text-[clamp(2.5rem,1.7rem+2.5vw,3.6rem)] font-bold leading-[1.02] tracking-[-0.04em] text-hb-fg">
-            {GR_HERO.headline} <span className="text-hb-blue">{GR_HERO.headlineAccent}</span>
+          <h1 id="gr-hero-title" className="mt-6 font-hb-display text-[clamp(2.25rem,1.6rem+2.2vw,3.3rem)] font-bold leading-[1.04] tracking-[-0.04em] text-hb-fg">
+            <span className="block">{GR_HERO.headline}</span>
+            <span className="block text-hb-blue">{GR_HERO.headlineAccent}</span>
           </h1>
           <SiteLede className="mt-6 max-w-[34rem]">{GR_HERO.lede}</SiteLede>
+          <ConstraintContext variant="hero" />
           <div className="mt-9 flex flex-wrap items-center gap-3">
             <SiteButton href={`#${ASSESSMENT_ID}`} variant="conversion" size="lg" arrow>
               {GR_HERO.cta}
@@ -61,51 +77,108 @@ export function GrowthReviewHero() {
           </ul>
         </div>
         <div className={`col-span-4 pt-3 md:col-span-8 lg:col-span-6 lg:pt-0 ${styles.heroVisual}`}>
-          <DiagnosticSystem className="mx-auto max-w-[480px] lg:mr-0 lg:max-w-[600px]" />
+          <CapabilityDiagnosticSystem className="mx-auto max-w-[480px] lg:mr-0 lg:max-w-[600px]" />
         </div>
       </SiteGrid>
     </SiteSection>
   )
 }
 
-/* ── 02 + 03 — What we look at · What happens after you submit (White) ── */
+/* ── 02 — Who it is for: merchant symptoms (White) ── */
 
-export function GrowthReviewContext() {
+export function GrowthReviewSymptoms() {
   return (
-    <SiteSection tone="white" spacing="compact" aria-label="About the Growth Review">
-      <SiteGrid className="gap-y-14">
-        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-5">
+    <SiteSection tone="white" spacing="compact" aria-labelledby="gr-symptoms-title">
+      <SiteGrid className="gap-y-10">
+        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-4">
           <SiteReveal>
-            <SiteDisplayHeading as="h2" size="h3" className={styles.contextTitle}>
-              {GR_LOOK_AT.title}
-            </SiteDisplayHeading>
-            <p className={styles.contextLine}>{GR_LOOK_AT.line}</p>
+            <SiteEyebrow signal>Who it is for</SiteEyebrow>
           </SiteReveal>
-          <SiteReveal motion="none" className={styles.areas}>
-            <span aria-hidden="true" className={styles.areasRail} />
-            <ul className={styles.areaList}>
-              {GR_AREAS.map((a, i) => (
-                <li key={a.key} data-motion="reveal" className={styles.area} style={{ ['--hb-motion-index' as string]: i }}>
-                  <span aria-hidden="true" className={styles.areaIcon}>
-                    {AREA_ICONS[a.key]}
-                  </span>
-                  <span className={styles.areaBody}>
-                    <span className={styles.areaName}>{a.name}</span>
-                    <span className={styles.areaText}>{a.text}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
+          <SiteReveal index={1}>
+            <SiteDisplayHeading id="gr-symptoms-title" as="h2" size="h3" className={cn(styles.contextTitle, 'mt-6')}>
+              {GR_SYMPTOMS_INTRO.title}
+            </SiteDisplayHeading>
+            <p className={styles.contextLine}>{GR_SYMPTOMS_INTRO.copy}</p>
           </SiteReveal>
         </div>
+        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-8">
+          <ul className={styles.symptoms}>
+            {GR_SYMPTOMS.map((text, i) => (
+              <SiteReveal as="li" key={text} index={i % 4} className={styles.symptom}>
+                <span aria-hidden="true" className={styles.symptomNode} />
+                <span>{text}</span>
+              </SiteReveal>
+            ))}
+          </ul>
+          <SiteReveal index={2}>
+            <p className={styles.closing} style={{ marginLeft: 0 }}>
+              {GR_SYMPTOMS_INTRO.closing}
+            </p>
+          </SiteReveal>
+        </div>
+      </SiteGrid>
+    </SiteSection>
+  )
+}
 
-        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-6 min-[1152px]:col-start-7">
+/* ── 03 — Where the diagnosis can lead: the six capabilities (Cloud). Not a scoring model. ── */
+
+export function GrowthReviewCapabilities() {
+  return (
+    <SiteSection tone="cloud" spacing="compact" aria-labelledby="gr-capabilities-title">
+      <SiteGrid className="gap-y-10">
+        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-5">
           <SiteReveal>
-            <SiteDisplayHeading as="h2" size="h3" className={styles.contextTitle}>
+            <SiteEyebrow signal>Areas Hbee can investigate</SiteEyebrow>
+          </SiteReveal>
+          <SiteReveal index={1}>
+            <SiteDisplayHeading id="gr-capabilities-title" as="h2" size="h3" className={cn(styles.contextTitle, 'mt-6')}>
+              {GR_CAPABILITIES.title}
+            </SiteDisplayHeading>
+            <p className={styles.contextLine}>{GR_CAPABILITIES.copy}</p>
+            <p className={styles.contextLine}>{GR_CAPABILITIES.note}</p>
+            <SiteLinkArrow href="/how-we-work" className="mt-4 min-h-[44px]">
+              {GR_CAPABILITIES.how}
+            </SiteLinkArrow>
+          </SiteReveal>
+        </div>
+        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-7">
+          <ul className={styles.capCards}>
+            {CAPABILITY_ORDER.map((slug, i) => {
+              const entity = CAPABILITY_ENTITIES[slug]
+              return (
+                <SiteReveal as="li" key={slug} index={i % 3}>
+                  <Link href={entity.href} className={styles.capCard} aria-label={entity.linkLabel}>
+                    <span aria-hidden="true" className={styles.capCardIcon}>
+                      {CAPABILITY_ICONS[CAPABILITY_ICON[slug]]}
+                    </span>
+                    <span className={styles.capCardName}>{entity.name}</span>
+                  </Link>
+                </SiteReveal>
+              )
+            })}
+          </ul>
+        </div>
+      </SiteGrid>
+    </SiteSection>
+  )
+}
+
+/* ── 04 — What happens after you submit (White) ── */
+
+export function GrowthReviewNext() {
+  return (
+    <SiteSection tone="white" spacing="compact" aria-labelledby="gr-next-title">
+      <SiteGrid className="gap-y-10">
+        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-4">
+          <SiteReveal>
+            <SiteDisplayHeading id="gr-next-title" as="h2" size="h3" className={styles.contextTitle}>
               {GR_NEXT.title}
             </SiteDisplayHeading>
           </SiteReveal>
-          <ol className={styles.steps}>
+        </div>
+        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-8">
+          <ol className={cn(styles.steps, styles.stepsFirst)}>
             {GR_NEXT.steps.map((step, i) => (
               <SiteReveal as="li" key={step.title} index={i} className={styles.step}>
                 <span aria-hidden="true" className={styles.stepNumber}>
@@ -120,6 +193,7 @@ export function GrowthReviewContext() {
           </ol>
           <SiteReveal index={2}>
             <p className={styles.closing}>{GR_NEXT.closing}</p>
+            <p className={styles.profileNote}>{GR_NEXT.profile}</p>
           </SiteReveal>
         </div>
       </SiteGrid>
@@ -127,7 +201,52 @@ export function GrowthReviewContext() {
   )
 }
 
-/* ── 04 — The assessment (Cloud): the quiet, focused part of the page ── */
+/* ── 05 — Questions merchants ask (White → visible HTML, no FAQPage schema) ── */
+
+export function GrowthReviewQuestions() {
+  return (
+    <SiteSection tone="cloud" spacing="compact" aria-labelledby="gr-questions-title">
+      <SiteGrid className="gap-y-10">
+        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-4">
+          <SiteReveal>
+            <SiteEyebrow signal>Questions</SiteEyebrow>
+          </SiteReveal>
+          <SiteReveal index={1}>
+            <SiteDisplayHeading id="gr-questions-title" as="h2" size="h3" className={cn(styles.contextTitle, 'mt-6')}>
+              {GR_QUESTIONS_INTRO.title}
+            </SiteDisplayHeading>
+          </SiteReveal>
+        </div>
+        <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-8">
+          <dl className={styles.questions}>
+            {GR_QUESTIONS.map((q, i) => (
+              <SiteReveal key={q.question} index={i % 3} className={styles.question}>
+                <dt>
+                  <h3 className={styles.questionTitle}>{q.question}</h3>
+                </dt>
+                <dd className={styles.questionAnswer}>{q.answer}</dd>
+              </SiteReveal>
+            ))}
+          </dl>
+          <SiteReveal index={2} className={styles.follow}>
+            <SiteLinkArrow href="/how-we-work" className="min-h-[44px]">
+              {GR_FOLLOW.how}
+            </SiteLinkArrow>
+            <p className={styles.followContact}>
+              {GR_FOLLOW.contactLead}{' '}
+              <a href={CONTACT_HREF} className={styles.inlineLink}>
+                {GR_FOLLOW.contact}
+              </a>
+              .
+            </p>
+          </SiteReveal>
+        </div>
+      </SiteGrid>
+    </SiteSection>
+  )
+}
+
+/* ── 06 — The assessment (Cloud): the quiet, focused part of the page ── */
 
 export function GrowthReviewAssessment() {
   return (
@@ -138,6 +257,7 @@ export function GrowthReviewAssessment() {
           <SiteDisplayHeading id="gr-assessment-title" size="h2" className={styles.assessmentTitle}>
             {GR_ASSESSMENT.title}
           </SiteDisplayHeading>
+          <p className={styles.formNote}>{GR_FORM_NOTE}</p>
           <p className={styles.privacy}>
             {GR_ASSESSMENT.privacy}{' '}
             <a href="/privacy" className={styles.inlineLink}>

@@ -26,7 +26,7 @@ for (const forbidden of ['founder', 'address', 'areaServed', 'contactPoint', 'ag
 assert.ok(read('src/components/site/home/home-content.ts').includes(SENTENCE), 'Homepage lede carries the entity sentence')
 assert.ok(
   read('src/components/site/growth-review/growth-review-content.ts').includes(
-    'The Hbee Growth Review is a focused assessment that helps identify the most important gaps, priorities and next steps in your e-commerce growth system.',
+    'The Hbee Growth Review helps us understand where growth feels stuck in your ecommerce business, review the business and storefront, and recommend what should happen next.',
   ),
   'Growth Review defined in its introduction',
 )

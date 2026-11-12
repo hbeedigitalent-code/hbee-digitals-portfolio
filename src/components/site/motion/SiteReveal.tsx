@@ -14,6 +14,8 @@ interface SiteRevealProps {
   /** Stagger position (multiplied by --hb-stagger). */
   index?: number
   as?: ElementType
+  /** Optional element id (used for in-page anchors such as /how-we-work#assess). */
+  id?: string
   className?: string
   style?: CSSProperties
   children: ReactNode
@@ -27,7 +29,7 @@ interface SiteRevealProps {
  * IntersectionObserver, or a client-side navigation into the surface) the
  * element is marked revealed immediately and never hidden.
  */
-export function SiteReveal({ motion = 'reveal', index, as: Tag = 'div', className, style, children }: SiteRevealProps) {
+export function SiteReveal({ motion = 'reveal', index, as: Tag = 'div', id, className, style, children }: SiteRevealProps) {
   const ref = useRef<HTMLElement | null>(null)
   const [revealed, setRevealed] = useState(false)
 
@@ -59,6 +61,7 @@ export function SiteReveal({ motion = 'reveal', index, as: Tag = 'div', classNam
   return (
     <Tag
       ref={ref}
+      id={id}
       data-motion={motion === 'none' ? undefined : motion}
       data-revealed={revealed ? 'true' : 'false'}
       className={cn(className)}
