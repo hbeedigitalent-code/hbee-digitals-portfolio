@@ -290,6 +290,61 @@ assert.ok(!rg.insightSlugs.includes('ecommerce-conversion-mistakes-costing-sales
 assert.ok(/where the buying cycle supports it/i.test(JSON.stringify(rgs.serviceArea.topics)) && /where the data supports it/i.test(JSON.stringify(rgs.moreServiceAreas[0].topics)), 'Replenishment and next-product logic stay conditional on buying cycle and data')
 assert.ok(!/loyalty|subscription/i.test(JSON.stringify(rgs.deliverables)), 'Side list claims no loyalty or subscriptions')
 
+
+/* ── 4h. Cross-system consistency: homepage labels, hub ownership, stale names ── */
+const homeContent = load('src/components/site/home/home-content.ts')
+const homeCaps = homeContent.CAPABILITY_GROUPS.flatMap((g) => g.capabilities)
+for (const cap of homeCaps) assert.equal(cap.name, CAPABILITY_ENTITIES[cap.slug].name, 'Homepage capability name matches the semantic name: ' + cap.slug)
+const homeDeliverables = JSON.stringify(homeCaps.map((c) => c.deliverables))
+assert.ok(!/websites? & platforms|paid media|loyalty|subscriptions|offer architecture|content distribution/i.test(homeDeliverables), 'Homepage deliverables carry no wording that conflicts with final ownership')
+const homeByslug = Object.fromEntries(homeCaps.map((c) => [c.slug, c.deliverables.join(' | ')]))
+assert.ok(/tracking/i.test(homeByslug['digital-systems']) && /integrations/i.test(homeByslug['digital-systems']), 'Technology deliverables are tracking / integrations / reporting')
+assert.ok(/acquisition|search/i.test(homeByslug['discovery-traffic']) && /lifecycle/i.test(homeByslug['retention-growth']) && /value proposition/i.test(homeByslug['brand-positioning']))
+const staleNames = /Commerce Experience|Discovery & Traffic|Retention & Growth/
+for (const slug of Object.keys(CAPABILITY_DETAILS)) {
+  const d = CAPABILITY_DETAILS[slug]
+  assert.ok(!staleNames.test(JSON.stringify([d.systemFit, d.cta, d.opportunity, d.approach, d.semantic])), slug + ' shows no stale capability name in rendered copy')
+}
+assert.ok(!staleNames.test(JSON.stringify([SERVICE_GROUPS, CAPABILITY_ENTITIES, MERCHANT_SYMPTOMS, SERVICES_FAQ])), 'Hub copy shows no stale capability name')
+const hubCore = Object.fromEntries(CAPABILITY_ORDER.map((slug) => [slug, JSON.stringify([CAPABILITY_ENTITIES[slug].coreWork, CAPABILITY_ENTITIES[slug].definition])]))
+assert.ok(!/storefront and integration build|websites?\b|paid media|loyalty|subscription/i.test(hubCore['digital-systems']), 'Hub: Technology card owns no storefront/website build')
+assert.ok(!/paid media|media buying|ad management/i.test(hubCore['discovery-traffic']), 'Hub: Discovery card claims no managed paid media')
+assert.ok(!/loyalty|subscription|higher customer value/i.test(hubCore['retention-growth']), 'Hub: Growth card claims no loyalty/subscriptions or guaranteed value')
+assert.ok(!/offer architecture/i.test(hubCore['brand-positioning']), 'Hub: Brand card does not own offer execution')
+const nav2 = read('src/components/site/navigation.ts')
+assert.ok(!/label: '(?:Commerce Experience|Discovery & Traffic|Retention & Growth)', href: '\/services\/'/.test(nav2), 'Services navigation uses semantic names')
+const knownAnchors = {}
+for (const slug of CAPABILITY_ORDER) {
+  const sem = CAPABILITY_DETAILS[slug].semantic
+  knownAnchors[slug] = new Set([...[sem.serviceArea, ...(sem.moreServiceAreas ?? [])].filter(Boolean).map((a) => a.id), 'what-we-diagnose', 'questions', 'connected-capabilities'])
+}
+knownAnchors['commerce-experience'].add('product-and-offer')
+for (const slug of CAPABILITY_ORDER) {
+  const sem = CAPABILITY_DETAILS[slug].semantic
+  const allLinks = [...[sem.serviceArea, ...(sem.moreServiceAreas ?? [])].filter(Boolean).flatMap((a) => [a.connection.link, ...(a.links ?? [])]), ...sem.questions.items.flatMap((q) => q.links ?? [])]
+  for (const link of allLinks) {
+    const [p, hash] = link.href.split('#')
+    if (p.startsWith('/services/')) {
+      const target = p.slice('/services/'.length)
+      assert.ok(CAPABILITY_ORDER.includes(target), slug + ' links to an existing capability route: ' + link.href)
+      if (hash) assert.ok(knownAnchors[target].has(hash), slug + ' links to an existing anchor: ' + link.href)
+    }
+    assert.ok(!/Commerce Experience|Discovery & Traffic|Retention & Growth/.test(link.label), 'No stale capability name in link label: ' + link.label)
+  }
+}
+for (const item of MERCHANT_SYMPTOMS) if (item.anchor) assert.ok(knownAnchors[item.capability].has(item.anchor.slice(1)), 'Hub symptom anchor exists: ' + item.anchor)
+/* Insight ownership: each conversion-friction article is mapped to Website & Conversion only. */
+const mappedBySlug = {}
+for (const slug of CAPABILITY_ORDER) for (const ins of CAPABILITY_DETAILS[slug].insightSlugs) (mappedBySlug[ins] ??= []).push(slug)
+assert.deepEqual(plain(mappedBySlug['ecommerce-conversion-mistakes-costing-sales']), ['commerce-experience'])
+assert.deepEqual(plain(mappedBySlug['shopify-redesign-vs-optimization']), ['commerce-experience'])
+assert.deepEqual(plain(mappedBySlug['klaviyo-flows-shopify-store-needs-first']), ['retention-growth'])
+for (const [ins, owners] of Object.entries(mappedBySlug)) assert.equal(owners.length, 1, 'Insight is mapped to one capability: ' + ins)
+for (const slug of CAPABILITY_ORDER) {
+  const sem = CAPABILITY_DETAILS[slug].semantic
+  assert.ok(sem.serviceType && sem.h1.lead && sem.h1.accent, slug + ' has H1 and serviceType')
+}
+
 /* ── 5. Claims and link hygiene ── */
 const copy = JSON.stringify([s, CAPABILITY_ENTITIES, MERCHANT_SYMPTOMS, SERVICES_HERO, CONNECT_INTRO, SERVICES_FAQ])
 assert.ok(!/\b(?:10x|skyrocket|dominate|guaranteed?|world-class|best agency|#1)\b/i.test(copy.replace(/does not promise a specific[^"]*/i, '')), 'No inflated claims')

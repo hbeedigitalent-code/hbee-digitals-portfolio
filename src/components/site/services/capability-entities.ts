@@ -109,7 +109,7 @@ export const CAPABILITY_ENTITIES: Record<CapabilitySlug, CapabilityEntity> = {
     module: 'Growth',
     name: 'Retention & Customer Value',
     definition:
-      'Builds lifecycle email, Klaviyo and post-purchase systems that turn first purchases into repeat customers and higher customer value.',
+      'Builds lifecycle email, Klaviyo and post-purchase communication that gives customers timely reasons to return and builds more value from the customers a brand already has.',
     problems: ['Customers buy once and do not return', 'Abandoned carts and post-purchase moments go unused'],
     coreWork: ['Welcome, abandonment and post-purchase flows', 'Segmentation and campaigns', 'Repeat-purchase planning'],
     adjacent: ['commerce-experience', 'digital-systems', 'creative-ugc'],
@@ -159,7 +159,7 @@ export interface MerchantSymptom {
 export const MERCHANT_SYMPTOMS: MerchantSymptom[] = [
   {
     symptom: 'Traffic but low sales',
-    explanation: 'Visitors arrive and leave. The cause is usually in the storefront journey, not in the number of visitors.',
+    explanation: 'Visitors arrive and leave. The cause may be the storefront journey or the fit of the traffic, and a diagnosis separates the two.',
     capability: 'commerce-experience',
   },
   {

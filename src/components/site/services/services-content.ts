@@ -122,7 +122,7 @@ export const SERVICE_GROUPS: ServiceGroup[] = [
       {
         slug: 'retention-growth',
         name: CAPABILITY_ENTITIES['retention-growth'].name,
-        purpose: 'Increase customer value, repeat engagement and the efficiency of future growth.',
+        purpose: 'Give customers relevant, well-timed reasons to return, and build more value from the customers a brand already has.',
         icon: 'retention',
       },
     ],

@@ -428,7 +428,7 @@ export const DISCOVERY_TRAFFIC: CapabilityDetail = {
     headline: 'More discovery.',
     headlineAccent: 'A stronger whole.',
     copy:
-      'Discovery & Traffic becomes most valuable when it connects with the rest of the growth system — supported by clear positioning, strong creative, reliable technology, a confident buying experience and retention systems that make every acquired customer more valuable.',
+      'Traffic & Visibility becomes most valuable when it connects with the rest of the growth system — supported by clear positioning, strong creative, reliable technology, a confident buying experience and retention systems that make every acquired customer more valuable.',
     /* Owner-supplied relations, condensed to fit the diagram's node lines. */
     relations: {
       'brand-positioning': 'Gives discovery a clear message and a reason for the right audience to pay attention.',
@@ -529,12 +529,13 @@ export const COMMERCE_EXPERIENCE: CapabilityDetail = {
     'ecommerce-conversion-mistakes-costing-sales',
     'how-to-build-product-pages-that-answer-buying-questions',
     'identify-shopify-conversion-friction',
+    'shopify-redesign-vs-optimization',
   ],
   systemFit: {
     headline: 'Better experiences.',
     headlineAccent: 'A stronger whole.',
     copy:
-      'Commerce Experience becomes more powerful when it connects with the rest of the growth system — supported by clear positioning, reliable technology, strong creative, the right discovery channels and retention systems that extend customer value beyond the first purchase.',
+      'Website & Conversion becomes more powerful when it connects with the rest of the growth system — supported by clear positioning, reliable technology, strong creative, the right discovery channels and retention systems that extend customer value beyond the first purchase.',
     /* Owner-supplied relations; the first two condensed to fit the diagram's node lines. */
     relations: {
       'brand-positioning': 'Gives the experience clear positioning, product meaning and reasons to choose.',
@@ -638,7 +639,7 @@ export const RETENTION_GROWTH: CapabilityDetail = {
     headline: 'Stronger customers.',
     headlineAccent: 'A stronger whole.',
     copy:
-      'Retention & Growth becomes more valuable when it connects with the rest of the growth system — supported by clear positioning, reliable technology, relevant creative, effective discovery and a commerce experience that gives customers reasons to return.',
+      'Retention & Customer Value becomes more valuable when it connects with the rest of the growth system — supported by clear positioning, reliable technology, relevant creative, effective discovery and a commerce experience that gives customers reasons to return.',
     /* Owner-supplied relations, condensed (meaning unchanged) to fit the diagram's node lines. */
     relations: {
       'brand-positioning': 'Gives customers a clear reason to stay connected and keep choosing the brand.',
