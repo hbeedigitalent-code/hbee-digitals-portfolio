@@ -10,6 +10,7 @@
  * /client-portal.
  */
 
+import { INSIGHT_CAPABILITIES, insightCapabilityHref } from '../../lib/site/insight-capabilities'
 import { SERVICE_GROUPS } from './services/services-content'
 
 export interface SiteLink {
@@ -175,17 +176,11 @@ export const NAV_MENUS: Record<string, NavMenu> = {
         links: [{ label: 'Latest insights', href: '/insights' }],
       },
       {
-        title: 'Topics',
+        title: 'By capability',
         layout: 'grid',
         span: 2,
-        links: [
-          { label: 'Brand & Positioning', href: '/insights?topic=brand-positioning' },
-          { label: 'Commerce Experience', href: '/insights?topic=commerce-experience' },
-          { label: 'Creative & UGC', href: '/insights?topic=creative-ugc' },
-          { label: 'Discovery', href: '/insights?topic=discovery' },
-          { label: 'Digital Systems', href: '/insights?topic=digital-systems' },
-          { label: 'Growth Operations', href: '/insights?topic=growth-operations' },
-        ],
+        // Same capability keys the /insights hub filters on (one source: insight-capabilities).
+        links: INSIGHT_CAPABILITIES.map((capability) => ({ label: capability.name, href: insightCapabilityHref(capability.slug) })),
       },
     ],
     aside: { emphasis: 'quiet', text: 'Ideas for building better digital businesses.' },

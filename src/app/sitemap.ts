@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { CAPABILITY_DETAILS } from '@/components/site/capability/capability-content'
 import { isValidPortfolioSlug, text } from '@/lib/site/home-data'
 import { insightCanonical } from '@/lib/blog-utils'
+import { isPubliclyEligible } from '@/lib/site/insight-publication'
 import { portfolioCreativeEnabled } from '@/lib/portfolio-creative'
 
 const baseUrl = 'https://hbeedigitals.com'
@@ -50,7 +51,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     supabase
       .from('blog_posts')
-      .select('slug, title, canonical_url, updated_at, published_at')
+      .select('slug, title, canonical_url, updated_at, published_at, status')
       .eq('status', 'published'),
 
     // Flag on only, and a separate query: a database without the column just returns an error => no Case Studies.
@@ -89,6 +90,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ?.flatMap((post) => {
         const slug = text(post.slug)
         if (!slug || !insightSlugPattern.test(slug) || !text(post.title)) return []
+        // Same public rule as /insights: a future-dated published row is not listed yet.
+        if (!isPubliclyEligible(post)) return []
         const url = `${baseUrl}/insights/${slug}`
         if (insightCanonical(slug, text(post.canonical_url)) !== url) return []
         // Real modification date only: updated_at, then published_at. If neither

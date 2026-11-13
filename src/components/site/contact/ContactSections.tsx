@@ -1,11 +1,12 @@
-import { BarChart3, Clock, MessagesSquare, UserRound } from 'lucide-react'
+import Link from 'next/link'
+import { BarChart3, LayoutGrid, MessagesSquare, UserRound } from 'lucide-react'
 import { configuredReplyTo } from '@/lib/emails/layout'
 import { HbeeModuleStandalone } from '../module/HbeeModule'
 import { SiteLinkArrow } from '../primitives/SiteButton'
 import { SiteGrid } from '../primitives/SiteContainer'
 import { SiteSection } from '../primitives/SiteSection'
 import { SiteDisplayHeading, SiteLede } from '../primitives/SiteTypography'
-import { PRIMARY_CTA, UTILITY_NAV } from '../navigation'
+import { CAPABILITIES, PRIMARY_CTA, UTILITY_NAV } from '../navigation'
 import { ContactForm } from './ContactForm'
 import homeStyles from '../home/home.module.css'
 import gr from '../growth-review/growth-review.module.css'
@@ -31,25 +32,22 @@ export function ContactIntro() {
         <div className={`col-span-4 md:col-span-8 lg:col-span-5 ${styles.context}`}>
           <p className={homeStyles.eyebrow}>
             <span aria-hidden="true" className={homeStyles.eyebrowSignal} />
-            Contact Hbee Digitals
+            Contact
           </p>
           <h1 id="contact-title" className={`mt-6 font-hb-display font-bold text-hb-fg ${styles.title}`}>
-            Let’s talk about what you’re <span className="text-hb-blue">working on.</span>
+            Contact <span className="text-hb-blue">Hbee Digitals</span>
           </h1>
           <SiteLede className="mt-6 max-w-[32rem]">
-            Have a project, partnership, question or something specific you’d like to discuss? Tell us what you need and
-            we’ll point the conversation in the right direction.
+            Already know what you want to talk about? Tell us about the project, service, partnership or question and
+            we’ll take it from there.
           </SiteLede>
-          <p className={styles.response}>
-            <Clock aria-hidden="true" className={styles.responseIcon} />
-            Typically replies within 12–24 hours.
-          </p>
 
+          {/* The ONE Growth Review bridge on this page. */}
           <div className={`${styles.altPath} ${styles.hideOnSent}`}>
             <BarChart3 aria-hidden="true" className={styles.altIcon} />
             <div>
-              <p className={styles.altTitle}>Not sure what your business needs yet?</p>
-              <p className={styles.altText}>Start with a Growth Review.</p>
+              <p className={styles.altTitle}>Not sure what needs fixing?</p>
+              <p className={styles.altText}>Start with a Growth Review. It helps identify what to fix first.</p>
               <SiteLinkArrow href={PRIMARY_CTA.href} className={`${styles.altLink} min-h-[44px]`}>
                 Start a Growth Review
               </SiteLinkArrow>
@@ -72,23 +70,30 @@ export function ContactIntro() {
   )
 }
 
-/* ── 02 — Other ways to work with Hbee (White). Hidden after a successful send. ── */
+/* ── 02 — Other routes (White): the service a visitor already has in mind, and the Client Portal.
+   Hidden after a successful send. The Growth Review bridge lives only beside the hero. ── */
 
 export function ContactOtherWays() {
   return (
     <SiteSection tone="white" spacing="compact" aria-labelledby="contact-ways-title" className={styles.hideOnSent}>
       <SiteDisplayHeading as="h2" size="h3" id="contact-ways-title">
-        Other ways to work with Hbee Digitals
+        Other ways in
       </SiteDisplayHeading>
       <div className={styles.ways}>
         <div className={styles.way}>
-          <BarChart3 aria-hidden="true" className={styles.wayIcon} />
+          <LayoutGrid aria-hidden="true" className={styles.wayIcon} />
           <div>
-            <h3 className={styles.wayTitle}>Need a business diagnosis?</h3>
-            <p className={styles.wayText}>Start a Growth Review and get a clear evaluation of what should move next.</p>
-            <SiteLinkArrow href={PRIMARY_CTA.href} className="mt-1 min-h-[44px]">
-              Start a Growth Review
-            </SiteLinkArrow>
+            <h3 className={styles.wayTitle}>Already know the service?</h3>
+            <p className={styles.wayText}>Read about the capability you have in mind before you get in touch.</p>
+            <ul className={styles.serviceLinks}>
+              {CAPABILITIES.map((capability) => (
+                <li key={capability.href}>
+                  <Link href={capability.href} className={styles.serviceLink}>
+                    {capability.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
         <div className={styles.way}>

@@ -48,11 +48,14 @@ async function main() {
       { slug: 'missing-client', client_name: '   ' },
     ],
     blog_posts: [
-      { slug: 'published-insight', title: 'Published insight', updated_at: '2026-09-02T12:00:00Z', published_at: '2026-08-20T12:00:00Z' },
-      { slug: 'published-fallback-date', title: 'Fallback date', updated_at: 'invalid', published_at: '2026-08-21T12:00:00Z' },
-      { slug: 'external-canonical', title: 'Cross-post', canonical_url: 'https://publisher.example/original', published_at: '2026-08-21T12:00:00Z' },
-      { slug: 'bad/insight', title: 'Bad slug', published_at: '2026-08-21T12:00:00Z' },
-      { slug: 'missing-title', title: '   ', published_at: '2026-08-21T12:00:00Z' },
+      { slug: 'published-insight', title: 'Published insight', status: 'published', updated_at: '2026-09-02T12:00:00Z', published_at: '2026-08-20T12:00:00Z' },
+      { slug: 'published-fallback-date', title: 'Fallback date', status: 'published', updated_at: 'invalid', published_at: '2026-08-21T12:00:00Z' },
+      { slug: 'external-canonical', title: 'Cross-post', status: 'published', canonical_url: 'https://publisher.example/original', published_at: '2026-08-21T12:00:00Z' },
+      { slug: 'bad/insight', title: 'Bad slug', status: 'published', published_at: '2026-08-21T12:00:00Z' },
+      { slug: 'missing-title', title: '   ', status: 'published', published_at: '2026-08-21T12:00:00Z' },
+      // S4.2: the public publication rule (status published AND date not in the future).
+      { slug: 'future-dated-insight', title: 'Future dated', status: 'published', published_at: '2999-01-01T00:00:00Z' },
+      { slug: 'draft-insight', title: 'Draft', status: 'draft', published_at: '2026-08-21T12:00:00Z' },
     ],
   }
   let creativeOn = false
@@ -90,6 +93,7 @@ async function main() {
     '@/lib/site/home-data': { text, isValidPortfolioSlug },
     '@/lib/blog-utils': { insightCanonical },
     '@/lib/portfolio-creative': { portfolioCreativeEnabled: () => creativeOn },
+    '@/lib/site/insight-publication': loadTypeScript('src/lib/site/insight-publication.ts', {}),
   })
   const sitemap = await sitemapModule.default()
   const byUrl = new Map(sitemap.map((entry) => [entry.url, entry]))
@@ -117,6 +121,8 @@ async function main() {
   assert.ok(!byUrl.has('https://hbeedigitals.com/insights/external-canonical'))
   assert.ok(!byUrl.has('https://hbeedigitals.com/insights/bad/insight'))
   assert.ok(!byUrl.has('https://hbeedigitals.com/insights/missing-title'))
+  assert.ok(!byUrl.has('https://hbeedigitals.com/insights/future-dated-insight'), 'future-dated published rows are not in the sitemap yet')
+  assert.ok(!byUrl.has('https://hbeedigitals.com/insights/draft-insight'))
   assert.ok(sitemap.every((entry) => entry.url.startsWith('https://hbeedigitals.com') && !entry.url.includes('?')))
   assert.ok(sitemap.every((entry) => !/(\/admin|\/api|\/client-|\/unsubscribe|\/portfolio|\/blog)/.test(entry.url)))
 

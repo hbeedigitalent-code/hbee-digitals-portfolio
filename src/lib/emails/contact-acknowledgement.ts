@@ -53,8 +53,7 @@ export function buildContactAcknowledgementEmail(data: ContentData): HbeeEmailOp
     {
       type: 'paragraph',
       text:
-        'We typically respond within 12–24 hours. If we need any additional context before responding ' +
-        'properly, we’ll reach out by email.',
+        'If we need any additional context before responding properly, we’ll reach out by email.',
     },
     { type: 'heading', text: 'What happens next' },
     {
@@ -62,7 +61,7 @@ export function buildContactAcknowledgementEmail(data: ContentData): HbeeEmailOp
       items: [
         'We review your request — we look through the context you provided and determine the right next step.',
         'We clarify anything necessary — if we need additional information before making a recommendation or responding fully, we’ll ask.',
-        'We reply by email — you’ll hear from the Hbee team within our usual 12–24 hour response window.',
+        'We reply by email — you’ll hear from the Hbee team once we’ve reviewed your request.',
       ],
     },
     { type: 'heading', text: 'Summary' },
@@ -77,7 +76,7 @@ export function buildContactAcknowledgementEmail(data: ContentData): HbeeEmailOp
 
   return {
     subject: CONTACT_ACK_SUBJECT,
-    preheader: 'Thanks for reaching out. We’re reviewing your request and typically respond within 12–24 hours.',
+    preheader: 'Thanks for reaching out. We’re reviewing your request.',
     status: { tone: 'received', label: 'Message received' },
     heading: firstName ? `Thanks, ${firstName}. We’ve got your message.` : 'Thanks. We’ve got your message.',
     blocks,

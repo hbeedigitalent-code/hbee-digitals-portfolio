@@ -12,9 +12,11 @@ import styles from './insights.module.css'
 
 /**
  * Article template. Everything comes from the stored post:
- *   hero (topic, title, excerpt, date / author / read time when stored, image)
+ *   breadcrumb, hero (topic, title, date / updated / author / read time when stored,
+ *   stored excerpt as the summary lede, image),
  *   body (existing sanitizer → heading ids), TOC only with ≥ 3 real headings,
- *   related only when other posts share a real topic, then the CTA.
+ *   the mapped Hbee capability, related Insights only when a real relation exists,
+ *   and the Growth Review block only for articles in the explicit diagnostic set.
  * No callouts are manufactured; no metadata is filled in.
  */
 const ARTICLE_ID = 'insight-article'
@@ -30,18 +32,21 @@ export function InsightDetailPage({ detail }: { detail: InsightDetail }) {
         <SiteSection tone="white" spacing="compact" aria-label="Article" className={styles.articleBand}>
           <div className={cn(styles.articleGrid, hasToc && styles.articleGridToc, hasRelated && styles.articleGridRelated, !hasToc && !hasRelated && styles.articleGridLean)}>
             {hasToc && <ArticleToc detail={detail} />}
-            {detail.html ? (
-              <InsightArticleBody html={detail.html} id={ARTICLE_ID} />
-            ) : null}
+            <div className={styles.articleMain}>
+              {detail.html ? <InsightArticleBody html={detail.html} id={ARTICLE_ID} /> : null}
+              {detail.capabilityLinks.length > 0 && <RelatedCapability detail={detail} />}
+            </div>
             {hasRelated && <RelatedInsights detail={detail} />}
           </div>
         </SiteSection>
       )}
-      <InsightsCta
-        eyebrow="Ready to apply what you’ve learned"
-        headline="Find what should move next."
-        copy="Start with a focused Growth Review and get a clearer view of what deserves attention first in your business."
-      />
+      {detail.showGrowthReview && (
+        <InsightsCta
+          eyebrow="Ready to apply what you’ve learned"
+          headline="Find what should move next."
+          copy="If this article describes your situation but you are not sure what to prioritise, a focused Growth Review helps identify what deserves attention first."
+        />
+      )}
     </>
   )
 }
@@ -52,18 +57,29 @@ function InsightHero({ detail }: { detail: InsightDetail }) {
     <SiteSection tone="cloud" spacing="none" contained={false} aria-labelledby="insight-title" className="overflow-hidden">
       <div className={cn(styles.articleHero, !image && styles.articleHeroTextOnly)}>
         <div className={styles.articleHeroText}>
-          <Link href="/insights" className={styles.backLink}>
-            <SiteArrow size={15} className="rotate-180" />
-            Back to Insights
-          </Link>
+          <nav aria-label="Breadcrumb" className={styles.breadcrumb}>
+            <ol className={styles.breadcrumbList}>
+              <li>
+                <Link href="/insights" className={styles.breadcrumbLink}>
+                  Insights
+                </Link>
+              </li>
+              <li aria-hidden="true" className={styles.breadcrumbSep}>
+                <SiteArrow size={13} />
+              </li>
+              <li aria-current="page" className={styles.breadcrumbCurrent}>
+                <span title={detail.title}>{detail.title}</span>
+              </li>
+            </ol>
+          </nav>
           <div className="mt-5">
             <TopicLabel topic={detail.topic} />
           </div>
           <h1 id="insight-title" className="mt-3 font-hb-display text-[clamp(2.125rem,1.6rem+1.9vw,3.25rem)] font-bold leading-[1.06] tracking-[-0.035em] text-hb-fg">
             {detail.title}
           </h1>
+          <InsightMeta item={detail} className="mt-5" authorHref="/about" updated={detail.updatedAt} />
           {detail.excerpt && <p className="mt-5 max-w-[38rem] text-[length:var(--hb-text-lede)] leading-[1.55] text-hb-fg-body">{detail.excerpt}</p>}
-          <InsightMeta item={detail} className="mt-6" />
         </div>
         {image && (
           <SiteReveal motion="focus" className={styles.articleHeroMedia}>
@@ -90,6 +106,35 @@ function ArticleToc({ detail }: { detail: InsightDetail }) {
         ))}
       </ol>
     </nav>
+  )
+}
+
+/* Quiet, editorial context — the mapped primary capability, and a secondary when one is mapped. */
+function RelatedCapability({ detail }: { detail: InsightDetail }) {
+  const [primary, ...others] = detail.capabilityLinks
+  return (
+    <aside aria-labelledby="insight-capability" className={styles.capabilityBlock}>
+      <p id="insight-capability" className={styles.capabilityLabel}>
+        Related Hbee capability
+      </p>
+      <Link href={primary.href} className={styles.capabilityLink}>
+        {primary.name}
+        <SiteArrow size={15} />
+      </Link>
+      {others.length > 0 && (
+        <p className={styles.capabilityAlso}>
+          Also relevant:{' '}
+          {others.map((c, i) => (
+            <span key={c.slug}>
+              {i > 0 && ', '}
+              <Link href={c.href} className={styles.bylineLink}>
+                {c.name}
+              </Link>
+            </span>
+          ))}
+        </p>
+      )}
+    </aside>
   )
 }
 

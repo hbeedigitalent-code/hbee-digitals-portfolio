@@ -12,6 +12,7 @@
 
 import { supabase } from '@/lib/supabase'
 import { testimonialQuote, type ProofQuote } from '@/lib/testimonials'
+import { isFeatureEligible, isPublishedByDate } from './insight-publication'
 export type { ProofQuote } from '@/lib/testimonials'
 
 /**
@@ -175,11 +176,15 @@ export async function getHomepageInsights(limit = 3): Promise<InsightCard[]> {
       .eq('status', 'published')
       .eq('is_featured', true)
       .order('published_at', { ascending: false })
-      .limit(limit)
+      .limit(limit + 3)
     if (error || !data) return []
 
+    // Same public rule as /insights: a future-dated row stays hidden, and a seasonal
+    // article past its editorial feature window no longer leads the homepage.
+    const now = new Date()
     return (data as Row[])
       .filter((row) => row.is_featured === true)
+      .filter((row) => isPublishedByDate(row, now) && isFeatureEligible(text(row.slug) ?? '', now))
       .map((row): InsightCard | null => {
         const slug = text(row.slug)
         const title = text(row.title)
@@ -198,6 +203,7 @@ export async function getHomepageInsights(limit = 3): Promise<InsightCard[]> {
         }
       })
       .filter((p): p is InsightCard => p !== null)
+      .slice(0, limit)
   } catch {
     return []
   }

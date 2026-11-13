@@ -24,10 +24,14 @@ import { supabase } from '@/lib/supabase'
 import { absoluteUrl, addHeadingIds, cleanBlogHtml, estimateReadTime, insightCanonical, insightTags, validReadTime, SITE_URL } from '@/lib/blog-utils'
 import { sanitizeBlogHtml } from '@/lib/sanitize-blog-html'
 import { imageUrl, text, truncate, type Row } from './home-data'
+import { insightCapabilitiesFor, GROWTH_REVIEW_CTA_SLUGS, insightCapabilityName, type InsightCapabilitySlug } from './insight-capabilities'
+import { isFeatureEligible, isPubliclyEligible } from './insight-publication'
 
 if (typeof window !== 'undefined') {
   throw new Error('src/lib/site/insights-data.ts is server-only')
 }
+
+const ORGANIZATION_ID = `${SITE_URL}#organization`
 
 /** Article route. */
 export function insightDetailHref(slug: string) {
@@ -60,6 +64,8 @@ export interface InsightSummary {
   topicKey?: string
   /** All of the article's tag keys (for filtering / related). */
   topicKeys: string[]
+  /** Code-side capability map: [primary, secondary?]; empty for cross-capability articles. */
+  capabilities: InsightCapabilitySlug[]
   image?: { src: string; alt: string }
   author?: string
   publishedAt?: string
@@ -82,9 +88,21 @@ export interface TocItem {
   level: number
 }
 
+export interface InsightCapabilityLink {
+  slug: string
+  name: string
+  href: string
+}
+
 export interface InsightDetail extends InsightSummary {
   /** Sanitized article HTML with heading ids. Empty when no stored body. */
   html: string
+  /** "Last updated" label — only when updated_at is at least a calendar day after published_at. */
+  updatedAt?: string
+  /** Mapped primary (and optional secondary) capability for the closing context block. */
+  capabilityLinks: InsightCapabilityLink[]
+  /** True for articles whose natural ending is diagnosis / prioritisation (explicit code-side set). */
+  showGrowthReview: boolean
   /** H2/H3 headings — only kept when there are enough to be useful. */
   toc: TocItem[]
   related: InsightSummary[]
@@ -129,6 +147,7 @@ function toSummary(row: Row, rawContent?: string): InsightSummary | null {
     topic: tags[0],
     topicKey: tags[0] ? topicKey(tags[0]) : undefined,
     topicKeys: [...new Set(tags.map(topicKey))],
+    capabilities: insightCapabilitiesFor(slug),
     image: image ? { src: image, alt: text(row.featured_image_alt) ?? '' } : undefined,
     author: text(row.author),
     publishedAt: published && !Number.isNaN(Date.parse(published)) ? published : undefined,
@@ -165,22 +184,66 @@ function groupTopics(rows: Row[], items: InsightSummary[]) {
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
 }
 
-/** Pure: rows (is_featured desc, published_at desc) → landing data. */
-export function buildInsightsData(rows: Row[]): InsightsData {
+const byNewest = (a: InsightSummary, b: InsightSummary) => Date.parse(b.publishedAt ?? '0') - Date.parse(a.publishedAt ?? '0')
+
+/**
+ * Pure: PUBLIC rows → landing data. Callers pass rows already filtered by the public
+ * publication rule. Items are newest-first. The lead is the first explicitly featured
+ * article that is still inside its editorial feature window, otherwise the newest
+ * article inside its window; an expired seasonal article stays in the archive but
+ * never leads.
+ */
+export function buildInsightsData(rows: Row[], now: Date = new Date()): InsightsData {
   const pairs = rows.map((row) => ({ row, item: toSummary(row) })).filter((p): p is { row: Row; item: InsightSummary } => p.item !== null)
-  const items = pairs.map((p) => p.item)
+  const items = pairs.map((p) => p.item).sort(byNewest)
   const topics = groupTopics(
     pairs.map((p) => p.row),
     items,
   )
-  const featured = items.find((i) => i.featured)
-  const latest = [...items].sort((a, b) => Date.parse(b.publishedAt ?? '0') - Date.parse(a.publishedAt ?? '0'))[0]
+  const eligible = items.filter((i) => isFeatureEligible(i.slug, now))
+  const featured = eligible.find((i) => i.featured)
+  const latest = eligible[0]
   const lead = featured ? { item: featured, reason: 'featured' as const } : latest ? { item: latest, reason: 'latest' as const } : undefined
   return { items, topics, lead }
 }
 
-/** Pure: article row + candidate rows → detail model, or null when it can't be shown. */
-export function toInsightDetail(row: Row, candidates: Row[] = []): InsightDetail | null {
+/** UTC calendar-day number, for comparing published / updated dates. */
+function utcDay(iso: string) {
+  const d = new Date(iso)
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 86_400_000
+}
+
+/** "Last updated" date — only when updated_at falls at least one calendar day after published_at. */
+export function insightUpdatedLabel(publishedAt?: string, updatedAt?: string): string | undefined {
+  if (!publishedAt || !updatedAt) return undefined
+  if (Number.isNaN(Date.parse(publishedAt)) || Number.isNaN(Date.parse(updatedAt))) return undefined
+  return utcDay(updatedAt) - utcDay(publishedAt) >= 1 ? formatInsightDate(updatedAt) : undefined
+}
+
+/**
+ * Related Insights: another PUBLIC article that shares the primary/secondary capability
+ * first, then shared tags; never itself; nothing when genuinely unrelated. Max 3.
+ */
+function relatedFor(summary: InsightSummary, candidates: Row[], now: Date): InsightSummary[] {
+  const myTopics = new Set(summary.topicKeys)
+  const myCaps = new Set(summary.capabilities)
+  return candidates
+    .filter((r) => isPubliclyEligible(r, now))
+    .map((r) => toSummary(r))
+    .filter((s): s is InsightSummary => s !== null && s.slug !== summary.slug)
+    .map((s) => ({ s, caps: s.capabilities.filter((c) => myCaps.has(c)).length, tags: s.topicKeys.filter((k) => myTopics.has(k)).length }))
+    .filter((x) => x.caps > 0 || x.tags > 0)
+    .sort((a, b) => Number(b.caps > 0) - Number(a.caps > 0) || b.tags - a.tags || byNewest(a.s, b.s))
+    .slice(0, 3)
+    .map((x) => x.s)
+}
+
+/**
+ * Pure: article row + candidate rows → detail model, or null when it can't be shown.
+ * The article row itself is NOT gated here (admin preview renders drafts); the loaders
+ * gate it. Candidate rows are always gated by the public publication rule.
+ */
+export function toInsightDetail(row: Row, candidates: Row[] = [], now: Date = new Date()): InsightDetail | null {
   const raw = typeof row.content === 'string' ? row.content.trim() : ''
   const summary = toSummary(row, raw || undefined)
   if (!summary) return null
@@ -196,22 +259,26 @@ export function toInsightDetail(row: Row, candidates: Row[] = []): InsightDetail
     toc = out.toc.length >= 3 ? out.toc : []
   }
 
-  // Related: shares a real topic (formatting-normalised), newest first, never itself.
-  const mine = new Set(summary.topicKeys)
-  const related = mine.size
-    ? candidates
-        .map((r) => toSummary(r))
-        .filter((s): s is InsightSummary => s !== null && s.slug !== summary.slug && s.topicKeys.some((k) => mine.has(k)))
-        .sort((a, b) => Date.parse(b.publishedAt ?? '0') - Date.parse(a.publishedAt ?? '0'))
-        .slice(0, 3)
-    : []
+  const related = relatedFor(summary, candidates, now)
+  const capabilityLinks = summary.capabilities.flatMap((slug) => {
+    const name = insightCapabilityName(slug)
+    return name ? [{ slug, name, href: `/services/${slug}` }] : []
+  })
 
-  return { ...summary, html, toc, related }
+  return {
+    ...summary,
+    html,
+    toc,
+    related,
+    updatedAt: insightUpdatedLabel(summary.publishedAt, text(row.updated_at)),
+    capabilityLinks,
+    showGrowthReview: GROWTH_REVIEW_CTA_SLUGS.has(summary.slug),
+  }
 }
 
 /* ── Loaders ────────────────────────────────────────────────── */
 
-const CARD_FIELDS = 'id, title, slug, excerpt, featured_image, featured_image_alt, tags, author, is_featured, read_time, published_at'
+const CARD_FIELDS = 'id, title, slug, excerpt, featured_image, featured_image_alt, tags, author, is_featured, read_time, published_at, status'
 
 export async function getInsightsData(): Promise<InsightsData> {
   try {
@@ -223,7 +290,8 @@ export async function getInsightsData(): Promise<InsightsData> {
       .order('published_at', { ascending: false })
       .limit(60)
     if (error || !data) return { items: [], topics: [] }
-    return buildInsightsData(data as Row[])
+    const now = new Date()
+    return buildInsightsData((data as Row[]).filter((row) => isPubliclyEligible(row, now)), now)
   } catch {
     return { items: [], topics: [] }
   }
@@ -233,7 +301,7 @@ export async function getInsightDetail(slug: string): Promise<InsightDetail | nu
   if (!SLUG_PATTERN.test(slug)) return null
   try {
     const { data, error } = await supabase.from('blog_posts').select('*').eq('slug', slug).eq('status', 'published').maybeSingle()
-    if (error || !data) return null
+    if (error || !data || !isPubliclyEligible(data as Row)) return null
     const { data: others } = await supabase
       .from('blog_posts')
       .select(CARD_FIELDS)
@@ -284,13 +352,14 @@ const loadInsightSeo = cache(async (slug: string): Promise<InsightSeo | null> =>
   if (!SLUG_PATTERN.test(slug)) return null
   try {
     const { data, error } = await supabase.from('blog_posts').select('*').eq('slug', slug).eq('status', 'published').maybeSingle()
-    if (error || !data) return null
+    if (error || !data || !isPubliclyEligible(data as Row)) return null
     const row = data as Row
     const heading = text(row.title)
     if (!heading) return null
     const title = text(row.seo_title) ?? text(row.og_title) ?? heading
     const description = text(row.seo_description) ?? text(row.og_description) ?? (text(row.excerpt) ?? '').slice(0, 160)
-    const author = text(row.author) ?? 'Hbee Digitals'
+    const namedAuthor = text(row.author)
+    const author = namedAuthor ?? 'Hbee Digitals'
     const canonical = canonicalOf(row, slug)
     const image = absoluteUrl(text(row.og_image) ?? text(row.featured_image))
     const keywords = [...new Set([text(row.focus_keyword), ...tagsOf(row)].filter((k): k is string => Boolean(k)))]
@@ -316,7 +385,9 @@ const loadInsightSeo = cache(async (slug: string): Promise<InsightSeo | null> =>
         image: [image],
         datePublished: published,
         dateModified: modified ?? published,
-        author: { '@type': 'Person', name: author, url: `${SITE_URL}/about` },
+        // A named author is a Person (linked to /about); with no stored author the publisher
+        // is the author — a reference to the site Organization, never an invented Person.
+        author: namedAuthor ? { '@type': 'Person', name: namedAuthor, url: `${SITE_URL}/about` } : { '@id': ORGANIZATION_ID },
         publisher: { '@id': `${SITE_URL}#organization` },
         keywords: keywords.length > 0 ? keywords.join(', ') : undefined,
         mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
@@ -338,4 +409,42 @@ const loadInsightSeo = cache(async (slug: string): Promise<InsightSeo | null> =>
 
 export function getInsightSeo(slug: string) {
   return loadInsightSeo(slug)
+}
+
+/**
+ * Hub structured data: CollectionPage + ItemList of the articles the hub currently
+ * shows + BreadcrumbList. The publisher is a reference to the site Organization
+ * (`@id`), never a second Organization node. No Blog / FAQPage markup.
+ */
+export function buildInsightsHubLd(items: Pick<InsightSummary, 'slug' | 'title'>[], meta: { name: string; description: string }) {
+  const url = `${SITE_URL}/insights`
+  return {
+    collectionPage: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      '@id': `${url}#webpage`,
+      url,
+      name: meta.name,
+      description: meta.description,
+      publisher: { '@id': ORGANIZATION_ID },
+      mainEntity: {
+        '@type': 'ItemList',
+        numberOfItems: items.length,
+        itemListElement: items.map((item, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          url: `${SITE_URL}${insightDetailHref(item.slug)}`,
+          name: item.title,
+        })),
+      },
+    },
+    breadcrumb: {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+        { '@type': 'ListItem', position: 2, name: 'Insights', item: url },
+      ],
+    },
+  }
 }

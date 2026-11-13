@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { cn } from '@/lib/cn'
 import { formatInsightDate, type InsightsData, type InsightSummary } from '@/lib/site/insights-data'
-import { CONTACT_HREF, GROWTH_REVIEW_HREF } from '@/lib/site/routes'
+import { INSIGHT_CAPABILITIES } from '@/lib/site/insight-capabilities'
+import { GROWTH_REVIEW_HREF } from '@/lib/site/routes'
 import { HbeeModuleGlyph } from '../module/HbeeModule'
 import { SiteReveal } from '../motion/SiteReveal'
 import { SiteButton } from '../primitives/SiteButton'
@@ -15,12 +16,30 @@ import homeStyles from '../home/home.module.css'
 import capabilityStyles from '../capability/capability.module.css'
 import styles from './insights.module.css'
 
-/* Shared meta line: only stored values — date, author, read time. */
-export function InsightMeta({ item, className }: { item: InsightSummary; className?: string }) {
+/**
+ * Shared meta line: only stored values — date, author, read time. `authorHref` (article
+ * page only — cards are whole-card links) turns the byline into a link; `updated` is the
+ * "Last updated" label, passed only when it is meaningfully later than the publish date.
+ */
+export function InsightMeta({ item, className, authorHref, updated }: { item: InsightSummary; className?: string; authorHref?: string; updated?: string }) {
   const date = formatInsightDate(item.publishedAt)
   const parts: { key: string; node: React.ReactNode }[] = []
   if (date) parts.push({ key: 'date', node: <time dateTime={item.publishedAt}>{date}</time> })
-  if (item.author) parts.push({ key: 'author', node: <span>By {item.author}</span> })
+  if (updated) parts.push({ key: 'updated', node: <span>Last updated {updated}</span> })
+  if (item.author)
+    parts.push({
+      key: 'author',
+      node: authorHref ? (
+        <span>
+          By{' '}
+          <Link href={authorHref} className={styles.bylineLink}>
+            {item.author}
+          </Link>
+        </span>
+      ) : (
+        <span>By {item.author}</span>
+      ),
+    })
   if (item.readTime)
     parts.push({ key: 'rt', node: <span>{item.readTime.estimated ? `About ${item.readTime.label}` : item.readTime.label}</span> })
   if (!parts.length) return null
@@ -53,12 +72,13 @@ export function InsightsHero({ lead }: { lead: InsightsData['lead'] }) {
             <span aria-hidden="true" className={homeStyles.eyebrowSignal} />
             Insights
           </p>
-          <h1 id="insights-hero-title" className="mt-6 font-hb-display text-[clamp(2.5rem,1.7rem+2.5vw,3.6rem)] font-bold leading-[1.02] tracking-[-0.04em] text-hb-fg">
-            <span className="block">Practical insights for</span>
-            <span className="block text-hb-blue">e-commerce growth.</span>
+          <h1 id="insights-hero-title" className="mt-6 font-hb-display text-[clamp(2.25rem,1.6rem+2.1vw,3.25rem)] font-bold leading-[1.04] tracking-[-0.035em] text-hb-fg">
+            <span className="block">Ecommerce Growth Insights</span>{' '}
+            <span className="block text-hb-blue">for Shopify and Online Brands</span>
           </h1>
           <SiteLede className="mt-6">
-            Guides, strategies and real lessons to help you build, market and scale your online store with confidence.
+            Hbee Digitals publishes practical guidance on positioning, conversion, systems, creative, visibility and
+            retention for Shopify and ecommerce brands.
           </SiteLede>
           {lead && (
             <a href="#insights-collection" className={cn(styles.jump, 'mt-8')}>
@@ -132,13 +152,12 @@ export function InsightCard({ item, priority }: { item: InsightSummary; priority
   )
 }
 
-function searchText(item: InsightSummary, topicLabels: Map<string, string>) {
-  return [item.title, item.excerpt, ...item.topicKeys.map((k) => topicLabels.get(k) ?? k)].filter(Boolean).join(' ').toLowerCase()
+function searchText(item: InsightSummary) {
+  return [item.title, item.excerpt, item.topic].filter(Boolean).join(' ').toLowerCase()
 }
 
 export function InsightsCollection({ data }: { data: InsightsData }) {
-  const { items, topics, lead } = data
-  const labels = new Map(topics.map((t) => [t.key, t.label]))
+  const { items, lead } = data
   return (
     <SiteSection id="insights-collection" tone="cloud" spacing="compact" aria-labelledby="insights-latest-title" className={cn(styles.anchor, styles.collection)}>
       <h2 id="insights-latest-title" className="font-hb-display text-[length:var(--hb-text-h3)] font-bold tracking-[-0.02em] text-hb-fg">
@@ -147,7 +166,7 @@ export function InsightsCollection({ data }: { data: InsightsData }) {
       {items.length === 0 ? (
         <InsightsEmptyState />
       ) : (
-        <InsightsBrowser topics={topics} total={items.length}>
+        <InsightsBrowser total={items.length}>
           <ul className={styles.grid}>
             {items.map((item) => {
               const isLead = lead?.item.id === item.id
@@ -157,8 +176,8 @@ export function InsightsCollection({ data }: { data: InsightsData }) {
                   className="flex"
                   data-insight=""
                   data-view={isLead ? 'filtered-only' : undefined}
-                  data-search={searchText(item, labels)}
-                  data-topics={item.topicKeys.join('|')}
+                  data-search={searchText(item)}
+                  data-capabilities={item.capabilities.join('|')}
                   hidden={isLead || undefined}
                 >
                   {/* The lead's grid copy shares its (prioritised) image. */}
@@ -182,14 +201,39 @@ export function InsightsEmptyState() {
       <div>
         <p className="font-hb-display text-[1.25rem] font-bold leading-tight text-hb-fg">Insights are on their way.</p>
         <p className="mt-2 max-w-[38rem] leading-relaxed text-hb-fg-body">
-          Insights will appear here when published article data is available in the isolated preview environment.
+          Insights will appear here as new articles are published.
         </p>
       </div>
     </div>
   )
 }
 
-/* ── Final CTA (Night) — shared by landing and article ── */
+/* ── Capability bridge (White): a compact link row into Services, not a Services page ── */
+
+export function InsightsCapabilityBridge() {
+  return (
+    <SiteSection tone="white" spacing="compact" aria-labelledby="insights-bridge-title" className={styles.bridge}>
+      <h2 id="insights-bridge-title" className="font-hb-display text-[length:var(--hb-text-h3)] font-bold tracking-[-0.02em] text-hb-fg">
+        Where this thinking is put to work
+      </h2>
+      <p className="mt-3 max-w-[38rem] leading-relaxed text-hb-fg-body">
+        Each insight connects to a Hbee capability. Explore the one closest to the problem you are working on.
+      </p>
+      <ul className={styles.bridgeList}>
+        {INSIGHT_CAPABILITIES.map((capability) => (
+          <li key={capability.slug}>
+            <Link href={`/services/${capability.slug}`} className={styles.bridgeLink}>
+              <span>{capability.name}</span>
+              <SiteArrow size={15} />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </SiteSection>
+  )
+}
+
+/* ── Final CTA (Night) — one Growth Review action, shared by landing and article ── */
 
 export function InsightsCta({ eyebrow, headline, copy }: { eyebrow: string; headline: string; copy: string }) {
   return (
@@ -214,9 +258,6 @@ export function InsightsCta({ eyebrow, headline, copy }: { eyebrow: string; head
         <SiteReveal index={3} className="mt-8 flex flex-wrap items-center gap-3">
           <SiteButton href={GROWTH_REVIEW_HREF} variant="conversion" size="lg" arrow>
             Start Growth Review
-          </SiteButton>
-          <SiteButton href={CONTACT_HREF} variant="secondary" size="lg">
-            Talk to Our Team
           </SiteButton>
         </SiteReveal>
       </div>

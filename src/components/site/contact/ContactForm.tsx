@@ -198,8 +198,7 @@ export function ContactForm({ supportEmail }: { supportEmail: string | null }) {
           Thanks — your message is with us.
         </h2>
         <p className={styles.successBody}>
-          We’ve received your request and are reviewing the details you shared. You can typically expect a response from
-          the Hbee team within 12–24 hours.
+          We’ve received your request and are reviewing the details you shared. The Hbee team will reply by email.
         </p>
         <h3 className={styles.nextTitle}>What happens next</h3>
         <ol className={styles.nextList}>
@@ -393,7 +392,7 @@ export function ContactForm({ supportEmail }: { supportEmail: string | null }) {
         </SiteButton>
         <p className={styles.privacyNote}>
           <Lock aria-hidden="true" className={styles.lock} />
-          Your message goes directly to the Hbee team. We typically respond within 12–24 hours.
+          Your message goes directly to the Hbee team.
         </p>
       </div>
     </form>

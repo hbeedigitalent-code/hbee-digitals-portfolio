@@ -11,7 +11,7 @@ const insights = read('src/lib/site/insights-data.ts')
 assert.match(insights, /publisher: \{ '@id': `\$\{SITE_URL\}#organization` \}/, 'publisher references the site Organization @id')
 assert.doesNotMatch(insights, /publisher: \{ '@type'/, 'no inline Organization publisher')
 assert.equal((insights.match(/'@type': 'Organization'/g) || []).length, 0, 'insights-data emits no Organization node')
-assert.match(insights, /author: \{ '@type': 'Person', name: author, url: `\$\{SITE_URL\}\/about` \}/, 'author carries the About URL')
+assert.match(insights, /author: namedAuthor \? \{ '@type': 'Person', name: namedAuthor, url: `\$\{SITE_URL\}\/about` \} : \{ '@id': ORGANIZATION_ID \}/, 'a named author carries the About URL; a missing author references the Organization (S4.2)')
 
 /* -- Organization: new description, existing identity untouched ------- */
 const org = read('src/components/StructuredData.tsx')

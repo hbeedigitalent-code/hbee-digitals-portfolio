@@ -198,26 +198,30 @@ const plain=value=>JSON.parse(JSON.stringify(value))
   assert.equal(seo.title,article.seo_title);assert.equal(seo.ogTitle,article.og_title);assert.equal(seo.imageAlt,article.featured_image_alt)
   rows[0].canonical_url='https://other.example/original';assert.equal((await api.getInsightSeo(article.slug)).canonical,'https://other.example/original')
   const filters=load('src/lib/site/insights-filter.ts')
-  const topics=[{key:'brand & positioning',label:'Brand & Positioning',count:1},{key:'commerce',label:'Commerce',count:1}]
-  assert.deepEqual(plain(filters.insightFilterState(new URLSearchParams('category=brand-positioning&q=growth'),topics)),{topic:'brand & positioning',query:'growth'})
-  assert.equal(filters.insightFilterState(new URLSearchParams('topic=unknown'),topics).topic,'all')
-  assert.equal(filters.insightFilterState(new URLSearchParams('tag=commerce'),topics).topic,'commerce')
-  const cards=[{dataset:{topics:'brand & positioning',search:'brand growth',view:''},hidden:false},{dataset:{topics:'commerce',search:'store growth',view:''},hidden:false}]
+  // S4.2: the hub filters by the six capability keys (server-visible links), not free-text tags.
+  assert.deepEqual(plain(filters.insightFilterState(new URLSearchParams('category=brand-positioning&q=growth'))),{capability:'brand-positioning',query:'growth'})
+  assert.equal(filters.insightFilterState(new URLSearchParams('topic=unknown')).capability,'all')
+  assert.equal(filters.insightFilterState(new URLSearchParams('capability=commerce-experience')).capability,'commerce-experience')
+  const cards=[{dataset:{capabilities:'brand-positioning',search:'brand growth',view:''},hidden:false},{dataset:{capabilities:'commerce-experience|digital-systems',search:'store growth',view:''},hidden:false}]
   const Browser=load('src/components/site/insights/InsightsBrowser.tsx').InsightsBrowser
-  const wrapper=Browser({topics,total:2,children:null});const inner=wrapper.props.children
+  const wrapper=Browser({total:2,children:null});const inner=wrapper.props.children
   const browserHost=host(inner.type,inner.props,cards)
   browserHost.render();browserHost.render();browserHost.render()
   assert.equal(cards[0].hidden,false);assert.equal(cards[1].hidden,true)
-  find(browserHost,n=>n.type==='button'&&textOf(n).startsWith('Commerce')).props.onClick();browserHost.render();browserHost.render()
+  // The capability links are a nested component (real <a href> in the server HTML); expand it like React would.
+  const capabilityNav=find(browserHost,n=>n.type?.name==='CapabilityFilters')
+  const commerceLink=nodes(capabilityNav.type(capabilityNav.props)).find(n=>n.type==='a'&&textOf(n).startsWith('Website & Conversion'))
+  assert.ok(commerceLink,'Website & Conversion capability link exists');assert.match(commerceLink.props.href,/^\/insights\?capability=commerce-experience/)
+  commerceLink.props.onClick({button:0,preventDefault(){}});browserHost.render();browserHost.render()
   assert.equal(cards[0].hidden,true);assert.equal(cards[1].hidden,false)
   assert.equal(new URL(location.href).searchParams.get('q'),'growth')
   browser.history.back();browserHost.render();browserHost.render();assert.equal(cards[0].hidden,false)
   browser.history.forward();browserHost.render();browserHost.render();assert.equal(cards[1].hidden,false)
   find(browserHost,n=>n.type==='input'&&n.props.type==='search').props.onChange({target:{value:'missing'}});browserHost.render();browserHost.render()
-  assert.ok(cards.every(card=>card.hidden));assert.equal(new URL(location.href).searchParams.get('topic'),'commerce')
-  button(browserHost,'Clear search and topics').props.onClick();browserHost.render();browserHost.render();assert.ok(cards.every(card=>!card.hidden))
+  assert.ok(cards.every(card=>card.hidden));assert.equal(new URL(location.href).searchParams.get('capability'),'commerce-experience')
+  button(browserHost,'Clear search and filters').props.onClick();browserHost.render();browserHost.render();assert.ok(cards.every(card=>!card.hidden))
   const config=require(path.join(root,'next.config.js'))
   const redirects=await config.redirects();assert.ok(redirects.some(r=>r.source==='/blog'&&r.destination==='/insights'));assert.ok(redirects.some(r=>r.source==='/blog/:slug'&&r.destination==='/insights/:slug'))
   assert.ok(redirects.some(r=>r.has?.some(h=>h.type==='host'&&h.value==='www.hbeedigitals.com')&&r.destination==='https://hbeedigitals.com/:path*'&&r.permanent===true))
-  console.log('PASS: Insights URL/canonical/SEO parity, legacy redirects, topic/search/history behavior, publication transitions/date preservation, shared reading time, legacy field preservation, image-alt saves, authenticated sanitized preview, draft exclusion, relevant related tags with no latest fallback, TOC, and no portfolio/portal crossover. All access mocked.')
+  console.log('PASS: Insights URL/canonical/SEO parity, legacy redirects, capability/search/history behavior, publication transitions/date preservation, shared reading time, legacy field preservation, image-alt saves, authenticated sanitized preview, draft exclusion, relevant related tags with no latest fallback, TOC, and no portfolio/portal crossover. All access mocked.')
 })().catch(error=>{console.error(error);process.exitCode=1})
