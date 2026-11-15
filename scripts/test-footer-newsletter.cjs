@@ -156,7 +156,7 @@ async function main() {
   assert.equal(defaultFooter.newsletter.enabled, false); assert.equal(defaultFooter.newsletter.footer_enabled, false); assert.equal(defaultFooter.newsletter.popup_enabled, false)
   row = { ...model.NEWSLETTER_DEFAULTS, enabled: true, footer_enabled: true, popup_enabled: true }
   const publicFooter = await footerData.getFooterExperience()
-  assert.equal(publicFooter.contactEmail, 'owner@example.test'); assert.equal(publicFooter.description, 'Stored plain description'); assert.equal(publicFooter.newsletter.popup_delay_seconds, 240)
+  assert.equal(publicFooter.contactEmail, undefined, 'S5.2: the public footer address is the one canonical contact@ constant, not the CMS setting'); assert.equal(publicFooter.description, 'Stored plain description'); assert.equal(publicFooter.newsletter.popup_delay_seconds, 240)
 
   let client = freshClient(), failures = 0
   fetchImpl = async () => Response.json({ success: true, already_subscribed: false })

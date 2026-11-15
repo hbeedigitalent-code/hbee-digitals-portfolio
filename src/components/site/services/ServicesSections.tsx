@@ -28,15 +28,15 @@ export function ServicesCta() {
 
         <div className="relative grid items-center gap-x-[var(--hb-grid-gap)] gap-y-8 lg:grid-cols-12">
           <div className="lg:col-span-7">
-            <SiteReveal>
-              <SiteEyebrow signal>Ready to build your growth plan</SiteEyebrow>
+            <SiteReveal motion="none">
+              <SiteEyebrow motionIndex={0} signal>Ready to build your growth plan</SiteEyebrow>
             </SiteReveal>
             <SiteReveal index={1}>
               <SiteDisplayHeading id="services-cta-title" size="h2" className="mt-6 max-w-[36rem]">
                 {SERVICES_CTA.headline}
               </SiteDisplayHeading>
             </SiteReveal>
-            <SiteReveal index={2}>
+            <SiteReveal motion="soft" index={2}>
               <p className="mt-5 max-w-[36rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{SERVICES_CTA.copy}</p>
             </SiteReveal>
           </div>
@@ -64,8 +64,8 @@ export function ServicesFaq() {
   const columns = [SERVICES_FAQ.slice(0, half), SERVICES_FAQ.slice(half)]
   return (
     <SiteSection tone="white" aria-labelledby="services-faq-title">
-      <SiteReveal>
-        <SiteEyebrow>Frequently asked questions</SiteEyebrow>
+      <SiteReveal motion="none">
+        <SiteEyebrow motionIndex={0}>Frequently asked questions</SiteEyebrow>
       </SiteReveal>
       <SiteReveal index={1}>
         <SiteDisplayHeading id="services-faq-title" size="h2" className="mt-6">
@@ -75,7 +75,7 @@ export function ServicesFaq() {
 
       <div className="mt-12 grid items-start gap-x-[var(--hb-grid-gap)] gap-y-3 lg:grid-cols-2">
         {columns.map((col, c) => (
-          <SiteReveal key={c} index={c + 2} className="flex flex-col gap-3">
+          <SiteReveal key={c} motion="item" index={c + 2} className="flex flex-col gap-3">
             {col.map((item) => (
               <details key={item.question} className={styles.faq}>
                 <summary className={styles.faqSummary}>

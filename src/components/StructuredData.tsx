@@ -18,6 +18,7 @@ export default function StructuredData() {
   const websiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": "https://hbeedigitals.com#website",
     name: "Hbee Digitals",
     url: "https://hbeedigitals.com",
     publisher: { "@id": "https://hbeedigitals.com#organization" },

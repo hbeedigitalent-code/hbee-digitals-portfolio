@@ -67,7 +67,7 @@ export function InsightsHero({ lead }: { lead: InsightsData['lead'] }) {
   return (
     <SiteSection tone="cloud" spacing="none" aria-labelledby="insights-hero-title" className="overflow-hidden">
       <SiteGrid className={cn('items-center gap-y-10 pb-[var(--hb-space-section-compact)] pt-[clamp(2.5rem,5vw,4.5rem)] lg:pt-12', styles.heroLayout)}>
-        <div className={cn('col-span-4 md:col-span-8', lead ? 'lg:col-span-6' : 'lg:col-span-8')}>
+        <div data-hero-copy="" className={cn('col-span-4 md:col-span-8', lead ? 'lg:col-span-6' : 'lg:col-span-8')}>
           <p className={homeStyles.eyebrow}>
             <span aria-hidden="true" className={homeStyles.eyebrowSignal} />
             Insights
@@ -181,7 +181,9 @@ export function InsightsCollection({ data }: { data: InsightsData }) {
                   hidden={isLead || undefined}
                 >
                   {/* The lead's grid copy shares its (prioritised) image. */}
-                  <InsightCard item={item} priority={isLead} />
+                  <SiteReveal motion="card" className="flex w-full">
+                    <InsightCard item={item} priority={isLead} />
+                  </SiteReveal>
                 </li>
               )
             })}
@@ -213,20 +215,24 @@ export function InsightsEmptyState() {
 export function InsightsCapabilityBridge() {
   return (
     <SiteSection tone="white" spacing="compact" aria-labelledby="insights-bridge-title" className={styles.bridge}>
-      <h2 id="insights-bridge-title" className="font-hb-display text-[length:var(--hb-text-h3)] font-bold tracking-[-0.02em] text-hb-fg">
-        Where this thinking is put to work
-      </h2>
-      <p className="mt-3 max-w-[38rem] leading-relaxed text-hb-fg-body">
-        Each insight connects to a Hbee capability. Explore the one closest to the problem you are working on.
-      </p>
+      <SiteReveal>
+        <h2 id="insights-bridge-title" className="font-hb-display text-[length:var(--hb-text-h3)] font-bold tracking-[-0.02em] text-hb-fg">
+          Where this thinking is put to work
+        </h2>
+      </SiteReveal>
+      <SiteReveal motion="soft" index={1}>
+        <p className="mt-3 max-w-[38rem] leading-relaxed text-hb-fg-body">
+          Each insight connects to a Hbee capability. Explore the one closest to the problem you are working on.
+        </p>
+      </SiteReveal>
       <ul className={styles.bridgeList}>
         {INSIGHT_CAPABILITIES.map((capability) => (
-          <li key={capability.slug}>
+          <SiteReveal as="li" key={capability.slug} motion="item">
             <Link href={`/services/${capability.slug}`} className={styles.bridgeLink}>
               <span>{capability.name}</span>
               <SiteArrow size={15} />
             </Link>
-          </li>
+          </SiteReveal>
         ))}
       </ul>
     </SiteSection>
@@ -244,15 +250,15 @@ export function InsightsCta({ eyebrow, headline, copy }: { eyebrow: string; head
         <HbeeModuleGlyph signal="none" className={`${capabilityStyles.ctaGlyph} ${capabilityStyles.ctaGlyph3}`} />
       </div>
       <div className="relative max-w-[42rem]">
-        <SiteReveal>
-          <SiteEyebrow signal>{eyebrow}</SiteEyebrow>
+        <SiteReveal motion="none">
+          <SiteEyebrow motionIndex={0} signal>{eyebrow}</SiteEyebrow>
         </SiteReveal>
         <SiteReveal index={1}>
           <SiteDisplayHeading id="insights-cta-title" size="h2" className="mt-6">
             {headline}
           </SiteDisplayHeading>
         </SiteReveal>
-        <SiteReveal index={2}>
+        <SiteReveal motion="soft" index={2}>
           <p className="mt-5 max-w-[36rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{copy}</p>
         </SiteReveal>
         <SiteReveal index={3} className="mt-8 flex flex-wrap items-center gap-3">

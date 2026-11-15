@@ -57,7 +57,7 @@ export function HowWeWorkHero() {
         </svg>
       </div>
       <SiteGrid className={`items-center gap-y-12 pb-[var(--hb-space-section-compact)] pt-[clamp(2.5rem,5vw,4.5rem)] lg:pt-12 ${styles.heroLayout}`}>
-        <div className="col-span-4 md:col-span-8 lg:col-span-6">
+        <div data-hero-copy="" className="col-span-4 md:col-span-8 lg:col-span-6">
           <p className={homeStyles.eyebrow}>
             <span aria-hidden="true" className={homeStyles.eyebrowSignal} />
             {HOW_HERO.eyebrow}
@@ -91,21 +91,21 @@ export function IsolatedFixes() {
     <SiteSection tone="white" aria-labelledby="how-isolated-title">
       <SiteGrid className="gap-y-12">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-5">
-          <SiteReveal>
-            <SiteEyebrow signal>The connected system</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>The connected system</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="how-isolated-title" size="h2" className="mt-6 max-w-[32rem]">
               {ISOLATED_INTRO.headline}
             </SiteDisplayHeading>
           </SiteReveal>
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{ISOLATED_INTRO.copy}</p>
           </SiteReveal>
         </div>
         <ul className={cn(styles.isolated, 'col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-7')}>
           {ISOLATED_EXAMPLES.map((e, i) => (
-            <SiteReveal as="li" key={e.fix} index={i % 3} className={styles.isolatedItem}>
+            <SiteReveal as="li" key={e.fix} motion="item" index={i % 3} className={styles.isolatedItem}>
               <span aria-hidden="true" className={styles.isolatedNode} />
               <p className="text-[1rem] leading-snug text-hb-fg-body">
                 <strong className="font-hb-display font-semibold text-hb-fg">{e.fix}</strong> {e.text}
@@ -126,15 +126,15 @@ export function IsolatedFixes() {
 export function GrowthProcess() {
   return (
     <SiteSection id="the-process" tone="night" aria-labelledby="how-process-title" className={styles.anchor}>
-      <SiteReveal>
-        <SiteEyebrow signal>Our five-stage growth system</SiteEyebrow>
+      <SiteReveal motion="none">
+        <SiteEyebrow motionIndex={0} signal>Our five-stage growth system</SiteEyebrow>
       </SiteReveal>
       <SiteReveal index={1}>
         <SiteDisplayHeading id="how-process-title" size="h2" className="mt-6">
           {PROCESS_INTRO.headline}
         </SiteDisplayHeading>
       </SiteReveal>
-      <SiteReveal index={2}>
+      <SiteReveal motion="soft" index={2}>
         <p className="mt-5 max-w-[40rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{PROCESS_INTRO.copy}</p>
       </SiteReveal>
 
@@ -143,7 +143,7 @@ export function GrowthProcess() {
         <span aria-hidden="true" className={styles.flowSignal} />
         <ol className={styles.flowList}>
           {PROCESS_STAGES.map((stage, i) => (
-            <SiteReveal as="li" id={stage.id} key={stage.name} index={i} className={cn(styles.flowStage, styles.anchor)}>
+            <SiteReveal as="li" id={stage.id} key={stage.name} motion="step" index={i} className={cn(styles.flowStage, styles.anchor)}>
               <span aria-hidden="true" className={styles.flowNode} data-first={i === 0 ? '' : undefined}>
                 {String(i + 1).padStart(2, '0')}
               </span>
@@ -169,15 +169,15 @@ export function ProcessCapabilities() {
     <SiteSection tone="cloud" aria-labelledby="how-capabilities-title">
       <SiteGrid className="gap-y-12">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-5 min-[1152px]:self-center">
-          <SiteReveal>
-            <SiteEyebrow signal>Our capabilities</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>Our capabilities</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="how-capabilities-title" size="h2" className="mt-6 max-w-[32rem]">
               {CAPABILITIES_INTRO.headline[0]} <span className="block">{CAPABILITIES_INTRO.headline[1]}</span>
             </SiteDisplayHeading>
           </SiteReveal>
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{CAPABILITIES_INTRO.copy}</p>
             <SiteLinkArrow href="/services" className="mt-4 min-h-[44px]">
               Explore Our Services
@@ -229,21 +229,21 @@ export function WorkingTogether() {
     <SiteSection tone="white" aria-labelledby="how-working-title">
       <SiteGrid className="gap-y-12">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-4">
-          <SiteReveal>
-            <SiteEyebrow signal>Working together</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>Working together</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="how-working-title" size="h2" className="mt-6">
               {WORKING_INTRO.headline} <span className="block text-hb-blue">{WORKING_INTRO.headlineAccent}</span>
             </SiteDisplayHeading>
           </SiteReveal>
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-6 max-w-[30rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{WORKING_INTRO.copy}</p>
           </SiteReveal>
         </div>
         <ol className={cn(styles.principles, 'col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-8')}>
           {WORKING_PRINCIPLES.map((p, i) => (
-            <SiteReveal as="li" key={p.name} index={i % 3} className={styles.principle}>
+            <SiteReveal as="li" key={p.name} motion="item" index={i % 3} className={styles.principle}>
               <h3 className="font-hb-display text-[1.25rem] font-bold leading-tight tracking-[-0.02em] text-hb-fg">{p.name}</h3>
               <p className="mt-2 text-[0.9375rem] leading-relaxed text-hb-fg-body">{p.text}</p>
             </SiteReveal>
@@ -274,7 +274,7 @@ function PortalPreview() {
         <p>Client Portal</p>
       </div>
       <div aria-hidden="true" className={styles.portalBody}>
-        <nav className={styles.portalNav}>
+        <nav aria-label="Client Portal sections (illustration)" className={styles.portalNav}>
           {PORTAL_NAV.map((n, i) => (
             <span key={n} className={i === 0 ? styles.portalNavActive : undefined}>
               {n}
@@ -322,20 +322,20 @@ export function ClientPortalSection() {
     <SiteSection tone="cloud" aria-labelledby="how-portal-title" className={styles.portalSection}>
       <SiteGrid className="items-center gap-y-12">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-5">
-          <SiteReveal>
-            <SiteEyebrow signal>Your client experience</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>Your client experience</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="how-portal-title" size="h2" className="mt-6">
               {PORTAL_INTRO.headline}
             </SiteDisplayHeading>
           </SiteReveal>
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{PORTAL_INTRO.copy}</p>
           </SiteReveal>
           <ul className={styles.benefits}>
             {PORTAL_BENEFITS.map((b, i) => (
-              <SiteReveal as="li" key={b.name} index={i} className={styles.benefit}>
+              <SiteReveal as="li" key={b.name} motion="card" index={i} className={styles.benefit}>
                 <h3 className="font-hb-display text-[1.0625rem] font-semibold leading-snug text-hb-fg">{b.name}</h3>
                 <p className="mt-1 text-[0.9375rem] leading-relaxed text-hb-fg-body">{b.text}</p>
               </SiteReveal>
@@ -365,8 +365,8 @@ export function HowWeWorkQuestions() {
     <SiteSection tone="white" aria-labelledby="how-questions-title">
       <SiteGrid className="gap-y-10">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-4">
-          <SiteReveal>
-            <SiteEyebrow signal>Questions</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>Questions</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="how-questions-title" size="h2" className="mt-6">
@@ -376,7 +376,7 @@ export function HowWeWorkQuestions() {
         </div>
         <dl className={cn(styles.questions, 'col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-8')}>
           {HOW_QUESTIONS.map((q, i) => (
-            <SiteReveal key={q.question} index={i % 3} className={styles.question}>
+            <SiteReveal key={q.question} motion="item" index={i % 3} className={styles.question}>
               <dt>
                 <h3 className="font-hb-display text-[1.125rem] font-bold leading-snug tracking-[-0.01em] text-hb-fg">{q.question}</h3>
               </dt>
@@ -400,15 +400,15 @@ export function HowWeWorkCta() {
         <HbeeModuleGlyph signal="none" className={`${capabilityStyles.ctaGlyph} ${capabilityStyles.ctaGlyph3}`} />
       </div>
       <div className="relative max-w-[44rem]">
-        <SiteReveal>
-          <SiteEyebrow signal>{HOW_CTA.eyebrow}</SiteEyebrow>
+        <SiteReveal motion="none">
+          <SiteEyebrow motionIndex={0} signal>{HOW_CTA.eyebrow}</SiteEyebrow>
         </SiteReveal>
         <SiteReveal index={1}>
           <SiteDisplayHeading id="how-cta-title" size="h1" className="mt-6">
             {HOW_CTA.headline}
           </SiteDisplayHeading>
         </SiteReveal>
-        <SiteReveal index={2}>
+        <SiteReveal motion="soft" index={2}>
           <p className="mt-6 max-w-[36rem] text-[length:var(--hb-text-lede)] leading-[1.55] text-hb-fg-body">{HOW_CTA.copy}</p>
         </SiteReveal>
         <SiteReveal index={3} className="mt-9 flex flex-wrap items-center gap-3">

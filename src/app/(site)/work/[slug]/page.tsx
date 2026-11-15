@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import { WorkDetailPage } from '@/components/site/work/WorkDetail'
 import { getNextWork, getWorkDetail, getWorkSeo } from '@/lib/site/work-data'
 import { pageMetadata } from '@/lib/site/seo'
+import { pageJsonLd } from '@/lib/site/page-schema'
 
 /**
  * Case study (/work/[slug]). 404 for any slug that does not resolve to an
@@ -30,5 +31,19 @@ export default async function CaseStudyPage({ params }: { params: { slug: string
   if (detail.creative?.caseStudy) redirect(`/case-studies/${params.slug}`)
   // Next-project navigation belongs to the creative experience only (flag on).
   const next = detail.creative ? await getNextWork(params.slug) : null
-  return <WorkDetailPage detail={detail} next={next} />
+  const jsonLd = pageJsonLd({
+    path: `/work/${params.slug}`,
+    name: detail.headline,
+    description: detail.summary ?? `${detail.client}: selected work by Hbee Digitals.`,
+    breadcrumb: detail.client,
+    trail: [{ name: 'Work', path: '/work' }],
+  })
+  return (
+    <>
+      {jsonLd.map((block, i) => (
+        <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: block }} />
+      ))}
+      <WorkDetailPage detail={detail} next={next} />
+    </>
+  )
 }

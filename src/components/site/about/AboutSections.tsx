@@ -38,8 +38,8 @@ const ICON = { strokeWidth: 1.75, width: '100%', height: '100%', 'aria-hidden': 
 function Intro({ eyebrow, id, headline, accent, flow }: { eyebrow: string; id: string; headline: readonly string[]; accent?: boolean; flow?: boolean }) {
   return (
     <>
-      <SiteReveal>
-        <SiteEyebrow signal>{eyebrow}</SiteEyebrow>
+      <SiteReveal motion="none">
+        <SiteEyebrow motionIndex={0} signal>{eyebrow}</SiteEyebrow>
       </SiteReveal>
       <SiteReveal index={1}>
         <SiteDisplayHeading id={id} size="h2" className="mt-6">
@@ -64,7 +64,7 @@ export function AboutHero({ photos }: { photos: HeroPhoto[] }) {
         </svg>
       </div>
       <SiteGrid className={`items-center gap-y-12 pb-[var(--hb-space-section-compact)] pt-[clamp(2.5rem,5vw,4.5rem)] lg:pt-12 ${styles.heroLayout}`}>
-        <div className="col-span-4 md:col-span-8 lg:col-span-6 min-[1152px]:col-span-5">
+        <div data-hero-copy="" className="col-span-4 md:col-span-8 lg:col-span-6 min-[1152px]:col-span-5">
           <p className={homeStyles.eyebrow}>
             <span aria-hidden="true" className={homeStyles.eyebrowSignal} />
             {ABOUT_HERO.eyebrow}
@@ -147,7 +147,7 @@ export function BringTogether() {
       <SiteGrid className="gap-y-10">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-5">
           <Intro eyebrow={TOGETHER.eyebrow} id="about-together-title" headline={TOGETHER.headline} />
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-6 max-w-[32rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{TOGETHER.copy}</p>
             <SiteLinkArrow href="/services" className="mt-4 min-h-[44px]">
               {TOGETHER.link}
@@ -182,7 +182,7 @@ export function MethodBridge() {
       <SiteGrid className="items-center gap-y-10">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-5">
           <Intro eyebrow={METHOD.eyebrow} id="about-method-title" headline={METHOD.headline} />
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-6 max-w-[32rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{METHOD.copy}</p>
             <SiteLinkArrow href="/how-we-work" className="mt-4 min-h-[44px]">
               {METHOD.link}
@@ -226,13 +226,13 @@ export function Principles() {
         <div className="col-span-4 md:col-span-8 lg:col-span-5">
           <Intro eyebrow={PRINCIPLES_INTRO.eyebrow} id="about-principles-title" headline={PRINCIPLES_INTRO.headline} />
         </div>
-        <SiteReveal index={2} className="col-span-4 md:col-span-8 lg:col-span-6 lg:col-start-7 lg:self-end">
+        <SiteReveal motion="shift" index={2} className="col-span-4 md:col-span-8 lg:col-span-6 lg:col-start-7 lg:self-end">
           <p className="max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{PRINCIPLES_INTRO.copy}</p>
         </SiteReveal>
       </SiteGrid>
       <ol className={cn(styles.beliefs, styles.principles)}>
         {PRINCIPLES.map((p, i) => (
-          <SiteReveal as="li" key={p.key} index={i % 3} className={styles.belief}>
+          <SiteReveal as="li" key={p.key} motion="card" index={i % 3} className={styles.belief}>
             <span aria-hidden="true" className={styles.beliefIcon}>
               {PRINCIPLE_ICONS[p.key]}
             </span>
@@ -275,14 +275,14 @@ export function WhoWeWorkWith() {
       <SiteGrid className="gap-y-12">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-5">
           <Intro eyebrow={WORK_WITH_INTRO.eyebrow} id="about-fit-title" headline={WORK_WITH_INTRO.headline} flow />
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-6 max-w-[32rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{WORK_WITH_INTRO.copy}</p>
           </SiteReveal>
         </div>
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-7">
           <ul className={styles.fit}>
             {WORK_WITH.map((w, i) => (
-              <SiteReveal as="li" key={w.name} index={i} className={styles.fitItem}>
+              <SiteReveal as="li" key={w.name} motion="item" index={i} className={styles.fitItem}>
                 <span aria-hidden="true" className={styles.fitIndex}>
                   {String(i + 1).padStart(2, '0')}
                 </span>
@@ -306,8 +306,8 @@ export function AboutQuestions() {
     <SiteSection tone="white" aria-labelledby="about-questions-title">
       <SiteGrid className="gap-y-10">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-4">
-          <SiteReveal>
-            <SiteEyebrow signal>{ABOUT_QUESTIONS_INTRO.eyebrow}</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>{ABOUT_QUESTIONS_INTRO.eyebrow}</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="about-questions-title" size="h2" className="mt-6">
@@ -317,7 +317,7 @@ export function AboutQuestions() {
         </div>
         <dl className={cn(styles.questions, 'col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-8')}>
           {ABOUT_QUESTIONS.map((q, i) => (
-            <SiteReveal key={q.question} index={i % 3} className={styles.question}>
+            <SiteReveal key={q.question} motion="item" index={i % 3} className={styles.question}>
               <dt>
                 <h3 className={styles.questionTitle}>{q.question}</h3>
               </dt>
@@ -342,8 +342,8 @@ export function AboutCta() {
       </div>
       <div className={cn('relative', styles.cta)}>
         <div>
-          <SiteReveal>
-            <SiteEyebrow signal>{ABOUT_CTA.eyebrow}</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>{ABOUT_CTA.eyebrow}</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="about-cta-title" size="h2" className="mt-6">

@@ -4,6 +4,7 @@ import { groupMedia, MEDIA_GROUP_TITLES, type MediaGroupKind } from '@/lib/site/
 import type { WorkDetail, WorkImage, WorkItem } from '@/lib/site/work-data'
 import { HbeeModuleGlyph } from '../module/HbeeModule'
 import { SiteReveal } from '../motion/SiteReveal'
+import { GROWTH_REVIEW_HREF } from '@/lib/site/routes'
 import { SiteButton } from '../primitives/SiteButton'
 import { SiteArrow } from '../primitives/SiteIcons'
 import { SiteSection } from '../primitives/SiteSection'
@@ -30,7 +31,7 @@ export function CaseStudiesHero() {
           </g>
         </svg>
       </div>
-      <div className={styles.csHero}>
+      <div data-hero-copy="" className={styles.csHero}>
         <SiteEyebrow signal>Case studies</SiteEyebrow>
         <h1 id="case-studies-title" className="mt-6 max-w-[16ch] font-hb-display text-[clamp(2.5rem,1.7rem+2.5vw,3.6rem)] font-bold leading-[1.02] tracking-[-0.04em] text-hb-fg">
           The work, in depth.
@@ -39,11 +40,14 @@ export function CaseStudiesHero() {
           Selected projects, told with the context, the work and what it connects to. For the wider range of what Hbee makes, browse all work.
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-3">
-          <SiteButton href="#case-study-collection" variant="conversion" size="lg" arrow>
-            Explore case studies
+          <SiteButton href={GROWTH_REVIEW_HREF} variant="conversion" size="lg" arrow>
+            Start Growth Review
+          </SiteButton>
+          <SiteButton href="#case-study-collection" variant="secondary" size="lg">
+            View Case Studies
           </SiteButton>
           <SiteButton href="/work" variant="secondary" size="lg">
-            Explore all work
+            View Work
           </SiteButton>
         </div>
       </div>
@@ -106,7 +110,7 @@ export function CaseStudiesCollection({ items }: { items: WorkItem[] }) {
             <p className="mt-2 max-w-[38rem] leading-relaxed text-hb-fg-body">Selected projects will appear here once they are ready to be told in depth. Meanwhile, browse the wider work.</p>
           </div>
           <SiteButton href="/work" variant="secondary" arrow className="md:ml-auto">
-            Explore all work
+            View Work
           </SiteButton>
         </SiteReveal>
       ) : (
@@ -114,7 +118,7 @@ export function CaseStudiesCollection({ items }: { items: WorkItem[] }) {
           <ul className={styles.csGrid}>
             {items.map((item, i) => (
               <li key={item.id} className={cn('flex', wide(i) && styles.csLead)}>
-                <SiteReveal index={wide(i) ? 0 : i % 2} className="flex w-full">
+                <SiteReveal motion="card" index={wide(i) ? 0 : i % 2} className="flex w-full">
                   <CaseStudyCard item={item} lead={wide(i)} reverse={i % 2 === 1} label={i === 0 ? 'Featured case study' : undefined} />
                 </SiteReveal>
               </li>
@@ -123,7 +127,7 @@ export function CaseStudiesCollection({ items }: { items: WorkItem[] }) {
           <SiteReveal className={styles.csMore}>
             <p>Case studies are added as projects are ready to be told in depth. The wider library shows the full range of work.</p>
             <SiteButton href="/work#work-collection" variant="secondary" arrow>
-              Explore all work
+              View Work
             </SiteButton>
           </SiteReveal>
         </>
@@ -180,8 +184,8 @@ export function CaseStudyMedia({ detail }: { detail: WorkDetail }) {
   const onlyGeneric = groups.length === 1 && groups[0].kind === 'other'
   return (
     <SiteSection tone="white" spacing="compact" aria-labelledby="case-media" className={styles.caseBand}>
-      <SiteReveal>
-        <SiteEyebrow signal>The work in detail</SiteEyebrow>
+      <SiteReveal motion="none">
+        <SiteEyebrow motionIndex={0} signal>The work in detail</SiteEyebrow>
         <h2 id="case-media" className="mt-5 font-hb-display text-[length:var(--hb-text-h2)] font-bold leading-[1.07] tracking-[-0.03em] text-hb-fg">
           A closer look.
         </h2>
@@ -210,8 +214,8 @@ function CaseStudyProcess({ detail }: { detail: WorkDetail }) {
   if (!steps.length) return null
   return (
     <SiteSection tone="white" spacing="compact" aria-labelledby="case-process" className={styles.caseBand}>
-      <SiteReveal>
-        <SiteEyebrow signal>Process</SiteEyebrow>
+      <SiteReveal motion="none">
+        <SiteEyebrow motionIndex={0} signal>Process</SiteEyebrow>
         <h2 id="case-process" className="mt-5 font-hb-display text-[length:var(--hb-text-h3)] font-bold leading-tight tracking-[-0.02em] text-hb-fg">
           How the work moved.
         </h2>
@@ -237,8 +241,8 @@ function CaseStudyTestimonial({ detail }: { detail: WorkDetail }) {
   if (!t) return null
   return (
     <SiteSection tone="cloud" spacing="compact" aria-labelledby="case-feedback" className={styles.caseBand}>
-      <SiteReveal>
-        <SiteEyebrow signal>Client feedback</SiteEyebrow>
+      <SiteReveal motion="none">
+        <SiteEyebrow motionIndex={0} signal>Client feedback</SiteEyebrow>
         <h2 id="case-feedback" className="sr-only">Client feedback</h2>
         <figure className={styles.quote}>
           <blockquote>{t.quote}</blockquote>
@@ -260,7 +264,7 @@ function CaseStudyBack() {
             Back to all case studies
           </SiteButton>
           <SiteButton href="/work#work-collection" variant="secondary">
-            Explore all work
+            View Work
           </SiteButton>
         </div>
       </SiteReveal>
@@ -280,7 +284,7 @@ function RelatedWork({ items }: { items: WorkItem[] }) {
           </h2>
         </div>
         <SiteButton href="/work#work-collection" variant="secondary" arrow>
-          Explore all work
+          View Work
         </SiteButton>
       </SiteReveal>
       <ul className={styles.grid}>

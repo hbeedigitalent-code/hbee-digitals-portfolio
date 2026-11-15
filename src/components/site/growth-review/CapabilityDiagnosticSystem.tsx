@@ -27,13 +27,16 @@ import styles from './diagnostic-hero.module.css'
  *             orange signal lit. No scan.
  *   idle      direct-visit recovery: the system at rest, dashed channels,
  *             hollow nodes, NO orange signal anywhere. Never reads as success.
+ *   home      the homepage closing: the same six-capability system, neutral. One-time
+ *             settle then draw when the section is reached, then at rest: no scan,
+ *             no orange signal, no receipt semantics, no scores, no ranking.
  * Reduced motion: the settled system, no scan.
  *
  * Three compositions: desktop 100 × 104, tablet (viewport 640–1023px) 100 × 98,
  * phone (container ≤ 440px): hub above, a 2 × 3 grid below, short stubs.
  */
 
-export type DiagnosticVariant = 'hero' | 'received' | 'idle'
+export type DiagnosticVariant = 'hero' | 'received' | 'idle' | 'home'
 
 /** Intrinsic size of each trimmed render. */
 const ASSET_SIZE: Record<ModuleName, readonly [number, number]> = {
@@ -137,6 +140,7 @@ const CAPTIONS: Record<DiagnosticVariant, string> = {
   hero: `The connected Hbee system being examined: ${NAMES}. The diagnosis may point into any part of it.`,
   received: 'Your answers, received into the Hbee review.',
   idle: 'The connected Hbee system at rest: the diagnosis may point into any part of it.',
+  home: `The connected Hbee system the Growth Review looks across: ${NAMES}. The review may point into any part of it.`,
 }
 
 function slotStyle(m: ModuleName, i: number): CSSProperties {
@@ -220,7 +224,7 @@ export function CapabilityDiagnosticSystem({ variant = 'hero', className }: { va
                     alt=""
                     width={w}
                     height={h}
-                    loading="eager"
+                    loading={variant === 'home' ? 'lazy' : 'eager'}
                     sizes="(min-width: 1024px) 200px, 40vw"
                     className={styles.art}
                     draggable={false}

@@ -257,6 +257,27 @@
   animation: dxLift 15s var(--hb-ease-in-out) calc(var(--scan-start) + var(--k, 0) * var(--scan-step)) infinite;
 }
 
+/* Home (closing section): neutral, connected at rest. One-time settle → draw, NO scan and no orange signal.
+   Inside data-gate-motion it stays paused until the section's reveal group flips, so it plays when reached. */
+.figure[data-variant='home'] .pulse { display: none; }
+.figure[data-variant='home'] .channel { stroke-opacity: 0.75; }
+:global([data-surface='site'][data-motion-ready]) .figure[data-variant='home'] .hub {
+  animation: dxHub 560ms var(--hb-ease) 40ms backwards;
+}
+:global([data-surface='site'][data-motion-ready]) .figure[data-variant='home'] .module {
+  animation: dxSettle 560ms var(--hb-ease) backwards;
+  animation-delay: calc(240ms + var(--i, 0) * 90ms);
+}
+:global([data-surface='site'][data-motion-ready]) .figure[data-variant='home'] .channel {
+  animation: dxDraw 620ms var(--hb-ease-in-out) 900ms both;
+}
+:global([data-surface='site'][data-motion-ready]) .figure[data-variant='home'] .node {
+  animation: dxFade 360ms var(--hb-ease) 1300ms both;
+}
+:global([data-surface='site'][data-motion-ready]) :global([data-revealed='false']) :global([data-gate-motion]) .figure[data-variant='home'] :is(.hub, .module, .channel, .node) {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hub, .module, .lift, .channel, .node, .pulse { animation: none !important; }
   .pulse { display: none; }

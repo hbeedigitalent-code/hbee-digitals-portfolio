@@ -34,8 +34,8 @@ export function CapabilitySymptomsDiagnose({ detail }: { detail: CapabilityDetai
     <SiteSection id="symptoms-and-diagnosis" tone="white" aria-labelledby="capability-symptoms-title" className={styles.anchor}>
       <SiteGrid className="gap-y-16">
         <div className="col-span-4 md:col-span-8 lg:col-span-12">
-          <SiteReveal>
-            <SiteEyebrow signal>{s.symptoms.eyebrow}</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>{s.symptoms.eyebrow}</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="capability-symptoms-title" size="h2" className="mt-6 max-w-[40rem]">
@@ -44,7 +44,7 @@ export function CapabilitySymptomsDiagnose({ detail }: { detail: CapabilityDetai
           </SiteReveal>
           <ul className="mt-10 grid gap-x-[var(--hb-grid-gap)] gap-y-8 md:grid-cols-2 xl:grid-cols-3">
             {s.symptoms.items.map((item, i) => (
-              <SiteReveal as="li" key={item.name} index={i} className={surface.rule}>
+              <SiteReveal as="li" key={item.name} motion="item" index={i} className={surface.rule}>
                 <h3 className="font-hb-display text-[1.1875rem] font-bold leading-snug tracking-[-0.02em] text-hb-fg">{item.name}</h3>
                 <p className="mt-2 text-[0.9375rem] leading-relaxed text-hb-fg-body">{item.text}</p>
               </SiteReveal>
@@ -53,20 +53,20 @@ export function CapabilitySymptomsDiagnose({ detail }: { detail: CapabilityDetai
         </div>
 
         <div id="what-we-diagnose" className={`col-span-4 md:col-span-8 lg:col-span-12 ${styles.anchor}`}>
-          <SiteReveal>
-            <SiteEyebrow signal>{s.diagnose.eyebrow}</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>{s.diagnose.eyebrow}</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="capability-diagnose-title" size="h2" className="mt-6 max-w-[40rem]">
               {s.diagnose.headline}
             </SiteDisplayHeading>
           </SiteReveal>
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-6 max-w-[44rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{s.diagnose.intro}</p>
           </SiteReveal>
           <ol className="mt-10 grid gap-x-[var(--hb-grid-gap)] gap-y-8 md:grid-cols-2">
             {s.diagnose.items.map((item, i) => (
-              <SiteReveal as="li" key={item.name} index={i} className={surface.rule}>
+              <SiteReveal as="li" key={item.name} motion="item" index={i} className={surface.rule}>
                 <h3 className="font-hb-display text-[1.1875rem] font-bold leading-snug tracking-[-0.02em] text-hb-fg">
                   <span aria-hidden="true" className="mr-2 text-hb-blue">
                     {String(i + 1).padStart(2, '0')}
@@ -105,15 +105,15 @@ function ServiceAreaPanel({ area, insightTitles }: { area: ServiceArea; insightT
   return (
     <SiteSection id={area.id} tone="white" spacing="compact" aria-labelledby={titleId} className={styles.anchor}>
       <div className={`${surface.surface} ${surface.soft} ${styles.areaPanel}`}>
-        <SiteReveal>
-          <SiteEyebrow signal>Service area</SiteEyebrow>
+        <SiteReveal motion="none">
+          <SiteEyebrow motionIndex={0} signal>Service area</SiteEyebrow>
         </SiteReveal>
         <SiteReveal index={1}>
           <SiteDisplayHeading id={titleId} size="h2" className="mt-6 max-w-[44rem]">
             {area.title}
           </SiteDisplayHeading>
         </SiteReveal>
-        <SiteReveal index={2}>
+        <SiteReveal motion="soft" index={2}>
           <p className="mt-6 max-w-[46rem] text-[1.0625rem] font-medium leading-relaxed text-hb-fg">{area.answer}</p>
         </SiteReveal>
         <ul className="mt-8 grid gap-x-[var(--hb-grid-gap)] gap-y-6 md:grid-cols-2 xl:grid-cols-3">
@@ -171,15 +171,15 @@ export function CapabilityQuestions({ detail, insightTitles = {} }: { detail: Ca
     <SiteSection id="questions" tone="night" aria-labelledby="capability-questions-title" className={styles.anchor}>
       <SiteGrid className="gap-y-12">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 xl:col-span-4">
-          <SiteReveal>
-            <SiteEyebrow signal>Questions merchants ask</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>Questions merchants ask</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="capability-questions-title" size="h2" className="mt-6 max-w-[30rem]">
               {q.headline}
             </SiteDisplayHeading>
           </SiteReveal>
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-6 max-w-[30rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{q.intro}</p>
           </SiteReveal>
         </div>
@@ -190,7 +190,7 @@ export function CapabilityQuestions({ detail, insightTitles = {} }: { detail: Ca
               <p className={styles.intentLabel}>{INTENT_LABEL[group.intent]}</p>
               <div className="mt-4 grid gap-8">
                 {group.items.map((item) => (
-                  <SiteReveal key={item.question} className={surface.rule}>
+                  <SiteReveal key={item.question} motion="item" className={surface.rule}>
                     <h3 className="font-hb-display text-[1.25rem] font-bold leading-snug tracking-[-0.02em] text-hb-fg">{item.question}</h3>
                     <p className="mt-3 max-w-[46rem] text-[1rem] leading-relaxed text-hb-fg-body">{item.answer}</p>
                     {liveLinks(item.links, insightTitles).length > 0 && (
@@ -231,15 +231,15 @@ export function CapabilityConnected({ detail }: { detail: CapabilityDetail }) {
     <SiteSection id="connected-capabilities" tone="white" aria-labelledby="capability-connected-title" className={styles.anchor}>
       <SiteGrid className="gap-y-10">
         <div className="col-span-4 md:col-span-8 lg:col-span-12">
-          <SiteReveal>
-            <SiteEyebrow signal>Connected capabilities</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>Connected capabilities</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="capability-connected-title" size="h2" className="mt-6 max-w-[44rem]">
               How {active.name} depends on the rest of the system.
             </SiteDisplayHeading>
           </SiteReveal>
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-6 max-w-[44rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{fit.copy}</p>
           </SiteReveal>
         </div>
@@ -250,7 +250,7 @@ export function CapabilityConnected({ detail }: { detail: CapabilityDetail }) {
           </SiteReveal>
           <ul className="grid gap-5 lg:grid-cols-3" aria-label={`Capabilities adjacent to ${active.name}`}>
             {adjacent.map((slug, i) => (
-              <SiteReveal as="li" key={slug} index={i}>
+              <SiteReveal as="li" key={slug} motion="item" index={i}>
                 <CapabilityModuleCard entity={CAPABILITY_ENTITIES[slug]} state="related" headingLevel="h3" relation={fit.relations[slug]} className="h-full" />
               </SiteReveal>
             ))}
@@ -258,7 +258,7 @@ export function CapabilityConnected({ detail }: { detail: CapabilityDetail }) {
           {receded.length > 0 && (
             <ul className="grid gap-5 md:grid-cols-2" aria-label="Other Hbee capabilities">
               {receded.map((slug, i) => (
-                <SiteReveal as="li" key={slug} index={i}>
+                <SiteReveal as="li" key={slug} motion="item" index={i}>
                   <CapabilityModuleCard entity={CAPABILITY_ENTITIES[slug]} state="muted" headingLevel="h3" relation={fit.relations[slug]} className="h-full" />
                 </SiteReveal>
               ))}

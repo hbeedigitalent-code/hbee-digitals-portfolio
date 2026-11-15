@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import { CaseStudyPage } from '@/components/site/work/CaseStudySections'
 import { portfolioCreativeEnabled } from '@/lib/portfolio-creative'
 import { pageMetadata } from '@/lib/site/seo'
+import { pageJsonLd } from '@/lib/site/page-schema'
 import { getRelatedWork, getWorkDetail, getWorkSeo } from '@/lib/site/work-data'
 
 /**
@@ -30,5 +31,19 @@ export default async function CaseStudyRoute({ params }: { params: { slug: strin
   const detail = await getWorkDetail(params.slug)
   if (!detail) notFound()
   if (!detail.creative?.caseStudy) redirect(`/work/${params.slug}`)
-  return <CaseStudyPage detail={detail} related={await getRelatedWork(params.slug)} />
+  const jsonLd = pageJsonLd({
+    path: `/case-studies/${params.slug}`,
+    name: detail.headline,
+    description: detail.summary ?? `${detail.client}: a Hbee Digitals case study.`,
+    breadcrumb: detail.client,
+    trail: [{ name: 'Work', path: '/work' }, { name: 'Case Studies', path: '/case-studies' }],
+  })
+  return (
+    <>
+      {jsonLd.map((block, i) => (
+        <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: block }} />
+      ))}
+      <CaseStudyPage detail={detail} related={await getRelatedWork(params.slug)} />
+    </>
+  )
 }

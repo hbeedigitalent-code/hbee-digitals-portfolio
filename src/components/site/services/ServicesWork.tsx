@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { cn } from '@/lib/cn'
 import type { FeaturedWork } from '@/lib/site/home-data'
-import { ALL_WORK_HREF, caseStudyHref } from '@/lib/site/routes'
+import { ALL_WORK_HREF } from '@/lib/site/routes'
 import { HbeeModuleGlyph } from '../module/HbeeModule'
 import { SiteReveal } from '../motion/SiteReveal'
 import { SiteButton } from '../primitives/SiteButton'
@@ -36,19 +36,19 @@ export function ServicesWork({ work }: { work: FeaturedWork[] }) {
     <SiteSection tone="deep" spacing={empty ? 'compact' : 'default'} aria-labelledby="services-work-title">
       <SiteGrid className="items-end gap-y-10">
         <div className={cn('col-span-4 md:col-span-8', empty ? 'lg:col-span-8' : 'lg:col-span-12 xl:col-span-4 xl:self-start')}>
-          <SiteReveal>
-            <SiteEyebrow signal>Real work</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>Real work</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="services-work-title" size="h2" className="mt-6 max-w-[34rem]">
               {WORK_INTRO.headline}
             </SiteDisplayHeading>
           </SiteReveal>
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-5 max-w-[34rem] leading-relaxed text-hb-fg-body">{empty ? WORK_INTRO.empty : WORK_INTRO.copy}</p>
             {!empty && (
-              <SiteButton href={ALL_WORK_HREF} variant="conversion" size="lg" arrow className="mt-8 hidden xl:inline-flex">
-                Explore Our Work
+              <SiteButton href={ALL_WORK_HREF} variant="secondary" size="lg" arrow className="mt-8 hidden xl:inline-flex">
+                View Work
               </SiteButton>
             )}
           </SiteReveal>
@@ -57,7 +57,7 @@ export function ServicesWork({ work }: { work: FeaturedWork[] }) {
         {empty ? (
           <SiteReveal index={3} className="col-span-4 md:col-span-8 lg:col-span-4 lg:justify-self-end">
             <SiteButton href={ALL_WORK_HREF} variant="secondary" size="lg" arrow>
-              Explore Our Work
+              View Work
             </SiteButton>
           </SiteReveal>
         ) : (
@@ -70,14 +70,14 @@ export function ServicesWork({ work }: { work: FeaturedWork[] }) {
               )}
             >
               {work.map((item, i) => (
-                <SiteReveal as="li" key={item.id} index={i} className="flex">
+                <SiteReveal as="li" key={item.id} motion="card" index={i} className="flex">
                   <WorkCard item={item} />
                 </SiteReveal>
               ))}
             </ul>
             <div className="col-span-4 md:col-span-8 xl:hidden">
-              <SiteButton href={ALL_WORK_HREF} variant="conversion" size="lg" arrow>
-                Explore Our Work
+              <SiteButton href={ALL_WORK_HREF} variant="secondary" size="lg" arrow>
+                View Work
               </SiteButton>
             </div>
           </>
@@ -107,7 +107,7 @@ function WorkCard({ item }: { item: FeaturedWork }) {
           </p>
         )}
         <h3 className="mt-2 font-hb-display text-[1.25rem] font-bold leading-snug tracking-[-0.015em] text-hb-fg">
-          <Link href={caseStudyHref(item.slug)} className="after:absolute after:inset-0 after:content-['']">
+          <Link href={item.href} className="after:absolute after:inset-0 after:content-['']">
             {item.client}
           </Link>
         </h3>

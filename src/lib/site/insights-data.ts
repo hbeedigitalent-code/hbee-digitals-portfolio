@@ -426,6 +426,7 @@ export function buildInsightsHubLd(items: Pick<InsightSummary, 'slug' | 'title'>
       url,
       name: meta.name,
       description: meta.description,
+      isPartOf: { '@id': `${SITE_URL}#website` },
       publisher: { '@id': ORGANIZATION_ID },
       mainEntity: {
         '@type': 'ItemList',

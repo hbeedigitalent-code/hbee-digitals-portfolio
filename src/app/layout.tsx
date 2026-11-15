@@ -19,7 +19,7 @@ const siteUrl = 'https://hbeedigitals.com'
 const siteName = 'Hbee Digitals'
 const siteTitle = 'Hbee Digitals — Digital Growth Studio'
 const siteDescription =
-  'Premium websites, Shopify optimization, digital infrastructure, and conversion-focused growth systems for ambitious brands.'
+  'Hbee Digitals is a digital growth studio for Shopify and ecommerce brands, connecting brand, website, systems, creative, traffic and retention around what is limiting growth.'
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -29,9 +29,9 @@ export const metadata: Metadata = {
   },
   description: siteDescription,
   keywords: [
-    'Hbee Digitals', 'Shopify expert', 'website design', 'Shopify optimization',
-    'conversion optimization', 'digital growth studio', 'ecommerce growth',
-    'branding', 'UI UX design', 'web development', 'digital agency',
+    'Hbee Digitals', 'digital growth studio', 'ecommerce growth', 'Shopify growth',
+    'brand positioning', 'Shopify conversion optimization', 'ecommerce analytics and tracking',
+    'UGC and creative', 'ecommerce SEO', 'retention marketing',
   ],
   authors: [{ name: siteName, url: siteUrl }],
   creator: siteName,

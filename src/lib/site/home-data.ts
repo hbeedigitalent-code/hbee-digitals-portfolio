@@ -11,6 +11,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { portfolioCreativeEnabled } from '@/lib/portfolio-creative'
 import { testimonialQuote, type ProofQuote } from '@/lib/testimonials'
 import { isFeatureEligible, isPublishedByDate } from './insight-publication'
 export type { ProofQuote } from '@/lib/testimonials'
@@ -79,6 +80,8 @@ function stringList(value: unknown, max: number): string[] {
 export interface FeaturedWork {
   id: string
   slug: string
+  /** The project's canonical page: /case-studies/[slug] for a Case Study, otherwise /work/[slug] (no redirect hop). */
+  href: string
   client: string
   /** Project title, only when it says something the client name doesn't. */
   title?: string
@@ -102,6 +105,8 @@ function toFeaturedWork(row: Row): FeaturedWork | null {
   return {
     id: String(row.id),
     slug,
+    // Same rule as the Work loader: a Case Study is routed to its canonical page only in creative mode.
+    href: portfolioCreativeEnabled() && row.is_case_study === true ? `/case-studies/${slug}` : `/work/${slug}`,
     client,
     title: title && title.toLowerCase() !== client.toLowerCase() ? title : undefined,
     industry: text(row.industry) ?? text(row.category),

@@ -247,17 +247,21 @@ body:has([data-surface-root]) {
   transition:
     opacity var(--hb-dur-reveal) var(--hb-ease),
     transform var(--hb-dur-reveal) var(--hb-ease);
-  transition-delay: calc(var(--hb-motion-index, 0) * var(--hb-stagger));
+  transition-delay: calc(min(var(--hb-motion-index, 0), 7) * var(--hb-stagger));
 }
 
 [data-surface='site'][data-motion-ready] :is([data-motion][data-revealed='false'], [data-revealed='false'] [data-motion]) {
   opacity: 0;
 }
 [data-surface='site'][data-motion-ready] :is([data-motion='reveal'][data-revealed='false'], [data-revealed='false'] [data-motion='reveal']) {
-  transform: translate3d(0, 24px, 0);
+  transform: translate3d(0, 20px, 0);
 }
 [data-surface='site'][data-motion-ready] :is([data-motion='shift'][data-revealed='false'], [data-revealed='false'] [data-motion='shift']) {
-  transform: translate3d(32px, 0, 0);
+  transform: translate3d(24px, 0, 0);
+}
+/* Left-origin: left-column content resolving toward centre (mirror of shift, which serves right-column content). */
+[data-surface='site'][data-motion-ready] :is([data-motion='left'][data-revealed='false'], [data-revealed='false'] [data-motion='left']) {
+  transform: translate3d(-24px, 0, 0);
 }
 [data-surface='site'][data-motion-ready] :is([data-motion='focus'][data-revealed='false'], [data-revealed='false'] [data-motion='focus']) {
   transform: scale(0.96);
@@ -274,7 +278,7 @@ body:has([data-surface-root]) {
   stroke-dasharray: 1;
   stroke-dashoffset: 0;
   transition: stroke-dashoffset var(--hb-dur-assemble) var(--hb-ease-in-out);
-  transition-delay: calc(var(--hb-motion-index, 0) * var(--hb-stagger) + 280ms);
+  transition-delay: calc(min(var(--hb-motion-index, 0), 7) * var(--hb-stagger) + 280ms);
 }
 [data-surface='site'][data-motion-ready] [data-revealed='false'] [data-connect] {
   stroke-dashoffset: 1;
@@ -308,7 +312,7 @@ body:has([data-surface-root]) {
 
 [data-surface='site'] [data-motion='eyebrow'] {
   transition: opacity 360ms var(--hb-ease), clip-path 520ms var(--hb-ease);
-  transition-delay: calc(var(--hb-motion-index, 0) * var(--hb-stagger-text));
+  transition-delay: calc(min(var(--hb-motion-index, 0), 7) * var(--hb-stagger-text));
   clip-path: inset(-6px -6px -6px -6px);
 }
 [data-surface='site'][data-motion-ready] :is([data-motion='eyebrow'][data-revealed='false'], [data-revealed='false'] [data-motion='eyebrow']) {
@@ -320,14 +324,14 @@ body:has([data-surface-root]) {
 [data-surface='site'] [data-motion='headline'] {
   display: block;
   transition: transform 760ms var(--hb-ease), opacity 300ms linear;
-  transition-delay: calc(var(--hb-motion-index, 0) * var(--hb-stagger-text) * 1.15);
+  transition-delay: calc(min(var(--hb-motion-index, 0), 7) * var(--hb-stagger-text) * 1.15);
 }
 [data-surface='site'][data-motion-ready] :is([data-motion='headline'][data-revealed='false'], [data-revealed='false'] [data-motion='headline']) {
   transform: translate3d(0, 112%, 0);
 }
 
 [data-surface='site'] :is([data-motion='soft'], [data-motion='item']) {
-  transition-delay: calc(var(--hb-motion-index, 0) * var(--hb-stagger-text));
+  transition-delay: calc(min(var(--hb-motion-index, 0), 7) * var(--hb-stagger-text));
 }
 [data-surface='site'] [data-motion='soft'] {
   transition-duration: 620ms;
@@ -345,7 +349,7 @@ body:has([data-surface-root]) {
 [data-surface='site'] :is([data-motion='rule'], [data-motion='railv'], [data-motion='rail']) {
   transition-property: transform, opacity;
   transition-timing-function: var(--hb-ease-in-out);
-  transition-delay: calc(var(--hb-motion-index, 0) * var(--hb-stagger-text));
+  transition-delay: calc(min(var(--hb-motion-index, 0), 7) * var(--hb-stagger-text));
 }
 [data-surface='site'] [data-motion='rule'] { transform-origin: left center; transition-duration: 700ms; }
 [data-surface='site'] [data-motion='railv'] { transform-origin: center top; transition-duration: 1100ms; }
@@ -361,7 +365,7 @@ body:has([data-surface-root]) {
 
 [data-surface='site'] [data-motion='card'] {
   transition-duration: 720ms;
-  transition-delay: calc(var(--hb-motion-index, 0) * var(--hb-stagger-card));
+  transition-delay: calc(min(var(--hb-motion-index, 0), 7) * var(--hb-stagger-card));
 }
 [data-surface='site'][data-motion-ready] :is([data-motion='card'][data-revealed='false'], [data-revealed='false'] [data-motion='card']) {
   transform: translate3d(0, 22px, 0) scale(0.985);
@@ -369,7 +373,7 @@ body:has([data-surface-root]) {
 
 [data-surface='site'] [data-motion='visual'] {
   transition-duration: 900ms;
-  transition-delay: calc(var(--hb-motion-index, 0) * var(--hb-stagger-text));
+  transition-delay: calc(min(var(--hb-motion-index, 0), 7) * var(--hb-stagger-text));
 }
 [data-surface='site'][data-motion-ready] :is([data-motion='visual'][data-revealed='false'], [data-revealed='false'] [data-motion='visual']) {
   transform: translate3d(0, 18px, 0) scale(0.97);
@@ -378,10 +382,10 @@ body:has([data-surface-root]) {
 /* Growth System: step n follows the rail as it draws across. Narrower layouts have no rail, so they simply sequence. */
 [data-surface='site'] [data-motion='step'] {
   transition-duration: 560ms;
-  transition-delay: calc(380ms + var(--hb-motion-index, 0) * 200ms);
+  transition-delay: calc(380ms + min(var(--hb-motion-index, 0), 7) * 200ms);
 }
 @media (max-width: 1023px) {
-  [data-surface='site'] [data-motion='step'] { transition-delay: calc(60ms + var(--hb-motion-index, 0) * 90ms); }
+  [data-surface='site'] [data-motion='step'] { transition-delay: calc(60ms + min(var(--hb-motion-index, 0), 7) * 90ms); }
 }
 [data-surface='site'][data-motion-ready] :is([data-motion='step'][data-revealed='false'], [data-revealed='false'] [data-motion='step']) {
   transform: translate3d(0, var(--hb-travel), 0);
@@ -396,4 +400,89 @@ body:has([data-surface-root]) {
     clip-path: none !important;
     stroke-dashoffset: 0 !important;
   }
+}
+
+/* ── S5.2 pacing ────────────────────────────────────────────────
+   1. BATCH ORDER. SiteReveal's shared observer writes --hb-order (0, 1, 2 …) onto elements that enter the
+      viewport together, in reading order. Self-triggered elements therefore arrive one after another
+      (a row of cards, a heading then its lede) and a later row restarts from 0, instead of waiting on a
+      cumulative per-item index. Falls back to --hb-motion-index when no order was written. Capped so no
+      element waits more than ~0.5s.
+   2. SEQUENCE PRESETS. A SiteReveal group with data-sequence paces its descendants:
+      editorial / cards / system / process. Shorter on phones. */
+[data-surface='site'] {
+  --hb-step-reveal: 80ms;
+  --hb-step-card: 110ms;
+  --hb-step-item: 70ms;
+}
+@media (max-width: 767px) {
+  [data-surface='site'] {
+    --hb-dur-reveal: 520ms;
+    --hb-step-reveal: 55ms;
+    --hb-step-card: 75ms;
+    --hb-step-item: 50ms;
+  }
+}
+[data-surface='site'] [data-motion][data-revealed]:is([data-motion='reveal'], [data-motion='focus'], [data-motion='shift'], [data-motion='left'], [data-motion='soft']) {
+  transition-delay: calc(min(var(--hb-order, var(--hb-motion-index, 0)), 5) * var(--hb-step-reveal));
+}
+[data-surface='site'] [data-motion='item'][data-revealed] {
+  transition-delay: calc(min(var(--hb-order, var(--hb-motion-index, 0)), 5) * var(--hb-step-item));
+}
+[data-surface='site'] [data-motion='card'][data-revealed] {
+  transition-delay: calc(min(var(--hb-order, var(--hb-motion-index, 0)), 5) * var(--hb-step-card));
+}
+
+/* A self-triggered process stage (How We Work): follows the rail on wide layouts, sequences in reading order on narrow ones. */
+[data-surface='site'] [data-motion='step'][data-revealed] {
+  transition-delay: calc(300ms + min(var(--hb-order, var(--hb-motion-index, 0)), 5) * 170ms);
+}
+@media (max-width: 1023px) {
+  [data-surface='site'] [data-motion='step'][data-revealed] {
+    transition-delay: calc(40ms + min(var(--hb-order, var(--hb-motion-index, 0)), 5) * 80ms);
+  }
+}
+
+[data-surface='site'] [data-sequence] { --seq-base: 0ms; --seq-step: 90ms; }
+[data-surface='site'] [data-sequence='cards'] { --seq-base: 60ms; --seq-step: 100ms; }
+[data-surface='site'] [data-sequence='system'] { --seq-base: 120ms; --seq-step: 130ms; }
+[data-surface='site'] [data-sequence='process'] { --seq-base: 140ms; --seq-step: 170ms; }
+@media (max-width: 767px) {
+  [data-surface='site'] [data-sequence] { --seq-step: 60ms; }
+  [data-surface='site'] [data-sequence='cards'] { --seq-base: 30ms; --seq-step: 70ms; }
+  [data-surface='site'] [data-sequence='system'] { --seq-base: 60ms; --seq-step: 80ms; }
+  [data-surface='site'] [data-sequence='process'] { --seq-base: 60ms; --seq-step: 100ms; }
+}
+[data-surface='site'] [data-sequence] [data-motion]:not([data-revealed]) {
+  transition-delay: calc(var(--seq-base) + min(var(--hb-motion-index, 0), 8) * var(--seq-step));
+}
+
+/* ── Hero copy entrance (CSS-only, no JS dependency) ─────────────
+   Mark a hero's copy column data-hero-copy: its direct children resolve in reading order
+   (eyebrow → H1 → lede → actions). The H1 starts almost immediately so the page is understood at once.
+   Pure animation on opacity/transform; the content is always in the DOM and visible without JS.
+   data-hero-visual gives the hero's visual a calm arrival (systems with their own choreography skip it). */
+@keyframes hbHeroCopy {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes hbHeroVisual {
+  from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-surface='site'] [data-hero-copy] > * { animation: hbHeroCopy 640ms var(--hb-ease) both; }
+  [data-surface='site'] [data-hero-copy] > :nth-child(2) { animation-delay: 70ms; }
+  [data-surface='site'] [data-hero-copy] > :nth-child(3) { animation-delay: 160ms; }
+  [data-surface='site'] [data-hero-copy] > :nth-child(4) { animation-delay: 250ms; }
+  [data-surface='site'] [data-hero-copy] > :nth-child(n + 5) { animation-delay: 320ms; }
+  [data-surface='site'] [data-hero-visual] { animation: hbHeroVisual 900ms var(--hb-ease) 180ms both; }
+}
+@media (max-width: 767px) and (prefers-reduced-motion: no-preference) {
+  [data-surface='site'] [data-hero-copy] > * { animation-duration: 520ms; }
+  [data-surface='site'] [data-hero-copy] > :nth-child(2) { animation-delay: 50ms; }
+  [data-surface='site'] [data-hero-copy] > :nth-child(3) { animation-delay: 110ms; }
+  [data-surface='site'] [data-hero-copy] > :nth-child(4) { animation-delay: 170ms; }
+  [data-surface='site'] [data-hero-copy] > :nth-child(n + 5) { animation-delay: 220ms; }
+  [data-surface='site'] [data-hero-visual] { animation-duration: 700ms; animation-delay: 100ms; }
 }

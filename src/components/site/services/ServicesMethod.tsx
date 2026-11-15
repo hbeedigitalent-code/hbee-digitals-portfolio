@@ -24,15 +24,15 @@ export function ServicesMethod() {
     <SiteSection id="how-we-use-them" tone="cloud" aria-labelledby="services-method-title" className={styles.anchor}>
       <SiteGrid className="gap-y-14">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 xl:col-span-4">
-          <SiteReveal>
-            <SiteEyebrow signal>How we use them</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>How we use them</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="services-method-title" size="h2" className="mt-6 max-w-[40rem]">
               {METHOD_INTRO.headline[0]} <span className="block text-hb-blue">{METHOD_INTRO.headline[1]}</span>
             </SiteDisplayHeading>
           </SiteReveal>
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-6 max-w-[36rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{METHOD_INTRO.copy}</p>
             <SiteLinkArrow href="/how-we-work" className="mt-4 min-h-[44px]">
               Our approach
@@ -46,7 +46,7 @@ export function ServicesMethod() {
             <span aria-hidden="true" className={styles.methodSignal} />
             <ol className={styles.methodList}>
               {METHOD_STAGES.map((stage, i) => (
-                <SiteReveal as="li" key={stage.name} index={i} className={styles.methodStage}>
+                <SiteReveal as="li" key={stage.name} motion="item" index={i} className={styles.methodStage}>
                   <span aria-hidden="true" className={styles.methodNode} data-first={i === 0 ? '' : undefined}>
                     {String(i + 1).padStart(2, '0')}
                   </span>

@@ -51,7 +51,7 @@ export function GrowthReviewHero() {
         </svg>
       </div>
       <SiteGrid className={`items-center gap-y-12 pb-[var(--hb-space-section-compact)] pt-[clamp(2.5rem,5vw,4.5rem)] lg:pt-12 ${styles.heroLayout}`}>
-        <div className="col-span-4 md:col-span-8 lg:col-span-6">
+        <div data-hero-copy="" className="col-span-4 md:col-span-8 lg:col-span-6">
           <p className={homeStyles.eyebrow}>
             <span aria-hidden="true" className={homeStyles.eyebrowSignal} />
             {GR_HERO.eyebrow}
@@ -91,8 +91,8 @@ export function GrowthReviewSymptoms() {
     <SiteSection tone="white" spacing="compact" aria-labelledby="gr-symptoms-title">
       <SiteGrid className="gap-y-10">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-4">
-          <SiteReveal>
-            <SiteEyebrow signal>Who it is for</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>Who it is for</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="gr-symptoms-title" as="h2" size="h3" className={cn(styles.contextTitle, 'mt-6')}>
@@ -104,7 +104,7 @@ export function GrowthReviewSymptoms() {
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-8">
           <ul className={styles.symptoms}>
             {GR_SYMPTOMS.map((text, i) => (
-              <SiteReveal as="li" key={text} index={i % 4} className={styles.symptom}>
+              <SiteReveal as="li" key={text} motion="card" index={i % 4} className={styles.symptom}>
                 <span aria-hidden="true" className={styles.symptomNode} />
                 <span>{text}</span>
               </SiteReveal>
@@ -128,8 +128,8 @@ export function GrowthReviewCapabilities() {
     <SiteSection tone="cloud" spacing="compact" aria-labelledby="gr-capabilities-title">
       <SiteGrid className="gap-y-10">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-5">
-          <SiteReveal>
-            <SiteEyebrow signal>Areas Hbee can investigate</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>Areas Hbee can investigate</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="gr-capabilities-title" as="h2" size="h3" className={cn(styles.contextTitle, 'mt-6')}>
@@ -147,7 +147,7 @@ export function GrowthReviewCapabilities() {
             {CAPABILITY_ORDER.map((slug, i) => {
               const entity = CAPABILITY_ENTITIES[slug]
               return (
-                <SiteReveal as="li" key={slug} index={i % 3}>
+                <SiteReveal as="li" key={slug} motion="item" index={i % 3}>
                   <Link href={entity.href} className={styles.capCard} aria-label={entity.linkLabel}>
                     <span aria-hidden="true" className={styles.capCardIcon}>
                       {CAPABILITY_ICONS[CAPABILITY_ICON[slug]]}
@@ -180,7 +180,7 @@ export function GrowthReviewNext() {
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-8">
           <ol className={cn(styles.steps, styles.stepsFirst)}>
             {GR_NEXT.steps.map((step, i) => (
-              <SiteReveal as="li" key={step.title} index={i} className={styles.step}>
+              <SiteReveal as="li" key={step.title} motion="item" index={i} className={styles.step}>
                 <span aria-hidden="true" className={styles.stepNumber}>
                   {String(i + 1).padStart(2, '0')}
                 </span>
@@ -208,8 +208,8 @@ export function GrowthReviewQuestions() {
     <SiteSection tone="cloud" spacing="compact" aria-labelledby="gr-questions-title">
       <SiteGrid className="gap-y-10">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-4">
-          <SiteReveal>
-            <SiteEyebrow signal>Questions</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>Questions</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="gr-questions-title" as="h2" size="h3" className={cn(styles.contextTitle, 'mt-6')}>
@@ -220,7 +220,7 @@ export function GrowthReviewQuestions() {
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-8">
           <dl className={styles.questions}>
             {GR_QUESTIONS.map((q, i) => (
-              <SiteReveal key={q.question} index={i % 3} className={styles.question}>
+              <SiteReveal key={q.question} motion="item" index={i % 3} className={styles.question}>
                 <dt>
                   <h3 className={styles.questionTitle}>{q.question}</h3>
                 </dt>
@@ -251,7 +251,7 @@ export function GrowthReviewQuestions() {
 export function GrowthReviewAssessment() {
   return (
     <SiteSection id={ASSESSMENT_ID} tone="cloud" spacing="none" aria-labelledby="gr-assessment-title" className={cn(styles.anchor, styles.assessmentSection)}>
-      <div className={styles.assessment}>
+      <SiteReveal motion="soft" className={styles.assessment}>
         <div className={styles.assessmentHead}>
           <SiteEyebrow signal>{GR_ASSESSMENT.eyebrow}</SiteEyebrow>
           <SiteDisplayHeading id="gr-assessment-title" size="h2" className={styles.assessmentTitle}>
@@ -267,7 +267,7 @@ export function GrowthReviewAssessment() {
           </p>
         </div>
         <GrowthReviewForm />
-      </div>
+      </SiteReveal>
     </SiteSection>
   )
 }

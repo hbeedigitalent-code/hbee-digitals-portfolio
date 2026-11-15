@@ -36,7 +36,7 @@ export function WorkHero({ creative = false, caseStudies = false }: { creative?:
       </div>
 
       <SiteGrid className={`items-center gap-y-12 pb-[var(--hb-space-section-compact)] pt-[clamp(2.5rem,5vw,4.5rem)] lg:pt-12 ${styles.heroLayout}`}>
-        <div className="col-span-4 md:col-span-8 lg:col-span-6">
+        <div data-hero-copy="" className="col-span-4 md:col-span-8 lg:col-span-6">
           <p className={homeStyles.eyebrow}>
             <span aria-hidden="true" className={homeStyles.eyebrowSignal} />
             {['Work', creative ? 'Selected projects' : 'Case studies'].map((word, i) => (
@@ -50,29 +50,32 @@ export function WorkHero({ creative = false, caseStudies = false }: { creative?:
             id="work-hero-title"
             className="mt-6 font-hb-display text-[clamp(2.5rem,1.7rem+2.5vw,3.6rem)] font-bold leading-[1.02] tracking-[-0.04em] text-hb-fg"
           >
-            <span className="block">Real work.</span>
-            <span className="block text-hb-blue">Built around real business problems.</span>
+            <span className="block">Ecommerce Work</span>
+            <span className="block text-hb-blue">&amp; Case Studies</span>
           </h1>
           <SiteLede className="mt-6">
-            Explore how Hbee helps businesses solve real challenges, improve customer experiences and build stronger
-            growth systems through strategy, design, technology and creative — all connected.
+            Real projects, built around real business problems. See how Hbee connects brand, website, systems,
+            creative, traffic and retention to move a business forward.
           </SiteLede>
           <div className="mt-9 flex flex-wrap items-center gap-3">
-            <SiteButton href="#work-collection" variant="conversion" size="lg" arrow>
-              Explore Our Work
+            <SiteButton href={GROWTH_REVIEW_HREF} variant="conversion" size="lg" arrow>
+              Start Growth Review
+            </SiteButton>
+            <SiteButton href="#work-collection" variant="secondary" size="lg">
+              View Work
             </SiteButton>
             {caseStudies && (
               <SiteButton href="/case-studies" variant="secondary" size="lg">
-                Explore Case Studies
+                View Case Studies
               </SiteButton>
             )}
-            <SiteButton href={CONTACT_HREF} variant="secondary" size="lg">
-              Talk to Our Team
-            </SiteButton>
           </div>
         </div>
         <div className={`col-span-4 md:col-span-8 lg:col-span-6 ${styles.heroVisual}`}>
           <WorkSystem className="mx-auto max-w-[520px] lg:mr-0 lg:max-w-[580px]" />
+          <p className="mx-auto mt-5 max-w-[520px] text-center text-[0.8125rem] leading-relaxed text-hb-fg-body lg:ml-auto lg:mr-0 lg:max-w-[580px] lg:text-right">
+            Four representative modules shown here: Brand, Experience, Technology and Creative. Hbee’s full system has six.
+          </p>
         </div>
       </SiteGrid>
     </SiteSection>
@@ -113,7 +116,7 @@ export function WorkCollection({ data }: { data: WorkData }) {
             )}
             {rest.map((item, i) => (
               <li key={item.id} className="flex" data-work-item="" data-category={item.categoryKey ?? ''}>
-                <SiteReveal index={i % 3} className="flex w-full">
+                <SiteReveal motion="card" index={i % 3} className="flex w-full">
                   <WorkCard item={item} />
                 </SiteReveal>
               </li>
@@ -265,7 +268,7 @@ function WorkEmptyState() {
       <div>
         <p className="font-hb-display text-[1.375rem] font-bold leading-tight tracking-[-0.02em] text-hb-fg">Project work is on its way.</p>
         <p className="mt-2 max-w-[38rem] leading-relaxed text-hb-fg-body">
-          Real project work will appear here when portfolio data is available in the isolated preview environment.
+          New projects and case studies will appear here as they are published.
         </p>
       </div>
       <SiteButton href={CONTACT_HREF} variant="secondary" arrow className="md:ml-auto">
@@ -286,15 +289,15 @@ export function WorkCta({ eyebrow = 'Ready to talk about your next project', hea
         <HbeeModuleGlyph signal="none" className={`${capabilityStyles.ctaGlyph} ${capabilityStyles.ctaGlyph3}`} />
       </div>
       <div className="relative max-w-[44rem]">
-        <SiteReveal>
-          <SiteEyebrow signal>{eyebrow}</SiteEyebrow>
+        <SiteReveal motion="none">
+          <SiteEyebrow motionIndex={0} signal>{eyebrow}</SiteEyebrow>
         </SiteReveal>
         <SiteReveal index={1}>
           <SiteDisplayHeading id="work-cta-title" size="h1" className="mt-6">
             {heading}
           </SiteDisplayHeading>
         </SiteReveal>
-        <SiteReveal index={2}>
+        <SiteReveal motion="soft" index={2}>
           <p className="mt-6 max-w-[36rem] text-[length:var(--hb-text-lede)] leading-[1.55] text-hb-fg-body">
             Start with a focused Growth Review and explore how Hbee can help your business solve real challenges and
             achieve what comes next.

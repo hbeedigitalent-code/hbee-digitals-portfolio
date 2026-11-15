@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { pageMetadata } from '@/lib/site/seo'
+import { pageJsonLd } from '@/lib/site/page-schema'
 
 import { WorkCollection, WorkCta, WorkHero } from '@/components/site/work/WorkSections'
 import { portfolioCreativeEnabled } from '@/lib/portfolio-creative'
@@ -14,19 +15,26 @@ import { getWorkData } from '@/lib/site/work-data'
  */
 export const revalidate = 300
 
+const TITLE = 'Ecommerce Work & Case Studies'
+const DESCRIPTION =
+  'Selected Shopify and ecommerce projects by Hbee Digitals, with case studies on the business problem, the work and how brand, website, systems, creative, traffic and retention connect.'
+
 export const metadata: Metadata = pageMetadata({
-  title: 'Work',
-  description:
-    'Explore how Hbee helps businesses solve real challenges, improve customer experiences and build stronger growth systems through strategy, design, technology and creative — all connected.',
+  title: TITLE,
+  description: DESCRIPTION,
   path: '/work',
 })
 
 export default async function WorkPage() {
 
   const data = await getWorkData()
+  const jsonLd = pageJsonLd({ path: '/work', name: 'Ecommerce Work and Case Studies from Hbee Digitals', description: DESCRIPTION, breadcrumb: 'Work', type: 'CollectionPage' })
 
   return (
     <>
+      {jsonLd.map((block, i) => (
+        <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: block }} />
+      ))}
       <WorkHero creative={portfolioCreativeEnabled()} caseStudies={data.items.some((item) => item.creative?.caseStudy)} />
       <WorkCollection data={data} />
       <WorkCta />

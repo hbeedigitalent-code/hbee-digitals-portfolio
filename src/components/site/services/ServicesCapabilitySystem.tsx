@@ -22,23 +22,23 @@ export function ServicesCapabilitySystem() {
     <SiteSection id="capabilities" tone="white" aria-labelledby="services-system-title" className={styles.anchor}>
       <SiteGrid className="gap-y-12">
         <div className="col-span-4 md:col-span-8 lg:col-span-12">
-          <SiteReveal>
-            <SiteEyebrow signal>Our capability system</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>Our capability system</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="services-system-title" size="h2" className="mt-6 max-w-[40rem]">
               {SYSTEM_INTRO.headline[0]} <span className="block text-hb-blue">{SYSTEM_INTRO.headline[1]}</span>
             </SiteDisplayHeading>
           </SiteReveal>
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-6 max-w-[44rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{SYSTEM_INTRO.copy}</p>
           </SiteReveal>
         </div>
 
         <ol className="col-span-4 grid gap-12 md:col-span-8 lg:col-span-12">
           {SERVICE_GROUPS.map((group, g) => (
-            <SiteReveal as="li" key={group.key} index={g} className="grid gap-5">
-              <div>
+            <li key={group.key} className="grid gap-5">
+              <SiteReveal motion="soft">
                 <div className={styles.groupLabel}>
                   <span className={styles.groupNumber}>{String(g + 1).padStart(2, '0')}</span>
                   <h3 id={`group-${group.key}`} className={styles.groupName}>
@@ -47,10 +47,10 @@ export function ServicesCapabilitySystem() {
                   {group.key === 'growth' && <span aria-hidden="true" className={styles.groupSignal} />}
                 </div>
                 <p className="mt-3 max-w-[40rem] text-[0.9375rem] leading-relaxed text-hb-fg-body">{group.statement}</p>
-              </div>
+              </SiteReveal>
               <ul aria-labelledby={`group-${group.key}`} className="grid gap-5 xl:grid-cols-2">
-                {group.capabilities.map((capability) => (
-                  <li key={capability.slug} id={capability.slug} className={styles.anchor}>
+                {group.capabilities.map((capability, ci) => (
+                  <SiteReveal as="li" key={capability.slug} id={capability.slug} motion="card" index={ci} className={styles.anchor}>
                     <CapabilityModuleCard
                       entity={CAPABILITY_ENTITIES[capability.slug as CapabilitySlug]}
                       detailed
@@ -59,10 +59,10 @@ export function ServicesCapabilitySystem() {
                       signal={capability.slug === 'retention-growth'}
                       className="h-full"
                     />
-                  </li>
+                  </SiteReveal>
                 ))}
               </ul>
-            </SiteReveal>
+            </li>
           ))}
         </ol>
       </SiteGrid>

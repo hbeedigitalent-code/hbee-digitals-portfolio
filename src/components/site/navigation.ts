@@ -29,6 +29,24 @@ export const PRIMARY_NAV: SiteLink[] = [
 
 export const UTILITY_NAV: SiteLink = { label: 'Client Portal', href: '/client-login' }
 
+/** Routes that belong to a primary item without sitting beneath its path (Case Studies sit under Work). */
+const NAV_ALIASES: Record<string, string[]> = { '/work': ['/case-studies'] }
+
+/** Active state for a primary item: its own path, anything beneath it, or a declared sibling route. */
+export function isNavActive(pathname: string, href: string) {
+  return [href, ...(NAV_ALIASES[href] ?? [])].some((base) => pathname === base || pathname.startsWith(`${base}/`))
+}
+
+/** Case Studies exist publicly only in creative mode (the route is a 404 otherwise). The env value is inlined at build. */
+function caseStudiesEnabled() {
+  try {
+    return process.env.NEXT_PUBLIC_PORTFOLIO_CREATIVE_ENABLED === 'true'
+  } catch {
+    return false
+  }
+}
+const CASE_STUDIES_ENABLED = caseStudiesEnabled()
+
 export const PRIMARY_CTA: SiteLink = { label: 'Start Growth Review', href: '/growth-review' }
 
 /* ── Mega-menus ──────────────────────────────────────────────────
@@ -131,18 +149,16 @@ export const NAV_MENUS: Record<string, NavMenu> = {
       {
         title: 'Browse work',
         layout: 'grid',
-        perRow: 3,
+        perRow: 2,
+        // Only categories that exist in the published portfolio (Beauty, Beverage). The /work filter shows the live list.
         links: [
-          { label: 'Ecommerce', href: '/work?category=ecommerce' },
-          { label: 'Apparel', href: '/work?category=apparel' },
+          { label: 'All Work', href: '/work' },
+          ...(CASE_STUDIES_ENABLED ? [{ label: 'Case Studies', href: '/case-studies' }] : []),
           { label: 'Beauty', href: '/work?category=beauty' },
-          { label: 'Food & Beverage', href: '/work?category=food-beverage' },
-          { label: 'Technology', href: '/work?category=technology' },
-          { label: 'Concepts & Explorations', href: '/work#work-collection' },
+          { label: 'Beverage', href: '/work?category=beverage' },
         ],
       },
     ],
-    overview: { label: 'All work', href: '/work' },
     aside: {
       emphasis: 'node',
       title: 'Selected work',
@@ -201,7 +217,7 @@ export const NAV_MENUS: Record<string, NavMenu> = {
     aside: {
       emphasis: 'quiet',
       text: 'Digital growth works better when brand, experience, technology, creative and growth systems connect.',
-      cta: { label: 'Talk to Hbee', href: '/contact', variant: 'secondary' },
+      cta: { label: 'Talk to Our Team', href: '/contact', variant: 'secondary' },
     },
     split: { primary: 4, aside: 6 },
   },

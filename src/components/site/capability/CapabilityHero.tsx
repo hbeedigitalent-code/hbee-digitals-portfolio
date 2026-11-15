@@ -28,7 +28,7 @@ export function CapabilityHero({ detail, name }: { detail: CapabilityDetail; nam
       </div>
 
       <SiteGrid className={`items-center gap-y-12 pb-[var(--hb-space-section-compact)] pt-[clamp(2.5rem,5vw,4.5rem)] lg:pt-12 ${styles.heroGrid} ${detail.hero.longHeadline ? styles.heroLong : ''}`}>
-        <div className="col-span-4 md:col-span-8 lg:col-span-6">
+        <div data-hero-copy="" className="col-span-4 md:col-span-8 lg:col-span-6">
           <p className={homeStyles.eyebrow}>
             <span aria-hidden="true" className={homeStyles.eyebrowSignal} />
             {['Services', name].map((word, i) => (
@@ -64,7 +64,7 @@ export function CapabilityHero({ detail, name }: { detail: CapabilityDetail; nam
 
           <div className="mt-9 flex flex-wrap items-center gap-3">
             <SiteButton href={GROWTH_REVIEW_HREF} variant="conversion" size="lg" arrow>
-              Start a Growth Review
+              Start Growth Review
             </SiteButton>
             <SiteButton href={CONTACT_HREF} variant="secondary" size="lg">
               {detail.cta.secondaryLabel}

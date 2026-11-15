@@ -30,7 +30,7 @@ export function ServicesHero() {
       </div>
 
       <SiteGrid className={`items-center gap-y-12 pb-[var(--hb-space-section-compact)] pt-[clamp(2.5rem,5vw,4.5rem)] lg:pt-12 ${styles.heroGrid}`}>
-        <div className="col-span-4 md:col-span-8 lg:col-span-7 xl:col-span-6">
+        <div data-hero-copy="" className="col-span-4 md:col-span-8 lg:col-span-7 xl:col-span-6">
           <p className={homeStyles.eyebrow}>
             <span aria-hidden="true" className={homeStyles.eyebrowSignal} />
             {SERVICES_HERO.eyebrow.map((word, i) => (
@@ -56,7 +56,7 @@ export function ServicesHero() {
               Start Growth Review
             </SiteButton>
             <SiteButton href="#capabilities" variant="secondary" size="lg">
-              Explore Our Capabilities
+              Explore Services
             </SiteButton>
           </div>
         </div>

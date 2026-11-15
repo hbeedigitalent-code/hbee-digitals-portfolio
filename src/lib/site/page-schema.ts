@@ -8,6 +8,9 @@
  */
 import { SITE_URL } from '../blog-utils'
 
+/** The one WebSite node (declared once in StructuredData.tsx); pages reference it, never redefine it. */
+export const WEBSITE_ID = `${SITE_URL}#website`
+
 interface PageSchemaInput {
   /** Site-relative path, e.g. "/how-we-work". */
   path: string
@@ -15,13 +18,15 @@ interface PageSchemaInput {
   description: string
   /** Breadcrumb label for this page. */
   breadcrumb: string
-  /** 'AboutPage' for /about; every other page is a plain WebPage. */
-  type?: 'WebPage' | 'AboutPage'
+  /** 'AboutPage' for /about, 'CollectionPage' for listing hubs; every other page is a plain WebPage. */
+  type?: 'WebPage' | 'AboutPage' | 'CollectionPage'
+  /** Intermediate breadcrumb steps between Home and this page (e.g. Work → project). */
+  trail?: { name: string; path: string }[]
 }
 
 const safe = (value: unknown) => JSON.stringify(value).replace(/</g, '\u003c')
 
-export function pageJsonLd({ path, name, description, breadcrumb, type = 'WebPage' }: PageSchemaInput): string[] {
+export function pageJsonLd({ path, name, description, breadcrumb, type = 'WebPage', trail = [] }: PageSchemaInput): string[] {
   const url = `${SITE_URL}${path}`
   return [
     safe({
@@ -31,7 +36,7 @@ export function pageJsonLd({ path, name, description, breadcrumb, type = 'WebPag
       url,
       name,
       description,
-      isPartOf: { '@type': 'WebSite', url: SITE_URL },
+      isPartOf: { '@id': WEBSITE_ID },
       publisher: { '@id': `${SITE_URL}#organization` },
       ...(type === 'AboutPage' ? { about: { '@id': `${SITE_URL}#organization` } } : {}),
     }),
@@ -40,7 +45,8 @@ export function pageJsonLd({ path, name, description, breadcrumb, type = 'WebPag
       '@type': 'BreadcrumbList',
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
-        { '@type': 'ListItem', position: 2, name: breadcrumb, item: url },
+        ...trail.map((step, i) => ({ '@type': 'ListItem', position: i + 2, name: step.name, item: `${SITE_URL}${step.path}` })),
+        { '@type': 'ListItem', position: trail.length + 2, name: breadcrumb, item: url },
       ],
     }),
   ]

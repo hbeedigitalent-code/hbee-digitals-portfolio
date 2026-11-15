@@ -162,7 +162,7 @@ export function WorkDetailHero({ detail }: { detail: WorkDetail }) {
   return (
     <SiteSection tone="cloud" spacing="none" contained={false} aria-labelledby="case-title" className="overflow-hidden">
       <div className={cn(styles.caseHero, !image && styles.caseHeroTextOnly)}>
-        <div className={styles.caseHeroText}>
+        <div data-hero-copy="" className={styles.caseHeroText}>
           <Link href={detail.creative?.caseStudy ? '/case-studies' : '/work'} className={styles.backLink}>
             <SiteArrow size={15} className="rotate-180" />
             {detail.creative?.caseStudy ? 'Back to all case studies' : 'Back to all work'}
@@ -211,7 +211,7 @@ export function WorkNarrative({ detail }: { detail: WorkDetail }) {
     <SiteSection tone="cloud" spacing="compact" aria-label="Project background" className={styles.caseBand}>
       <div className={cn(styles.narrative, blocks.length === 1 && styles.narrativeSingle)}>
         {blocks.map((b, i) => (
-          <SiteReveal key={b.id} index={i} className={styles.narrativeBlock}>
+          <SiteReveal key={b.id} motion="left" index={i} className={styles.narrativeBlock}>
             <SiteEyebrow signal as="p">
               {b.eyebrow}
             </SiteEyebrow>
@@ -352,8 +352,8 @@ function WorkEvidence({ detail }: { detail: WorkDetail }) {
   if (!gallery.length && !beforeAfter) return null
   return (
     <SiteSection tone="cloud" spacing="compact" aria-labelledby="case-evidence" className={styles.caseBand}>
-      <SiteReveal>
-        <SiteEyebrow signal>Evidence</SiteEyebrow>
+      <SiteReveal motion="none">
+        <SiteEyebrow motionIndex={0} signal>Evidence</SiteEyebrow>
         <h2 id="case-evidence" className="mt-5 font-hb-display text-[length:var(--hb-text-h2)] font-bold leading-[1.07] tracking-[-0.03em] text-hb-fg">
           A closer look at the work.
         </h2>
@@ -445,8 +445,8 @@ export function WorkVideos({ detail }: { detail: WorkDetail }) {
   if (!videos.length) return null
   return (
     <SiteSection tone="cloud" spacing="compact" aria-labelledby="case-video" className={styles.caseBand}>
-      <SiteReveal>
-        <SiteEyebrow signal>{videos.length === 1 ? 'Video' : 'Videos'}</SiteEyebrow>
+      <SiteReveal motion="none">
+        <SiteEyebrow motionIndex={0} signal>{videos.length === 1 ? 'Video' : 'Videos'}</SiteEyebrow>
         <h2 id="case-video" className="mt-5 font-hb-display text-[length:var(--hb-text-h2)] font-bold leading-[1.07] tracking-[-0.03em] text-hb-fg">
           Creative in motion.
         </h2>

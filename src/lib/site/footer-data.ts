@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { fetchSiteSettings } from '@/lib/site-settings'
 import { unstable_cache } from 'next/cache'
-import { FOOTER_DESCRIPTION, normalizedEmail, plainSetting, publicSocialProfiles, readNewsletterSettings } from '@/lib/footer-settings'
+import { FOOTER_DESCRIPTION, plainSetting, publicSocialProfiles, readNewsletterSettings } from '@/lib/footer-settings'
 
 if (typeof window !== 'undefined') throw Error('Footer data loader is server-only')
 
@@ -13,7 +13,8 @@ export const getFooterExperience = unstable_cache(async () => {
   const siteRow = site.status === 'fulfilled' && !site.value.error ? site.value.data : null
   const footerRow = footer.status === 'fulfilled' && !footer.value.error ? footer.value.data : null
   return {
-    contactEmail: normalizedEmail(siteRow?.contact_email) || undefined,
+    // The public address is one canonical value (CONTACT_EMAIL in navigation.ts: contact@). The CMS contact_email
+    // setting no longer overrides it, so the footer, Contact page and Organization schema cannot disagree.
     description: plainSetting(siteRow?.footer_description, 400) || FOOTER_DESCRIPTION,
     newsletter: readNewsletterSettings(siteRow?.newsletter_settings),
     social: publicSocialProfiles(footerRow?.social_links),

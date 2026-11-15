@@ -24,15 +24,15 @@ export function CapabilityOpportunity({ detail }: { detail: CapabilityDetail }) 
     <SiteSection tone="night" aria-labelledby="capability-opportunity-title">
       <SiteGrid className="gap-y-12">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-5">
-          <SiteReveal>
-            <SiteEyebrow signal>The opportunity</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>The opportunity</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="capability-opportunity-title" size="h2" className="mt-6 max-w-[30rem]">
               {o.headline}
             </SiteDisplayHeading>
           </SiteReveal>
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{o.copy}</p>
             <p className="mt-5 max-w-[34rem] border-l-2 border-hb-structure-soft pl-5 text-[0.9375rem] leading-relaxed text-hb-fg-body">
               <strong className="font-semibold text-hb-fg">Best suited to:</strong> {o.bestFor}
@@ -42,7 +42,7 @@ export function CapabilityOpportunity({ detail }: { detail: CapabilityDetail }) 
 
         <ol className={`${styles.outcomes} col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-7 min-[1152px]:self-center`}>
           {o.outcomes.map((outcome, i) => (
-            <SiteReveal as="li" key={outcome.name} index={i} className={styles.outcome}>
+            <SiteReveal as="li" key={outcome.name} motion="card" index={i} className={styles.outcome}>
               <h3 className="font-hb-display text-[1.375rem] font-bold leading-tight tracking-[-0.02em] text-hb-fg">{outcome.name}</h3>
               <p className="mt-3 text-[0.9375rem] leading-relaxed text-hb-fg-body">{outcome.text}</p>
             </SiteReveal>
@@ -70,15 +70,15 @@ export function CapabilityApproach({ detail, name }: { detail: CapabilityDetail;
     <SiteSection id="what-we-do" tone="cloud" aria-labelledby="capability-approach-title" className={styles.anchor}>
       <SiteGrid className="gap-y-12">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-5 min-[1152px]:self-center">
-          <SiteReveal>
-            <SiteEyebrow signal>What we do</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>What we do</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="capability-approach-title" size="h2" className="mt-6 max-w-[34rem]">
               {a.headline} <span className="block text-hb-blue">{a.headlineAccent}</span>
             </SiteDisplayHeading>
           </SiteReveal>
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{a.copy}</p>
             <SiteLinkArrow href="/how-we-work" className="mt-4 min-h-[44px]">
               Our approach
@@ -127,8 +127,8 @@ export function CapabilityWork({ detail, work = [], insights = [] }: { detail: C
     <SiteSection tone="deep" spacing="compact" aria-labelledby="capability-work-title">
       <SiteGrid className="items-end gap-y-10">
         <div className="col-span-4 md:col-span-8 lg:col-span-8">
-          <SiteReveal>
-            <SiteEyebrow signal>Real work</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>Real work</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="capability-work-title" size="h2" className="mt-6 max-w-[36rem]">
@@ -141,17 +141,17 @@ export function CapabilityWork({ detail, work = [], insights = [] }: { detail: C
         </div>
         <SiteReveal index={3} className="col-span-4 md:col-span-8 lg:col-span-4 lg:justify-self-end">
           <SiteButton href={ALL_WORK_HREF} variant="secondary" size="lg" arrow>
-            Explore Our Work
+            View Work
           </SiteButton>
         </SiteReveal>
       </SiteGrid>
       {insights.length > 0 && (
         <SiteGrid className="mt-12 gap-y-8 border-t border-hb-border pt-10">
           <div className="col-span-4 md:col-span-8 lg:col-span-4">
-            <SiteReveal>
-              <SiteEyebrow signal>Related insights</SiteEyebrow>
+            <SiteReveal motion="none">
+              <SiteEyebrow motionIndex={0} signal>Related insights</SiteEyebrow>
             </SiteReveal>
-            <SiteReveal index={1}>
+            <SiteReveal motion="soft" index={1}>
               <p className="mt-4 max-w-[28rem] leading-relaxed text-hb-fg-body">
                 Practical thinking connected to this capability and the problems it helps solve.
               </p>
@@ -162,7 +162,7 @@ export function CapabilityWork({ detail, work = [], insights = [] }: { detail: C
           </div>
           <ul className="col-span-4 space-y-4 md:col-span-8 lg:col-span-8">
             {insights.map((insight, index) => (
-              <SiteReveal as="li" key={insight.id} index={index + 2}>
+              <SiteReveal as="li" key={insight.id} motion="card" index={index + 2}>
                 <SiteLinkArrow href={insight.href} className="min-h-[44px]">
                   {insight.title}
                 </SiteLinkArrow>
@@ -182,8 +182,8 @@ export function CapabilityFaq({ detail }: { detail: CapabilityDetail }) {
   const columns = [detail.faq.slice(0, half), detail.faq.slice(half)]
   return (
     <SiteSection tone="white" aria-labelledby="capability-faq-title">
-      <SiteReveal>
-        <SiteEyebrow>Frequently asked questions</SiteEyebrow>
+      <SiteReveal motion="none">
+        <SiteEyebrow motionIndex={0}>Frequently asked questions</SiteEyebrow>
       </SiteReveal>
       <SiteReveal index={1}>
         <SiteDisplayHeading id="capability-faq-title" size="h2" className="mt-6">
@@ -192,7 +192,7 @@ export function CapabilityFaq({ detail }: { detail: CapabilityDetail }) {
       </SiteReveal>
       <div className="mt-12 grid items-start gap-x-[var(--hb-grid-gap)] gap-y-3 lg:grid-cols-2">
         {columns.map((column, columnIndex) => (
-          <SiteReveal key={columnIndex} index={columnIndex + 2} className="flex flex-col gap-3">
+          <SiteReveal key={columnIndex} motion="item" index={columnIndex + 2} className="flex flex-col gap-3">
             {column.map((item) => (
               <details key={item.question} className={servicesStyles.faq}>
                 <summary className={servicesStyles.faqSummary}>
@@ -224,20 +224,20 @@ export function CapabilityCta({ detail }: { detail: CapabilityDetail }) {
         <HbeeModuleGlyph signal="none" className={`${styles.ctaGlyph} ${styles.ctaGlyph3}`} />
       </div>
       <div className="relative max-w-[44rem]">
-        <SiteReveal>
-          <SiteEyebrow signal>{detail.cta.eyebrow}</SiteEyebrow>
+        <SiteReveal motion="none">
+          <SiteEyebrow motionIndex={0} signal>{detail.cta.eyebrow}</SiteEyebrow>
         </SiteReveal>
         <SiteReveal index={1}>
           <SiteDisplayHeading id="capability-cta-title" size="h1" className="mt-6">
             {detail.cta.headline}
           </SiteDisplayHeading>
         </SiteReveal>
-        <SiteReveal index={2}>
+        <SiteReveal motion="soft" index={2}>
           <p className="mt-6 max-w-[36rem] text-[length:var(--hb-text-lede)] leading-[1.55] text-hb-fg-body">{detail.cta.copy}</p>
         </SiteReveal>
         <SiteReveal index={3} className="mt-9 flex flex-wrap items-center gap-3">
           <SiteButton href={GROWTH_REVIEW_HREF} variant="conversion" size="lg" arrow>
-            Start a Growth Review
+            Start Growth Review
           </SiteButton>
           <SiteButton href={CONTACT_HREF} variant="secondary" size="lg">
             {detail.cta.secondaryLabel}

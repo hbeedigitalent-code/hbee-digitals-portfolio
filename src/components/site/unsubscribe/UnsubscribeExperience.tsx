@@ -5,6 +5,7 @@ import { CircleAlert, CircleCheck, MailMinus, SearchX, ShieldX } from 'lucide-re
 import { HbeeLogo } from '@/components/site/brand/HbeeLogo'
 import { HbeeModuleGlyph } from '@/components/site/module/HbeeModule'
 import { SiteButton } from '@/components/site/primitives/SiteButton'
+import { CONTACT_EMAIL } from '@/components/site/navigation'
 import styles from './unsubscribe-experience.module.css'
 
 export type UnsubscribeState = 'confirmation' | 'unsubscribed' | 'already_unsubscribed' | 'not_found' | 'invalid_link' | 'server_failure'
@@ -96,7 +97,7 @@ export function UnsubscribeExperience({ initialState, email, signature }: {
         <SiteButton href="/" variant={state === 'server_failure' ? 'secondary' : 'brand'} size="lg">Return to Hbee Digitals</SiteButton>
       </div>}
 
-      <p className={styles.help}>Need help? <a href="mailto:hello@hbeedigitals.com">Contact Hbee Digitals</a></p>
+      <p className={styles.help}>Need help? <a href={`mailto:${CONTACT_EMAIL}`}>Contact Hbee Digitals</a></p>
     </section>
     <p className={styles.footer}>Connected growth in motion.</p>
   </main>

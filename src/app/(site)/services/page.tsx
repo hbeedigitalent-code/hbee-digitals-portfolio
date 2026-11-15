@@ -48,6 +48,7 @@ export default async function ServicesPage() {
     url,
     name: 'Ecommerce Growth Services for Shopify Brands',
     description: DESCRIPTION,
+    isPartOf: { '@id': `${SITE_URL}#website` },
     about: { '@id': `${SITE_URL}#organization` },
     mainEntity: {
       '@type': 'ItemList',

@@ -30,6 +30,7 @@ const contactLd = {
   url: `${SITE_URL}/contact`,
   name: 'Contact Hbee Digitals',
   description: DESCRIPTION,
+  isPartOf: { '@id': `${SITE_URL}#website` },
   publisher: { '@id': `${SITE_URL}#organization` },
 }
 const breadcrumbLd = {

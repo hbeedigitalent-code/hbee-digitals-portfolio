@@ -15,7 +15,7 @@ export function SiteNotFound() {
         <SiteLede className="mt-6">We couldn’t find the page you’re looking for. It may have moved, been renamed, or never been connected to our system.</SiteLede>
         <div className="mt-8 flex flex-wrap gap-3">
           <SiteButton href="/" variant="conversion" size="lg" arrow>Return Home</SiteButton>
-          <SiteButton href={ALL_WORK_HREF} variant="secondary" size="lg">Explore Our Work</SiteButton>
+          <SiteButton href={ALL_WORK_HREF} variant="secondary" size="lg">View Work</SiteButton>
         </div>
       </div>
       <div className={styles.system} aria-hidden="true">

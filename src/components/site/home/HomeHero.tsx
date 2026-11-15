@@ -31,7 +31,7 @@ export function HomeHero() {
           below the fold on ~768px-tall laptops). Its offset scales with
           viewport height, so short screens stay tight and tall screens breathe. */}
       <SiteGrid className={`items-center gap-y-12 pb-[var(--hb-space-section-compact)] pt-[clamp(2.5rem,5vw,4.5rem)] lg:pt-10 ${styles.heroLayout}`}>
-        <div className={`col-span-4 md:col-span-8 lg:col-span-6 lg:mt-[clamp(1.5rem,5vh,4rem)] lg:self-start xl:col-span-5 ${styles.heroText}`}>
+        <div data-hero-copy="" className={`col-span-4 md:col-span-8 lg:col-span-6 lg:mt-[clamp(1.5rem,5vh,4rem)] lg:self-start xl:col-span-5 ${styles.heroText}`}>
           {/* One typographic sequence in two deliberate lines of three (six words no
               longer fit the column). Separators sit only BETWEEN words within a
               line, so no line ever starts with one; the second line hangs under
@@ -69,7 +69,7 @@ export function HomeHero() {
               Start Growth Review
             </SiteButton>
             <SiteButton href={ALL_WORK_HREF} variant="secondary" size="lg">
-              Explore Our Work
+              View Work
             </SiteButton>
           </div>
         </div>

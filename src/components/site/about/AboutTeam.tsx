@@ -85,7 +85,7 @@ function LeadProfile({ member }: { member: TeamMember }) {
 
 function TeamCard({ member, index }: { member: TeamMember; index: number }) {
   return (
-    <SiteReveal as="li" index={index % 4} className={styles.memberItem}>
+    <SiteReveal as="li" motion="card" index={index % 4} className={styles.memberItem}>
       <article className={styles.member}>
         <Portrait member={member} sizes="(min-width: 1152px) 18vw, (min-width: 768px) 30vw, 75vw" />
         <div className={styles.memberBody}>
@@ -126,15 +126,15 @@ export function AboutTeam({ team }: { team: TeamMember[] }) {
     <SiteSection id="team" tone="white" aria-labelledby="about-team-title" className={styles.anchor}>
       <SiteGrid className="items-center gap-y-10">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-5">
-          <SiteReveal>
-            <SiteEyebrow signal>{TEAM_INTRO.eyebrow}</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>{TEAM_INTRO.eyebrow}</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="about-team-title" size="h2" className="mt-6">
               {TEAM_INTRO.headline[0]} <span className="block">{TEAM_INTRO.headline[1]}</span>
             </SiteDisplayHeading>
           </SiteReveal>
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-6 max-w-[32rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{TEAM_INTRO.copy}</p>
             <p className="mt-3 max-w-[32rem] text-[0.9375rem] leading-relaxed text-hb-fg-body">{TEAM_INTRO.base}</p>
           </SiteReveal>

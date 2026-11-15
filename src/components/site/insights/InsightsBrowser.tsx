@@ -99,23 +99,33 @@ function InsightsBrowserControls({ total, children }: { total: number; children:
     window.history[replace ? 'replaceState' : 'pushState'](null, '', url)
   }
 
+  const settled = useRef(false)
+
   useEffect(() => {
     const root = listRef.current
     if (!root) return
     const q = query.trim().toLowerCase()
     const filtering = q !== '' || capability !== 'all'
     let n = 0
+    // A quick settle for cards that a filter change brings back into view (not on first paint; never when reduced motion is requested).
+    const settle = settled.current && typeof window.matchMedia === 'function' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
     root.querySelectorAll<HTMLElement>('[data-insight]').forEach((el) => {
+      const wasHidden = el.hidden
       if (!filtering) {
         el.hidden = el.dataset.view === 'filtered-only'
-        if (!el.hidden) n++
-        return
+      } else {
+        const okCapability = matchesCapability(el.dataset.capabilities, capability)
+        const okQuery = !q || (el.dataset.search ?? '').includes(q)
+        el.hidden = !(okCapability && okQuery)
       }
-      const okCapability = matchesCapability(el.dataset.capabilities, capability)
-      const okQuery = !q || (el.dataset.search ?? '').includes(q)
-      el.hidden = !(okCapability && okQuery)
-      if (!el.hidden) n++
+      if (!el.hidden) {
+        n++
+        if (settle && wasHidden && typeof el.animate === 'function') {
+          el.animate([{ opacity: 0, transform: 'translate3d(0, 8px, 0)' }, { opacity: 1, transform: 'none' }], { duration: 280, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' })
+        }
+      }
     })
+    settled.current = true
     setCount(n)
   }, [query, capability, children])
 

@@ -25,15 +25,15 @@ export function ServicesSymptoms() {
     <SiteSection id="symptoms" tone="night" aria-labelledby="services-symptoms-title" className={styles.anchor}>
       <SiteGrid className="gap-y-12">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 xl:col-span-4">
-          <SiteReveal>
-            <SiteEyebrow signal>{SYMPTOMS_INTRO.eyebrow}</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>{SYMPTOMS_INTRO.eyebrow}</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="services-symptoms-title" size="h2" className="mt-6 max-w-[34rem]">
               {SYMPTOMS_INTRO.headline}
             </SiteDisplayHeading>
           </SiteReveal>
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{SYMPTOMS_INTRO.copy}</p>
             <SiteLinkArrow href={GROWTH_REVIEW_HREF} className="mt-4 min-h-[44px]">
               Not sure which applies? Start a Growth Review
@@ -45,7 +45,7 @@ export function ServicesSymptoms() {
           {MERCHANT_SYMPTOMS.map((item, i) => {
             const target = CAPABILITY_ENTITIES[item.capability]
             return (
-              <SiteReveal as="li" key={item.symptom} index={i} className={surface.rule}>
+              <SiteReveal as="li" key={item.symptom} motion="item" index={i} className={surface.rule}>
                 <h3 className="font-hb-display text-[1.1875rem] font-bold leading-snug tracking-[-0.02em] text-hb-fg">{item.symptom}</h3>
                 <p className="mt-2 text-[0.9375rem] leading-relaxed text-hb-fg-body">{item.explanation}</p>
                 <p className="mt-3 text-[0.9375rem] leading-relaxed text-hb-fg-body">

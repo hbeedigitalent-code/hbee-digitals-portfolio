@@ -38,7 +38,7 @@ interface Slot {
 const CENTRAL: Slot = { x: 3, y: 14, w: 46, m: { x: 1, y: 8, w: 54 }, z: 8, ax: 0, ay: 0, sweep: 'tr' }
 
 const DISCIPLINES: { label: string; icon: JSX.Element; slot: Slot }[] = [
-  { label: 'Strategy', icon: <Target {...ICON} />, slot: { x: 63, y: 1, w: 29, m: { x: 60, y: 1, w: 38 }, z: -2, ax: 2.5, ay: -2, sweep: 'br' } },
+  { label: 'Brand', icon: <Target {...ICON} />, slot: { x: 63, y: 1, w: 29, m: { x: 60, y: 1, w: 38 }, z: -2, ax: 2.5, ay: -2, sweep: 'br' } },
   { label: 'Experience', icon: <UserRound {...ICON} />, slot: { x: 70, y: 35, w: 28, m: { x: 61, y: 34, w: 38 }, z: -4, ax: 3, ay: 0, sweep: 'tr' } },
   { label: 'Technology', icon: <Settings {...ICON} />, slot: { x: 14, y: 69, w: 27, m: { x: 4, y: 62, w: 38 }, z: -5, ax: -2.5, ay: 3, sweep: 'bl' } },
   { label: 'Creative', icon: <Lightbulb {...ICON} />, slot: { x: 52, y: 68, w: 28, m: { x: 48, y: 66, w: 38 }, z: -3, ax: 2.5, ay: 2.5, sweep: 'br' } },
@@ -70,7 +70,7 @@ export function WorkSystem({ className }: { className?: string }) {
   return (
     <figure className={cn(moduleStyles.figure, styles.systemMotion, className)}>
       <figcaption className="sr-only">
-        Hbee work, connected: strategy, experience, technology and creative brought together around one piece of work.
+        Hbee work, connected: four representative modules, Brand, Experience, Technology and Creative, brought together around one piece of work. Hbee’s full system has six modules.
       </figcaption>
       <div className={cn(moduleStyles.viewport, styles.systemViewport)}>
         <span aria-hidden="true" className={moduleStyles.floor} />

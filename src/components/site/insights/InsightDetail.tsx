@@ -34,7 +34,11 @@ export function InsightDetailPage({ detail }: { detail: InsightDetail }) {
             {hasToc && <ArticleToc detail={detail} />}
             <div className={styles.articleMain}>
               {detail.html ? <InsightArticleBody html={detail.html} id={ARTICLE_ID} /> : null}
-              {detail.capabilityLinks.length > 0 && <RelatedCapability detail={detail} />}
+              {detail.capabilityLinks.length > 0 && (
+                <SiteReveal motion="soft">
+                  <RelatedCapability detail={detail} />
+                </SiteReveal>
+              )}
             </div>
             {hasRelated && <RelatedInsights detail={detail} />}
           </div>
@@ -56,7 +60,7 @@ function InsightHero({ detail }: { detail: InsightDetail }) {
   return (
     <SiteSection tone="cloud" spacing="none" contained={false} aria-labelledby="insight-title" className="overflow-hidden">
       <div className={cn(styles.articleHero, !image && styles.articleHeroTextOnly)}>
-        <div className={styles.articleHeroText}>
+        <div data-hero-copy="" className={styles.articleHeroText}>
           <nav aria-label="Breadcrumb" className={styles.breadcrumb}>
             <ol className={styles.breadcrumbList}>
               <li>
@@ -146,9 +150,9 @@ function RelatedInsights({ detail }: { detail: InsightDetail }) {
       </h2>
       <ul className={styles.relatedList}>
         {detail.related.map((r) => (
-          <li key={r.id} className="flex">
+          <SiteReveal as="li" key={r.id} motion="card" className="flex">
             <InsightCard item={r} />
-          </li>
+          </SiteReveal>
         ))}
       </ul>
     </aside>

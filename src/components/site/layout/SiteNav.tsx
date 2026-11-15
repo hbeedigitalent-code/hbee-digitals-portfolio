@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useId, useRef, useState, type CSSProperties } from 'react'
 import { cn } from '@/lib/cn'
-import { NAV_MENUS, PRIMARY_CTA, PRIMARY_NAV, UTILITY_NAV, type NavMenu, type SiteLink } from '../navigation'
+import { NAV_MENUS, PRIMARY_CTA, PRIMARY_NAV, UTILITY_NAV, isNavActive, type NavMenu, type SiteLink } from '../navigation'
 import { SiteButton } from '../primitives/SiteButton'
 import { SiteArrow, SiteChevron } from '../primitives/SiteIcons'
 import { useReducedMotion } from '../motion/useReducedMotion'
@@ -14,9 +14,7 @@ import { SiteDesktopNav } from './SiteDesktopNav'
 /** How long the panel stays mounted while its exit plays (see site-nav.module.css). */
 const CLOSE_MS = 260
 
-function isActive(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`)
-}
+const isActive = isNavActive
 
 /**
  * Desktop (≥1024px): inline primary nav · Client Portal utility · conversion CTA.
@@ -209,7 +207,7 @@ export function SiteNav() {
  * the desktop mega-panel. Same information architecture as desktop, laid out
  * vertically: each column's links (with its title), stages with their short
  * line, then the overview action. Supporting notes stay desktop-only, except
- * a secondary action (e.g. Talk to Hbee), which is kept.
+ * a secondary action (e.g. Talk to Our Team), which is kept.
  */
 function MobileAccordion({ item, menu, active }: { item: SiteLink; menu: NavMenu; active: boolean }) {
   const [expanded, setExpanded] = useState(false)

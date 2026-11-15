@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { cn } from '@/lib/cn'
 import type { InsightCard, ProofQuote } from '@/lib/site/home-data'
 import { ALL_INSIGHTS_HREF, CONTACT_HREF, GROWTH_REVIEW_HREF, insightHref } from '@/lib/site/routes'
-import { DiagnosticSystem } from '../growth-review/DiagnosticSystem'
+import { CapabilityDiagnosticSystem } from '../growth-review/CapabilityDiagnosticSystem'
 import { SiteReveal } from '../motion/SiteReveal'
 import { SiteButton, SiteLinkArrow } from '../primitives/SiteButton'
 import { SiteGrid } from '../primitives/SiteContainer'
@@ -149,16 +149,16 @@ export function HomeFinalCta() {
               Start Growth Review
             </SiteButton>
             <SiteButton href={CONTACT_HREF} variant="secondary" size="lg">
-              Talk to Hbee
+              Talk to Our Team
             </SiteButton>
           </div>
         </SiteReveal>
-        {/* The Growth Review looks at five diagnostic areas, not the six business modules. Temporary: the existing CSS diagnostic system until the dedicated 3D diagnostic assets exist. */}
+        {/* The Growth Review looks across the six capabilities (S2): the same canonical diagnostic system as /growth-review, in its neutral homepage variant. */}
         {/* The visual arrives last, with a restrained depth + fade. data-gate-motion holds the diagnostic's own one-time
             assemble/connect/signal until this reveal fires, so it plays when the visitor reaches it, not on page load. */}
         <SiteReveal motion="visual" index={6} className="col-span-4 md:col-span-8 lg:col-span-5 lg:col-start-8">
           <div data-gate-motion="">
-            <DiagnosticSystem idPrefix="home-final" className="mx-auto max-w-[340px] md:max-w-[440px] lg:max-w-[480px]" />
+            <CapabilityDiagnosticSystem variant="home" className="mx-auto max-w-[340px] md:max-w-[440px] lg:max-w-[480px]" />
           </div>
         </SiteReveal>
       </SiteGrid>

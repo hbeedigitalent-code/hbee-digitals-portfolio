@@ -211,7 +211,7 @@
 .figure {
   position: relative;
   width: 100%;
-  margin: 0;
+  margin-block: 0;
   container-type: inline-size;
 }
 

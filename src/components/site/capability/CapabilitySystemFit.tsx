@@ -30,15 +30,15 @@ export function CapabilitySystemFit({ detail, name }: { detail: CapabilityDetail
     <SiteSection tone="white" aria-labelledby="capability-fit-title">
       <SiteGrid className="gap-y-14">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 min-[1152px]:col-span-5 min-[1152px]:self-center">
-          <SiteReveal>
-            <SiteEyebrow signal>How it fits into your growth plan</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>How it fits into your growth plan</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="capability-fit-title" size="h2" className="mt-6 max-w-[30rem]">
               {fit.headline} <span className="block text-hb-blue">{fit.headlineAccent}</span>
             </SiteDisplayHeading>
           </SiteReveal>
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-6 max-w-[34rem] text-[1.0625rem] leading-relaxed text-hb-fg-body">{fit.copy}</p>
             <SiteLinkArrow href="/services#capabilities" className="mt-4 min-h-[44px]">
               Explore the full system

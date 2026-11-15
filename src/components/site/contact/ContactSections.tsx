@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { BarChart3, LayoutGrid, MessagesSquare, UserRound } from 'lucide-react'
 import { configuredReplyTo } from '@/lib/emails/layout'
 import { HbeeModuleStandalone } from '../module/HbeeModule'
+import { SiteReveal } from '../motion/SiteReveal'
 import { SiteLinkArrow } from '../primitives/SiteButton'
 import { SiteGrid } from '../primitives/SiteContainer'
 import { SiteSection } from '../primitives/SiteSection'
@@ -29,7 +30,7 @@ export function ContactIntro() {
         </svg>
       </div>
       <SiteGrid className={`gap-y-10 pb-[var(--hb-space-section-compact)] pt-[clamp(2.5rem,5vw,4.5rem)] ${styles.layout}`}>
-        <div className={`col-span-4 md:col-span-8 lg:col-span-5 ${styles.context}`}>
+        <div data-hero-copy="" className={`col-span-4 md:col-span-8 lg:col-span-5 ${styles.context}`}>
           <p className={homeStyles.eyebrow}>
             <span aria-hidden="true" className={homeStyles.eyebrowSignal} />
             Contact
@@ -55,7 +56,7 @@ export function ContactIntro() {
           </div>
         </div>
 
-        <div className={`col-span-4 md:col-span-8 lg:col-span-7 ${styles.formCol}`}>
+        <div data-hero-visual="" className={`col-span-4 md:col-span-8 lg:col-span-7 ${styles.formCol}`}>
           {/* Restrained module presence — desktop only, decorative. */}
           <span aria-hidden="true" className={styles.moduleLine} />
           <div aria-hidden="true" className={styles.module}>
@@ -76,11 +77,13 @@ export function ContactIntro() {
 export function ContactOtherWays() {
   return (
     <SiteSection tone="white" spacing="compact" aria-labelledby="contact-ways-title" className={styles.hideOnSent}>
-      <SiteDisplayHeading as="h2" size="h3" id="contact-ways-title">
-        Other ways in
-      </SiteDisplayHeading>
+      <SiteReveal>
+        <SiteDisplayHeading as="h2" size="h3" id="contact-ways-title">
+          Other ways in
+        </SiteDisplayHeading>
+      </SiteReveal>
       <div className={styles.ways}>
-        <div className={styles.way}>
+        <SiteReveal className={styles.way} index={1}>
           <LayoutGrid aria-hidden="true" className={styles.wayIcon} />
           <div>
             <h3 className={styles.wayTitle}>Already know the service?</h3>
@@ -95,8 +98,8 @@ export function ContactOtherWays() {
               ))}
             </ul>
           </div>
-        </div>
-        <div className={styles.way}>
+        </SiteReveal>
+        <SiteReveal className={styles.way} index={2}>
           <UserRound aria-hidden="true" className={styles.wayIcon} />
           <div>
             <h3 className={styles.wayTitle}>Already a client?</h3>
@@ -105,7 +108,7 @@ export function ContactOtherWays() {
               Go to Client Portal
             </SiteLinkArrow>
           </div>
-        </div>
+        </SiteReveal>
       </div>
     </SiteSection>
   )

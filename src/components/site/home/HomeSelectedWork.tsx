@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { cn } from '@/lib/cn'
 import type { FeaturedWork } from '@/lib/site/home-data'
-import { ALL_WORK_HREF, caseStudyHref } from '@/lib/site/routes'
+import { ALL_WORK_HREF } from '@/lib/site/routes'
 import { HbeeModuleGlyph } from '../module/HbeeModule'
 import { SiteReveal } from '../motion/SiteReveal'
 import { SiteLinkArrow } from '../primitives/SiteButton'
@@ -96,7 +96,7 @@ function WorkCard({ item, lead }: { item: FeaturedWork; lead: boolean }) {
             lead ? 'text-[length:var(--hb-text-h3)] lg:text-[2rem]' : 'text-[length:var(--hb-text-h3)]',
           )}
         >
-          <Link href={caseStudyHref(item.slug)} className="after:absolute after:inset-0 after:content-['']">
+          <Link href={item.href} className="after:absolute after:inset-0 after:content-['']">
             {item.client}
           </Link>
         </h3>

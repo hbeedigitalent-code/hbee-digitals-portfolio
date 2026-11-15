@@ -18,15 +18,15 @@ export function ServicesConnect() {
     <SiteSection id="how-capabilities-connect" tone="white" aria-labelledby="services-connect-title" className={styles.anchor}>
       <SiteGrid className="gap-y-10">
         <div className="col-span-4 md:col-span-8 lg:col-span-12 xl:col-span-5">
-          <SiteReveal>
-            <SiteEyebrow signal>{CONNECT_INTRO.eyebrow}</SiteEyebrow>
+          <SiteReveal motion="none">
+            <SiteEyebrow motionIndex={0} signal>{CONNECT_INTRO.eyebrow}</SiteEyebrow>
           </SiteReveal>
           <SiteReveal index={1}>
             <SiteDisplayHeading id="services-connect-title" size="h2" className="mt-6 max-w-[34rem]">
               {CONNECT_INTRO.headline}
             </SiteDisplayHeading>
           </SiteReveal>
-          <SiteReveal index={2}>
+          <SiteReveal motion="soft" index={2}>
             <p className="mt-6 max-w-[34rem] text-[1.0625rem] font-medium leading-relaxed text-hb-fg">{CONNECT_INTRO.answer}</p>
             <p className="mt-5 max-w-[34rem] text-[1rem] leading-relaxed text-hb-fg-body">{CONNECT_INTRO.close}</p>
             <SiteLinkArrow href="/how-we-work" className="mt-4 min-h-[44px]">
@@ -37,7 +37,7 @@ export function ServicesConnect() {
 
         <ul className="col-span-4 grid gap-8 md:col-span-8 lg:col-span-12 xl:col-span-7 xl:self-center">
           {CONNECT_INTRO.points.map((point, i) => (
-            <SiteReveal as="li" key={point} index={i} className={surface.rule}>
+            <SiteReveal as="li" key={point} motion="item" index={i} className={surface.rule}>
               <p className="max-w-[40rem] text-[1.0625rem] leading-relaxed text-hb-fg">{point}</p>
             </SiteReveal>
           ))}

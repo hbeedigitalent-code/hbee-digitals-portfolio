@@ -3,14 +3,12 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { cn } from '@/lib/cn'
-import { NAV_MENUS, PRIMARY_NAV, type NavMenu, type NavMenuAside, type NavMenuColumn } from '../navigation'
+import { NAV_MENUS, PRIMARY_NAV, isNavActive, type NavMenu, type NavMenuAside, type NavMenuColumn } from '../navigation'
 import { SiteButton } from '../primitives/SiteButton'
 import { SiteArrow, SiteChevron } from '../primitives/SiteIcons'
 import styles from './site-nav.module.css'
 
-function isActive(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`)
-}
+const isActive = isNavActive
 
 /** Hover intent before opening, and grace before closing, so crossing the
  *  gap between a trigger and its panel never drops the menu. */
