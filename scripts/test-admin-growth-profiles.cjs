@@ -102,7 +102,11 @@ const profiles = [{ id: 'p-1', merchant_id: 'm-1', assessment_id: 'a-1' }, { id:
   for (const api of [listApi, detailApi]) { assert.match(api, /requireActiveAdmin\(\)/); assert.match(api, /buildProfileStatuses\(db,/) }
   assert.match(detailApi, /is_active must be a boolean/, 'the PATCH contract (is_active only) is unchanged')
   assert.match(listApi, /export async function POST/, 'profile creation is unchanged')
-  assert.equal(execSync('git status --porcelain -- src/app/api/client-portal src/app/api/growth-reviews src/app/api/admin/growth-assessments', { cwd: root }).toString().trim(), '', 'the release mechanism and the decision/completion routes are untouched')
+  assert.equal(execSync('git status --porcelain -- src/app/api/growth-reviews src/app/api/admin/growth-assessments', { cwd: root }).toString().trim(), '', 'the decision/completion routes are untouched')
+  // S6.2 changes how src/app/api/client-portal resolves the caller (shared resolver) but NOT the Growth Profile release
+  // mechanism; the gate, the decision lookup and the not_connected state are asserted here and in test-portal-access.cjs.
+  assert.match(read('src/app/api/client-portal/growth-profile/route.ts'), /growth_program_decisions/)
+  assert.match(read('src/app/api/client-portal/growth-profile/route.ts'), /state: 'not_connected'/)
   assert.match(read('src/app/api/client-portal/growth-profile/route.ts'), /process\.env\.GROWTH_PROFILE_RELEASE_ENABLED === 'true'/)
 
   /* ── Pages ─────────────────────────────────────────────────────────────── */

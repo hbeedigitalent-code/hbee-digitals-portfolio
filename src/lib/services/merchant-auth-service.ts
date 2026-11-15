@@ -1,6 +1,7 @@
 // src/lib/services/merchant-auth-service.ts
 
 import { createClient } from '@supabase/supabase-js'
+import { SIGNUP_GENERIC_ERROR, SIGNUP_NEUTRAL_MESSAGE, signUpOutcomeFor } from '@/lib/client-portal/signup-response'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -17,8 +18,15 @@ export interface MerchantSignupData {
   password: string
 }
 
-export async function createMerchantAccount(data: MerchantSignupData) {
-  console.log('📝 Creating merchant account for:', data.email)
+export interface MerchantSignupResult {
+  success: boolean
+  message?: string
+  error?: string
+  user?: unknown
+}
+
+export async function createMerchantAccount(data: MerchantSignupData): Promise<MerchantSignupResult> {
+  // The address is deliberately not logged.
 
   try {
     // Sign up the user - Supabase handles the email confirmation
@@ -46,17 +54,10 @@ export async function createMerchantAccount(data: MerchantSignupData) {
     })
 
     if (signUpError) {
-      console.error('❌ Sign up error:', signUpError)
-      if (signUpError.message.includes('already registered')) {
-        return {
-          success: false,
-          error: 'An account with this email already exists. Please login instead.',
-        }
-      }
-      return {
-        success: false,
-        error: signUpError.message || 'Failed to create account. Please try again.',
-      }
+      // Never log or return the address, and never return Supabase's own wording: "already registered" would
+      // confirm to a stranger that an email has an account. See signup-response.ts.
+      console.error('❌ Sign up error (code=' + String((signUpError as { code?: string }).code ?? 'n/a') + ')')
+      return signUpOutcomeFor(signUpError)
     }
 
     if (!authData.user) {
@@ -66,7 +67,6 @@ export async function createMerchantAccount(data: MerchantSignupData) {
       }
     }
 
-    console.log('✅ User created:', authData.user.id)
 
     // NO TABLE WRITES HAPPEN HERE.
     //
@@ -122,13 +122,13 @@ export async function createMerchantAccount(data: MerchantSignupData) {
       user: authData.user,
       // Deliberately worded around confirmation, not completion: the client
       // and merchant records are created when the email is confirmed.
-      message: 'Please check your email to confirm your account.',
+      message: SIGNUP_NEUTRAL_MESSAGE,
     }
   } catch (error) {
     console.error('❌ Create merchant error:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to create account.',
+      error: SIGNUP_GENERIC_ERROR,
     }
   }
 }

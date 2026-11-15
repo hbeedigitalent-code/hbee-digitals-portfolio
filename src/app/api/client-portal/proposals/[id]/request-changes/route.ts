@@ -24,7 +24,7 @@
 // only `status` / `updated_at` are written.
 
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { resolvePortalClient } from '@/lib/client-portal/portal-client'
 import { createNotification } from '@/lib/notifications/createNotification'
 import { isProposalExpired } from '@/lib/client-portal/proposal-display'
 
@@ -37,23 +37,6 @@ const MAX_REASON_LENGTH = 2000
 /** Trimmed length used inside the notification message. */
 const REASON_PREVIEW_LENGTH = 500
 
-let serviceRoleClient: any = null
-
-function getServiceRoleClient() {
-  if (serviceRoleClient) return serviceRoleClient
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !serviceKey) return null
-
-  const { createClient } = require('@supabase/supabase-js')
-  serviceRoleClient = createClient(supabaseUrl, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
-  return serviceRoleClient
-}
 
 /**
  * Strips control characters and collapses runaway whitespace before the text is
@@ -72,19 +55,10 @@ function sanitizeReason(raw: string): string {
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
-    const sessionClient = createServerSupabaseClient()
-    const {
-      data: { user },
-    } = await sessionClient.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
-
-    const adminClient = getServiceRoleClient()
-    if (!adminClient) {
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-    }
+    const portal = await resolvePortalClient({ requireConnected: true, extraColumns: 'business_name, full_name' })
+    if (!portal.ok) return portal.response
+    const adminClient = portal.db
+    const clientRow = portal.client
 
     const proposalId = typeof params?.id === 'string' ? params.id.trim() : ''
     if (!UUID_RE.test(proposalId)) {
@@ -108,15 +82,6 @@ export async function POST(request: Request, { params }: { params: { id: string 
       )
     }
 
-    const { data: clientRow } = await adminClient
-      .from('clients')
-      .select('id, business_name, full_name')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (!clientRow?.id) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
 
     // Expiry guard (Phase 18.4). A sent/viewed proposal whose expires_at has passed is closed to
     // client action — the same rule the UI uses (isProposalExpired). Nothing is stored; the

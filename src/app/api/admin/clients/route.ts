@@ -64,7 +64,29 @@ export async function GET(request: Request) {
 
     if (error) return queryFailure(`client list (${view})`, error)
 
-    return NextResponse.json({ clients: data || [] })
+    let rows: any[] = data || []
+    if (view === 'portal') {
+      // S6.2 — add the email-verified flag (merchant_accounts.email_verified is lifted only from the auth
+      // record's email_confirmed_at) and a plain connected flag, so Admin can tell self-registered accounts
+      // from connected clients at a glance. A failed side read degrades to null rather than failing the list.
+      const userIds = rows.map((r) => r.user_id).filter(Boolean)
+      const verified = new Map<string, boolean>()
+      if (userIds.length > 0) {
+        const { data: accounts, error: accountsError } = await db
+          .from('merchant_accounts')
+          .select('id, email_verified')
+          .in('id', userIds)
+        if (accountsError) console.error('[admin-api] client list: verification read failed')
+        for (const a of accounts || []) verified.set(a.id, a.email_verified === true)
+      }
+      rows = rows.map((r) => ({
+        ...r,
+        connected: Boolean(r.merchant_id),
+        email_verified: verified.has(r.user_id) ? verified.get(r.user_id) : null,
+      }))
+    }
+
+    return NextResponse.json({ clients: rows })
   } catch (error) {
     console.error('[admin-api] client list error:', error)
     return NextResponse.json({ error: 'Failed to load data' }, { status: 500 })

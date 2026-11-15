@@ -14,28 +14,11 @@
 // security pass. This route neither migrates it nor loosens it.
 
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { resolvePortalClient } from '@/lib/client-portal/portal-client'
 import { isOwnAvatarUrl, validateSettingsPatch } from '@/lib/client-portal/support-display'
 
 export const dynamic = 'force-dynamic'
 
-let serviceRoleClient: any = null
-
-function getServiceRoleClient() {
-  if (serviceRoleClient) return serviceRoleClient
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !serviceKey) return null
-
-  const { createClient } = require('@supabase/supabase-js')
-  serviceRoleClient = createClient(supabaseUrl, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
-  return serviceRoleClient
-}
 
 const COLUMNS =
   'id, full_name, business_name, email, whatsapp, website_url, country, profile_image, created_at, email_notifications, project_updates, marketing_emails'
@@ -62,26 +45,11 @@ function present(row: any) {
 }
 
 async function resolve() {
-  const sessionClient = createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await sessionClient.auth.getUser()
-  if (!user) return { response: NextResponse.json({ error: 'Not authenticated' }, { status: 401 }) } as const
-
-  const adminClient = getServiceRoleClient()
-  if (!adminClient) return { response: NextResponse.json({ error: 'Server configuration error' }, { status: 500 }) } as const
-
-  const { data: rows, error } = await adminClient.from('clients').select(COLUMNS).eq('user_id', user.id).limit(2)
-  if (error) {
-    console.error('[client-portal/settings] client lookup failed')
-    return { response: NextResponse.json({ error: 'Failed to load your settings' }, { status: 500 }) } as const
-  }
-  if (!rows || rows.length === 0) return { response: NextResponse.json({ error: 'Not found' }, { status: 404 }) } as const
-  if (rows.length > 1) {
-    console.error(`[client-portal/settings] ambiguous client ownership for user ${user.id}`)
-    return { response: NextResponse.json({ state: 'ambiguous' }, { status: 409 }) } as const
-  }
-  return { user, adminClient, row: rows[0] } as const
+  // Suspension is enforced by the shared resolver; settings and avatar remain available to an
+  // unconnected (not-yet-linked) account, because they describe the account itself.
+  const portal = await resolvePortalClient({ extraColumns: COLUMNS, failureMessage: 'Failed to load your settings' })
+  if (!portal.ok) return { response: portal.response } as const
+  return { user: portal.user, adminClient: portal.db, row: portal.client } as const
 }
 
 export async function GET() {

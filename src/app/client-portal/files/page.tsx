@@ -69,6 +69,8 @@ export default function ClientFilesPage() {
   const [state, setState] = useState<LoadState>('loading')
   const [files, setFiles] = useState<PortalFile[]>([])
   const [projects, setProjects] = useState<PortalProject[]>([])
+  // False until Hbee links this portal account to a business; uploads then stay closed (the API refuses them too).
+  const [connected, setConnected] = useState(true)
   const [deliverables, setDeliverables] = useState<PortalDeliverable[]>([])
   const [deliverablesUnavailable, setDeliverablesUnavailable] = useState(false)
 
@@ -99,6 +101,7 @@ export default function ClientFilesPage() {
       const clientProjects = (payload.projects || []) as PortalProject[]
       setFiles(payload.files as PortalFile[])
       setProjects(clientProjects)
+      setConnected(payload.connected !== false)
       setDeliverables((payload.deliverables || []) as PortalDeliverable[])
       setDeliverablesUnavailable(!!payload.deliverablesUnavailable)
       if (initial) {
@@ -446,6 +449,11 @@ export default function ClientFilesPage() {
         <h2 id="files-upload" className={styles.h2}>
           Add a file to your work
         </h2>
+        {!connected ? (
+          <p className={styles.lead}>
+            Uploading becomes available once Hbee connects your business. Your account is ready in the meantime.
+          </p>
+        ) : (
         <div className={styles.uploadGrid}>
           <div className={styles.field}>
             <label htmlFor="file-project" className={styles.label}>
@@ -469,6 +477,7 @@ export default function ClientFilesPage() {
             }}
           />
         </div>
+        )}
       </section>
 
       {/* 5 — Deliverables (only when real rows exist) */}

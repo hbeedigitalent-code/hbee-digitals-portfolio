@@ -7,6 +7,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
 import FileUploader from '@/components/uploads/FileUploader'
+import { ClientConnectionPanel } from '@/components/admin/ClientConnectionPanel'
 
 interface Client {
   id: string
@@ -48,6 +49,12 @@ export default function AdminClientDetailPage() {
   const router = useRouter()
   const supabase = createClientComponentClient()
   const [client, setClient] = useState<Client | null>(null)
+  const [connection, setConnection] = useState<{
+    connected: boolean
+    merchant: { id: string; business_name: string | null; email: string | null } | null
+    emailVerified: boolean | null
+    suspended: boolean
+  } | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -84,6 +91,7 @@ export default function AdminClientDetailPage() {
 
     const clientData = clientPayload.client
     setClient(clientData)
+    setConnection(clientPayload.connection ?? null)
 
     const { data: projectData } = await supabase
       .from('projects')
@@ -193,6 +201,11 @@ export default function AdminClientDetailPage() {
           )}
         </div>
       </div>
+
+      {/* S6.2: connect / disconnect / suspend. Self-registered accounts start unconnected. */}
+      {connection && (
+        <ClientConnectionPanel client={client} connection={connection} onChanged={() => void fetchClientData()} />
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Client Info */}

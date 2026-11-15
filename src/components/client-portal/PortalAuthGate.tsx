@@ -6,7 +6,7 @@ import { createClientComponentClient } from '@/lib/supabase-client'
 import { PortalShell, type PortalClient } from './PortalShell'
 import styles from './portal-shell.module.css'
 
-type Problem = 'none' | 'ambiguous' | 'error' | null
+type Problem = 'none' | 'ambiguous' | 'suspended' | 'error' | null
 
 /**
  * The portal's browser-side gate. Authentication behaves as before:
@@ -40,6 +40,12 @@ export function PortalAuthGate({ children }: { children: ReactNode }) {
       }
       if (response.status === 409) {
         setProblem('ambiguous')
+        return
+      }
+      if (response.status === 403) {
+        // S6.2: a suspended account is closed here and by every portal API. Anything else on a 403 is an error.
+        const body = await response.json().catch(() => null)
+        setProblem(body?.state === 'suspended' ? 'suspended' : 'error')
         return
       }
       const payload = await response.json().catch(() => null)
@@ -98,12 +104,19 @@ export function PortalAuthGate({ children }: { children: ReactNode }) {
     return (
       <div className={styles.centered}>
         <p className={styles.centeredText}>
-          {problem === 'ambiguous'
+          {problem === 'suspended'
+            ? 'This portal account is currently unavailable. Please contact Hbee Digitals and we will help you straight away.'
+            : problem === 'ambiguous'
             ? 'Your sign-in is linked to more than one business record, so we have not opened your portal. Please contact support.'
             : problem === 'error'
               ? 'We could not load your account. Please refresh the page, or contact support if it continues.'
               : 'No client profile found. Please contact support.'}
         </p>
+        {problem === 'suspended' && (
+          <button type="button" onClick={handleLogout} className={styles.centeredAction}>
+            Sign out
+          </button>
+        )}
       </div>
     )
   }

@@ -13,6 +13,9 @@ interface Client {
   website_url: string
   status: string
   created_at: string
+  merchant_id?: string | null
+  connected?: boolean
+  email_verified?: boolean | null
   projects?: { id: string; project_id: string; status: string }[]
 }
 
@@ -20,7 +23,8 @@ export default function AdminClientPortalPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0 })
+  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, connected: 0, unconnected: 0, suspended: 0 })
+  const [filter, setFilter] = useState<'all' | 'unconnected' | 'connected' | 'suspended'>('all')
 
   useEffect(() => {
     fetchClients()
@@ -51,6 +55,9 @@ export default function AdminClientPortalPage() {
         total: data.length,
         active: data.filter((c: any) => c.status === 'Active').length,
         inactive: data.filter((c: any) => c.status !== 'Active').length,
+        connected: data.filter((c: any) => c.connected).length,
+        unconnected: data.filter((c: any) => !c.connected).length,
+        suspended: data.filter((c: any) => String(c.status || '').toLowerCase() === 'suspended').length,
       })
     } catch (error) {
       console.error('Error:', error)
@@ -65,7 +72,15 @@ export default function AdminClientPortalPage() {
     'Active': 'bg-[var(--accent-lime)]/20 text-[var(--accent-lime)]',
     'Inactive': 'bg-[var(--text-muted)]/20 text-[var(--text-muted)]',
     'Pending': 'bg-[var(--warning-subtle)] text-[var(--warning)]',
+    'Suspended': 'bg-[var(--error-subtle)] text-[var(--error)]',
   }
+
+  const visibleClients = clients.filter((c) => {
+    if (filter === 'unconnected') return !c.merchant_id
+    if (filter === 'connected') return Boolean(c.merchant_id)
+    if (filter === 'suspended') return String(c.status || '').toLowerCase() === 'suspended'
+    return true
+  })
 
   if (loading) {
     return (
@@ -82,6 +97,25 @@ export default function AdminClientPortalPage() {
         <div className="text-sm text-[var(--text-muted)]">
           {clients.length} total clients
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Filter accounts">
+        {([
+          ['all', 'All (' + stats.total + ')'],
+          ['unconnected', 'Not connected (' + stats.unconnected + ')'],
+          ['connected', 'Connected (' + stats.connected + ')'],
+          ['suspended', 'Suspended (' + stats.suspended + ')'],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setFilter(key)}
+            aria-pressed={filter === key}
+            className={'rounded-full border px-3 py-1 text-sm ' + (filter === key ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)]')}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -106,6 +140,8 @@ export default function AdminClientPortalPage() {
               <tr className="border-b border-[var(--border)] text-left text-[var(--text-muted)]">
                 <th className="pb-3 font-medium">Client</th>
                 <th className="pb-3 font-medium">Business</th>
+                <th className="pb-3 font-medium">Email</th>
+                <th className="pb-3 font-medium">Connection</th>
                 <th className="pb-3 font-medium">Projects</th>
                 <th className="pb-3 font-medium">Status</th>
                 <th className="pb-3 font-medium">Joined</th>
@@ -115,18 +151,25 @@ export default function AdminClientPortalPage() {
             <tbody>
               {clients.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-[var(--text-muted)]">
+                  <td colSpan={8} className="py-8 text-center text-[var(--text-muted)]">
                     No clients found
                   </td>
                 </tr>
               ) : (
-                clients.map((client) => (
+                visibleClients.map((client) => (
                   <tr key={client.id} className="border-b border-[var(--border)] hover:bg-[var(--bg-section)]">
                     <td className="py-3 font-medium text-[var(--text-primary)]">
                       {client.full_name}
                     </td>
                     <td className="py-3 text-[var(--text-muted)]">
                       {client.business_name}
+                    </td>
+                    <td className="py-3 text-[var(--text-muted)]">
+                      {client.email}
+                      {client.email_verified === true && <span className="ml-1 text-xs text-[var(--accent-lime)]">verified</span>}
+                    </td>
+                    <td className="py-3 text-[var(--text-muted)]">
+                      {client.merchant_id ? 'Connected' : 'Not connected yet'}
                     </td>
                     <td className="py-3 text-[var(--text-muted)]">
                       {client.projects?.length || 0}

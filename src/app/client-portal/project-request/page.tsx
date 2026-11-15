@@ -20,6 +20,7 @@ export default function ProjectRequestPage() {
     full_name: string
     business_name: string
     email: string
+    connected: boolean
   } | null>(null)
 
   useEffect(() => {
@@ -40,6 +41,7 @@ export default function ProjectRequestPage() {
               full_name: payload.client.full_name || '',
               business_name: payload.client.business_name || '',
               email: payload.client.email || '',
+              connected: payload.client.connected !== false,
             })
             setLoading(false)
           }
@@ -81,6 +83,17 @@ export default function ProjectRequestPage() {
         </p>
       </header>
 
+      {!clientData.connected ? (
+        <section className={styles.panel} aria-label="Project requests">
+          <h2 className={styles.h2}>Your account is ready</h2>
+          <p className={styles.lead}>
+            Project requests become available once Hbee connects your business. Get in touch and we will set that up for you.
+          </p>
+          <Link href="/contact" className={styles.secondary}>
+            Contact Hbee Digitals
+          </Link>
+        </section>
+      ) : (
       <section className={styles.panel} aria-label="Project request form">
         <ProjectRequestForm
           clientName={clientData.full_name}
@@ -89,6 +102,7 @@ export default function ProjectRequestPage() {
           onCancel={() => router.push('/client-portal/projects')}
         />
       </section>
+      )}
 
       <p className={styles.quiet}>
         Prefer to talk it through first?{' '}

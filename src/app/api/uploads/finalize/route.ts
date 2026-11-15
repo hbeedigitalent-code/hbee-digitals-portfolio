@@ -106,7 +106,10 @@ export async function POST(request: Request) {
       onBehalfOfClientId: body?.onBehalfOfClientId,
     })
     if (!auth.ok) {
-      return NextResponse.json({ error: auth.error }, { status: auth.status })
+      return NextResponse.json(
+        { error: auth.error, ...(auth.code ? { code: auth.code, state: auth.code === 'account_suspended' ? 'suspended' : auth.code } : {}) },
+        { status: auth.status },
+      )
     }
     const { binding } = auth
     const { db } = binding

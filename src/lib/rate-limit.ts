@@ -59,6 +59,11 @@ export const RATE_LIMITS = {
   // Admin TOTP attempts, keyed by the signed-in admin's user id (NOT by IP, so rotating addresses does not help).
   // 8 per 10 minutes leaves room for typos but caps guessing a 6-digit code at ~1,100 tries a day.
   adminTotp: { requests: 8, window: '10 m' },
+  // S6.2 — signed-in Portal writes, keyed on the verified user id (not the IP). Sized for a person, not a script:
+  // a client rarely files more than a couple of requests in an hour and opens an upload batch a handful of times.
+  // Invisible to normal use; there is no captcha on these paths.
+  portalRequest: { requests: 5, window: '1 h' },
+  portalUpload: { requests: 30, window: '1 h' },
 } as const
 
 export type RateLimitName = keyof typeof RATE_LIMITS

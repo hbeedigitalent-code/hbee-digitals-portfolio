@@ -20,7 +20,7 @@
 // fields, storage paths, raw file URLs or project_messages leave the server.
 
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { resolvePortalClient } from '@/lib/client-portal/portal-client'
 import { GET as getGrowthProfile } from '../growth-profile/route'
 import {
   buildActivity,
@@ -42,23 +42,6 @@ export const dynamic = 'force-dynamic'
 // Same visibility set as /api/client-portal/proposals.
 const CLIENT_VISIBLE_STATUSES = ['sent', 'viewed', 'approved', 'changes_requested']
 
-let serviceRoleClient: any = null
-
-function getServiceRoleClient() {
-  if (serviceRoleClient) return serviceRoleClient
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !serviceKey) return null
-
-  const { createClient } = require('@supabase/supabase-js')
-  serviceRoleClient = createClient(supabaseUrl, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
-  return serviceRoleClient
-}
 
 /** Growth Profile via the existing route, so its release gate is the only gate. */
 async function loadGrowth(): Promise<{ state: string; profile: ReleasedProfile | null }> {
@@ -91,42 +74,14 @@ async function loadGrowth(): Promise<{ state: string; profile: ReleasedProfile |
 
 export async function GET() {
   try {
-    const sessionClient = createServerSupabaseClient()
-    const {
-      data: { user },
-    } = await sessionClient.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
-
-    const adminClient = getServiceRoleClient()
-    if (!adminClient) {
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-    }
+    const portal = await resolvePortalClient({ extraColumns: 'full_name, business_name' })
+    if (!portal.ok) return portal.response
+    const adminClient = portal.db
+    const user = portal.user
 
     // limit(2) so ambiguity is detectable and refused instead of guessed.
-    const { data: clientRows, error: clientError } = await adminClient
-      .from('clients')
-      .select('id, full_name, business_name')
-      .eq('user_id', user.id)
-      .limit(2)
 
-    if (clientError) {
-      console.error(
-        `[client-portal/dashboard] client lookup failed: code=${(clientError as { code?: string }).code ?? 'n/a'} message=${String((clientError as { message?: string }).message ?? 'n/a').slice(0, 200)}`,
-      )
-      return NextResponse.json({ error: 'Failed to load your dashboard' }, { status: 500 })
-    }
-    if (!clientRows || clientRows.length === 0) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
-    if (clientRows.length > 1) {
-      console.error(`[client-portal/dashboard] ambiguous client ownership for user ${user.id}`)
-      return NextResponse.json({ state: 'ambiguous' }, { status: 409 })
-    }
-
-    const client = clientRows[0] as { id: string; full_name: string | null; business_name: string | null }
+    const client = portal.client as unknown as { id: string; full_name: string | null; business_name: string | null }
     const clientId = client.id
     const unavailable: string[] = []
     const rows = <T,>(label: string, result: { data: T[] | null; error: unknown }): T[] => {

@@ -38,6 +38,8 @@ const PORTAL_PREFIX = '/client-portal'
 // The 2FA challenge itself must stay reachable once Layers 1-2 pass — it is
 // where an admin actually completes the check this middleware enforces.
 const ADMIN_2FA_CHALLENGE_PATH = '/admin-2fa-challenge'
+// Where a suspended portal account is sent. Excluded from the suspension redirect so it cannot loop.
+const PORTAL_SUSPENDED_PATH = '/client-portal/suspended'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -136,6 +138,22 @@ export async function middleware(request: NextRequest) {
         .maybeSingle()
 
       if (!error && !data) return redirect('/client-login')
+
+      // S6.2 — page-level suspension. The Portal stays open to ANY confirmed account with one clients row,
+      // connected to a merchant or not; this is only the suspended case. It is a second, separate read so that a
+      // column-privilege problem on status can never break the existing 'is there a clients row' check above:
+      // if this lookup errors, the page loads and every portal API still refuses a suspended account on its own
+      // (src/lib/client-portal/portal-client.ts). This is a convenience layer, not the control.
+      if (!error && data && pathname !== PORTAL_SUSPENDED_PATH) {
+        const { data: statusRow, error: statusError } = await supabase
+          .from('clients')
+          .select('status')
+          .eq('user_id', user.id)
+          .maybeSingle()
+        if (!statusError && typeof statusRow?.status === 'string' && statusRow.status.trim().toLowerCase() === 'suspended') {
+          return redirect(PORTAL_SUSPENDED_PATH)
+        }
+      }
     }
 
     return response

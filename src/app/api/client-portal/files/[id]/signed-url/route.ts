@@ -9,7 +9,7 @@
 // No admin access is added here. There is no existing admin file-view
 // workflow for project_files, so none is invented in this route.
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { resolvePortalClient } from '@/lib/client-portal/portal-client'
 import { toProjectFilesObjectPath } from '@/lib/storage-path'
 
 const PROJECT_FILES_BUCKET = 'project-files'
@@ -20,41 +20,15 @@ const SIGNED_URL_EXPIRY_SECONDS = 60
 // src/lib/supabaseAdmin.ts singleton, which throws at import time when
 // SUPABASE_SERVICE_ROLE_KEY is missing and would crash this whole route
 // instead of returning a clean "Server configuration error" response.
-let serviceRoleClient: any = null
-
-function getServiceRoleClient() {
-  if (serviceRoleClient) return serviceRoleClient
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !serviceKey) return null
-
-  const { createClient } = require('@supabase/supabase-js')
-  serviceRoleClient = createClient(supabaseUrl, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
-  return serviceRoleClient
-}
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     // 1-2. Derive the caller from THEIR OWN session — never a client-
     // supplied id/email/flag of any kind.
-    const sessionClient = createServerSupabaseClient()
-    const {
-      data: { user },
-    } = await sessionClient.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
-
-    const adminClient = getServiceRoleClient()
-    if (!adminClient) {
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-    }
+    const portal = await resolvePortalClient()
+    if (!portal.ok) return portal.response
+    const adminClient = portal.db
+    const clientRow = portal.client
 
     // 3. Resolve the caller's own client row. Read via the service-role
     // client rather than the session client: per the Batch 1C storage
@@ -63,17 +37,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
     // regardless of ownership. The ownership boundary itself is still
     // derived entirely from the session-authenticated user.id below —
     // never from anything the browser supplies.
-    const { data: clientRow } = await adminClient
-      .from('clients')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (!clientRow) {
-      // Same 404 as "file not found" below — this response can never be
-      // used to distinguish "you're not a client" from "wrong file id".
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
 
     // 4-5. Fetch the file, double-scoped to id AND this client's own id in
     // one query. A file that exists but belongs to someone else produces

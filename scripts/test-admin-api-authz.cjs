@@ -171,7 +171,9 @@ async function main() {
   const problems = []
   for (const { f, route, src } of routes) {
     if (route.startsWith('/api/client-portal/')) {
-      if (!/auth\.getUser\(\)/.test(src)) problems.push(`${route}: client-portal route without a session check`)
+      // S6.2: portal routes verify the session through the shared resolver (which calls auth.getUser()); the
+      // resolver itself is exercised by scripts/test-portal-access.cjs.
+      if (!/auth\.getUser\(\)|resolvePortalClient\(/.test(src)) problems.push(`${route}: client-portal route without a session check`)
       continue
     }
     if (OTHER_CONTROL[route]) continue

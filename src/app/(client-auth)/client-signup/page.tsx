@@ -111,13 +111,13 @@ export default function ClientSignupPage() {
             >
               <SvgIcon name="check" size={48} color="var(--accent-lime)" />
             </motion.div>
-            <h1 className="text-3xl font-bold text-[var(--text-primary)]">Account Created! 🎉</h1>
+            <h1 className="text-3xl font-bold text-[var(--text-primary)]">Check your email</h1>
             <p className="mt-3 text-[var(--text-secondary)]">
-              Your merchant account has been created. Please check your email to confirm your account.
+              If this email can be used for a new account, we have sent a confirmation link to it. Confirm it and your portal opens straight away. If you already have an account, sign in or reset your password instead.
             </p>
             <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-4">
               <p className="text-sm text-[var(--text-muted)]">
-                📧 We've sent a confirmation email to <strong className="text-[var(--text-primary)]">{formData.email}</strong>
+                📧 Check <strong className="text-[var(--text-primary)]">{formData.email}</strong> (and your spam folder) for the confirmation link.
               </p>
             </div>
             <div className="mt-6 flex flex-col gap-3">

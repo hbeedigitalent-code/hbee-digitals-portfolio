@@ -268,6 +268,8 @@
 }
 @media (min-width: 1024px) { .content { padding: 2.5rem; } }
 .content:focus { outline: none; }
+/* Quiet, relationship-oriented note for an account Hbee has not connected to a business yet. Not an alert. */
+.readyNote { margin: 0 0 1.25rem; padding: 0.75rem 1rem; border: 1px solid var(--hb-border-soft, rgba(6, 66, 179, 0.14)); border-radius: 0.75rem; background: rgba(234, 242, 255, 0.6); color: var(--hb-slate); font-size: 0.9rem; line-height: 1.5; }
 
 /* ── Mobile drawer ───────────────────────────────────────────── */
 .backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(6, 20, 38, 0.55); }
@@ -311,6 +313,7 @@
 
 /* ── Gate states (auth check / no client) ────────────────────── */
 .centered { display: grid; min-height: 100vh; min-height: 100dvh; place-items: center; padding: 1rem; background: var(--hb-cloud); text-align: center; }
+.centeredAction { margin-top: 1rem; padding: 0.6rem 1.25rem; border: 1px solid var(--hb-blue); border-radius: 999px; background: transparent; color: var(--hb-blue); font: inherit; cursor: pointer; }
 .centeredText { max-width: 28rem; font-size: 1rem; color: var(--hb-slate); }
 .spinner { width: 2.5rem; height: 2.5rem; border: 2px solid var(--hb-blue); border-top-color: transparent; border-radius: 50%; }
 @keyframes portalSpin { to { transform: rotate(360deg); } }

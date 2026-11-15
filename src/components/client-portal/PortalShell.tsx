@@ -49,6 +49,8 @@ export interface PortalClient {
   business_name?: string | null
   email?: string | null
   profile_image?: string | null
+  /** True once Hbee has linked this portal account to a business. Absent = treated as connected. */
+  connected?: boolean
 }
 
 interface PortalShellProps {
@@ -137,6 +139,8 @@ function SidebarBody({
     </div>
   )
 }
+
+const PORTAL_SETTINGS_PATH = '/client-portal/settings'
 
 export function PortalShell({ client, onLogout, pathOverride, children }: PortalShellProps) {
   const browserPath = usePathname()
@@ -242,6 +246,11 @@ export function PortalShell({ client, onLogout, pathOverride, children }: Portal
         </header>
 
         <main id="main-content" tabIndex={-1} className={styles.content}>
+          {client.connected === false && !path.startsWith(PORTAL_SETTINGS_PATH) && (
+            <p className={styles.readyNote} role="note">
+              Your portal is ready. Client work and shared resources will appear here once Hbee connects your business.
+            </p>
+          )}
           {children}
         </main>
       </div>

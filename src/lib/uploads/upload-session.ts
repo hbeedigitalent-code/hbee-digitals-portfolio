@@ -27,6 +27,11 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { ADMIN_2FA_COOKIE_NAME, verifyAdmin2FACookie } from '@/lib/admin-2fa-cookie'
 import { getPrivilegedClient } from '@/lib/admin-api-auth'
 import {
+  resolvePortalClient,
+  PORTAL_NOT_CONNECTED_BODY,
+  PORTAL_SUSPENDED_BODY,
+} from '@/lib/client-portal/portal-client'
+import {
   UPLOAD_SPECS,
   UPLOAD_SESSION_TTL_HOURS,
   verifyStoredMetadata,
@@ -71,6 +76,8 @@ export type AuthorizeFailure = {
   ok: false
   status: 401 | 403 | 404 | 500
   error: string
+  /** Stable machine code the UI can key off ('not_connected', 'account_suspended'). */
+  code?: string
 }
 
 export type AuthorizeResult = { ok: true; binding: UploadBinding } | AuthorizeFailure
@@ -155,39 +162,29 @@ async function requireAdminIdentity(): Promise<
 async function requireClientIdentity(): Promise<
   { ok: true; userId: string; clientId: string; db: any } | AuthorizeFailure
 > {
-  const sessionClient = createServerSupabaseClient()
-  const {
-    data: { user },
-  } = await sessionClient.auth.getUser()
-  if (!user) return DENY_AUTH
+  // S6.2: operational uploads need a CONNECTED, ACTIVE client. The shared portal resolver owns every one of
+  // those decisions (session, single clients row, suspension, merchant link), so uploads cannot drift from
+  // the rest of the portal. An unconnected account can keep its profile and avatar, which do not use this path,
+  // but cannot use project/client file storage.
+  const portal = await resolvePortalClient({ requireConnected: true })
+  if (portal.ok) return { ok: true, userId: portal.user.id, clientId: portal.client.id, db: portal.db }
 
-  const db = getPrivilegedClient()
-  if (!db) {
-    console.error('[uploads] privileged client unavailable')
-    return DENY_CONFIG
+  switch (portal.reason) {
+    case 'unauthenticated':
+      return DENY_AUTH
+    case 'configuration':
+      return DENY_CONFIG
+    case 'suspended':
+      return { ok: false, status: 403, error: PORTAL_SUSPENDED_BODY.error, code: PORTAL_SUSPENDED_BODY.code }
+    case 'not_connected':
+      return { ok: false, status: 403, error: PORTAL_NOT_CONNECTED_BODY.error, code: PORTAL_NOT_CONNECTED_BODY.code }
+    case 'no_client':
+      return { ok: false, status: 403, error: 'No client account is linked to this login.' }
+    case 'ambiguous':
+      return { ok: false, status: 403, error: 'Your account needs attention. Please contact us.' }
+    default:
+      return { ok: false, status: 403, error: 'Not authorized' }
   }
-
-  const { data: rows, error } = await db
-    .from('clients')
-    .select('id')
-    .eq('user_id', user.id)
-    .limit(2)
-
-  if (error) {
-    console.error(
-      `[uploads] client lookup failed (code=${(error as { code?: string }).code ?? 'n/a'})`,
-    )
-    return { ok: false, status: 403, error: 'Not authorized' }
-  }
-  if (!rows || rows.length === 0) {
-    return { ok: false, status: 403, error: 'No client account is linked to this login.' }
-  }
-  if (rows.length > 1) {
-    console.error(`[uploads] ambiguous client link for user ${user.id} — refused`)
-    return { ok: false, status: 403, error: 'Your account needs attention. Please contact us.' }
-  }
-
-  return { ok: true, userId: user.id, clientId: rows[0].id, db }
 }
 
 /**

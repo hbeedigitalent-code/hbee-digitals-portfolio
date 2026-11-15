@@ -20,7 +20,7 @@
 // never returned. Only { url } leaves this route.
 
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { resolvePortalClient } from '@/lib/client-portal/portal-client'
 import {
   PROPOSAL_FILES_BUCKET,
   toProposalFilesObjectPath,
@@ -34,23 +34,6 @@ const CLIENT_VISIBLE_STATUSES = ['sent', 'viewed', 'approved', 'changes_requeste
 
 // Lazy, non-throwing service-role client — the same defensive pattern used by
 // the existing client-portal signed-url route.
-let serviceRoleClient: any = null
-
-function getServiceRoleClient() {
-  if (serviceRoleClient) return serviceRoleClient
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !serviceKey) return null
-
-  const { createClient } = require('@supabase/supabase-js')
-  serviceRoleClient = createClient(supabaseUrl, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
-  return serviceRoleClient
-}
 
 export async function GET(
   _request: Request,
@@ -58,19 +41,10 @@ export async function GET(
 ) {
   try {
     // 1. Derive the caller from THEIR OWN session.
-    const sessionClient = createServerSupabaseClient()
-    const {
-      data: { user },
-    } = await sessionClient.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
-
-    const adminClient = getServiceRoleClient()
-    if (!adminClient) {
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-    }
+    const portal = await resolvePortalClient()
+    if (!portal.ok) return portal.response
+    const adminClient = portal.db
+    const clientRow = portal.client
 
     const proposalId = typeof params?.id === 'string' ? params.id.trim() : ''
     const fileId = typeof params?.fileId === 'string' ? params.fileId.trim() : ''
@@ -80,15 +54,6 @@ export async function GET(
     }
 
     // 2. Resolve the caller's own client row.
-    const { data: clientRow } = await adminClient
-      .from('clients')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (!clientRow?.id) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
 
     // 3. Proposal ownership + status.
     const { data: proposalRow } = await adminClient

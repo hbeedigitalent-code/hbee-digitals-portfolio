@@ -20,7 +20,7 @@
 // proposal_files.object_path never leaves the server in any route.
 
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { resolvePortalClient } from '@/lib/client-portal/portal-client'
 
 // Statuses at which a proposal is visible in the client portal — the same set
 // the detail route enforces.
@@ -48,52 +48,20 @@ const MAX_ROWS = 200
 // Lazy, non-throwing service-role client — the same defensive pattern used by
 // the other client-portal routes. The ownership boundary below is still derived
 // entirely from the session user; the service role only bypasses RLS.
-let serviceRoleClient: any = null
-
-function getServiceRoleClient() {
-  if (serviceRoleClient) return serviceRoleClient
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !serviceKey) return null
-
-  const { createClient } = require('@supabase/supabase-js')
-  serviceRoleClient = createClient(supabaseUrl, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
-  return serviceRoleClient
-}
 
 export async function GET() {
   try {
-    const sessionClient = createServerSupabaseClient()
-    const {
-      data: { user },
-    } = await sessionClient.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    const portal = await resolvePortalClient()
+    if (!portal.ok) {
+      if (portal.reason === 'no_client') return NextResponse.json({ proposals: [] })
+      return portal.response
     }
-
-    const adminClient = getServiceRoleClient()
-    if (!adminClient) {
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-    }
+    const adminClient = portal.db
+    const clientRow = portal.client
 
     // clients.id is resolved from the session user and from nothing else. No
     // client_id, email, merchant name or proposal number is read from the
     // request.
-    const { data: clientRow } = await adminClient
-      .from('clients')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (!clientRow?.id) {
-      return NextResponse.json({ proposals: [] })
-    }
 
     const { data: rows, error } = await adminClient
       .from('proposals')

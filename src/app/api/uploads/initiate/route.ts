@@ -19,6 +19,7 @@
 // ignores paths entirely — it accepts upload IDs only.
 
 import { NextResponse } from 'next/server'
+import { checkRateLimit } from '@/lib/rate-limit'
 import {
   MAX_FILES_PER_BATCH,
   UPLOAD_SPECS,
@@ -103,9 +104,25 @@ export async function POST(request: Request) {
       onBehalfOfClientId: body?.onBehalfOfClientId,
     })
     if (!auth.ok) {
-      return NextResponse.json({ error: auth.error }, { status: auth.status })
+      return NextResponse.json(
+        { error: auth.error, ...(auth.code ? { code: auth.code, state: auth.code === 'account_suspended' ? 'suspended' : auth.code } : {}) },
+        { status: auth.status },
+      )
     }
     const { binding } = auth
+
+    // S6.2 — invisible, per-user limit on upload-session creation by CLIENTS. Admin uploads are not limited here.
+    // Keyed on the verified user id, never on anything the request supplies. Fails open (and logs) if the
+    // limiter backend is unavailable, like every other limiter in this codebase.
+    if (binding.uploaderRole === 'client') {
+      const limit = await checkRateLimit('portalUpload', 'user:' + binding.uploaderUserId)
+      if (!limit.ok) {
+        return NextResponse.json(
+          { code: 'rate_limited', error: 'You have started several uploads in a short time. Please wait a little and try again.' },
+          { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds ?? 60) } },
+        )
+      }
+    }
     const { db } = binding
     const spec = UPLOAD_SPECS[context]
 

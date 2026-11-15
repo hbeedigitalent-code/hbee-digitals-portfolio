@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { provisionAccount } from '@/lib/provision-account'
+import { safePortalRedirect } from '@/lib/client-portal/safe-redirect'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -26,7 +27,10 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const token = searchParams.get('token')
   const type = searchParams.get('type')
-  const redirectTo = searchParams.get('redirect_to') || '/client-confirmation'
+  // S6.2: never trust the query string. Only local portal pages are accepted (see safe-redirect.ts); anything
+  // else — an absolute URL, a protocol-relative //host, a backslash trick, a path outside the portal pages —
+  // falls back to the confirmation page.
+  const redirectTo = safePortalRedirect(searchParams.get('redirect_to'))
 
   if (!token) {
     return NextResponse.redirect(

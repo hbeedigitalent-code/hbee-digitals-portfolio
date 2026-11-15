@@ -20,7 +20,7 @@
 // pointing at the object and the cleanup sweep would never see it.
 
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { resolvePortalClient } from '@/lib/client-portal/portal-client'
 import { toProjectFilesObjectPath } from '@/lib/storage-path'
 
 const PROJECT_FILES_BUCKET = 'project-files'
@@ -32,40 +32,15 @@ export const dynamic = 'force-dynamic'
 // Lazy, non-throwing service-role client — the same pattern as the sibling
 // signed-url route, so a missing key produces a clean 500 rather than crashing
 // the route at import time.
-let serviceRoleClient: any = null
-
-function getServiceRoleClient() {
-  if (serviceRoleClient) return serviceRoleClient
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!supabaseUrl || !serviceKey) return null
-
-  const { createClient } = require('@supabase/supabase-js')
-  serviceRoleClient = createClient(supabaseUrl, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
-  return serviceRoleClient
-}
 
 export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
   try {
     // 1. The caller, from THEIR OWN session. Never an id, email or flag from
     //    the request.
-    const sessionClient = createServerSupabaseClient()
-    const {
-      data: { user },
-    } = await sessionClient.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
-
-    const adminClient = getServiceRoleClient()
-    if (!adminClient) {
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-    }
+    const portal = await resolvePortalClient({ requireConnected: true })
+    if (!portal.ok) return portal.response
+    const adminClient = portal.db
+    const user = portal.user
 
     const fileId = typeof params?.id === 'string' ? params.id.trim() : ''
     if (!UUID_RE.test(fileId)) {
@@ -74,29 +49,8 @@ export async function DELETE(_request: Request, { params }: { params: { id: stri
 
     // 2. The caller's own client row. limit(2) so ambiguous ownership is
     //    detectable and refused rather than silently resolved to the first hit.
-    const { data: clientRows, error: clientError } = await adminClient
-      .from('clients')
-      .select('id')
-      .eq('user_id', user.id)
-      .limit(2)
 
-    if (clientError) {
-      console.error(
-        `[client-portal/files] client lookup failed (code=${
-          (clientError as { code?: string }).code ?? 'n/a'
-        })`,
-      )
-      return NextResponse.json({ error: 'Failed to delete the file' }, { status: 500 })
-    }
-    if (!clientRows || clientRows.length === 0) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
-    if (clientRows.length > 1) {
-      console.error(`[client-portal/files] ambiguous client ownership for user ${user.id}`)
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
-
-    const clientId: string = clientRows[0].id
+    const clientId: string = portal.client.id
 
     // 3. The row, scoped to id AND this client in ONE query. A file that exists
     //    but belongs to someone else produces the exact same 404 as a file that

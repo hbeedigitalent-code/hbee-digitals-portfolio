@@ -14,60 +14,25 @@
 // `unavailable` rather than being shown as "nothing here".
 
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { resolvePortalClient } from '@/lib/client-portal/portal-client'
 
 export const dynamic = 'force-dynamic'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-let serviceRoleClient: any = null
-
-function getServiceRoleClient() {
-  if (serviceRoleClient) return serviceRoleClient
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !serviceKey) return null
-
-  const { createClient } = require('@supabase/supabase-js')
-  serviceRoleClient = createClient(supabaseUrl, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
-  return serviceRoleClient
-}
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   try {
-    const sessionClient = createServerSupabaseClient()
-    const {
-      data: { user },
-    } = await sessionClient.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
-
-    const adminClient = getServiceRoleClient()
-    if (!adminClient) {
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-    }
+    const portal = await resolvePortalClient()
+    if (!portal.ok) return portal.response
+    const adminClient = portal.db
+    const clientRow = portal.client
 
     const projectId = typeof params?.id === 'string' ? params.id.trim() : ''
     if (!UUID_RE.test(projectId)) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    const { data: clientRow } = await adminClient
-      .from('clients')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (!clientRow?.id) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
 
     const { data: project, error: projectError } = await adminClient
       .from('projects')

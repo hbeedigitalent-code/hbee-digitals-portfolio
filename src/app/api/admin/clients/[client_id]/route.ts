@@ -46,7 +46,37 @@ export async function GET(
     if (error) return queryFailure('client detail', error)
     if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    return NextResponse.json({ client: data })
+    // S6.2 — what the Connection panel needs. The verified email comes from the auth record itself (Supabase
+    // email_confirmed_at), never from a column a user could have supplied. Nothing secret is returned.
+    let emailVerified: boolean | null = null
+    if (data.user_id) {
+      try {
+        const { data: authUser, error: authError } = await db.auth.admin.getUserById(data.user_id)
+        if (!authError && authUser?.user) emailVerified = Boolean(authUser.user.email_confirmed_at)
+      } catch {
+        emailVerified = null
+      }
+    }
+
+    let merchant: { id: string; business_name: string | null; email: string | null } | null = null
+    if (data.merchant_id) {
+      const { data: m } = await db
+        .from('merchants')
+        .select('id, business_name, email')
+        .eq('id', data.merchant_id)
+        .maybeSingle()
+      merchant = m ?? null
+    }
+
+    return NextResponse.json({
+      client: data,
+      connection: {
+        connected: Boolean(data.merchant_id),
+        merchant,
+        emailVerified,
+        suspended: typeof data.status === 'string' && data.status.trim().toLowerCase() === 'suspended',
+      },
+    })
   } catch (error) {
     console.error('[admin-api] client detail error:', error)
     return NextResponse.json({ error: 'Failed to load data' }, { status: 500 })

@@ -25,7 +25,7 @@
 // profile_data blob never leave the server.
 
 import { NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { resolvePortalClient } from '@/lib/client-portal/portal-client'
 import { displayGrowthClassification } from '@/lib/growth-classification'
 
 
@@ -53,23 +53,6 @@ function isProfileReleaseEnabled(): boolean {
   return process.env.GROWTH_PROFILE_RELEASE_ENABLED === 'true'
 }
 
-let serviceRoleClient: any = null
-
-function getServiceRoleClient() {
-  if (serviceRoleClient) return serviceRoleClient
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !serviceKey) return null
-
-  const { createClient } = require('@supabase/supabase-js')
-  serviceRoleClient = createClient(supabaseUrl, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
-  return serviceRoleClient
-}
 
 /**
  * Server-side only. Names the stage that failed and the database's own error code and
@@ -116,47 +99,16 @@ function safeStringList(value: unknown, max = 25): string[] {
 
 export async function GET() {
   try {
-    const sessionClient = createServerSupabaseClient()
-    const {
-      data: { user },
-    } = await sessionClient.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
-
-    const adminClient = getServiceRoleClient()
-    if (!adminClient) {
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-    }
+    const portal = await resolvePortalClient()
+    if (!portal.ok) return portal.response
+    const adminClient = portal.db
+    const user = portal.user
 
     // Authoritative link 1: session user -> clients row.
     // limit(2) rather than maybeSingle() so ambiguity is detectable and can be
     // refused explicitly instead of surfacing as a generic query error.
-    const { data: clientRows, error: clientError } = await adminClient
-      .from('clients')
-      .select('id, merchant_id')
-      .eq('user_id', user.id)
-      .limit(2)
 
-    if (clientError) {
-      logStage('client lookup (clients.id, merchant_id)', clientError)
-      return NextResponse.json({ error: 'Failed to load your profile' }, { status: 500 })
-    }
-
-    if (!clientRows || clientRows.length === 0) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
-
-    if (clientRows.length > 1) {
-      // Ambiguous ownership: refuse rather than choose. No merchant is named.
-      console.error(
-        `[client-portal/growth-profile] ambiguous client ownership for user ${user.id}`,
-      )
-      return NextResponse.json({ state: 'ambiguous' }, { status: 409 })
-    }
-
-    const merchantId: string | null = clientRows[0].merchant_id ?? null
+    const merchantId: string | null = portal.client.merchant_id ?? null
 
     // Authoritative link 2: clients.merchant_id. When it is absent the account
     // is simply not connected yet — an ordinary state for 5 of the 8 current

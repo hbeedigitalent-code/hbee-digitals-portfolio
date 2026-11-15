@@ -72,7 +72,8 @@ assert.equal(policy.adminPasswordError('correct horse battery staple'), null, 'a
 assert.match(resetCode, /adminPasswordError\(password\)/); assert.doesNotMatch(resetCode, /MIN_PASSWORD_LENGTH = 6/)
 const profileCode = stripComments(read('src/app/admin/profile/page.tsx'))
 assert.match(profileCode, /adminPasswordError\(newPassword\)/); assert.doesNotMatch(profileCode, /newPassword\.length < 6|minLength=\{6\}/, 'the admin profile form no longer accepts 6')
-for (const f of ['src/app/(client-auth)/client-reset-password/page.tsx', 'src/app/(client-auth)/client-signup/page.tsx']) assert.equal(execSync('git status --porcelain -- "' + f + '"', { cwd: root }).toString().trim(), '', f + ' (Client Portal) untouched by the admin policy')
+// S6.2 deliberately changes the signup page (account-enumeration fix), so only the reset page is still guarded here.
+for (const f of ['src/app/(client-auth)/client-reset-password/page.tsx']) assert.equal(execSync('git status --porcelain -- "' + f + '"', { cwd: root }).toString().trim(), '', f + ' (Client Portal) untouched by the admin policy')
 // Recovery hardening: only Supabase's own PASSWORD_RECOVERY event accepts a link; a plain existing session never does.
 assert.doesNotMatch(resetCode, /getSession\(/, 'an already-signed-in admin with an expired or used link must not get a password form')
 assert.match(resetCode, /event === 'PASSWORD_RECOVERY'/); assert.doesNotMatch(resetCode, /event === 'SIGNED_IN'/)
@@ -176,7 +177,9 @@ for (const f of ['src/app/api/admin/growth-reviews/route.ts', 'src/app/api/admin
 }
 
 /* ── Client Portal and security boundaries untouched ──────────────────────── */
-for (const p of ['src/app/client-portal', 'src/components/client-portal', 'src/styles/portal-tokens.css', 'src/app/(client-auth)', 'src/app/api/client-portal']) {
+// S6.2 deliberately changes the Client Portal (access model, suspended state, signup response), so those paths are
+// no longer guarded as "untouched" here; they are covered by scripts/test-portal-access.cjs instead. Styles stay guarded.
+for (const p of ['src/styles/portal-tokens.css']) {
   assert.equal(execSync(`git status --porcelain -- "${p}"`, { cwd: root }).toString().trim(), '', `${p} untouched`)
 }
 assert.equal(execSync('git status --porcelain -- src/lib/admin-2fa-cookie.ts', { cwd: root }).toString().trim(), '', 'the 2FA cookie signer/verifier is untouched (the 2FA ROUTES were hardened separately; see test-admin-2fa.cjs)')
