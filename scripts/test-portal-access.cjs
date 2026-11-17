@@ -190,6 +190,20 @@ function makeDb() {
         Object.assign(inv, { consumed_at: new Date().toISOString(), consumed_by_user: args.p_user_id, consumed_client_id: owned[0].id })
         return { data: { ok: true, reason: 'linked' }, error: null }
       }
+      if (name === 'create_portal_request') {
+        const c = rows('clients').find((r) => r.id === args.p_client_id)
+        if (!c) return { data: { status: 'client_not_found' }, error: null }
+        if (String(c.status || '').trim().toLowerCase() === 'suspended') return { data: { status: 'suspended' }, error: null }
+        if (!c.merchant_id || !rows('merchants').some((m) => m.id === c.merchant_id)) return { data: { status: 'not_connected' }, error: null }
+                if (rows('projects').some((p) => p.project_id === args.p_reference)) return { data: null, error: { code: '23505', message: 'duplicate' } } // whole function rolls back
+        const rid = uuid(), pid = uuid()
+        rows('project_requests').push({ id: rid, client_id: c.id, title: args.p_title, description: args.p_description, status: 'open', project_id: pid, last_activity_at: new Date().toISOString(), created_at: new Date().toISOString() })
+        rows('projects').push({ id: pid, client_id: c.id, project_id: args.p_reference, title: args.p_title, project_name: args.p_title, status: 'Pending Review', progress: 0 })
+        const ev = (o) => (state.tables.activity_events = state.tables.activity_events || []).push({ id: uuid(), created_at: new Date().toISOString(), client_id: c.id, project_id: pid, request_id: rid, metadata: {}, ...o })
+        ev({ actor_user_id: args.p_actor_user_id, actor_role: 'client', action: 'request_submitted', summary: 'Request submitted', visibility: 'client' })
+        ev({ actor_role: 'system', action: 'project_created', summary: 'Project record created and awaiting review', visibility: 'client' })
+        return { data: { status: 'created', request_id: rid, project_id: pid }, error: null }
+      }
       return { data: null, error: { code: 'XX000', message: 'unknown rpc ' + name } }
     },
     storage: {
@@ -717,14 +731,15 @@ const ALL_PORTAL = [
     assert.equal(r.status, 200, 'client still succeeds')
   })
 
-  await test('R3 project insert failing rolls the request row back (nothing half-made) and says so', async () => {
+  await test('R3 S6.3: the request is ONE atomic RPC — a failure leaves nothing half-made and says so', async () => {
     resetState(); db = makeDb(); cache.clear(); as(USER_A)
-    state.failures['projects:insert'] = 'XX000'
-    const before = count('project_requests')
+    const orig = db.rpc
+    db.rpc = async (n, a) => (n === 'create_portal_request' ? { data: null, error: { code: 'XX000', message: 'forced' } } : orig(n, a))
+    const before = [count('project_requests'), count('projects')]
     const r = await call('client-portal/project-requests', 'POST', { body: REQ_BODY })
     assert.equal(r.status, 500)
-    assert.equal(r.json.code, 'project_failed')
-    assert.equal(count('project_requests'), before, 'request row rolled back')
+    assert.equal(r.json.code, 'request_failed')
+    assert.deepEqual([count('project_requests'), count('projects')], before, 'nothing written')
     assert.equal(count('notifications'), 0)
   })
 
@@ -741,26 +756,15 @@ const ALL_PORTAL = [
     assert.doesNotMatch(stripComments(read('src/app/api/client-portal/project-requests/route.ts')), /Date\.now/)
   })
 
-  await test('R5 a reference already in use is skipped and retried, never reused', async () => {
+  await test('R5 a reference already in use rolls the whole RPC back and is retried with a fresh one', async () => {
     resetState(); db = makeDb(); cache.clear(); as(USER_A)
-    // Make the FIRST candidate collide by pre-seeding every possible value is infeasible; instead force the clash path
-    // through the unique-violation branch: first insert reports 23505, second succeeds.
     let calls = 0
-    const realFrom = db.from
-    db.from = (name) => {
-      const b = realFrom(name)
-      if (name !== 'projects') return b
-      const realInsert = b.insert
-      b.insert = (p) => {
-        const handle = realInsert(p)
-        if (calls++ === 0) { handle.single = async () => ({ data: null, error: { code: '23505', message: 'dup' } }) }
-        return handle
-      }
-      return b
-    }
+    const orig = db.rpc
+    db.rpc = async (n, a) => { if (n !== 'create_portal_request') return orig(n, a); calls++; return calls === 1 ? { data: null, error: { code: '23505', message: 'dup' } } : orig(n, a) }
     const r = await call('client-portal/project-requests', 'POST', { body: REQ_BODY })
     assert.equal(r.status, 200, JSON.stringify(r.json))
-    assert.ok(calls >= 2, 'a second attempt was made after the unique violation')
+    assert.equal(calls, 2, 'a second attempt was made after the unique violation')
+    assert.equal(count('project_requests'), 3, 'exactly one request was created')
   })
 
   // ── Rate limits ──────────────────────────────────────────────────────────

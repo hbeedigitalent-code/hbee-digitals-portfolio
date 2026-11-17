@@ -21,6 +21,8 @@
 
 import { NextResponse } from 'next/server'
 import { resolvePortalClient } from '@/lib/client-portal/portal-client'
+import { normalizeRequestStatus } from '@/lib/requests/request-status'
+import { CLIENT_VISIBLE_DELIVERABLE_STATUSES } from '@/lib/projects/operations-validation'
 import { GET as getGrowthProfile } from '../growth-profile/route'
 import {
   buildActivity,
@@ -30,6 +32,7 @@ import {
   selectActiveWork,
   selectOpenProposal,
   type DeliverableRow,
+  type EventRow,
   type FileRow,
   type NotificationRow,
   type ProjectRow,
@@ -100,7 +103,7 @@ export async function GET() {
     }
 
     // Every query below is predicated on the caller-derived clients.id.
-    const [growth, projectsRes, proposalsRes, notificationsRes, filesRes] = await Promise.all([
+    const [growth, projectsRes, proposalsRes, notificationsRes, filesRes, eventsRes, answeredRes] = await Promise.all([
       loadGrowth(),
       adminClient
         .from('projects')
@@ -128,12 +131,31 @@ export async function GET() {
         .eq('client_id', clientId)
         .order('uploaded_at', { ascending: false })
         .limit(5),
+      // S6.3 operational history. visibility = 'client' is part of the query: internal events never leave the
+      // database for this route.
+      adminClient
+        .from('activity_events')
+        .select('id, summary, created_at, request_id, project_id')
+        .eq('client_id', clientId)
+        .eq('visibility', 'client')
+        .order('created_at', { ascending: false })
+        .limit(10),
+      adminClient
+        .from('project_requests')
+        .select('id, title, status')
+        .eq('client_id', clientId)
+        .order('last_activity_at', { ascending: false, nullsFirst: false })
+        .limit(30),
     ])
 
     const projects = rows<ProjectRow>('projects', projectsRes)
     const proposals = rows<ProposalRow>('proposals', proposalsRes)
     const notifications = rows<NotificationRow>('notifications', notificationsRes)
     const files = rows<FileRow>('files', filesRes)
+    const events = rows<EventRow>('activity', eventsRes as any)
+    const answeredRequests = rows<{ id: string; title: string | null; status: string | null }>('requests', answeredRes as any)
+      .filter((r) => normalizeRequestStatus(r.status) === 'answered')
+      .slice(0, 3)
 
     // project_deliverables has no client_id: ownership is project_id -> projects.client_id,
     // using only project ids this client already owns. No owned projects, no query.
@@ -146,6 +168,7 @@ export async function GET() {
           .from('project_deliverables')
           .select('id, title, version, uploaded_at, project_id')
           .in('project_id', projectIds)
+          .in('status', CLIENT_VISIBLE_DELIVERABLE_STATUSES as string[])
           .order('uploaded_at', { ascending: false })
           .limit(5),
       )
@@ -165,9 +188,9 @@ export async function GET() {
         state: growth.state,
         snapshot: profile ? deriveSnapshot(profile) : null,
       },
-      attention: buildAttention({ proposals, projects, now }),
+      attention: buildAttention({ proposals, projects, now, answeredRequests }),
       activeWork: selectActiveWork(projects),
-      activity: buildActivity({ notifications, files, deliverables, proposals }),
+      activity: buildActivity({ notifications, files, deliverables, proposals, events }),
       files: files.map((f) => ({
         id: f.id,
         name: f.file_name,

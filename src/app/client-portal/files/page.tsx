@@ -35,6 +35,8 @@ import styles from './files.module.css'
 
 interface PortalFile {
   id: string
+  canDelete?: boolean
+  suppliedByHbee?: boolean
   name: string
   type: string | null
   size: number | null
@@ -280,15 +282,17 @@ export default function ClientFilesPage() {
             <Download aria-hidden="true" />
             {downloadingId === file.id ? 'Preparing…' : 'Download'}
           </button>
-          <button
-            type="button"
-            onClick={() => handleDelete(file)}
-            disabled={deletingId === file.id || downloadingId === file.id}
-            aria-label={`Delete ${file.name}`}
-            className={styles.del}
-          >
-            {deletingId === file.id ? 'Deleting…' : 'Delete'}
-          </button>
+          {file.canDelete && (
+            <button
+              type="button"
+              onClick={() => handleDelete(file)}
+              disabled={deletingId === file.id || downloadingId === file.id}
+              aria-label={`Delete ${file.name}`}
+              className={styles.del}
+            >
+              {deletingId === file.id ? 'Deleting…' : 'Delete'}
+            </button>
+          )}
         </div>
       </li>
     )

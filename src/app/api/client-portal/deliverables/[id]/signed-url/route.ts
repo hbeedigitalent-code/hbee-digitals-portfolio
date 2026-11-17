@@ -27,6 +27,7 @@
 
 import { NextResponse } from 'next/server'
 import { resolvePortalClient } from '@/lib/client-portal/portal-client'
+import { CLIENT_VISIBLE_DELIVERABLE_STATUSES } from '@/lib/projects/operations-validation'
 import { resolveDeliverableLink } from '@/lib/client-portal/deliverable-link'
 
 const PROJECT_FILES_BUCKET = 'project-files'
@@ -49,11 +50,12 @@ export async function GET(_request: Request, { params }: { params: { id: string 
 
     const { data: deliverable } = await adminClient
       .from('project_deliverables')
-      .select('id, project_id, file_url')
+      .select('id, project_id, file_url, status')
       .eq('id', deliverableId)
       .maybeSingle()
 
-    if (!deliverable?.project_id) {
+    // S6.3: a 'draft' is Admin work in progress. It answers exactly like a missing deliverable.
+    if (!deliverable?.project_id || !CLIENT_VISIBLE_DELIVERABLE_STATUSES.includes(String(deliverable.status || ''))) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 

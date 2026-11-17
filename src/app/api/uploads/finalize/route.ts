@@ -225,6 +225,11 @@ export async function POST(request: Request) {
 
       if (outcome === 'finalized' || outcome === 'already_finalized') {
         if (rpc?.batch_completed === true) batchCompleted = true
+
+        // File ownership (project_files.uploaded_by_role) is stamped INSIDE finalize_upload's own transaction
+        // (scripts/requests-projects-01-forward.sql), from upload_sessions.uploader_role. There is deliberately NO
+        // second write here: a follow-up UPDATE could fail after the RPC had already committed and make a
+        // successful save look like a failure.
         results.push({
           uploadId,
           status: outcome as 'finalized' | 'already_finalized',

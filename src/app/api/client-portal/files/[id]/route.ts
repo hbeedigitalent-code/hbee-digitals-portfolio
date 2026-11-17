@@ -57,7 +57,7 @@ export async function DELETE(_request: Request, { params }: { params: { id: stri
     //    does not exist — no existence oracle.
     const { data: fileRow, error: fileError } = await adminClient
       .from('project_files')
-      .select('id, client_id, file_url, file_name')
+      .select('id, client_id, file_url, file_name, uploaded_by_role')
       .eq('id', fileId)
       .eq('client_id', clientId)
       .maybeSingle()
@@ -72,6 +72,17 @@ export async function DELETE(_request: Request, { params }: { params: { id: stri
     }
     if (!fileRow) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+
+    // S6.3 OWNERSHIP. Sharing a client_id does not make a file the client's to delete: files Hbee supplied
+    // (uploaded_by_role = 'admin') and files whose origin is not recorded (NULL — fail closed) stay put. Only a
+    // file the client itself uploaded can be removed here. The refusal is explicit rather than a 404 because
+    // the caller already legitimately sees the file in their own list.
+    if (fileRow.uploaded_by_role !== 'client') {
+      return NextResponse.json(
+        { code: 'file_not_deletable', error: 'This file was supplied by Hbee Digitals and cannot be removed here. Contact us if it needs to change.' },
+        { status: 403 },
+      )
     }
 
     // 4. The object path comes from the STORED value, validated by the same

@@ -34,7 +34,7 @@ assert.equal(new Set(hrefs).size, hrefs.length, 'no duplicate hrefs')
 for (const href of hrefs) assert.ok(exists(`src${href.replace('/admin', '/app/admin')}/page.tsx`), `${href} is a real admin page`)
 
 // The exact sidebar set that existed before Phase A1: regrouping must not add, drop or invent a route.
-const PREVIOUS = ['dashboard', 'workspace', 'growth-reviews', 'growth-profiles', 'client-onboarding', 'crm', 'client-portal', 'projects', 'tasks', 'proposals', 'agreements', 'client-health', 'growth-intelligence', 'growth-intelligence/audits', 'growth-intelligence/opportunities', 'blog', 'comments', 'faqs', 'trust', 'testimonials', 'hero', 'about', 'services', 'pricing', 'portfolio', 'team', 'before-after', 'inquiries', 'newsletter', 'subscribers', 'menu', 'merchants', 'profile', 'settings', 'footer'].map((p) => `/admin/${p}`)
+const PREVIOUS = ['dashboard', 'workspace', 'growth-reviews', 'growth-profiles', 'client-onboarding', 'crm', 'client-portal', 'requests', 'projects', 'tasks', 'proposals', 'agreements', 'client-health', 'growth-intelligence', 'growth-intelligence/audits', 'growth-intelligence/opportunities', 'blog', 'comments', 'faqs', 'trust', 'testimonials', 'hero', 'about', 'services', 'pricing', 'portfolio', 'team', 'before-after', 'inquiries', 'newsletter', 'subscribers', 'menu', 'merchants', 'profile', 'settings', 'footer'].map((p) => `/admin/${p}`)
 assert.deepEqual([...hrefs].sort(), [...PREVIOUS].sort(), 'the previous sidebar minus the merged Growth Assessments entry, only regrouped')
 // Growth Assessments was merged into Growth Reviews (one nav entry); the old URL stays valid as an alias.
 assert.ok(!hrefs.includes('/admin/growth-assessments'), 'no second Growth entry')

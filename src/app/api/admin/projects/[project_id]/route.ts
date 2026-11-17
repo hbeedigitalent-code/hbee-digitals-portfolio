@@ -44,6 +44,8 @@ import { requireActiveAdmin, queryFailure, ADMIN_UUID_RE } from '@/lib/admin-api
 // A Route Handler may not export arbitrary constants — `next build` rejects it
 // even though `tsc --noEmit` does not — so the vocabulary lives in lib/.
 import { toCalendarDate, isOnOrAfter } from '@/lib/projects/project-date'
+import { recordActivity } from '@/lib/activity/activity'
+import { createNotification } from '@/lib/notifications/createNotification'
 import {
   PERSISTABLE_PROJECT_STATUSES,
   isPersistableProjectStatus,
@@ -53,7 +55,9 @@ export const dynamic = 'force-dynamic'
 
 // The only fields Project Management may write. Anything else in the body is an
 // error, not something to skip over.
-const MANAGEMENT_FIELDS = ['status', 'progress', 'expected_completion_date'] as const
+// S6.3 adds the project's name and description. client_id and start_date stay refused (ownership and the
+// creation date are not edited after the fact — see FIELD_REFUSALS).
+const MANAGEMENT_FIELDS = ['status', 'progress', 'expected_completion_date', 'project_name', 'description'] as const
 
 // Refused with a reason of its own, because these are not typos — they are
 // fields an earlier version of this route accepted, or that a caller might
@@ -63,8 +67,7 @@ const FIELD_REFUSALS: Record<string, string> = {
     'The start date is set when the project is created and is not editable from Project Management.',
   client_id: 'A project cannot be re-linked to another client from Project Management.',
   project_id: 'The project reference cannot be changed.',
-  project_name: 'The project name cannot be changed from Project Management.',
-  title: 'The project title cannot be changed from Project Management.',
+  title: 'Change the project name instead; the title follows it.',
   id: 'The project identifier cannot be changed.',
 }
 
@@ -234,6 +237,23 @@ export async function PATCH(
       updates.expected_completion_date = parsed.value
     }
 
+    if (body?.project_name !== undefined) {
+      const name = typeof body.project_name === 'string' ? body.project_name.replace(/\s+/g, ' ').trim() : ''
+      if (name.length < 3 || name.length > 120) {
+        return NextResponse.json({ error: 'The project name must be between 3 and 120 characters.' }, { status: 400 })
+      }
+      updates.project_name = name
+      updates.title = name // projects.title is NOT NULL and shared with the portfolio side; it follows the name
+    }
+
+    if (body?.description !== undefined) {
+      const description = typeof body.description === 'string' ? body.description.replace(/\r\n/g, '\n').trim() : null
+      if (description === null || description.length > 4000) {
+        return NextResponse.json({ error: 'The description must be text of at most 4000 characters.' }, { status: 400 })
+      }
+      updates.description = description
+    }
+
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'Nothing to update.' }, { status: 400 })
     }
@@ -248,6 +268,15 @@ export async function PATCH(
 
     if (lookupError) return queryFailure('project lookup', lookupError)
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    // The name and description of a project WITHOUT a client belong to the public portfolio / case studies, which
+    // are edited in their own CMS. Client project management never rewrites public copy.
+    if ((updates.project_name !== undefined || updates.description !== undefined) && !(existing as any).client_id) {
+      return NextResponse.json(
+        { code: 'not_client_project', error: 'This is a public portfolio record, not a client project. Edit it in the Portfolio CMS.' },
+        { status: 409 },
+      )
+    }
 
     // The range is checked against the RESULTING pair. start_date can only be
     // the stored one now, so a completion date is still refused if it lands
@@ -333,6 +362,41 @@ export async function PATCH(
         { error: 'The project could not be updated.' },
         { status: 409 },
       )
+    }
+
+    // S6.3: history and (for a meaningful change) the client are told. Neither can fail the update.
+    const events: Array<{ action: string; summary: string; meta: Record<string, unknown> }> = []
+    if (updates.status !== undefined && updates.status !== (existing as any).status) {
+      events.push({ action: 'project_status_changed', summary: `Project status changed to ${updates.status}`, meta: { from: String((existing as any).status ?? ''), to: String(updates.status) } })
+    }
+    if (updates.progress !== undefined && updates.progress !== (existing as any).progress) {
+      events.push({ action: 'project_progress_updated', summary: `Project progress updated to ${updates.progress}%`, meta: { from: Number((existing as any).progress ?? 0), to: Number(updates.progress) } })
+    }
+    for (const ev of events) {
+      const eventId = await recordActivity(db, {
+        clientId: (existing as any).client_id,
+        projectId,
+        actorUserId: auth.userId,
+        actorRole: 'admin',
+        entityType: 'project',
+        entityId: projectId,
+        action: ev.action,
+        summary: ev.summary,
+        metadata: ev.meta,
+        visibility: 'client',
+      })
+      if (eventId && (existing as any).client_id) {
+        await createNotification({
+          scope: 'client',
+          recipientId: (existing as any).client_id,
+          type: ev.action,
+          title: ev.action === 'project_status_changed' ? 'Your project status changed' : 'Your project progress was updated',
+          message: ev.summary,
+          entityType: 'activity_event',
+          entityId: eventId,
+          link: `/client-portal/projects/${projectId}`,
+        })
+      }
     }
 
     // The caller is told exactly which fields were written, and is handed the

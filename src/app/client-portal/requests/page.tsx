@@ -12,17 +12,20 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import { SupportAmbiguous, SupportError, SupportLoading } from '@/components/client-portal/SupportState'
-import { formatDay, humanStatus } from '@/lib/client-portal/support-display'
+import { formatDay } from '@/lib/client-portal/support-display'
+import { REQUEST_STATUS_LABELS, type RequestStatus } from '@/lib/requests/request-status'
 import styles from '@/components/client-portal/support.module.css'
 
 interface PortalRequest {
   id: string
   title: string
   description: string | null
-  status: string | null
+  status: RequestStatus
   createdAt: string | null
+  lastActivityAt: string | null
   response: string | null
   projectName: string | null
+  unreadReplies: number
 }
 
 type LoadState = 'loading' | 'ready' | 'ambiguous' | 'error'
@@ -88,20 +91,25 @@ export default function ClientRequestsPage() {
         <section className={styles.panel} aria-label="Your requests">
           <ul className={styles.list}>
             {requests.map((r) => {
-              const status = humanStatus(r.status)
+              const status = REQUEST_STATUS_LABELS[r.status] ?? null
               const date = formatDay(r.createdAt)
               return (
                 <li key={r.id} className={styles.item}>
                   <div style={{ minWidth: 0 }}>
-                    <p className={styles.itemTitle}>{r.title}</p>
+                    <p className={styles.itemTitle}>
+                      <Link href={`/client-portal/requests/${r.id}`} className={styles.link}>
+                        {r.title}
+                      </Link>
+                    </p>
                     {r.description && <p className={styles.itemText}>{r.description}</p>}
                     <div className={styles.itemMeta}>
                       {r.projectName && <span>Project: {r.projectName}</span>}
                       {date && <span>Submitted {date}</span>}
+                      {r.unreadReplies > 0 && <span className={styles.chip}>{r.unreadReplies} new {r.unreadReplies === 1 ? 'reply' : 'replies'}</span>}
                     </div>
                     {r.response && (
                       <div className={styles.response}>
-                        <strong>Response</strong>
+                        <strong>Latest reply from Hbee</strong>
                         <p>{r.response}</p>
                       </div>
                     )}

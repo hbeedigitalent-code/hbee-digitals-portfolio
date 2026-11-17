@@ -8,6 +8,7 @@ import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
 import FileUploader from '@/components/uploads/FileUploader'
 import { ClientConnectionPanel } from '@/components/admin/ClientConnectionPanel'
+import ClientOperationsSummary from '@/components/admin/ClientOperationsSummary'
 
 interface Client {
   id: string
@@ -246,6 +247,8 @@ export default function AdminClientDetailPage() {
             </div>
           </div>
         </div>
+
+        <ClientOperationsSummary clientId={client.id} />
 
         {/* Projects */}
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">

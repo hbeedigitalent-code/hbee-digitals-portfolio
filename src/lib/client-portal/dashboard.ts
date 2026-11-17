@@ -201,7 +201,7 @@ export interface NotificationRow {
 }
 
 export interface AttentionItem {
-  kind: 'proposal' | 'project'
+  kind: 'proposal' | 'project' | 'request'
   title: string
   context: string
   href: string
@@ -231,10 +231,21 @@ export function buildAttention(input: {
   proposals: ProposalRow[]
   projects: ProjectRow[]
   now: Date
+  /** S6.3: requests Hbee has answered and the client has not yet replied to or closed. Real rows only. */
+  answeredRequests?: Array<{ id: string; title: string | null }>
   max?: number
 }): AttentionItem[] {
   const max = input.max ?? 3
   const out: AttentionItem[] = []
+
+  for (const r of input.answeredRequests ?? []) {
+    out.push({
+      kind: 'request',
+      title: (r.title || '').trim() || 'Request',
+      context: 'Hbee replied to your request',
+      href: `/client-portal/requests/${r.id}`,
+    })
+  }
 
   for (const p of input.proposals.filter((p) => isAwaitingResponse(p, input.now))) {
     out.push({
@@ -297,11 +308,21 @@ function validTime(value: string | null | undefined): number | null {
  * deliverables and proposal send dates. Newest first, never padded. A file,
  * deliverable or proposal that a notification already announces is not listed twice.
  */
+/** A client-visible activity_events row (S6.3). Internal events never reach this type: the route filters them. */
+export interface EventRow {
+  id: string
+  summary: string | null
+  created_at: string | null
+  request_id: string | null
+  project_id: string | null
+}
+
 export function buildActivity(input: {
   notifications: NotificationRow[]
   files: FileRow[]
   deliverables: DeliverableRow[]
   proposals: ProposalRow[]
+  events?: EventRow[]
   max?: number
 }): ActivityItem[] {
   const max = input.max ?? 5
@@ -325,6 +346,19 @@ export function buildActivity(input: {
     const t = validTime(d.uploaded_at)
     if (t === null || !d.title || announced.has(`deliverable:${d.id}`) || announced.has(`project_deliverable:${d.id}`)) continue
     items.push({ type: 'deliverable', title: d.title, context: 'Deliverable available', at: d.uploaded_at!, href: '/client-portal/files', t })
+  }
+  // S6.3: real workflow events. One that a notification already announces (same destination within two
+  // minutes) is not listed twice.
+  const notified = input.notifications
+    .map((n) => ({ href: safePortalLink(n.link), t: validTime(n.created_at) }))
+    .filter((n): n is { href: string; t: number } => !!n.href && n.t !== null)
+  for (const e of input.events ?? []) {
+    const t = validTime(e.created_at)
+    const title = (e.summary || '').trim()
+    if (t === null || !title) continue
+    const href = e.request_id ? `/client-portal/requests/${e.request_id}` : e.project_id ? `/client-portal/projects/${e.project_id}` : null
+    if (href && notified.some((n) => n.href === href && Math.abs(n.t - t) < 120000)) continue
+    items.push({ type: 'update', title, context: null, at: e.created_at!, href, t })
   }
   for (const p of input.proposals) {
     const t = validTime(p.sent_at)

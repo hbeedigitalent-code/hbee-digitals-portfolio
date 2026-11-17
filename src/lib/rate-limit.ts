@@ -64,6 +64,8 @@ export const RATE_LIMITS = {
   // Invisible to normal use; there is no captcha on these paths.
   portalRequest: { requests: 5, window: '1 h' },
   portalUpload: { requests: 30, window: '1 h' },
+  // Thread replies from a connected client: a real conversation is a handful of messages an hour, never hundreds.
+  portalReply: { requests: 30, window: '1 h' },
 } as const
 
 export type RateLimitName = keyof typeof RATE_LIMITS

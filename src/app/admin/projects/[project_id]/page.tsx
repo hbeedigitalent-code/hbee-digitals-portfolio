@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
+import ProjectOperationsPanel from '@/components/admin/ProjectOperationsPanel'
 import { formatCalendarDate, toDateInputValue } from '@/lib/projects/project-date'
 
 interface Project {
@@ -507,6 +508,12 @@ export default function AdminProjectDetailPage() {
           </div>
         )}
       </div>
+
+      <ProjectOperationsPanel
+        projectId={String(project.id)}
+        initialName={String((project as any).project_name ?? '')}
+        initialDescription={String((project as any).description ?? '')}
+      />
     </div>
   )
 }

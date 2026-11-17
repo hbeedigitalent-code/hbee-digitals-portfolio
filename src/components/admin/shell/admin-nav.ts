@@ -62,6 +62,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { label: 'Client Onboarding', href: '/admin/client-onboarding' },
       { label: 'Merchants', href: '/admin/merchants' },
       { label: 'Client Portal', href: '/admin/client-portal' },
+      { label: 'Requests', href: '/admin/requests' },
       { label: 'Projects', href: '/admin/projects' },
       { label: 'Tasks', href: '/admin/tasks' },
       { label: 'Proposals', href: '/admin/proposals' },

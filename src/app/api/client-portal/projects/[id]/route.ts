@@ -15,6 +15,8 @@
 
 import { NextResponse } from 'next/server'
 import { resolvePortalClient } from '@/lib/client-portal/portal-client'
+import { CLIENT_VISIBLE_DELIVERABLE_STATUSES } from '@/lib/projects/operations-validation'
+import { normalizeRequestStatus } from '@/lib/requests/request-status'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,11 +61,12 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       return result.data || []
     }
 
-    const [milestonesRes, filesRes, deliverablesRes, requestsRes] = await Promise.all([
+    const [milestonesRes, filesRes, deliverablesRes, requestsRes, teamRes, activityRes] = await Promise.all([
       adminClient
         .from('project_milestones')
-        .select('id, title, description, status, due_date')
+        .select('id, title, description, status, due_date, sort_order, completed_at')
         .eq('project_id', project.id)
+        .order('sort_order', { ascending: true })
         .order('due_date', { ascending: true })
         .limit(50),
       adminClient
@@ -75,8 +78,10 @@ export async function GET(_request: Request, { params }: { params: { id: string 
         .limit(5),
       adminClient
         .from('project_deliverables')
-        .select('id, title, description, version, uploaded_at, file_url')
+        .select('id, title, description, version, uploaded_at, file_url, status, due_date')
         .eq('project_id', project.id)
+        // 'draft' deliverables are Admin work in progress: filtered in the database query, not after it.
+        .in('status', CLIENT_VISIBLE_DELIVERABLE_STATUSES as string[])
         .order('uploaded_at', { ascending: false })
         .limit(10),
       adminClient
@@ -86,12 +91,23 @@ export async function GET(_request: Request, { params }: { params: { id: string 
         .eq('client_id', clientRow.id)
         .order('created_at', { ascending: false })
         .limit(5),
+      // Only HOW MANY Hbee people are assigned — no identity, no email. Visibility is a deliberate S6.3 limit.
+      adminClient.from('project_team_assignments').select('id', { count: 'exact', head: true }).eq('project_id', project.id),
+      adminClient
+        .from('activity_events')
+        .select('id, summary, created_at')
+        .eq('project_id', project.id)
+        .eq('client_id', clientRow.id)
+        .eq('visibility', 'client')
+        .order('created_at', { ascending: false })
+        .limit(15),
     ])
 
     const milestones = rows<any>('milestones', milestonesRes)
     const files = rows<any>('files', filesRes)
     const deliverables = rows<any>('deliverables', deliverablesRes)
     const requests = rows<any>('requests', requestsRes)
+    const activity = rows<any>('activity', activityRes as any)
 
     return NextResponse.json({
       project: {
@@ -110,6 +126,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
         description: m.description || null,
         status: m.status || null,
         dueDate: m.due_date || null,
+        completedAt: m.completed_at || null,
       })),
       files: files.map((f) => ({
         id: f.id,
@@ -124,14 +141,18 @@ export async function GET(_request: Request, { params }: { params: { id: string 
         description: d.description || null,
         version: d.version || null,
         uploadedAt: d.uploaded_at || null,
+        status: d.status || null,
+        dueDate: d.due_date || null,
         hasFile: typeof d.file_url === 'string' && d.file_url.trim().length > 0,
       })),
       requests: requests.map((r) => ({
         id: r.id,
         title: r.title,
-        status: r.status || null,
+        status: normalizeRequestStatus(r.status),
         createdAt: r.created_at || null,
       })),
+      teamSize: teamRes && !teamRes.error ? Number(teamRes.count) || 0 : null,
+      activity: activity.map((a) => ({ id: a.id, summary: a.summary, createdAt: a.created_at })),
       unavailable,
     })
   } catch (error) {

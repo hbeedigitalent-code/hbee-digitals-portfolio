@@ -14,6 +14,7 @@
 
 import { NextResponse } from 'next/server'
 import { resolvePortalClient } from '@/lib/client-portal/portal-client'
+import { CLIENT_VISIBLE_DELIVERABLE_STATUSES } from '@/lib/projects/operations-validation'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,7 +37,7 @@ export async function GET() {
         .limit(200),
       adminClient
         .from('project_files')
-        .select('id, file_name, file_type, file_size, uploaded_at, project_id')
+        .select('id, file_name, file_type, file_size, uploaded_at, project_id, uploaded_by_role')
         .eq('client_id', clientId)
         .order('uploaded_at', { ascending: false })
         .limit(500),
@@ -68,6 +69,8 @@ export async function GET() {
         .from('project_deliverables')
         .select('id, title, description, version, uploaded_at, project_id, file_url')
         .in('project_id', projectIds)
+        // Admin drafts are not client-visible (S6.3): filtered in the query itself.
+        .in('status', CLIENT_VISIBLE_DELIVERABLE_STATUSES as string[])
         .order('uploaded_at', { ascending: false, nullsFirst: false })
         .limit(100)
       if (delRes.error) {
@@ -97,6 +100,9 @@ export async function GET() {
         size: Number.isFinite(Number(f.file_size)) ? Number(f.file_size) : null,
         uploadedAt: f.uploaded_at || null,
         projectId: f.project_id || null,
+        // S6.3: only a file the CLIENT uploaded may be deleted by the client. The delete route enforces it too.
+        canDelete: f.uploaded_by_role === 'client',
+        suppliedByHbee: f.uploaded_by_role === 'admin',
       })),
       deliverables: deliverables.map((d) => ({
         id: d.id,
