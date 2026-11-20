@@ -147,13 +147,21 @@ export async function loadProposalView(
   return { view, client }
 }
 
+// States in which the proposal still awaits the client's decision: the only time the "Next steps" panel is printed.
+const AWAITING_DECISION = ['sent', 'viewed', 'changes_requested']
+// States worth naming on the document itself; "sent" / "viewed" are simply the proposal being out for review.
+const DOCUMENT_STATUS_LABELS: Record<string, string> = { approved: 'Approved', declined: 'Declined', rejected: 'Declined', expired: 'Expired' }
+
 export function proposalPdfInput(view: ProposalView, client: { name: string; business: string | null } | null): ProposalPdfInput {
+  const awaiting = AWAITING_DECISION.includes(view.displayStatus)
   return {
     number: view.number,
     version: view.shownVersion,
     title: view.title,
     preparedFor: { name: client?.name ?? 'Client', business: client?.business ?? null },
-    issueDate: view.issueDate,
+    // a delivered version always carries the issue date the database stamped when it was sent; the sent timestamp is the same
+    // fact for a legacy row without one. A draft has none and says so on the document: no date is ever invented.
+    issueDate: view.issueDate ?? (view.isDraftPreview ? null : view.sentAt),
     expiresAt: view.expiresAt,
     currency: view.currency,
     summary: view.summary,
@@ -166,7 +174,10 @@ export function proposalPdfInput(view: ProposalView, client: { name: string; bus
     subtotal: view.subtotal,
     discount: view.discount,
     total: view.total,
-    watermark: view.isDraftPreview ? 'DRAFT PREVIEW - NOT YET SENT TO THE CLIENT' : null,
+    watermark: view.isDraftPreview ? 'DRAFT PREVIEW — NOT YET SENT TO THE CLIENT' : null,
+    statusLabel: view.isDraftPreview ? null : DOCUMENT_STATUS_LABELS[view.displayStatus] ?? null,
+    // the panel is shown on a draft preview too: it is what the client will read once the proposal is sent
+    showNextSteps: view.isDraftPreview || awaiting,
   }
 }
 

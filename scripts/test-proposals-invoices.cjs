@@ -326,7 +326,7 @@ function makeDb() {
         const revised = p.status === 'changes_requested'
         const ver = revised ? p.version + 1 : p.version
         const sub = totalsOf(p.id)
-        Object.assign(p, { status: 'sent', sent_at: new Date().toISOString(), version: ver, subtotal: money2(sub), total: money2(sub - ($.toMinor(p.discount_amount) ?? 0n)) })
+        Object.assign(p, { status: 'sent', sent_at: new Date().toISOString(), version: ver, subtotal: money2(sub), total: money2(sub - ($.toMinor(p.discount_amount) ?? 0n)), issue_date: p.issue_date || new Date().toISOString().slice(0, 10) }) // SQL: issue_date = coalesce(issue_date, current_date)
         const v = { id: uuid(), proposal_id: p.id, version_number: ver, title: p.title, summary: p.summary || null, scope: p.scope || null, deliverables: p.deliverables || null, timeline: p.timeline || null, terms: p.terms || null, payment_terms: ((p.pricing || {}).payment_terms) || '', currency: p.currency, subtotal: p.subtotal, discount_amount: p.discount_amount, total: p.total, expires_at: p.expires_at || null, issue_date: p.issue_date || null, line_items: lines.map((l) => ({ title: l.title, description: l.description, quantity: l.quantity, unit_price: l.unit_price, amount: l.amount })), sent_at: p.sent_at }
         rows('proposal_versions').push(v)
         for (const r of rows('proposal_responses')) if (r.proposal_id === p.id && r.response_type === 'changes_requested' && !r.resolved_at) Object.assign(r, { resolved_at: 'now', resolved_in_version: ver })
@@ -1147,6 +1147,191 @@ const ALL_PORTAL = [
     assert.ok(P(r.json.proposal.id), 'the returned id is the id of the stored row'); assert.equal(P(r.json.proposal.id).proposal_number, r.json.proposal.proposal_number)
     const g = await call('admin/proposals/[id]', 'GET', { params: { id: r.json.proposal.id } }); assert.equal(g.status, 200, 'the page the editor opens loads')
     assert.match(stripComments(read('src/components/admin/ProposalEditor.tsx')), /router\.push\(`\/admin\/proposals\/\$\{editing \? proposalId : payload\?\.proposal\?\.id\}`\)/)
+  })
+
+  console.log('\nL. Hbee Commercial Document System (PDF template v2)')
+  const upper = (t) => Buffer.from(t, 'latin1').toString('hex').toUpperCase()
+  const countText = (bytes, t) => pdfCorpus(bytes).toUpperCase().split(upper(t)).length - 1
+  const pageCount = async (bytes) => (await require('pdf-lib').PDFDocument.load(bytes)).getPageCount()
+  const hasLogoImage = (bytes) => { const c = pdfCorpus(bytes); return /\/Subtype\s*\/Image/.test(c) && /\/Width\s+2172/.test(c) && /\/Height\s+724/.test(c) }
+  const imageDraws = (bytes) => (pdfCorpus(bytes).match(/\/[A-Za-z0-9_.-]+\s+Do\b/g) || []).length
+  const FIX_LINES = [{ title: 'Design', description: 'Visual design', quantity: '1', unit_price: '250.00', amount: '250.00' }, { title: 'Build', description: null, quantity: '1', unit_price: '150.00', amount: '150.00' }]
+  const FIX_PROPOSAL = { number: 'PROP-QA-0001', version: 2, title: 'QA proposal', preparedFor: { name: 'Ada Sample', business: 'Sample Store Ltd' }, issueDate: '2026-11-20', expiresAt: '2026-12-20', currency: 'USD', summary: 'Summary text', lines: FIX_LINES, subtotal: '400.00', discount: '40.00', total: '360.00', paymentTerms: '50% upfront', terms: 'Fixture terms' }
+  const FIX_INVOICE = { number: 'HBD-INV-2026-0001', statusLabel: 'Partially paid', billTo: { name: 'Ada Sample', business: 'Sample Store Ltd' }, project: { name: 'Website', reference: 'PROJ-1' }, proposalNumber: 'PROP-QA-0001', issueDate: '2026-11-21', dueDate: '2026-12-05', currency: 'USD', lines: FIX_LINES, subtotal: '400.00', discount: '40.00', tax: '0.00', total: '360.00', paid: '180.00', balance: '180.00', paymentInstructions: 'Pay by transfer', notes: 'Thanks', payments: [{ paid_at: '2026-11-25', amount: '180.00', method: 'Transfer', reference: 'TRX-1' }] }
+
+  await test('L1 the approved full LOCKUP is embedded: bundled bytes === public/brand/hbee-digitals-logo-lockup.png; the compact icon is not the document identity', async () => {
+    const logo = load('src/lib/commerce/pdf-logo.ts'); const lockup = fs.readFileSync(path.join(root, 'public/brand/hbee-digitals-logo-lockup.png')); const icon = fs.readFileSync(path.join(root, 'public/svgs/logo.png'))
+    const embedded = Buffer.from(logo.HBEE_LOGO_PNG_BASE64, 'base64')
+    assert.ok(embedded.equals(lockup), 'bundled bytes are exactly the approved lockup file')
+    assert.ok(!embedded.equals(icon), 'and are NOT the compact website icon')
+    assert.equal(nodeCrypto.createHash('sha256').update(lockup).digest('hex'), logo.HBEE_LOGO_SHA256); assert.equal(logo.HBEE_LOGO_SOURCE, 'public/brand/hbee-digitals-logo-lockup.png')
+    assert.equal(embedded.readUInt32BE(16), 2172); assert.equal(embedded.readUInt32BE(20), 724); assert.equal(logo.HBEE_LOGO_WIDTH, 2172); assert.equal(logo.HBEE_LOGO_HEIGHT, 724)
+    assert.ok(fs.existsSync(path.join(root, 'public/svgs/logo.png')), 'the compact icon stays available to the website')
+    const { buildProposalPdf, buildInvoicePdf } = load('src/lib/commerce/pdf.ts')
+    for (const bytes of [await buildProposalPdf(FIX_PROPOSAL), await buildInvoicePdf(FIX_INVOICE)]) assert.ok(hasLogoImage(bytes), 'the 2172 x 724 lockup image XObject is in the document')
+    const src = stripComments(read('src/lib/commerce/pdf.ts'))
+    assert.doesNotMatch(src, /\bfetch\s*\(|https?:\/\/|readFile|from\s+['"]fs['"]|require\(['"]fs['"]\)/, 'no runtime network or file access for the logo')
+    assert.doesNotMatch(src, /svgs\/logo/, 'the compact icon is not referenced by the PDF layer'); assert.doesNotMatch(stripComments(read('src/lib/commerce/pdf-logo.ts')), /svgs\/logo\.png/)
+    assert.match(src, /embedPng\(/); assert.match(src, /pdf-logo/)
+  })
+  await test('L1b the lockup is the only brand identity in the header: drawn on every page at its native aspect ratio, nothing typeset beside it', async () => {
+    const { buildProposalPdf, buildInvoicePdf } = load('src/lib/commerce/pdf.ts')
+    const many = Array.from({ length: 70 }, (_, i) => ({ title: 'Item ' + i, description: 'd', quantity: '1', unit_price: '1.00', amount: '1.00' }))
+    const longDoc = await buildProposalPdf({ ...FIX_PROPOSAL, lines: many, subtotal: '70.00', discount: '0.00', total: '70.00' }); const n = await pageCount(longDoc)
+    assert.ok(n >= 2); assert.equal(imageDraws(longDoc), n, 'the lockup is drawn once on page one and once on every continuation page')
+    assert.equal(imageDraws(await buildProposalPdf(FIX_PROPOSAL)), 1); assert.equal(imageDraws(await buildInvoicePdf(FIX_INVOICE)), 1)
+    // no separately typeset wordmark or tagline: the only "Hbee Digitals" text left is the footer line, one per page
+    assert.equal(countText(longDoc, 'Hbee Digitals'), n, 'wordmark text appears only in the footer')
+    for (const t of ['CONNECTED GROWTH IN MOTION', 'Digital Growth Studio', 'DIGITAL GROWTH STUDIO']) assert.equal(countText(longDoc, t), 0, t + ' is part of the lockup image, never typeset')
+    assert.equal(countText(await buildInvoicePdf(FIX_INVOICE), 'Digital Growth Studio'), 0)
+    const src = stripComments(read('src/lib/commerce/pdf.ts'))
+    assert.doesNotMatch(src, /TAGLINE|CONNECTED GROWTH/); assert.doesNotMatch(src, /\.text\(\s*['"]Hbee Digitals['"]/, 'no typeset wordmark')
+    // placement never distorts: height always derives from the width and the file ratio
+    assert.match(src, /LOGO_RATIO\s*=\s*HBEE_LOGO_HEIGHT\s*\/\s*HBEE_LOGO_WIDTH/); assert.equal((src.match(/drawImage\(this\.logo/g) || []).length, 2, 'page one + continuation only')
+    assert.equal((src.match(/lh\s*=\s*lw\s*\*\s*LOGO_RATIO/g) || []).length, 2, 'both placements keep the native aspect ratio')
+    const w1 = Number((src.match(/LOGO_W_FIRST\s*=\s*(\d+)/) || [])[1]), w2 = Number((src.match(/LOGO_W_CONT\s*=\s*(\d+)/) || [])[1])
+    assert.ok(w1 > w2 && w2 >= 150, 'the continuation lockup is smaller than page one but wide enough for the tagline to stay readable')
+  })
+  await test('L2 the proposal PDF carries the Hbee identity, proposal identity and the footer', async () => {
+    const { buildProposalPdf } = load('src/lib/commerce/pdf.ts'); const b = await buildProposalPdf(FIX_PROPOSAL)
+    for (const t of ['Hbee Digitals', 'PROPOSAL', 'PROP-QA-0001', 'QA proposal', 'Ada Sample', 'Sample Store Ltd', 'Version 2', 'hbeedigitals.com', 'Page 1 of 1', 'PREPARED FOR', 'VALID UNTIL', '20 Nov 2026', '20 Dec 2026']) assert.ok(pdfHas(b, t), 'missing ' + t)
+    for (const t of ['Summary', 'Investment', 'Payment terms', 'Terms']) assert.ok(pdfHas(b, t), 'section ' + t)
+  })
+  await test('L3 printed money is exactly what is passed in: nothing is recomputed in the PDF layer', async () => {
+    const { buildProposalPdf, buildInvoicePdf } = load('src/lib/commerce/pdf.ts')
+    const b = await buildProposalPdf(FIX_PROPOSAL)
+    for (const t of ['USD 400.00', '-USD 40.00', 'USD 360.00', 'Total (USD)']) assert.ok(pdfHas(b, t), t)
+    // deliberately inconsistent inputs are printed as given (a recompute would print 1.00 / 0.00 / 1.00)
+    const odd = await buildProposalPdf({ ...FIX_PROPOSAL, subtotal: '1.00', discount: '0.00', total: '999.99' })
+    assert.ok(pdfHas(odd, 'USD 999.99') && pdfHas(odd, 'USD 1.00')); assert.ok(!pdfHas(odd, 'USD 0.00'))
+    const inv = await buildInvoicePdf({ ...FIX_INVOICE, total: '360.00', paid: '10.00', balance: '777.00' })
+    assert.ok(pdfHas(inv, 'USD 777.00') && pdfHas(inv, 'USD 10.00') && pdfHas(inv, 'USD 360.00'), 'invoice balance is the authoritative value')
+    assert.doesNotMatch(stripComments(read('src/lib/commerce/pdf.ts')), /toMinor|sumMinor|minorToString|parseFloat|\.toFixed\(/, 'no arithmetic on money in the PDF layer')
+  })
+  await test('L4 internal notes never reach a proposal PDF (client and Admin, draft and sent)', async () => {
+    setup(); const draft = await createDraft(); const sent = await sentProposal()
+    state.admin = true
+    const a = await pdfBytes((await call('admin/proposals/[id]/pdf', 'GET', { params: { id: draft } })).res)
+    const a2 = await pdfBytes((await call('admin/proposals/[id]/pdf', 'GET', { params: { id: sent } })).res)
+    asClient(); const c = await pdfBytes((await call('client-portal/proposals/[id]/pdf', 'GET', { params: { id: sent } })).res)
+    for (const [n, b] of [['admin draft', a], ['admin sent', a2], ['client', c]]) { assert.ok(pdfHas(b, 'Website build'), n); assert.ok(!pdfHas(b, SECRET_NOTE), n + ' must not print internal notes') }
+  })
+  await test('L5 payment terms stay version-bound and are printed under their own heading', async () => {
+    setup(); const id = await sentProposal({ payment_terms: '50% upfront' })
+    state.admin = true; await call('admin/proposals/[id]', 'PATCH', { params: { id }, body: { payment_terms: '30 days net' } })
+    asClient(); const b = await pdfBytes((await call('client-portal/proposals/[id]/pdf', 'GET', { params: { id } })).res)
+    assert.ok(pdfHas(b, 'Payment terms') && pdfHas(b, '50% upfront') && !pdfHas(b, '30 days net'))
+  })
+  await test('L6 the draft indicator appears only in a draft preview', async () => {
+    setup(); const draft = await createDraft(); const sent = await sentProposal(); state.admin = true
+    const d = await pdfBytes((await call('admin/proposals/[id]/pdf', 'GET', { params: { id: draft } })).res)
+    assert.ok(pdfHas(d, 'DRAFT PREVIEW') && pdfHas(d, 'NOT YET SENT TO THE CLIENT') && pdfHas(d, 'DRAFT'))
+    const s1 = await pdfBytes((await call('admin/proposals/[id]/pdf', 'GET', { params: { id: sent } })).res)
+    asClient(); const s2 = await pdfBytes((await call('client-portal/proposals/[id]/pdf', 'GET', { params: { id: sent } })).res)
+    for (const b of [s1, s2]) { assert.ok(!pdfHas(b, 'DRAFT PREVIEW') && !pdfHas(b, 'NOT YET SENT') && !pdfHas(b, 'DRAFT') && !pdfHas(b, 'Set when sent')) }
+  })
+  await test('L7 issue date semantics: a sent version prints its stamped date; a draft says "Set when sent"; no date is invented', async () => {
+    setup(); const draft = await createDraft(); const sent = await sentProposal(); state.admin = true
+    const v = state.tables.proposal_versions.find((x) => x.proposal_id === sent); assert.ok(v.issue_date, 'the send stamps the issue date')
+    const fmt = (iso) => new Date(iso + 'T12:00:00Z').toLocaleDateString('en-GB', { timeZone: 'Africa/Lagos', day: 'numeric', month: 'short', year: 'numeric' })
+    asClient(); const c = await pdfBytes((await call('client-portal/proposals/[id]/pdf', 'GET', { params: { id: sent } })).res)
+    assert.ok(pdfHas(c, fmt(v.issue_date)) && !pdfHas(c, 'Set when sent'))
+    state.admin = true; const d = await pdfBytes((await call('admin/proposals/[id]/pdf', 'GET', { params: { id: draft } })).res)
+    assert.ok(pdfHas(d, 'Set when sent'))
+    const { proposalPdfInput } = load('src/lib/commerce/documents.ts')
+    const base = { number: 'N', title: 'T', status: 'sent', displayStatus: 'sent', currency: 'USD', shownVersion: 1, summary: null, scope: null, deliverables: null, timeline: null, terms: null, paymentTerms: null, expiresAt: null, subtotal: '1.00', discount: '0.00', total: '1.00', lines: [], isDraftPreview: false }
+    assert.equal(proposalPdfInput({ ...base, issueDate: null, sentAt: '2026-03-04T10:00:00Z' }, null).issueDate, '2026-03-04T10:00:00Z', 'a delivered legacy row falls back to its real sent timestamp')
+    assert.equal(proposalPdfInput({ ...base, issueDate: null, sentAt: null, isDraftPreview: true, displayStatus: 'draft' }, null).issueDate, null, 'a draft with no date has none')
+    assert.equal(proposalPdfInput({ ...base, issueDate: '2026-03-01', sentAt: '2026-03-04T10:00:00Z' }, null).issueDate, '2026-03-01', 'the stamped issue date wins')
+  })
+  await test('L8 Next steps: only while the client still has to decide; status shown only where it means something', async () => {
+    const { proposalPdfInput } = load('src/lib/commerce/documents.ts'); const { buildProposalPdf } = load('src/lib/commerce/pdf.ts')
+    const base = { number: 'N', title: 'T', currency: 'USD', shownVersion: 1, summary: null, scope: null, deliverables: null, timeline: null, terms: null, paymentTerms: null, issueDate: '2026-03-01', expiresAt: null, sentAt: null, subtotal: '1.00', discount: '0.00', total: '1.00', lines: [], isDraftPreview: false }
+    const shown = (displayStatus, extra = {}) => proposalPdfInput({ ...base, status: displayStatus, displayStatus, ...extra }, null)
+    for (const s of ['sent', 'viewed', 'changes_requested']) assert.equal(shown(s).showNextSteps, true, s)
+    for (const s of ['approved', 'declined', 'rejected', 'expired']) assert.equal(shown(s).showNextSteps, false, s)
+    assert.equal(shown('draft', { isDraftPreview: true }).showNextSteps, true); assert.equal(shown('approved').statusLabel, 'Approved'); assert.equal(shown('sent').statusLabel, null)
+    const yes = await buildProposalPdf(shown('sent')); const no = await buildProposalPdf(shown('approved'))
+    assert.ok(pdfHas(yes, 'Next steps') && pdfHas(yes, 'Hbee Digitals Client Portal') && !pdfHas(no, 'Next steps') && pdfHas(no, 'APPROVED'))
+  })
+  await test('L9 pagination: long proposals flow over pages, the table header repeats, the footer counts pages; a simple one stays on one page', async () => {
+    const { buildProposalPdf } = load('src/lib/commerce/pdf.ts')
+    const many = Array.from({ length: 70 }, (_, i) => ({ title: 'Item ' + i, description: 'Description ' + i, quantity: '1', unit_price: '1.00', amount: '1.00' }))
+    const b = await buildProposalPdf({ ...FIX_PROPOSAL, lines: many, subtotal: '70.00', discount: '0.00', total: '70.00', scope: 'word '.repeat(2500) })
+    const n = await pageCount(b); assert.ok(n >= 3, 'pages: ' + n)
+    for (let p = 1; p <= n; p++) assert.ok(pdfHas(b, `PROP-QA-0001  ·  Page ${p} of ${n}`) || pdfHas(b, `PROP-QA-0001  ·  Page ${p} of ${n}`), 'footer page ' + p)
+    assert.ok(countText(b, 'DESCRIPTION') >= 2, 'the table header repeats on each page the table spans')
+    assert.ok(countText(b, 'Proposal PROP-QA-0001') >= n - 1, 'a continuation header carries the document identity')
+    assert.equal(await pageCount(await buildProposalPdf(FIX_PROPOSAL)), 1)
+  })
+  await test('L10 the invoice uses the same Hbee document identity and its own transactional blocks', async () => {
+    const { buildInvoicePdf } = load('src/lib/commerce/pdf.ts'); const b = await buildInvoicePdf(FIX_INVOICE)
+    for (const t of ['Hbee Digitals', 'INVOICE', 'HBD-INV-2026-0001', 'PARTIALLY PAID', 'FROM', 'BILL TO', 'Ada Sample', 'ISSUE DATE', 'DUE DATE', 'PROJECT', 'PROPOSAL', 'PROP-QA-0001', 'USD 400.00', '-USD 40.00', 'USD 360.00', 'USD 180.00', 'Balance due (USD)', 'Payments received', 'Pay by transfer', 'Thanks', 'hbeedigitals.com', 'Page 1 of 1']) assert.ok(pdfHas(b, t), 'missing ' + t)
+    assert.ok(hasLogoImage(b))
+    const tax = await buildInvoicePdf({ ...FIX_INVOICE, tax: '5.00' }); assert.ok(pdfHas(tax, 'USD 5.00') && pdfHas(tax, 'Tax'))
+    assert.ok(!pdfHas(b, 'Tax'), 'no tax row when there is no tax')
+    const src = stripComments(read('src/lib/commerce/pdf.ts')); assert.equal((src.match(/class Writer/g) || []).length, 1, 'one shared primitive set')
+  })
+  await test('L11 long unbroken text still cannot hang or break generation', async () => {
+    const { buildProposalPdf } = load('src/lib/commerce/pdf.ts'); const t0 = Date.now()
+    const b = await buildProposalPdf({ ...FIX_PROPOSAL, title: 'y'.repeat(16000), scope: 'x'.repeat(16000), preparedFor: { name: 'z'.repeat(5000), business: 'q'.repeat(5000) }, paymentTerms: 'p'.repeat(4000) })
+    assert.ok(Date.now() - t0 < 15000, 'finished in ' + (Date.now() - t0) + 'ms'); assert.equal(Buffer.from(b.slice(0, 5)).toString(), '%PDF-')
+  })
+
+  // y positions of every text run on every page, read from the page content streams (pdf-lib writes "a b c d x y Tm" per run)
+  const textYsByPage = async (bytes) => {
+    const lib = require('pdf-lib'); const doc = await lib.PDFDocument.load(bytes); const out = []
+    for (const page of doc.getPages()) {
+      let c = page.node.Contents(); const parts = []
+      const streams = c instanceof lib.PDFArray ? c.asArray().map((r) => doc.context.lookup(r)) : [c]
+      for (const st of streams) parts.push(Buffer.from(lib.decodePDFRawStream ? lib.decodePDFRawStream(st).decode() : st.getContents()).toString('latin1'))
+      const ys = []; const re = /(-?[\d.]+) (-?[\d.]+) (-?[\d.]+) (-?[\d.]+) (-?[\d.]+) (-?[\d.]+) Tm/g; let m
+      const txt = parts.join('\n'); while ((m = re.exec(txt))) ys.push(Number(m[6]))
+      out.push(ys)
+    }
+    return out
+  }
+  const FOOTER_TEXT_Y = 33
+  await test('L12 a short final invoice section stays on the page when it fits; a long one still paginates', async () => {
+    const { buildInvoicePdf } = load('src/lib/commerce/pdf.ts')
+    // the exact layout that used to strand "Notes" alone on a second page
+    // the layout of the reviewed sample: three described items, one payment, a two-line payment instruction, then a one-line note
+    const SAMPLE_LINES = [{ title: 'Website strategy and design', description: 'Discovery workshop, sitemap, wireframes and a responsive visual design for up to 6 templates.', quantity: '1', unit_price: '250.00', amount: '250.00' }, { title: 'Shopify build', description: 'Theme build, product and collection setup, checkout configuration.', quantity: '1', unit_price: '100.00', amount: '100.00' }, { title: 'Launch support', description: 'Two weeks of post-launch monitoring and fixes.', quantity: '1', unit_price: '50.00', amount: '50.00' }]
+    const SAMPLE = { ...FIX_INVOICE, lines: SAMPLE_LINES, paymentInstructions: 'Pay by bank transfer to the account shown on your Client Portal invoice page. Use the invoice number as the reference.' }
+    const withoutNotes = await buildInvoicePdf({ ...SAMPLE, notes: null }); assert.equal(await pageCount(withoutNotes), 1)
+    const short = await buildInvoicePdf({ ...SAMPLE, notes: 'Fixture notes. Thank you for your business.' })
+    assert.equal(await pageCount(short), 1, 'a short Notes section must not create a second page')
+    assert.ok(pdfHas(short, 'Notes') && pdfHas(short, 'Fixture notes. Thank you for your business.') && pdfHas(short, 'Page 1 of 1'))
+    // a genuinely long Notes section still flows over pages, with the lockup header and the footer on every page
+    const long = await buildInvoicePdf({ ...SAMPLE, notes: 'A long closing note about terms and conditions. '.repeat(160) })
+    const n = await pageCount(long); assert.ok(n >= 2, 'long notes paginate: ' + n)
+    assert.equal(imageDraws(long), n, 'lockup on every page'); for (let i = 1; i <= n; i++) assert.ok(pdfHas(long, 'Page ' + i + ' of ' + n), 'footer ' + i)
+    assert.ok(pdfHas(long, 'Notes'))
+  })
+  await test('L13 the bottom margin holds everywhere: no content text below the safe margin, across many section lengths (invoices and proposals)', async () => {
+    const { buildInvoicePdf, buildProposalPdf } = load('src/lib/commerce/pdf.ts')
+    const SAFE_BASELINE = 72 // BOTTOM (footer rule 52 + 20 clearance): a baseline above it keeps the whole line above it
+    const check = async (bytes, label) => {
+      const pages = await textYsByPage(bytes); assert.ok(pages.length >= 1)
+      pages.forEach((ys, i) => { const content = ys.filter((y) => Math.abs(y - FOOTER_TEXT_Y) > 0.5); assert.ok(content.length > 0, label + ' page ' + (i + 1) + ' has content')
+        assert.ok(Math.min(...content) >= SAFE_BASELINE, label + ' page ' + (i + 1) + ' content reaches ' + Math.min(...content).toFixed(1)) })
+      return pages.length
+    }
+    const lines = (k, t) => Array.from({ length: k }, (_, i) => t + ' ' + i).join('\n')
+    const SWEEP_LINES = [{ title: 'Website strategy and design', description: 'Discovery workshop, sitemap, wireframes and a responsive visual design for up to 6 templates.', quantity: '1', unit_price: '250.00', amount: '250.00' }, { title: 'Shopify build', description: 'Theme build, product and collection setup, checkout configuration.', quantity: '1', unit_price: '100.00', amount: '100.00' }, { title: 'Launch support', description: 'Two weeks of post-launch monitoring and fixes.', quantity: '1', unit_price: '50.00', amount: '50.00' }] // the reviewed sample's item heights
+    let prev = 0
+    for (const instr of [0, 1, 2, 3, 5, 8, 11]) {
+      prev = 0
+      for (const notes of [0, 1, 2, 4, 8, 16, 40, 90]) {
+        const pages = await check(await buildInvoicePdf({ ...FIX_INVOICE, lines: SWEEP_LINES, paymentInstructions: instr ? lines(instr, 'Pay line') : null, notes: notes ? lines(notes, 'Note line') : null }), 'invoice instr=' + instr + ' notes=' + notes)
+        assert.ok(pages >= prev, 'more notes never means fewer pages'); prev = pages
+        if (instr <= 2 && notes <= 1) assert.equal(pages, 1, 'a one-line note on a normal invoice stays on one page (instr=' + instr + ')')
+      }
+    }
+    for (const scope of [0, 3, 12, 25, 60]) await check(await buildProposalPdf({ ...FIX_PROPOSAL, scope: scope ? lines(scope, 'Scope line') : null, terms: lines(6, 'Term line') }), 'proposal scope=' + scope)
+    // pricing rows are still never split: every row's text (title + description + amounts) is drawn at consistent y values above the margin
+    const many = Array.from({ length: 70 }, (_, i) => ({ title: 'Item ' + i, description: 'Description ' + i, quantity: '1', unit_price: '1.00', amount: '1.00' }))
+    assert.ok((await check(await buildProposalPdf({ ...FIX_PROPOSAL, lines: many, subtotal: '70.00', discount: '0.00', total: '70.00' }), 'proposal 70 rows')) >= 2)
   })
 
   console.log('\n' + passed + ' passed, ' + failures.length + ' failed')
