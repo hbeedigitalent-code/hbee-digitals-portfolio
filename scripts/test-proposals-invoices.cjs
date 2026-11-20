@@ -1078,6 +1078,77 @@ const ALL_PORTAL = [
     const lock = JSON.parse(read('package-lock.json')); assert.ok(lock.packages['node_modules/pdf-lib'], 'lockfile entry'); assert.equal(lock.packages['node_modules/pdf-lib'].version, '1.17.1')
   })
 
+  console.log('\nK. Admin proposal read path (server-side, service role)')
+  const MISSING = 'cccccccc-9999-4000-8000-000000000009'
+  await test('K1 the Admin list GET requires the active-admin gate (unauthenticated and non-admin are refused)', async () => {
+    setup(); await createDraft()
+    state.admin = false; state.user = null
+    assert.equal((await call('admin/proposals', 'GET')).status, 401, 'unauthenticated')
+    state.admin = false; as(USER_A)
+    const r = await call('admin/proposals', 'GET')
+    assert.equal(r.status, 401, 'a signed-in non-admin'); assert.equal(JSON.stringify(r.json).includes('Website build'), false, 'no proposal data leaks to a refused caller')
+  })
+  await test('K2 the Admin list GET returns the proposal rows with their merchant and client labels', async () => {
+    setup(); const withClient = await createDraft(); const noClient = await createDraft({ merchant_id: MERCHANT_FREE, title: 'Unlinked merchant' })
+    state.admin = true
+    const r = await call('admin/proposals', 'GET'); assert.equal(r.status, 200, JSON.stringify(r.json))
+    assert.ok(Array.isArray(r.json.proposals)); assert.equal(r.json.proposals.length, 2)
+    const a = r.json.proposals.find((p) => p.id === withClient), b = r.json.proposals.find((p) => p.id === noClient)
+    assert.equal(a.title, 'Website build'); assert.ok(a.proposal_number); assert.equal(a.status, 'draft')
+    assert.deepEqual(a.merchant, { business_name: 'A Co', contact_name: null, email: 'a@a.test' })
+    assert.deepEqual(a.client, { business_name: 'A Co', full_name: 'Alice A', email: 'a@a.test' })
+    assert.equal(b.merchant.business_name, 'Free Co'); assert.equal(b.client, null, 'a merchant with no client account leaves client null')
+  })
+  await test('K3 a failed list read is a 500, never an empty list', async () => {
+    setup(); await createDraft(); state.admin = true
+    state.failures['proposals:select'] = '42501'
+    let r = await call('admin/proposals', 'GET'); assert.equal(r.status, 500); assert.equal(r.json.proposals, undefined)
+    delete state.failures['proposals:select']; state.failures['merchants:select'] = '42501'
+    r = await call('admin/proposals', 'GET'); assert.equal(r.status, 500, 'a failed label read is not silently dropped'); assert.equal(r.json.proposals, undefined)
+    delete state.failures['merchants:select']; state.failures['clients:select'] = '42501'
+    r = await call('admin/proposals', 'GET'); assert.equal(r.status, 500); delete state.failures['clients:select']
+    assert.equal((await call('admin/proposals', 'GET')).status, 200)
+  })
+  await test('K4 the Admin detail GET: 404 only for a genuinely missing proposal, 500 for a failed read', async () => {
+    setup(); const id = await createDraft(); state.admin = true
+    assert.equal((await call('admin/proposals/[id]', 'GET', { params: { id: MISSING } })).status, 404, 'valid UUID, no row')
+    assert.equal((await call('admin/proposals/[id]', 'GET', { params: { id: 'not-a-uuid' } })).status, 404)
+    state.failures['proposals:select'] = '42501'
+    const r = await call('admin/proposals/[id]', 'GET', { params: { id } }); assert.equal(r.status, 500, 'a database failure must not look like a missing proposal'); assert.equal(r.json.error, 'Failed to load data')
+    delete state.failures['proposals:select']
+    for (const t of ['merchants', 'clients']) { state.failures[t + ':select'] = '42501'; assert.equal((await call('admin/proposals/[id]', 'GET', { params: { id } })).status, 500, t); delete state.failures[t + ':select'] }
+    assert.equal((await call('admin/proposals/[id]', 'GET', { params: { id } })).status, 200)
+  })
+  await test('K5 the Admin detail GET returns the stored row, merchant, client and the S6.4 view / version data', async () => {
+    setup(); const id = await sentProposal(); state.admin = true
+    const r = await call('admin/proposals/[id]', 'GET', { params: { id } }); assert.equal(r.status, 200, JSON.stringify(r.json))
+    assert.equal(r.json.record.id, id); assert.equal(r.json.record.status, 'sent'); assert.ok(r.json.record.proposal_number); assert.equal(r.json.record.notes, SECRET_NOTE)
+    assert.equal(r.json.merchant.business_name, 'A Co'); assert.equal(r.json.linkedClient.full_name, 'Alice A')
+    assert.equal(r.json.proposal.id, id); assert.equal(r.json.versions.length, 1); assert.equal(r.json.versions[0].version_number, 1)
+    assert.equal(r.json.draftLines.length, 2); assert.equal(r.json.draft.title, 'Website build'); assert.ok(Array.isArray(r.json.responses)); assert.ok(Array.isArray(r.json.invoices))
+    assert.equal(r.json.internal.notes, SECRET_NOTE, 'internal notes are Admin-only: B3 proves the gate')
+  })
+  await test('K6 the two Admin proposal pages no longer query proposals from the browser', () => {
+    const list = stripComments(read('src/app/admin/proposals/page.tsx')), detail = stripComments(read('src/app/admin/proposals/[id]/page.tsx'))
+    for (const [f, s] of [['list', list], ['detail', detail]]) {
+      assert.doesNotMatch(s, /supabase\s*\.\s*from\(/, f + ': no browser table read'); assert.doesNotMatch(s, /createClientComponentClient/, f)
+    }
+    assert.match(list, /fetch\('\/api\/admin\/proposals'/); assert.match(list, /cache:\s*'no-store'/)
+    assert.match(detail, /fetch\(`\/api\/admin\/proposals\/\$\{params\.id\}`/); assert.match(detail, /cache:\s*'no-store'/)
+    // a failed read is a visible error with retry, rendered BEFORE the not-found branch, and only a 404 clears the proposal
+    assert.match(detail, /response\.status === 404/); assert.match(detail, /setLoadError\(true\)/)
+    assert.ok(detail.indexOf('if (loadError)') > -1 && detail.indexOf('if (loadError)') < detail.indexOf('if (!proposal)'), 'error branch precedes not-found')
+    assert.match(list, /if \(!rows\) \{[\s\S]*setLoadError\('Failed to load proposals/)
+  })
+  await test('K7 creation still returns the persisted proposal UUID and the editor navigates to it', async () => {
+    setup(); state.admin = true
+    const r = await call('admin/proposals', 'POST', { body: draftBody() }); assert.equal(r.status, 200, JSON.stringify(r.json))
+    assert.match(r.json.proposal.id, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+    assert.ok(P(r.json.proposal.id), 'the returned id is the id of the stored row'); assert.equal(P(r.json.proposal.id).proposal_number, r.json.proposal.proposal_number)
+    const g = await call('admin/proposals/[id]', 'GET', { params: { id: r.json.proposal.id } }); assert.equal(g.status, 200, 'the page the editor opens loads')
+    assert.match(stripComments(read('src/components/admin/ProposalEditor.tsx')), /router\.push\(`\/admin\/proposals\/\$\{editing \? proposalId : payload\?\.proposal\?\.id\}`\)/)
+  })
+
   console.log('\n' + passed + ' passed, ' + failures.length + ' failed')
   if (failures.length) process.exit(1)
 })()

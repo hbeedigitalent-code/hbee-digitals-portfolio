@@ -23,10 +23,30 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   if (!ADMIN_UUID_RE.test(id)) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   try {
+    // The row is read FIRST and on its own so that "the read failed" (500) can never be mistaken for "there is no such proposal"
+    // (404): loadProposalView below reports both as null.
+    const { data: record, error: recordError } = await db.from('proposals').select('*').eq('id', id).maybeSingle()
+    if (recordError) return queryFailure('proposal read', recordError)
+    if (!record) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    let merchant: Record<string, any> | null = null
+    if (record.merchant_id) {
+      const { data: m, error: merchantError } = await db.from('merchants').select('id, business_name, contact_name, email, website').eq('id', record.merchant_id).maybeSingle()
+      if (merchantError) return queryFailure('proposal merchant read', merchantError)
+      merchant = m ?? null
+    }
+    let linkedClient: Record<string, any> | null = null
+    if (record.client_id) {
+      const { data: c, error: clientError } = await db.from('clients').select('id, business_name, full_name, email').eq('id', record.client_id).maybeSingle()
+      if (clientError) return queryFailure('proposal client read', clientError)
+      linkedClient = c ?? null
+    }
+
     const loaded = await loadProposalView(db, id, { admin: true })
-    if (!loaded) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    const [rowRes, linesRes, versionsRes, responsesRes, invoicesRes] = await Promise.all([
-      db.from('proposals').select('status, notes, revision_note, merchant_id, client_id, converted_to_project_id, title, currency, summary, scope, deliverables, timeline, terms, discount_amount, expires_at, issue_date, pricing').eq('id', id).maybeSingle(),
+    // the row exists, so a null view is a failed read (an admin always gets at least a draft preview), never a missing proposal
+    if (!loaded) return queryFailure('proposal view read', null)
+    const rowRes = { data: record }
+    const [linesRes, versionsRes, responsesRes, invoicesRes] = await Promise.all([
       db.from('proposal_line_items').select('id, title, description, quantity, unit_price, amount, sort_order').eq('proposal_id', id).order('sort_order', { ascending: true }),
       db.from('proposal_versions').select('id, version_number, total, currency, sent_at, created_at').eq('proposal_id', id).order('version_number', { ascending: true }),
       db.from('proposal_responses').select('id, version_number, response_type, message, created_at, resolved_at, resolved_in_version').eq('proposal_id', id).order('created_at', { ascending: true }),
@@ -36,6 +56,10 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     return NextResponse.json({
       proposal: loaded.view,
       client: loaded.client,
+      // the stored proposals row (Admin only) and the linked merchant / client records the detail page renders
+      record,
+      merchant,
+      linkedClient,
       internal: { notes: rowRes.data?.notes ?? null, revisionNote: rowRes.data?.revision_note ?? null, merchantId: rowRes.data?.merchant_id ?? null, clientId: rowRes.data?.client_id ?? null },
       // the LIVE fields the editor works on (for a proposal under revision these differ from the snapshot the client last saw)
       draft: rowRes.data

@@ -2,7 +2,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@/lib/supabase-client'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
 import {
@@ -67,7 +66,6 @@ function formatDate(value: string | null | undefined): string {
 }
 
 export default function AdminProposalsPage() {
-  const supabase = createClientComponentClient()
   const [proposals, setProposals] = useState<ProposalRow[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -83,22 +81,27 @@ export default function AdminProposalsPage() {
     setLoading(true)
     setLoadError(null)
 
-    // Same relation shape the detail page already uses successfully. The create
-    // route sets merchant_id only, so `client` may be null — both are optional
-    // in the display helpers above.
-    const { data, error } = await supabase
-      .from('proposals')
-      .select(`
-        *,
-        merchant:merchants(business_name, contact_name, email),
-        client:clients(business_name, full_name, email)
-      `)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      // Previously this failed silently and rendered an empty table, which is
-      // exactly how the stale-field bug stayed invisible.
+    // Read through the authenticated same-origin Admin API (service role on the
+    // server) — never a direct browser query. `merchant` / `client` come back
+    // already joined and either may be null; both are optional in the helpers.
+    let rows: ProposalRow[] | null = null
+    try {
+      const response = await fetch('/api/admin/proposals', {
+        credentials: 'same-origin',
+        cache: 'no-store',
+      })
+      const payload = await response.json().catch(() => null)
+      if (response.ok && Array.isArray(payload?.proposals)) {
+        rows = payload.proposals as ProposalRow[]
+      } else {
+        console.error('Error fetching proposals:', response.status, payload?.error)
+      }
+    } catch (error) {
       console.error('Error fetching proposals:', error)
+    }
+
+    if (!rows) {
+      // A failed read is shown as a failure, never as an empty list.
       setLoadError('Failed to load proposals. Please refresh and try again.')
       setProposals([])
       setStats({ total: 0, sent: 0, approved: 0 })
@@ -106,7 +109,6 @@ export default function AdminProposalsPage() {
       return
     }
 
-    const rows = (data || []) as ProposalRow[]
     setProposals(rows)
     setStats({
       total: rows.length,

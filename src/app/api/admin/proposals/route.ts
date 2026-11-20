@@ -14,7 +14,7 @@
 
 import { NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
-import { requireActiveAdmin, ADMIN_UUID_RE } from '@/lib/admin-api-auth'
+import { requireActiveAdmin, queryFailure, ADMIN_UUID_RE } from '@/lib/admin-api-auth'
 import { resolveClientIdByMerchantId } from '@/lib/notifications/createNotification'
 import { parseProposalDraft } from '@/lib/commerce/draft-input'
 import { callRpc, refusal } from '@/lib/commerce/rpc'
@@ -27,6 +27,54 @@ function buildProposalNumber(): string {
   const now = new Date()
   const ymd = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
   return `PROP-${ymd}-${randomBytes(3).toString('hex').toUpperCase()}`
+}
+
+// GET — the Admin proposal list.
+//
+// Read on the server with the service role behind requireActiveAdmin(). The merchant and client labels are loaded with two
+// separate id-list reads and merged here (not a PostgREST embed), so the list never depends on browser grants or on relationship
+// resolution. ANY failed read is a 500: a failure is never reported as an empty list. Response: { proposals: ProposalRow[] }, each
+// row being the proposals row plus `merchant` and `client` (either may be null).
+export async function GET() {
+  const auth = await requireActiveAdmin()
+  if (!auth.ok) return auth.response
+  const { db } = auth
+
+  try {
+    const { data: rows, error } = await db.from('proposals').select('*').order('created_at', { ascending: false })
+    if (error) return queryFailure('proposal list read', error)
+    const proposals: Record<string, any>[] = rows || []
+
+    const ids = (key: string) => Array.from(new Set(proposals.map((p) => p[key]).filter((v): v is string => typeof v === 'string' && v.length > 0)))
+    const merchantIds = ids('merchant_id')
+    const clientIds = ids('client_id')
+
+    const [merchantsRes, clientsRes] = await Promise.all([
+      merchantIds.length ? db.from('merchants').select('id, business_name, contact_name, email').in('id', merchantIds) : Promise.resolve({ data: [], error: null }),
+      clientIds.length ? db.from('clients').select('id, business_name, full_name, email').in('id', clientIds) : Promise.resolve({ data: [], error: null }),
+    ])
+    if (merchantsRes.error || clientsRes.error) return queryFailure('proposal list labels read', merchantsRes.error || clientsRes.error)
+
+    const merchantById = new Map<string, any>((merchantsRes.data || []).map((m: any) => [m.id, m]))
+    const clientById = new Map<string, any>((clientsRes.data || []).map((c: any) => [c.id, c]))
+
+    return NextResponse.json(
+      {
+        proposals: proposals.map((p) => {
+          const m = p.merchant_id ? merchantById.get(p.merchant_id) : null
+          const c = p.client_id ? clientById.get(p.client_id) : null
+          return {
+            ...p,
+            merchant: m ? { business_name: m.business_name ?? null, contact_name: m.contact_name ?? null, email: m.email ?? null } : null,
+            client: c ? { business_name: c.business_name ?? null, full_name: c.full_name ?? null, email: c.email ?? null } : null,
+          }
+        }),
+      },
+      { headers: { 'Cache-Control': 'no-store' } },
+    )
+  } catch (error) {
+    return queryFailure('proposal list read', error)
+  }
 }
 
 export async function POST(request: Request) {

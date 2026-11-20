@@ -5,7 +5,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClientComponentClient } from '@/lib/supabase-client'
 import { proposalStatusLabel, adminProposalActions, isEditableProposalStatus } from '@/lib/proposal-status'
 import ProposalCommercialPanel from '@/components/admin/ProposalCommercialPanel'
 import { formatFileSize } from '@/lib/proposal-file-validation'
@@ -40,11 +39,11 @@ function fileExtensionLabel(fileName: string): string {
 
 export default function AdminProposalDetailPage({ params }: PageProps) {
   const router = useRouter()
-  const supabase = createClientComponentClient()
   const [loading, setLoading] = useState(true)
   const [proposal, setProposal] = useState<any>(null)
   const [merchant, setMerchant] = useState<any>(null)
   const [updating, setUpdating] = useState(false)
+  const [loadError, setLoadError] = useState(false)
 
   // Attachments. All reads/writes go through the authenticated admin API —
   // never a direct browser query against proposal_files or Storage.
@@ -138,26 +137,34 @@ export default function AdminProposalDetailPage({ params }: PageProps) {
 
   async function fetchProposal() {
     setLoading(true)
+    setLoadError(false)
     try {
-      const { data, error } = await supabase
-        .from('proposals')
-        .select(`
-          *,
-          merchant:merchants(*),
-          client:clients(*)
-        `)
-        .eq('id', params.id)
-        .single()
+      // Read through the authenticated same-origin Admin API (service role on
+      // the server). 404 means the proposal genuinely does not exist; any other
+      // failure is a load error with retry and is never shown as "not found".
+      const response = await fetch(`/api/admin/proposals/${params.id}`, {
+        credentials: 'same-origin',
+        cache: 'no-store',
+      })
+      const payload = await response.json().catch(() => null)
 
-      if (error) {
-        console.error('Error fetching proposal:', error)
+      if (response.status === 404) {
+        setProposal(null)
+        setMerchant(null)
         return
       }
 
-      setProposal(data)
-      setMerchant(data.merchant)
+      if (!response.ok || !payload?.record) {
+        console.error('Error fetching proposal:', response.status, payload?.error)
+        setLoadError(true)
+        return
+      }
+
+      setProposal(payload.record)
+      setMerchant(payload.merchant ?? null)
     } catch (error) {
       console.error('Error:', error)
+      setLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -221,6 +228,24 @@ export default function AdminProposalDetailPage({ params }: PageProps) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
+        <SvgIcon name="warning" size={48} color="var(--text-muted)" />
+        <h2 className="mt-4 text-xl font-semibold text-[var(--text-primary)]">Could not load this proposal</h2>
+        <p role="alert" className="mt-2 text-[var(--text-secondary)]">
+          Something went wrong while loading the proposal. Please try again.
+        </p>
+        <div className="mt-6 flex gap-3">
+          <Button onClick={() => { void fetchProposal() }}>Retry</Button>
+          <Link href="/admin/proposals">
+            <Button variant="secondary">Back to Proposals</Button>
+          </Link>
+        </div>
       </div>
     )
   }
