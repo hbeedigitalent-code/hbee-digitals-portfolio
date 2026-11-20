@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { createClientComponentClient } from '@/lib/supabase-client'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
+import { todayInBusinessZone } from '@/lib/commerce/invoice-status'
 import { describeMoney, summariseMoney } from '@/lib/admin/money'
 
 interface DashboardStats {
@@ -64,7 +65,7 @@ export default function AdminWorkspacePage() {
       supabase.from('client_onboarding_submissions').select('status', { count: 'exact' }).eq('status', 'New Submission'),
       supabase.from('tasks').select('status, due_date').eq('status', 'Pending'),
       supabase.from('project_requests').select('status').eq('status', 'open'),
-      supabase.from('project_invoices').select('status, amount, currency', { count: 'exact' }).eq('status', 'overdue'),
+      supabase.from('project_invoices').select('status, amount, currency, due_date', { count: 'exact' }).in('status', ['issued', 'partially_paid']).lt('due_date', todayInBusinessZone()),
     ])
 
     const activeProjects = projectsRes.data?.filter(p => p.status !== 'Completed' && p.status !== 'Archived').length || 0

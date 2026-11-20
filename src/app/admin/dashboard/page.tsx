@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowUpRight, CheckCircle2, Mail, RefreshCw, Sparkles, UserPlus } from 'lucide-react'
 import { createClientComponentClient } from '@/lib/supabase-client'
 import { describeMoney, summariseMoney } from '@/lib/admin/money'
+import { todayInBusinessZone } from '@/lib/commerce/invoice-status'
 import { businessName, needsReview, reviewStatusLabel, type QueueReview } from '@/lib/admin/growth-review-queue'
 import { ADMIN_NAV } from '@/components/admin/shell/admin-nav'
 import { AdminButton, AdminCard, AdminEmptyState, AdminErrorState, AdminLoadingState, AdminMetric, AdminPageHeader, AdminSection, AdminStatusBadge } from '@/components/admin/ui/AdminUi'
@@ -95,7 +96,7 @@ export default function AdminDashboardPage() {
       supabase.from('client_onboarding_submissions').select('status', { count: 'exact' }).eq('status', 'New Submission'),
       supabase.from('tasks').select('status, due_date'),
       supabase.from('contact_submissions').select('is_read', { count: 'exact' }).eq('is_read', false),
-      supabase.from('project_invoices').select('status, amount, currency').eq('status', 'overdue'),
+      supabase.from('project_invoices').select('status, amount, currency, due_date').in('status', ['issued', 'partially_paid']).lt('due_date', todayInBusinessZone()),
       supabase.from('portfolio_items').select('id, is_active, featured'),
       supabase.from('blog_posts').select('status'),
       supabase.from('leads').select('id, lead_name, status, created_at').order('created_at', { ascending: false }).limit(3),
@@ -113,7 +114,7 @@ export default function AdminDashboardPage() {
     } catch { /* leave null */ }
 
     // If the currency column cannot be read, fall back to the count alone (amounts without a currency are not summed).
-    const invoiceRows = invoicesRes.error ? await supabase.from('project_invoices').select('status, amount').eq('status', 'overdue') : invoicesRes
+    const invoiceRows = invoicesRes.error ? await supabase.from('project_invoices').select('status, amount, due_date').in('status', ['issued', 'partially_paid']).lt('due_date', todayInBusinessZone()) : invoicesRes
     const today = new Date()
     const weekEnd = new Date(today)
     weekEnd.setDate(weekEnd.getDate() + 7)

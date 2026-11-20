@@ -1,85 +1,60 @@
 // src/app/api/client-portal/proposals/route.ts
 //
-// GET — every proposal that has actually been delivered to the CALLER's own
-// client account.
+// GET — every proposal that has actually been DELIVERED to the CALLER's own client account.
 //
-// Ownership predicate (both parts required):
-//   proposals.client_id = <clients.id resolved from the session>
-//   proposals.status   IN ('sent','viewed','approved','changes_requested')
-//
-// Drafts, rejected and expired proposals are excluded, as are proposals with a
-// NULL client_id, which belong to no portal account at all.
-//
-// A caller with no clients row receives an empty list rather than a 403: the
-// response is identical to a client who simply has no proposals yet, so the
-// endpoint cannot be used to probe account state. For the same reason there is
-// no total count and no "forbidden" branch — an unauthorised or unlinked caller
-// and an empty account are indistinguishable.
-//
-// Attachment metadata is NOT joined here; the list needs none, and
-// proposal_files.object_path never leaves the server in any route.
+// Ownership: proposals.client_id = <clients.id resolved from the session>, and the status is one the client may see. A draft is
+// never listed, a proposal with a NULL client_id belongs to no portal account, and a caller with no usable account gets the
+// resolver's own answer. S6.4 adds the currency, version and total (database-computed numeric, passed on as text) and lists
+// declined / legacy-rejected proposals. `notes` (the Admin's internal notes) is never selected.
 
 import { NextResponse } from 'next/server'
 import { resolvePortalClient } from '@/lib/client-portal/portal-client'
+import { CLIENT_VISIBLE_PROPOSAL_STATUSES } from '@/lib/commerce/documents'
+import { normalizeProposalStatus } from '@/lib/proposal-status'
 
-// Statuses at which a proposal is visible in the client portal — the same set
-// the detail route enforces.
-const CLIENT_VISIBLE_STATUSES = ['sent', 'viewed', 'approved', 'changes_requested']
+export const dynamic = 'force-dynamic'
 
-// Safe display fields only. merchant_id, client_id, created_by, notes,
-// growth_profile_id, terms and any internal column are deliberately not
-// selected. `notes` in particular is the admin's "Internal Notes" field.
-const LIST_COLUMNS = `
-  id,
-  proposal_number,
-  title,
-  status,
-  pricing,
-  expires_at,
-  sent_at,
-  created_at,
-  merchant:merchants(business_name)
-`
-
-// Defensive upper bound so a pathological account cannot request an unbounded
-// scan. The portal has no pagination UI yet; this is a ceiling, not a page.
 const MAX_ROWS = 200
-
-// Lazy, non-throwing service-role client — the same defensive pattern used by
-// the other client-portal routes. The ownership boundary below is still derived
-// entirely from the session user; the service role only bypasses RLS.
 
 export async function GET() {
   try {
     const portal = await resolvePortalClient()
-    if (!portal.ok) {
-      if (portal.reason === 'no_client') return NextResponse.json({ proposals: [] })
-      return portal.response
-    }
-    const adminClient = portal.db
-    const clientRow = portal.client
+    if (!portal.ok) return portal.response
 
-    // clients.id is resolved from the session user and from nothing else. No
-    // client_id, email, merchant name or proposal number is read from the
-    // request.
-
-    const { data: rows, error } = await adminClient
+    const { data, error } = await portal.db
       .from('proposals')
-      .select(LIST_COLUMNS)
-      .eq('client_id', clientRow.id)
-      .in('status', CLIENT_VISIBLE_STATUSES)
+      .select('id, proposal_number, title, status, currency, total, version, pricing, expires_at, sent_at, accepted_at, created_at, converted_to_project_id, merchant:merchants(business_name)')
+      .eq('client_id', portal.client.id)
+      .in('status', CLIENT_VISIBLE_PROPOSAL_STATUSES)
       .order('sent_at', { ascending: false, nullsFirst: false })
-      .order('created_at', { ascending: false })
       .limit(MAX_ROWS)
-
     if (error) {
-      console.error('❌ Client proposal list error:', error)
+      console.error('[client-portal/proposals] query failed')
       return NextResponse.json({ error: 'Failed to load proposals' }, { status: 500 })
     }
 
-    return NextResponse.json({ proposals: rows || [] })
+    return NextResponse.json({
+      proposals: (data || []).map((p: any) => ({
+        id: p.id,
+        proposal_number: p.proposal_number,
+        title: p.title,
+        // the legacy spellings are normalised for the page (rejected -> declined, converted -> approved)
+        status: normalizeProposalStatus(p.status) === 'unknown' ? p.status : normalizeProposalStatus(p.status),
+        currency: p.currency ?? p.pricing?.currency ?? 'USD',
+        total: p.total ?? p.pricing?.total ?? null,
+        // legacy shape kept so older page code keeps working
+        pricing: p.pricing ?? null,
+        version: p.version ?? 1,
+        expires_at: p.expires_at,
+        sent_at: p.sent_at,
+        accepted_at: p.accepted_at,
+        created_at: p.created_at,
+        converted: !!p.converted_to_project_id && normalizeProposalStatus(p.status) === 'approved',
+        merchant: p.merchant ?? null,
+      })),
+    })
   } catch (error) {
-    console.error('❌ Client proposal list error:', error)
+    console.error('❌ Client proposals list error:', error)
     return NextResponse.json({ error: 'Failed to load proposals' }, { status: 500 })
   }
 }

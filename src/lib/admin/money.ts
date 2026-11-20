@@ -4,7 +4,30 @@
  *  - unlike currencies are never added together;
  *  - a record with no trustworthy currency is counted, but never given one and never summed.
  * project_invoices stores `amount` and `currency` per invoice (nothing records a configured default).
+ *  - (S6.4) AGGREGATION IS EXACT: amounts are summed as integer minor units (BigInt), never as JavaScript floating-point numbers,
+ *    so 0.10 + 0.20 is exactly 0.30. Floating point is used only AFTER the exact sum, to render a display string.
  */
+
+// Exact two-decimal parsing / printing, kept local so this module has no imports (it mirrors src/lib/commerce/money.ts).
+function toMinor(value: unknown): bigint | null {
+  let s: string
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return null
+    s = String(value)
+  } else if (typeof value === 'string') s = value.trim()
+  else return null
+  if (!/^-?[0-9]{1,14}(.[0-9]{1,2})?$/.test(s)) return null
+  const negative = s.startsWith('-')
+  const [whole, frac = ''] = (negative ? s.slice(1) : s).split('.')
+  const minor = BigInt(whole) * 100n + BigInt((frac + '00').slice(0, 2))
+  return negative ? -minor : minor
+}
+
+function minorToString(minor: bigint): string {
+  const negative = minor < 0n
+  const abs = negative ? -minor : minor
+  return `${negative ? '-' : ''}${(abs / 100n).toString()}.${(abs % 100n).toString().padStart(2, '0')}`
+}
 
 export interface MoneyRow {
   amount?: unknown
@@ -13,7 +36,8 @@ export interface MoneyRow {
 
 export interface CurrencyTotal {
   currency: string
-  total: number
+  /** Exact decimal string with two decimals, e.g. "0.30". */
+  total: string
   count: number
 }
 
@@ -47,8 +71,9 @@ export function summariseMoney(rows: MoneyRow[]): MoneySummary {
   let noAmountCount = 0
 
   for (const row of rows) {
-    const amount = row.amount === null || row.amount === undefined || row.amount === '' ? NaN : Number(row.amount)
-    if (!Number.isFinite(amount)) {
+    // an amount that is not an exact two-decimal figure cannot be added exactly, so it is counted as unreadable, never rounded in
+    const minor = row.amount === null || row.amount === undefined || row.amount === '' ? null : toMinor(row.amount)
+    if (minor === null) {
       noAmountCount += 1
       continue
     }
@@ -57,8 +82,8 @@ export function summariseMoney(rows: MoneyRow[]): MoneySummary {
       unknownCurrencyCount += 1
       continue
     }
-    const entry = byCurrency.get(currency) ?? { currency, total: 0, count: 0 }
-    entry.total += amount
+    const entry = byCurrency.get(currency) ?? { currency, total: '0.00', count: 0 }
+    entry.total = minorToString((toMinor(entry.total) ?? 0n) + minor)
     entry.count += 1
     byCurrency.set(currency, entry)
   }
@@ -75,7 +100,8 @@ export function formatMoney(amount: number, currency: string): string {
  * (the caller then falls back to a count/status).
  */
 export function describeMoney(summary: MoneySummary): string | null {
-  const parts = summary.totals.map((t) => formatMoney(t.total, t.currency))
+  // formatting happens only after the exact aggregate: the exact minor-unit figure is turned into a display number here
+  const parts = summary.totals.map((t) => formatMoney(Number(t.total), t.currency))
   if (summary.unknownCurrencyCount > 0) {
     parts.push(`${summary.unknownCurrencyCount} with no currency recorded`)
   }

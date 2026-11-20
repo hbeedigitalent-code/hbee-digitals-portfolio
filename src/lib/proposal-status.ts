@@ -23,7 +23,8 @@ export const PROPOSAL_STATUSES = [
   'viewed',
   'approved',
   'changes_requested',
-  'rejected',
+  'declined',
+  'rejected', // LEGACY spelling of declined: still read and displayed, no longer written
   'expired',
 ] as const
 
@@ -35,7 +36,8 @@ export const PROPOSAL_STATUS_LABELS: Record<ProposalStatus, string> = {
   viewed: 'Viewed',
   approved: 'Approved',
   changes_requested: 'Changes Requested',
-  rejected: 'Rejected',
+  declined: 'Declined',
+  rejected: 'Declined',
   expired: 'Expired',
 }
 
@@ -46,6 +48,7 @@ export const PROPOSAL_STATUS_STYLES: Record<ProposalStatus, string> = {
   viewed: 'bg-[var(--warning-subtle)] text-[var(--warning)]',
   approved: 'bg-[var(--success-subtle)] text-[var(--success)]',
   changes_requested: 'bg-[var(--warning-subtle)] text-[var(--warning)]',
+  declined: 'bg-[var(--error-subtle)] text-[var(--error)]',
   rejected: 'bg-[var(--error-subtle)] text-[var(--error)]',
   expired: 'bg-[var(--bg-section)] text-[var(--text-muted)]',
 }
@@ -67,12 +70,38 @@ const UNKNOWN_STATUS_STYLE = 'bg-[var(--bg-section)] text-[var(--text-secondary)
  */
 export const PROPOSAL_STATUS_TRANSITIONS: Record<ProposalStatus, ProposalStatus[]> = {
   draft: ['sent'],
-  sent: ['viewed'],
-  viewed: ['approved', 'changes_requested'],
-  approved: [],
-  changes_requested: ['sent'],
+  sent: ['viewed', 'approved', 'changes_requested', 'declined', 'expired'],
+  viewed: ['approved', 'changes_requested', 'declined', 'expired'],
+  approved: [], // terminal; "converted" is DERIVED (approved + converted_to_project_id), never a stored status
+  changes_requested: ['sent'], // revise, then send again as a NEW version; it can never be approved directly
+  declined: [],
   rejected: [],
   expired: [],
+}
+
+/**
+ * What the ADMIN may do (S6.4): only send. Viewing, approving, requesting changes and declining are CLIENT decisions, recorded by
+ * the server functions with the client's identity; the old browser-side admin buttons for them are gone.
+ */
+export function adminProposalActions(value: string | null | undefined): ProposalStatus[] {
+  return value === 'draft' || value === 'changes_requested' ? ['sent'] : []
+}
+
+/** Stored status -> the one the product reasons about (legacy rejected = declined; legacy converted = approved). */
+export function normalizeProposalStatus(value: unknown): ProposalStatus | 'unknown' {
+  if (value === 'rejected') return 'declined'
+  if (value === 'converted') return 'approved'
+  return isProposalStatus(value) ? value : 'unknown'
+}
+
+/** The client may decide only on a delivered, undecided proposal. */
+export function isClientDecidable(value: unknown): boolean {
+  return value === 'sent' || value === 'viewed'
+}
+
+/** Draft edits are allowed only before the client can see the values, or while a requested revision is being made. */
+export function isEditableProposalStatus(value: unknown): boolean {
+  return value === 'draft' || value === 'changes_requested'
 }
 
 export function isProposalStatus(value: unknown): value is ProposalStatus {

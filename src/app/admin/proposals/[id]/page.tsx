@@ -6,7 +6,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClientComponentClient } from '@/lib/supabase-client'
-import { proposalStatusLabel, proposalStatusTransitions } from '@/lib/proposal-status'
+import { proposalStatusLabel, adminProposalActions, isEditableProposalStatus } from '@/lib/proposal-status'
+import ProposalCommercialPanel from '@/components/admin/ProposalCommercialPanel'
 import { formatFileSize } from '@/lib/proposal-file-validation'
 import StatusBadge from '@/components/ui/StatusBadge'
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -204,96 +205,16 @@ export default function AdminProposalDetailPage({ params }: PageProps) {
   }
 
   /**
-   * The APPROVE transition, also server-routed.
-   *
-   * This used to be two browser writes: a direct proposals update, and
-   * MerchantLifecycleService.updateStatus() against merchant_status — a table
-   * the access lockdown closes to the browser. Both now happen inside
-   * /api/admin/proposals/{id}/status, which re-verifies session + 2FA +
-   * active admin and derives the merchant from the STORED proposal row.
-   *
-   * The two writes are separate statements and are NOT atomic. The response
-   * reports the lifecycle result separately, and a lifecycle failure is shown
-   * to the admin rather than folded into a success message.
+   * The only status action an Admin owns is SEND (and re-send of a revision), and it is server-routed: it snapshots the exact
+   * content as an immutable version, recomputes the totals in the database and notifies the client once per version.
+   * Viewing, approving, requesting changes and declining are the CLIENT's decisions, recorded with the client's own identity —
+   * there is deliberately no browser-side status write left on this page.
    */
-  async function approveProposal() {
-    setUpdating(true)
-    try {
-      const response = await fetch(`/api/admin/proposals/${params.id}/status`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ status: 'approved' }),
-      })
-
-      const payload = await response.json().catch(() => null)
-
-      if (!response.ok) {
-        alert(payload?.error || 'Failed to approve this proposal.')
-        return
-      }
-
-      await fetchProposal()
-
-      if (payload?.lifecycle === 'updated') {
-        alert('Proposal approved.')
-      } else if (payload?.lifecycle === 'not_linked') {
-        alert(
-          'Proposal approved. It is not linked to a merchant, so no merchant stage was updated.',
-        )
-      } else if (payload?.lifecycle === 'no_status_row') {
-        alert(
-          'Proposal approved, but this merchant has no lifecycle record, so their stage was not updated.',
-        )
-      } else {
-        alert(
-          'Proposal approved, but the merchant stage could not be updated. Please update it manually.',
-        )
-      }
-    } catch (error) {
-      console.error('Error:', error)
-      alert('Failed to approve this proposal.')
-    } finally {
-      setUpdating(false)
-    }
-  }
-
   async function updateStatus(status: string) {
-    if (!confirm(`Change proposal status to "${status}"?`)) return
-
-    // Send and approve are both server-routed. Every other transition is a
-    // plain proposals update and is unchanged.
-    if (status === 'sent') {
-      await sendProposal()
-      return
-    }
-    if (status === 'approved') {
-      await approveProposal()
-      return
-    }
-
-    setUpdating(true)
-    try {
-      const updates: any = { status }
-
-      const { error } = await supabase
-        .from('proposals')
-        .update(updates)
-        .eq('id', params.id)
-
-      if (error) {
-        console.error('Error updating proposal:', error)
-        alert('Failed to update proposal status.')
-        return
-      }
-
-      await fetchProposal()
-      alert(`Proposal status updated to "${status}"`)
-    } catch (error) {
-      console.error('Error:', error)
-    } finally {
-      setUpdating(false)
-    }
+    if (status !== 'sent') return
+    const revised = proposal?.status === 'changes_requested'
+    if (!confirm(revised ? 'Send this revision to the client as a new version?' : 'Send this proposal to the client?')) return
+    await sendProposal()
   }
 
   if (loading) {
@@ -321,7 +242,7 @@ export default function AdminProposalDetailPage({ params }: PageProps) {
 
   // Transitions come from the shared vocabulary in src/lib/proposal-status.ts
   // so the list and detail pages can no longer drift apart.
-  const availableActions = proposalStatusTransitions(proposal.status)
+  const availableActions = adminProposalActions(proposal.status)
 
   return (
     <div className="space-y-6">
@@ -342,12 +263,14 @@ export default function AdminProposalDetailPage({ params }: PageProps) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/admin/proposals/${proposal.id}/edit`}>
-            <Button variant="secondary" size="sm">
-              <SvgIcon name="edit" size={14} />
-              Edit
-            </Button>
-          </Link>
+          {isEditableProposalStatus(proposal.status) && (
+            <Link href={`/admin/proposals/${proposal.id}/edit`}>
+              <Button variant="secondary" size="sm">
+                <SvgIcon name="edit" size={14} />
+                Edit
+              </Button>
+            </Link>
+          )}
           {availableActions.map((action) => (
             <Button
               key={action}
@@ -355,11 +278,13 @@ export default function AdminProposalDetailPage({ params }: PageProps) {
               onClick={() => updateStatus(action)}
               disabled={updating}
             >
-              {proposalStatusLabel(action)}
+              {proposal.status === 'changes_requested' ? 'Send revision' : 'Send to client'}
             </Button>
           ))}
         </div>
       </div>
+
+      <ProposalCommercialPanel proposalId={String(proposal.id)} onChanged={fetchProposal} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Content */}

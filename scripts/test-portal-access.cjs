@@ -80,7 +80,7 @@ function resetState() {
     { id: uuid(), client_id: CLIENT_B, title: 'B secret request', status: 'open' },
   ]
   t.project_invoices = [
-    { id: uuid(), project_id: 'aaaaaaaa-0000-4000-8000-000000000001', invoice_number: 'INV-A', amount: 10, currency: 'USD', status: 'sent' },
+    { id: uuid(), project_id: 'aaaaaaaa-0000-4000-8000-000000000001', invoice_number: 'INV-A', amount: 10, currency: 'USD', status: 'issued' },
     { id: uuid(), project_id: 'bbbbbbbb-0000-4000-8000-000000000001', invoice_number: 'INV-B-SECRET', amount: 99, currency: 'USD', status: 'sent' },
   ]
   t.growth_assessments = [
@@ -413,7 +413,7 @@ const ALL_PORTAL = [
   await test('A8 proposal actions are connected-only', async () => {
     resetState(); db = makeDb(); cache.clear(); as(USER_NEW)
     for (const rel of ['approve', 'request-changes', 'viewed']) {
-      const r = await call('client-portal/proposals/[id]/' + rel, 'POST', { params: { id: PROP_A }, body: { reason: 'please change the scope' } })
+      const r = await call('client-portal/proposals/[id]/' + rel, 'POST', { params: { id: PROP_A }, body: { reason: 'please change the scope', version: 1, confirm: true } })
       assert.equal(r.status, 403, rel)
       assert.equal(r.json.state, 'not_connected')
     }
@@ -594,10 +594,11 @@ const ALL_PORTAL = [
     const B = { proj: 'bbbbbbbb-0000-4000-8000-000000000001', file: 'bbbbbbbb-1111-4000-8000-000000000001', prop: 'bbbbbbbb-2222-4000-8000-000000000001' }
     for (const [rel, method, id] of [
       ['client-portal/projects/[id]', 'GET', B.proj], ['client-portal/files/[id]/signed-url', 'GET', B.file], ['client-portal/files/[id]', 'DELETE', B.file],
-      ['client-portal/proposals/[id]', 'GET', B.prop], ['client-portal/proposals/[id]/approve', 'POST', B.prop], ['client-portal/proposals/[id]/request-changes', 'POST', B.prop],
-      ['client-portal/proposals/[id]/viewed', 'POST', B.prop], ['client-portal/proposals/[id]/files', 'GET', B.prop],
+      // S6.4: approve / request-changes / viewed now run in database functions; their foreign-proposal 404s are proved against the
+      // S6.4 function models in scripts/test-proposals-invoices.cjs (C5, D3), which this older harness does not model.
+      ['client-portal/proposals/[id]', 'GET', B.prop], ['client-portal/proposals/[id]/files', 'GET', B.prop],
     ]) {
-      const r = await call(rel, method, { params: { id }, body: { reason: 'please change the scope' } })
+      const r = await call(rel, method, { params: { id }, body: { reason: 'please change the scope', version: 1, confirm: true } })
       assert.equal(r.status, 404, rel + ' ' + method + ' returned ' + r.status)
     }
     assert.equal(state.tables.proposals.find((p) => p.id === B.prop).status, 'sent')

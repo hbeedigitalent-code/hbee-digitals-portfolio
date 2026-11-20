@@ -27,7 +27,7 @@ const mixed = money.summariseMoney([
   { amount: 100, currency: 'NGN' }, { amount: '250.5', currency: 'ngn ' }, { amount: 40, currency: 'USD' },
   { amount: 70, currency: null }, { amount: 9, currency: 'ZZZ1' }, { amount: null, currency: 'USD' }, { amount: 'abc', currency: 'USD' },
 ])
-deq(JSON.parse(JSON.stringify(mixed.totals)), [{ currency: 'NGN', total: 350.5, count: 2 }, { currency: 'USD', total: 40, count: 1 }], 'one total per currency, never combined')
+deq(JSON.parse(JSON.stringify(mixed.totals)), [{ currency: 'NGN', total: '350.50', count: 2 }, { currency: 'USD', total: '40.00', count: 1 }], 'one total per currency, never combined')
 assert.equal(mixed.unknownCurrencyCount, 2, 'a missing or invalid currency is counted but never summed or invented')
 assert.equal(mixed.noAmountCount, 2)
 const line = money.describeMoney(mixed)
@@ -43,7 +43,7 @@ for (const f of ['src/app/admin/dashboard/page.tsx', 'src/app/admin/workspace/pa
   assert.doesNotMatch(src, /Revenue Pipeline/, `${f} no mislabelled revenue total`)
   assert.match(src, /summariseMoney/, `${f} uses the currency-safe summary`)
 }
-assert.match(read('src/app/admin/dashboard/page.tsx'), /select\('status, amount, currency'\)/, 'currency is read with the amount')
+assert.match(read('src/app/admin/dashboard/page.tsx'), /select\('status, amount, currency(, due_date)?'\)/, 'currency is read with the amount')
 
 /* ── Dark mode: kept, but not offered ─────────────────────────────────────── */
 const shell = read('src/components/admin/shell/AdminShell.tsx')

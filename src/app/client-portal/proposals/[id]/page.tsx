@@ -1,570 +1,239 @@
 // src/app/client-portal/proposals/[id]/page.tsx
 //
-// Client proposal review. Phase P3; presentation refined in Phase 18.4.
+// One proposal, as the client must be able to rely on it (S6.4).
 //
-// This page never touches Supabase: every read and every decision goes through
-// the authenticated /api/client-portal/proposals/* routes, which resolve the
-// caller's clients.id server-side and enforce the ownership + status predicate.
-// Attachments are metadata only; downloads use the existing 60-second
-// signed-URL route, so no storage path ever reaches the browser.
-//
-// It also never imports createNotification.ts — the admin notification is
-// emitted by the approve / request-changes routes on the server.
-//
-// Phase 18.4 changed layout and hierarchy only. The fetch, viewed, download, approve and
-// request-changes handlers below are unchanged, as are the endpoints they call. Only fields
-// the API returns are shown; there is no invented scope narrative, outcomes or discussion.
+//   * It shows the immutable VERSION the client was sent (the approved version once approved) — scope, deliverables, timeline,
+//     line-item pricing, subtotal / discount / total in the proposal's own currency, payment terms and terms — and offers the PDF
+//     of exactly that version.
+//   * The three decisions are separate, explicit actions. Approve and Decline need a ticked confirmation; Approve names the
+//     version being approved and the server refuses it if the proposal has been revised since this page loaded. Request changes
+//     needs a message, which is stored durably against this version.
+//   * Nothing here computes or sends a price, a status, a client id or a project id: the page sends only the version number, the
+//     confirmation and the client's own words.
 
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Check, Download, FileText } from 'lucide-react'
+import { ArrowLeft, Download, FileText } from 'lucide-react'
+import { SupportAmbiguous, SupportError, SupportLoading } from '@/components/client-portal/SupportState'
 import { proposalStatusLabel } from '@/lib/proposal-status'
-import { formatFileSize } from '@/lib/proposal-file-validation'
-import {
-  displayStatus,
-  formatDate,
-  isProposalActionable,
-  isProposalExpired,
-  formatMoney,
-  isPastDate,
-  lifecycle,
-  statusTone,
-  type ProposalPricing,
-} from '@/lib/client-portal/proposal-display'
-import styles from '../proposals.module.css'
+import { formatMoney } from '@/lib/commerce/money'
+import { formatDay } from '@/lib/client-portal/support-display'
+import support from '@/components/client-portal/support.module.css'
+import styles from '@/components/client-portal/commerce.module.css'
 
-interface ProposalFile {
-  id: string
-  file_name: string
-  file_type: string
-  file_size: number
-  uploaded_at: string
+interface Doc {
+  proposal: {
+    id: string; number: string; title: string; status: string; displayStatus: string; currency: string; version: number; shownVersion: number; approvedVersion: number | null
+    converted: boolean; projectId: string | null; summary: string | null; scope: string | null; deliverables: string | null; timeline: string | null; terms: string | null; paymentTerms: string | null
+    issueDate: string | null; expiresAt: string | null; sentAt: string | null; acceptedAt: string | null; declinedAt: string | null; subtotal: string; discount: string; total: string
+    lines: Array<{ title: string; description?: string | null; quantity: string; unit_price: string; amount: string }>
+  }
+  files: Array<{ id: string; file_name: string; file_size: number | null }>
+  responses: Array<{ id: string; version_number: number; response_type: string; message: string | null; created_at: string; resolved_at: string | null; resolved_in_version: number | null }>
+  canDecide: boolean
+  expired: boolean
 }
 
-interface ProposalService {
-  name?: string
-  description?: string
-  price?: string | number
-}
+type Mode = null | 'approve' | 'changes' | 'decline'
+type LoadState = 'loading' | 'ready' | 'ambiguous' | 'missing' | 'error'
 
-interface ClientProposal {
-  id: string
-  proposal_number: string | null
-  title: string | null
-  status: string
-  services: ProposalService[] | null
-  pricing: ProposalPricing | null
-  timeline: string | null
-  terms: string | null
-  expires_at: string | null
-  sent_at: string | null
-  accepted_at: string | null
-  created_at: string
-  updated_at: string | null
-  merchant?: {
-    business_name: string | null
-    contact_name: string | null
-    email: string | null
-    website: string | null
-  } | null
-}
-
-const MAX_REASON_LENGTH = 2000
-
-function fileExtensionLabel(fileName: string): string {
-  const lastDot = fileName.lastIndexOf('.')
-  if (lastDot <= 0 || lastDot === fileName.length - 1) return 'FILE'
-  return fileName.slice(lastDot + 1).toUpperCase()
-}
+function newKey() { try { return crypto.randomUUID() } catch { return `k${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}` } }
 
 export default function ClientProposalDetailPage({ params }: { params: { id: string } }) {
-  const [proposal, setProposal] = useState<ClientProposal | null>(null)
-  const [files, setFiles] = useState<ProposalFile[]>([])
-  const [loading, setLoading] = useState(true)
-  const [notFound, setNotFound] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [state, setState] = useState<LoadState>('loading')
+  const [doc, setDoc] = useState<Doc | null>(null)
+  const [mode, setMode] = useState<Mode>(null)
+  const [confirmed, setConfirmed] = useState(false)
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
+  const [key] = useState(newKey)
 
-  const [submitting, setSubmitting] = useState(false)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [busyFileId, setBusyFileId] = useState<string | null>(null)
-
-  const [changesOpen, setChangesOpen] = useState(false)
-  const [reason, setReason] = useState('')
-
-  const fetchProposal = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+  const load = useCallback(async () => {
     try {
-      const response = await fetch(`/api/client-portal/proposals/${params.id}`, {
-        credentials: 'same-origin',
-      })
-
-      if (response.status === 404) {
-        setNotFound(true)
-        return
-      }
-
-      const payload = await response.json().catch(() => null)
-
-      if (!response.ok || !payload?.proposal) {
-        setError('Could not load this proposal. Please refresh and try again.')
-        return
-      }
-
-      setProposal(payload.proposal as ClientProposal)
-      setFiles(Array.isArray(payload.files) ? (payload.files as ProposalFile[]) : [])
-    } catch (err) {
-      console.error('Error:', err)
-      setError('Could not load this proposal. Please refresh and try again.')
-    } finally {
-      setLoading(false)
-    }
+      const r = await fetch(`/api/client-portal/proposals/${params.id}`, { credentials: 'same-origin' })
+      if (r.status === 409) return setState('ambiguous')
+      if (r.status === 404) return setState('missing')
+      const p = await r.json().catch(() => null)
+      if (!r.ok || !p?.proposal) return setState('error')
+      setDoc(p); setState('ready')
+      if (p.proposal.status === 'sent') fetch(`/api/client-portal/proposals/${params.id}/viewed`, { method: 'POST', credentials: 'same-origin' }).catch(() => undefined)
+    } catch { setState('error') }
   }, [params.id])
+  useEffect(() => { load() }, [load])
 
-  useEffect(() => {
-    fetchProposal()
-  }, [fetchProposal])
-
-  // Mark as viewed once, after the proposal loads in `sent`. The route only
-  // permits sent -> viewed, so this is a no-op in every other state.
-  useEffect(() => {
-    if (proposal?.status !== 'sent') return
-    let cancelled = false
-
-    async function markViewed() {
-      try {
-        const response = await fetch(`/api/client-portal/proposals/${params.id}/viewed`, {
-          method: 'POST',
-          credentials: 'same-origin',
-        })
-        if (!response.ok || cancelled) return
-        setProposal((current) => (current ? { ...current, status: 'viewed' } : current))
-      } catch {
-        /* non-critical — the proposal is still readable */
-      }
-    }
-
-    markViewed()
-    return () => {
-      cancelled = true
-    }
-  }, [proposal?.status, params.id])
-
-  async function handleDownload(file: ProposalFile) {
-    setError(null)
-    setBusyFileId(file.id)
+  async function decide(action: 'approve' | 'request-changes' | 'decline') {
+    if (!doc) return
+    setBusy(true); setNotice(null)
+    const body =
+      action === 'approve' ? { version: doc.proposal.version, confirm: true }
+      : action === 'decline' ? { confirm: true, note: text }
+      : { reason: text, clientKey: key }
     try {
-      const response = await fetch(
-        `/api/client-portal/proposals/${params.id}/files/${file.id}/signed-url`,
-        { credentials: 'same-origin' },
-      )
-      const payload = await response.json().catch(() => null)
-
-      if (!response.ok || !payload?.url) {
-        setError('Could not generate a download link.')
+      const r = await fetch(`/api/client-portal/proposals/${params.id}/${action}`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const p = await r.json().catch(() => null)
+      if (!r.ok) {
+        setNotice({ kind: 'err', text: p?.error || 'That could not be completed. Please try again.' })
+        if (p?.code === 'version_mismatch' || p?.code === 'not_allowed') await load()
         return
       }
-
-      window.open(payload.url, '_blank', 'noopener,noreferrer')
-    } catch (err) {
-      console.error('Error:', err)
-      setError('Could not generate a download link.')
-    } finally {
-      setBusyFileId(null)
-    }
+      setMode(null); setConfirmed(false); setText('')
+      setNotice({ kind: 'ok', text: action === 'approve' ? 'Thank you — the proposal is approved. Hbee Digitals has been notified and will set up your project.' : action === 'decline' ? 'You have declined this proposal. Hbee Digitals has been notified.' : 'Your request has been sent. Hbee Digitals will send a revised proposal.' })
+      await load()
+    } catch { setNotice({ kind: 'err', text: 'That could not be completed. Check your connection and try again.' }) } finally { setBusy(false) }
   }
 
-  async function handleApprove() {
-    if (!confirm('Approve this proposal? Your account manager will be notified.')) return
-
-    setError(null)
-    setSubmitting(true)
+  async function download(id: string) {
+    setNotice(null)
     try {
-      const response = await fetch(`/api/client-portal/proposals/${params.id}/approve`, {
-        method: 'POST',
-        credentials: 'same-origin',
-      })
-      const payload = await response.json().catch(() => null)
-
-      if (!response.ok || !payload?.proposal) {
-        setError(payload?.error || 'Could not approve this proposal. Please try again.')
-        return
-      }
-
-      setProposal((current) =>
-        current
-          ? { ...current, status: 'approved', accepted_at: payload.proposal.accepted_at }
-          : current,
-      )
-      setSuccessMessage('Proposal approved. Your account manager has been notified.')
-    } catch (err) {
-      console.error('Error:', err)
-      setError('Could not approve this proposal. Please try again.')
-    } finally {
-      setSubmitting(false)
-    }
+      const r = await fetch(`/api/client-portal/proposals/${params.id}/files/${id}/signed-url`, { credentials: 'same-origin' })
+      const p = await r.json().catch(() => null)
+      if (!r.ok || !p?.url) return setNotice({ kind: 'err', text: 'Could not generate a download link.' })
+      window.open(p.url, '_blank', 'noopener,noreferrer')
+    } catch { setNotice({ kind: 'err', text: 'Could not generate a download link.' }) }
   }
 
-  async function handleRequestChanges(e: React.FormEvent) {
-    e.preventDefault()
-
-    const trimmed = reason.trim()
-    if (!trimmed) {
-      setError('Please describe the changes you would like.')
-      return
-    }
-
-    setError(null)
-    setSubmitting(true)
-    try {
-      const response = await fetch(
-        `/api/client-portal/proposals/${params.id}/request-changes`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({ reason: trimmed }),
-        },
-      )
-      const payload = await response.json().catch(() => null)
-
-      if (!response.ok || !payload?.proposal) {
-        setError(payload?.error || 'Could not submit your request. Please try again.')
-        return
-      }
-
-      setProposal((current) => (current ? { ...current, status: 'changes_requested' } : current))
-      setChangesOpen(false)
-      setReason('')
-      setSuccessMessage('Your change request has been sent. We will be in touch shortly.')
-    } catch (err) {
-      console.error('Error:', err)
-      setError('Could not submit your request. Please try again.')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  if (loading) {
+  if (state === 'loading') return <SupportLoading />
+  if (state === 'ambiguous') return <SupportAmbiguous what="proposals" />
+  if (state === 'error') return <SupportError message="We could not load this proposal. Please try again in a moment." onRetry={load} />
+  if (state === 'missing' || !doc) {
     return (
-      <div className={styles.center}>
-        <div className={styles.spinner} />
-      </div>
+      <div className={support.page}><section className={`${support.panel} ${support.center}`}><div className={support.centerBody}><h2>Proposal not found</h2><Link href="/client-portal/proposals" className={support.link}>Back to proposals</Link></div></section></div>
     )
   }
 
-  if (notFound || !proposal) {
-    return (
-      <div className={styles.center}>
-        <div className={styles.centerBody}>
-          <h2>Proposal not found</h2>
-          <p>This proposal doesn&apos;t exist or is no longer available to you.</p>
-          <Link href="/client-portal/proposals" className={styles.secondary}>
-            Back to proposals
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  const services = Array.isArray(proposal.services) ? proposal.services : []
-  // One shared rule (also enforced by the approve / request-changes routes): sent or viewed AND not expired.
-  const canDecide = isProposalActionable(proposal)
-  const isExpired = isProposalExpired(proposal)
-  const isApproved = proposal.status === 'approved'
-  const isChangesRequested = proposal.status === 'changes_requested'
-
-  const currency = proposal.pricing?.currency
-  const total = formatMoney(proposal.pricing?.total, currency)
-  const expiry = formatDate(proposal.expires_at)
-  const expiryPast = isPastDate(proposal.expires_at)
-  const shownStatus = displayStatus(proposal)
-  const tone = statusTone(shownStatus)
-  const steps = lifecycle(proposal)
+  const p = doc.proposal
+  const label = proposalStatusLabel(doc.expired ? 'expired' : p.displayStatus)
 
   return (
-    <div className={styles.page}>
-      <Link href="/client-portal/proposals" className={styles.back}>
-        <ArrowLeft aria-hidden="true" />
-        All proposals
-      </Link>
-
-      {/* Header + commercial summary */}
-      <header className={styles.panel}>
-        <div className={styles.headTop}>
-          <div style={{ minWidth: 0 }}>
-            <p className={styles.eyebrow}>
-              <span aria-hidden="true" className={styles.node} />
-              Proposal
-            </p>
-            <h1 className={styles.h1}>{proposal.title || 'Proposal'}</h1>
-            <p className={styles.meta}>
-              {[proposal.proposal_number, proposal.merchant?.business_name].filter(Boolean).join(' · ') || 'Proposal'}
-            </p>
+    <div className={support.page}>
+      <header className={support.head}>
+        <div>
+          <Link href="/client-portal/proposals" className={support.link}><ArrowLeft aria-hidden="true" /> All proposals</Link>
+          <h1 className={support.h1}>{p.title}</h1>
+          <div className={styles.meta}>
+            <span className={support.chip}>{label}</span>
+            <span>{p.number} · version {p.shownVersion}</span>
+            {p.sentAt && <span>Sent {formatDay(p.sentAt)}</span>}
+            {p.expiresAt && <span>{doc.expired ? 'Expired' : 'Valid until'} {formatDay(p.expiresAt)}</span>}
           </div>
-          <span className={`${styles.chip} ${tone === 'approved' ? styles.chipApproved : tone === 'changes' ? styles.chipChanges : tone === 'expired' ? styles.chipExpired : ''}`}>
-            {isExpired ? 'Expired' : proposalStatusLabel(proposal.status)}
-          </span>
         </div>
-
-        <dl className={styles.summary}>
-          <div>
-            <dt>Investment</dt>
-            <dd className={total ? styles.big : undefined}>{total ?? 'Not specified'}</dd>
-          </div>
-          <div>
-            <dt>Timeline</dt>
-            <dd>{proposal.timeline || 'Not specified'}</dd>
-          </div>
-          <div>
-            <dt>Payment terms</dt>
-            <dd>{proposal.pricing?.payment_terms || 'Not specified'}</dd>
-          </div>
-          <div>
-            <dt>Valid until</dt>
-            <dd className={expiry && expiryPast ? styles.past : undefined}>
-              {expiry ?? 'No expiry date'}
-              {expiry && expiryPast && <small>This date has passed</small>}
-            </dd>
-          </div>
-        </dl>
-
-        <ol className={styles.life} aria-label="Proposal progress">
-          {steps.map((s) => (
-            <li key={s.name} className={`${styles.step} ${s.done ? styles.stepDone : styles.stepPending}`}>
-              <span className={styles.stepName}>{s.name}</span>
-              {s.date}
-            </li>
-          ))}
-        </ol>
-
-        {canDecide && (
-          <a href="#proposal-decision" className={styles.jump}>
-            Respond to this proposal ↓
-          </a>
-        )}
+        <a className={support.secondary} href={`/api/client-portal/proposals/${p.id}/pdf`} target="_blank" rel="noopener noreferrer"><Download aria-hidden="true" /> Download PDF</a>
       </header>
 
-      {successMessage && (
-        <p role="status" className={styles.ok}>
-          {successMessage}
-        </p>
-      )}
+      {notice && <p role="status" className={notice.kind === 'ok' ? support.ok : support.err}>{notice.text}</p>}
 
-      {error && (
-        <p role="alert" className={styles.err}>
-          {error}
-        </p>
-      )}
+      <section className={`${support.panel} ${styles.doc}`}>
+        {p.summary && <div className={styles.section}><h2 className={styles.sectionTitle}>Summary</h2><p className={styles.prose}>{p.summary}</p></div>}
+        {p.scope && <div className={styles.section}><h2 className={styles.sectionTitle}>Scope</h2><p className={styles.prose}>{p.scope}</p></div>}
+        {p.deliverables && <div className={styles.section}><h2 className={styles.sectionTitle}>Deliverables</h2><p className={styles.prose}>{p.deliverables}</p></div>}
+        {p.timeline && <div className={styles.section}><h2 className={styles.sectionTitle}>Timeline</h2><p className={styles.prose}>{p.timeline}</p></div>}
 
-      <div className={styles.layout}>
-        <div className={styles.stack}>
-          {/* Services / scope — exactly the services the proposal lists */}
-          <section className={styles.panel} aria-labelledby="prop-scope">
-            <p className={styles.eyebrow}>
-              <span aria-hidden="true" className={styles.node} />
-              What is included
-            </p>
-            <h2 id="prop-scope" className={styles.h2}>
-              Services &amp; scope
-            </h2>
-            {services.length === 0 ? (
-              <p className={styles.quiet} style={{ marginTop: '0.75rem' }}>
-                No services listed.
-              </p>
-            ) : (
-              <>
-                <ul className={styles.services}>
-                  {services.map((service, index) => {
-                    const price = formatMoney(service.price, currency)
-                    return (
-                      <li key={index} className={styles.service}>
-                        <div style={{ minWidth: 0 }}>
-                          <p className={styles.serviceName}>{service.name || '—'}</p>
-                          {service.description && <p className={styles.serviceDesc}>{service.description}</p>}
-                        </div>
-                        {price && <p className={styles.servicePrice}>{price}</p>}
-                      </li>
-                    )
-                  })}
-                </ul>
-                {total && (
-                  <div className={styles.total}>
-                    <span className={styles.totalLabel}>Total investment</span>
-                    <span className={styles.totalValue}>{total}</span>
-                  </div>
-                )}
-              </>
-            )}
-          </section>
-
-          {/* Documents — metadata only; downloads use the signed-URL route */}
-          <section className={styles.panel} aria-labelledby="prop-docs">
-            <p className={styles.eyebrow}>
-              <span aria-hidden="true" className={styles.node} />
-              Files
-            </p>
-            <h2 id="prop-docs" className={styles.h2}>
-              Documents
-            </h2>
-            {files.length === 0 ? (
-              <p className={styles.quiet} style={{ marginTop: '0.75rem' }}>
-                No documents attached to this proposal.
-              </p>
-            ) : (
-              <ul className={styles.files}>
-                {files.map((file) => (
-                  <li key={file.id} className={styles.file}>
-                    <div className={styles.fileMain}>
-                      <FileText aria-hidden="true" />
-                      <div style={{ minWidth: 0 }}>
-                        <p className={styles.fileName} title={file.file_name}>
-                          {file.file_name}
-                        </p>
-                        <p className={styles.fileMeta}>
-                          {[fileExtensionLabel(file.file_name), formatFileSize(file.file_size), formatDate(file.uploaded_at)]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleDownload(file)}
-                      disabled={busyFileId === file.id}
-                      className={styles.dl}
-                      aria-label={`Download ${file.file_name}`}
-                    >
-                      <Download aria-hidden="true" />
-                      Download
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          {/* Terms */}
-          {proposal.terms && (
-            <section className={styles.panel} aria-labelledby="prop-terms">
-              <p className={styles.eyebrow}>
-                <span aria-hidden="true" className={styles.node} />
-                Terms
-              </p>
-              <h2 id="prop-terms" className={styles.h2}>
-                Terms &amp; conditions
-              </h2>
-              <p className={styles.terms}>{proposal.terms}</p>
-            </section>
-          )}
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>Investment</h2>
+          <div className={styles.head} aria-hidden="true"><span>Item</span><span>Qty</span><span>Unit price</span><span>Amount</span></div>
+          <ul className={styles.lines}>
+            {p.lines.map((l, i) => (
+              <li key={i} className={styles.line}>
+                <span className={styles.lineTitle}>{l.title}</span>
+                <span className={styles.lineAmt}>{formatMoney(l.amount, p.currency)}</span>
+                {l.description && <span className={styles.lineDesc}>{l.description}</span>}
+                <span className={styles.lineQty}>Qty {Number(l.quantity)} × {formatMoney(l.unit_price, p.currency)}</span>
+                <span className={styles.lineUnit}>{formatMoney(l.unit_price, p.currency)}</span>
+              </li>
+            ))}
+          </ul>
+          <div className={styles.totals}>
+            <div className={styles.totalRow}><span>Subtotal</span><span>{formatMoney(p.subtotal, p.currency)}</span></div>
+            {Number(p.discount) > 0 && <div className={styles.totalRow}><span>Discount</span><span>-{formatMoney(p.discount, p.currency)}</span></div>}
+            <div className={`${styles.totalRow} ${styles.totalStrong}`}><span>Total ({p.currency})</span><span>{formatMoney(p.total, p.currency)}</span></div>
+          </div>
         </div>
 
-        {/* Decision */}
-        <aside className={styles.aside}>
-          <section id="proposal-decision" className={`${styles.panel} ${styles.decision}`} aria-labelledby="prop-decision">
-            <p className={styles.eyebrow}>
-              <span aria-hidden="true" className={styles.node} />
-              Next step
-            </p>
-            <h2 id="prop-decision" className={styles.h2}>
-              Your decision
-            </h2>
+        {p.paymentTerms && <div className={styles.section}><h2 className={styles.sectionTitle}>Payment terms</h2><p className={styles.prose}>{p.paymentTerms}</p></div>}
+        {p.terms && <div className={styles.section}><h2 className={styles.sectionTitle}>Terms</h2><p className={styles.prose}>{p.terms}</p></div>}
 
-            {isApproved && (
-              <p className={styles.decisionNote}>
-                You approved this proposal{formatDate(proposal.accepted_at) ? ` on ${formatDate(proposal.accepted_at)}` : ''}. We&apos;ll be in touch
-                with next steps.
-              </p>
-            )}
+        {doc.files.length > 0 && (
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>Attachments</h2>
+            <ul className={styles.files}>
+              {doc.files.map((f) => (
+                <li key={f.id} className={styles.file}>
+                  <span className={styles.fileName}><FileText aria-hidden="true" size={16} /> {f.file_name}</span>
+                  <button type="button" className={support.link} onClick={() => download(f.id)}>Download</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
 
-            {isExpired && (
-              <>
-                <p className={styles.decisionNote}>
-                  This proposal&apos;s validity period has ended. Contact Hbee if you&apos;d like to revisit the scope.
-                </p>
-                <div className={styles.actions}>
-                  <Link href="/contact" className={styles.secondary}>
-                    Contact Hbee
-                  </Link>
-                </div>
-              </>
-            )}
+      {doc.responses.length > 0 && (
+        <section className={support.panel} aria-label="Your responses">
+          <p className={styles.sectionTitle}>Your responses</p>
+          {doc.responses.map((r) => (
+            <div key={r.id} className={styles.note}>
+              <strong>{r.response_type === 'declined' ? 'Declined' : 'Changes requested'}</strong> · version {r.version_number} · {formatDay(r.created_at)}
+              {r.response_type === 'changes_requested' && (r.resolved_at ? ` · addressed in version ${r.resolved_in_version}` : ' · awaiting a revision from Hbee')}
+              {r.message ? `\n${r.message}` : ''}
+            </div>
+          ))}
+        </section>
+      )}
 
-            {isChangesRequested && (
-              <p className={styles.decisionNote}>
-                You&apos;ve requested changes to this proposal. We&apos;re reviewing your feedback and
-                will send an updated version shortly.
-              </p>
-            )}
+      {p.displayStatus === 'approved' && (
+        <p className={support.ok}>
+          You approved version {p.approvedVersion ?? p.shownVersion}{p.acceptedAt ? ` on ${formatDay(p.acceptedAt)}` : ''}.{' '}
+          {p.converted && p.projectId ? <Link href={`/client-portal/projects/${p.projectId}`} className={support.link}>Open your project</Link> : 'Hbee Digitals will set up your project.'}
+        </p>
+      )}
+      {p.displayStatus === 'declined' && <p className={support.warn}>This proposal was declined{p.declinedAt ? ` on ${formatDay(p.declinedAt)}` : ''}.</p>}
+      {p.displayStatus === 'changes_requested' && <p className={support.warn}>You asked for changes. Hbee Digitals will send a revised version; it cannot be approved until then.</p>}
+      {doc.expired && <p className={support.warn}>This proposal&rsquo;s validity period has ended. Please contact Hbee Digitals if you would like to revisit it.</p>}
 
-            {canDecide && !changesOpen && (
-              <>
-                <p className={styles.decisionNote}>
-                  Review the scope and documents, then approve or tell us what you&apos;d like
-                  changed.
-                </p>
-                <div className={styles.actions}>
-                  <button type="button" onClick={handleApprove} disabled={submitting} className={styles.primary}>
-                    <Check aria-hidden="true" />
-                    {submitting ? 'Submitting…' : 'Approve Proposal'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setChangesOpen(true)
-                      setError(null)
-                    }}
-                    disabled={submitting}
-                    className={styles.secondary}
-                  >
-                    Request Changes
-                  </button>
-                </div>
-              </>
-            )}
-
-            {canDecide && changesOpen && (
-              <form onSubmit={handleRequestChanges}>
-                <div className={styles.field}>
-                  <label htmlFor="proposal-change-reason" className={styles.label}>
-                    What would you like changed? *
-                  </label>
-                  <textarea
-                    id="proposal-change-reason"
-                    rows={5}
-                    maxLength={MAX_REASON_LENGTH}
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    placeholder="Tell us what to adjust — scope, pricing, timeline, anything else."
-                    className={styles.textarea}
-                  />
-                  <p className={styles.count}>
-                    {reason.length}/{MAX_REASON_LENGTH}
-                  </p>
-                </div>
-                <div className={styles.actions}>
-                  <button type="submit" disabled={submitting || !reason.trim()} className={styles.primary}>
-                    {submitting ? 'Sending…' : 'Send Request'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setChangesOpen(false)
-                      setReason('')
-                    }}
-                    disabled={submitting}
-                    className={styles.secondary}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            )}
-          </section>
-        </aside>
-      </div>
+      {doc.canDecide && (
+        <section className={styles.actions} aria-label="Your decision">
+          {mode === null && (
+            <div className={styles.actionRow}>
+              <button type="button" className={support.primary} onClick={() => { setMode('approve'); setNotice(null) }}>Approve this proposal</button>
+              <button type="button" className={support.secondary} onClick={() => { setMode('changes'); setNotice(null) }}>Request changes</button>
+              <button type="button" className={`${support.secondary} ${styles.danger}`} onClick={() => { setMode('decline'); setNotice(null) }}>Decline</button>
+            </div>
+          )}
+          {mode === 'approve' && (
+            <>
+              <label className={styles.confirm}><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} /> I approve version {p.version} of proposal {p.number}, for {formatMoney(p.total, p.currency)}.</label>
+              <div className={styles.actionRow}>
+                <button type="button" className={support.primary} disabled={!confirmed || busy} onClick={() => decide('approve')}>{busy ? 'Approving…' : 'Confirm approval'}</button>
+                <button type="button" className={support.secondary} disabled={busy} onClick={() => { setMode(null); setConfirmed(false) }}>Cancel</button>
+              </div>
+            </>
+          )}
+          {mode === 'changes' && (
+            <>
+              <label className={support.label} htmlFor="chg">What would you like changed?</label>
+              <textarea id="chg" className={support.textarea} rows={4} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} />
+              <div className={styles.actionRow}>
+                <button type="button" className={support.primary} disabled={!text.trim() || busy} onClick={() => decide('request-changes')}>{busy ? 'Sending…' : 'Send request'}</button>
+                <button type="button" className={support.secondary} disabled={busy} onClick={() => { setMode(null); setText('') }}>Cancel</button>
+              </div>
+            </>
+          )}
+          {mode === 'decline' && (
+            <>
+              <label className={support.label} htmlFor="dec">Anything you would like to tell us? (optional)</label>
+              <textarea id="dec" className={support.textarea} rows={3} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} />
+              <label className={styles.confirm}><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} /> I want to decline this proposal. I understand Hbee would need to send a new one.</label>
+              <div className={styles.actionRow}>
+                <button type="button" className={`${support.primary} ${styles.danger}`} disabled={!confirmed || busy} onClick={() => decide('decline')}>{busy ? 'Declining…' : 'Confirm decline'}</button>
+                <button type="button" className={support.secondary} disabled={busy} onClick={() => { setMode(null); setConfirmed(false); setText('') }}>Cancel</button>
+              </div>
+            </>
+          )}
+        </section>
+      )}
     </div>
   )
 }

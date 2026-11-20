@@ -1,48 +1,26 @@
 // src/app/api/client-portal/proposals/[id]/request-changes/route.ts
 //
-// POST — the client asks for changes to their own proposal.
+// POST — the client asks for changes to the proposal they were sent. Body: { reason, clientKey? }.
 //
-// Allowed from: sent, viewed. NOT from approved.
+// S6.4: the reason is now a DURABLE record. request_proposal_changes stores it in proposal_responses against the exact VERSION
+// the client was looking at, in the same transaction as the status change to `changes_requested` (an immutable row; it can only
+// ever be marked resolved when the Admin sends the next version). It is no longer carried only in a notification.
 //
-//   Reopening an approved proposal is a commercial reversal, and
-//   src/lib/proposal-status.ts already models `approved` as terminal
-//   (PROPOSAL_STATUS_TRANSITIONS.approved === []). Letting a client walk an
-//   approved proposal backwards would contradict that vocabulary and could
-//   undo work already started downstream. If the business wants it, it belongs
-//   in the status module as an explicit transition, not smuggled in here.
-//
-// SCHEMA NOTE — the reason is deliberately NOT persisted on the proposal row.
-// The only free-text column available is `notes`, which the admin UI labels
-// "Internal Notes" / "Notes (Internal)". Writing client-authored text there
-// would overwrite the admin's private notes and blur an internal field into a
-// client-writable one. No suitable column exists, and this batch does not
-// invent one or run SQL. The reason is instead carried in the admin
-// notification message, which is admin-scoped and exactly where the admin will
-// read it.
-//
-// Nothing commercial is read from the request: only `reason` is consumed, and
-// only `status` / `updated_at` are written.
+// Allowed from sent / viewed only, for the client's own proposal (anything else is the same 404). `clientKey` makes a retry
+// return the first record instead of a second; the Admin notification is keyed on that record, so a retry cannot duplicate it.
+// Only `reason` and `clientKey` are read from the body.
 
 import { NextResponse } from 'next/server'
 import { resolvePortalClient } from '@/lib/client-portal/portal-client'
-import { createNotification } from '@/lib/notifications/createNotification'
-import { isProposalExpired } from '@/lib/client-portal/proposal-display'
+import { callRpc, refusal, UUID_RE } from '@/lib/commerce/rpc'
+import { notifyAdminProposalDecision } from '@/lib/commerce/notify'
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-/** Changes may be requested only on a delivered, undecided proposal. */
-const CHANGEABLE_STATUSES = ['sent', 'viewed']
+export const dynamic = 'force-dynamic'
 
 const MAX_REASON_LENGTH = 2000
-/** Trimmed length used inside the notification message. */
-const REASON_PREVIEW_LENGTH = 500
+const KEY_RE = /^[A-Za-z0-9_-]{8,80}$/
 
-
-/**
- * Strips control characters and collapses runaway whitespace before the text is
- * stored in a notification message and rendered in the admin UI. Tab (\x09) and
- * newline (\x0A) are preserved so a multi-paragraph request survives intact.
- */
+/** Strips control characters and collapses runaway whitespace; tab and newline survive so a multi-paragraph request is intact. */
 function sanitizeReason(raw: string): string {
   return raw
     // eslint-disable-next-line no-control-regex
@@ -57,100 +35,29 @@ export async function POST(request: Request, { params }: { params: { id: string 
   try {
     const portal = await resolvePortalClient({ requireConnected: true, extraColumns: 'business_name, full_name' })
     if (!portal.ok) return portal.response
-    const adminClient = portal.db
-    const clientRow = portal.client
-
     const proposalId = typeof params?.id === 'string' ? params.id.trim() : ''
-    if (!UUID_RE.test(proposalId)) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
+    if (!UUID_RE.test(proposalId)) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const body = await request.json().catch(() => null)
-    const rawReason = typeof body?.reason === 'string' ? body.reason : ''
-    const reason = sanitizeReason(rawReason)
+    const reason = sanitizeReason(typeof body?.reason === 'string' ? body.reason : '')
+    if (!reason) return NextResponse.json({ error: 'Please tell us what you would like changed.' }, { status: 400 })
+    if (reason.length > MAX_REASON_LENGTH) return NextResponse.json({ error: `Please keep your message under ${MAX_REASON_LENGTH} characters.` }, { status: 400 })
+    const key = typeof body?.clientKey === 'string' && KEY_RE.test(body.clientKey) ? body.clientKey : null
 
-    if (!reason) {
-      return NextResponse.json(
-        { error: 'Please describe the changes you would like.' },
-        { status: 400 },
-      )
+    const result = await callRpc(portal.db, 'request_proposal_changes', { p_proposal_id: proposalId, p_client_id: portal.client.id, p_user_id: portal.user.id, p_reason: reason, p_key: key })
+    if (!result.ok) return result.response
+    const refused = refusal(result.outcome, ['requested'])
+    if (refused) return refused
+    const o = result.outcome
+
+    let notified = false
+    if (o.duplicate !== true) {
+      const label = String(portal.client.business_name || portal.client.full_name || 'A client')
+      notified = await notifyAdminProposalDecision({ kind: 'changes_requested', proposalId, entityId: String(o.response_id), clientLabel: label, number: String(o.proposal_number ?? ''), reasonPreview: reason.slice(0, 300) })
     }
-    if (reason.length > MAX_REASON_LENGTH) {
-      return NextResponse.json(
-        { error: `Please keep your request under ${MAX_REASON_LENGTH} characters.` },
-        { status: 400 },
-      )
-    }
-
-
-    // Expiry guard (Phase 18.4). A sent/viewed proposal whose expires_at has passed is closed to
-    // client action — the same rule the UI uses (isProposalExpired). Nothing is stored; the
-    // proposal stays visible, it just cannot be responded to. The read is scoped to the caller.
-    const { data: current } = await adminClient
-      .from('proposals')
-      .select('status, expires_at')
-      .eq('id', proposalId)
-      .eq('client_id', clientRow.id)
-      .maybeSingle()
-
-    if (current && isProposalExpired(current)) {
-      return NextResponse.json(
-        { error: "This proposal's validity period has ended. Please contact Hbee if you'd like to revisit it." },
-        { status: 409 },
-      )
-    }
-
-    // Ownership AND the allowed-status precondition are enforced in the UPDATE
-    // itself, so a proposal that is already approved matches zero rows.
-    const { data: updated, error: updateError } = await adminClient
-      .from('proposals')
-      .update({ status: 'changes_requested', updated_at: new Date().toISOString() })
-      .eq('id', proposalId)
-      .eq('client_id', clientRow.id)
-      .in('status', CHANGEABLE_STATUSES)
-      .select('id, proposal_number, title, status, updated_at')
-      .maybeSingle()
-
-    if (updateError) {
-      console.error('❌ Failed to request proposal changes:', updateError)
-      return NextResponse.json({ error: 'Failed to submit your request' }, { status: 500 })
-    }
-
-    if (!updated) {
-      // Not owned, unknown, or not in a changeable state (including already
-      // approved) — one indistinguishable response.
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
-
-    const clientLabel = clientRow.business_name || clientRow.full_name || 'A client'
-    const preview =
-      reason.length > REASON_PREVIEW_LENGTH
-        ? `${reason.slice(0, REASON_PREVIEW_LENGTH)}...`
-        : reason
-
-    await createNotification({
-      scope: 'admin',
-      recipientId: null,
-      type: 'proposal_changes_requested',
-      title: 'Changes Requested',
-      message: `${clientLabel} requested changes to proposal ${
-        updated.proposal_number || updated.title || ''
-      }: ${preview}`.trim(),
-      entityType: 'proposal',
-      entityId: updated.id,
-      link: `/admin/proposals/${updated.id}`,
-    })
-
-    return NextResponse.json({
-      success: true,
-      proposal: {
-        id: updated.id,
-        status: updated.status,
-        updated_at: updated.updated_at,
-      },
-    })
+    return NextResponse.json({ success: true, duplicate: o.duplicate === true, notified })
   } catch (error) {
-    console.error('❌ Client proposal request-changes error:', error)
-    return NextResponse.json({ error: 'Failed to submit your request' }, { status: 500 })
+    console.error('❌ Client request-changes error:', error)
+    return NextResponse.json({ error: 'Failed to send your request' }, { status: 500 })
   }
 }

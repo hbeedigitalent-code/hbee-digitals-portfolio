@@ -1,151 +1,70 @@
 // src/app/api/client-portal/proposals/[id]/approve/route.ts
 //
-// POST — the client approves their own proposal.
+// POST — the client approves ONE specific VERSION of their own proposal.
 //
-// Allowed from: sent, viewed, changes_requested. The `.in('status', ...)` in
-// the UPDATE is the guard, not just a filter — a proposal in draft, rejected,
-// expired or already-approved matches zero rows and 404s. That also makes a
-// double-click idempotent: the second request finds nothing to update.
+// Body: { version: <number the client reviewed>, confirm: true }. Both are required: approval is an explicit confirmation of a
+// named version, so a stale page cannot approve a newer text and a stray request cannot approve at all. Nothing else is read —
+// not a client id, merchant id, project id, status, total or user id.
 //
-// NOTHING commercial is read from the request. The body is ignored entirely;
-// only `status`, `accepted_at` and `updated_at` are written. client_id,
-// merchant_id, pricing, services, terms and title are never touched, and a
-// client-supplied status/client_id/merchant_id has no path into the query.
+// ONE database function (approve_proposal) does the whole operation in a single transaction, under a row lock:
+//   * the proposal must belong to the session's client (anything else is the same 404);
+//   * the account must be connected and not suspended; the status must be sent or viewed (NEVER changes_requested);
+//   * the confirmed version must equal the current one; an expired proposal is refused;
+//   * it records the approved version, the approving user and the time;
+//   * it reuses the proposal's valid same-client project, or creates exactly one `Pending Review` client project and links it;
+//   * a repeat of the same approval changes nothing and returns the same project.
+// A duplicate project reference rolls the function back whole and is retried here with a fresh reference.
 //
-// `accepted_at` already exists and is already written by the admin status
-// action, so it is reused here rather than inventing a column.
+// After the commit: one Admin notification (keyed on the proposal, so a retry cannot duplicate it) and the merchant lifecycle
+// step, both best effort — neither can undo or fail the client's decision.
 
 import { NextResponse } from 'next/server'
 import { resolvePortalClient } from '@/lib/client-portal/portal-client'
-import { createNotification } from '@/lib/notifications/createNotification'
-import { isProposalExpired } from '@/lib/client-portal/proposal-display'
+import { callRpcWithProjectReference, refusal, UUID_RE } from '@/lib/commerce/rpc'
+import { notifyAdminProposalDecision } from '@/lib/commerce/notify'
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+export const dynamic = 'force-dynamic'
 
-/** A proposal can be approved from any delivered, undecided state. */
-const APPROVABLE_STATUSES = ['sent', 'viewed', 'changes_requested']
+const ACCEPTED_LIFECYCLE_STATUS = 'proposal_accepted'
 
-
-export async function POST(_request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
     const portal = await resolvePortalClient({ requireConnected: true, extraColumns: 'business_name, full_name' })
     if (!portal.ok) return portal.response
-    const adminClient = portal.db
-    const clientRow = portal.client
-
     const proposalId = typeof params?.id === 'string' ? params.id.trim() : ''
-    if (!UUID_RE.test(proposalId)) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!UUID_RE.test(proposalId)) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    const body = await request.json().catch(() => null)
+    const version = Number(body?.version)
+    if (body?.confirm !== true || !Number.isInteger(version) || version < 1 || version > 10000) {
+      return NextResponse.json({ error: 'Confirm the version you are approving.', code: 'confirmation_required' }, { status: 400 })
     }
 
-
-    const now = new Date().toISOString()
-
-    // Expiry guard (Phase 18.4). A sent/viewed proposal whose expires_at has passed is closed to
-    // client action — the same rule the UI uses (isProposalExpired). Nothing is stored; the
-    // proposal stays visible, it just cannot be responded to. The read is scoped to the caller.
-    const { data: current } = await adminClient
-      .from('proposals')
-      .select('status, expires_at')
-      .eq('id', proposalId)
-      .eq('client_id', clientRow.id)
-      .maybeSingle()
-
-    if (current && isProposalExpired(current)) {
-      return NextResponse.json(
-        { error: "This proposal's validity period has ended. Please contact Hbee if you'd like to revisit it." },
-        { status: 409 },
-      )
-    }
-
-    // Only `status` and `accepted_at` are written.
-    //
-    // `updated_at` is deliberately NOT written. It is selectable (the detail
-    // GET returns it), but the only proposals UPDATE confirmed to succeed in
-    // production — the admin send route — writes `status` + `sent_at` and
-    // nothing else. Writing a column that may be trigger-maintained or
-    // generated adds a failure mode this route does not need: `updated_at` is
-    // not an approval timestamp, and if a trigger maintains it, it is
-    // maintained either way. Reading it below is unchanged and proven safe.
-    const { data: updated, error: updateError } = await adminClient
-      .from('proposals')
-      .update({ status: 'approved', accepted_at: now })
-      .eq('id', proposalId)
-      .eq('client_id', clientRow.id)
-      .in('status', APPROVABLE_STATUSES)
-      .select('id, proposal_number, title, status, accepted_at, updated_at')
-      .maybeSingle()
-
-    if (updateError) {
-      // Log the FULL error server-side (SQLSTATE + message + details + hint):
-      // a rejected write here is almost always a constraint or column problem,
-      // and the previous generic log made it impossible to tell which.
-      const code = (updateError as { code?: string }).code
-      console.error(
-        `❌ Failed to approve proposal ${proposalId} — code=${code ?? 'n/a'} message=${
-          (updateError as { message?: string }).message ?? 'n/a'
-        } details=${(updateError as { details?: string }).details ?? 'n/a'} hint=${
-          (updateError as { hint?: string }).hint ?? 'n/a'
-        }`,
-      )
-      // The SQLSTATE alone is returned to the caller — never the message,
-      // details or hint, which can echo row data. It reaches only an
-      // authenticated client who already owns this proposal, and turns an
-      // unactionable "it failed" into a one-glance diagnosis.
-      return NextResponse.json(
-        { error: 'Failed to approve proposal', code: code ?? null },
-        { status: 500 },
-      )
-    }
-
-    if (!updated) {
-      // Not owned, unknown, or not in an approvable state.
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    }
-
-    // Admin-scope notification through the trusted server-side writer.
-    // recipientId is null = broadcast to every active admin. The helper derives
-    // a deterministic idempotency key from (type, entityType, entityId, scope,
-    // recipientId), so repeated approvals of the same proposal collapse to a
-    // single notification row.
-    //
-    // A notification failure never rolls back the decision: the helper is
-    // non-throwing by contract and the approval is already committed. Losing a
-    // notification is recoverable; losing the client's decision is not.
-    const clientLabel = clientRow.business_name || clientRow.full_name || 'A client'
-    const notification = await createNotification({
-      scope: 'admin',
-      recipientId: null,
-      type: 'proposal_approved',
-      title: 'Proposal Approved',
-      message: `${clientLabel} approved proposal ${updated.proposal_number || updated.title || ''}`.trim(),
-      entityType: 'proposal',
-      entityId: updated.id,
-      link: `/admin/proposals/${updated.id}`,
+    const result = await callRpcWithProjectReference(portal.db, 'approve_proposal', {
+      p_proposal_id: proposalId,
+      p_client_id: portal.client.id,
+      p_user_id: portal.user.id,
+      p_confirm_version: version,
     })
+    if (!result.ok) return result.response
+    const refused = refusal(result.outcome, ['approved', 'already_approved'])
+    if (refused) return refused
+    const o = result.outcome
 
-    // Non-fatal, consistent with the admin send route: the approval is already
-    // committed and must not be reported as a failure because a notification
-    // could not be written. The outcome is surfaced as `notified` instead of
-    // being discarded silently.
-    if (!notification.ok) {
-      console.error(
-        `⚠️ Proposal ${updated.id} approved but the admin notification was not created (${
-          notification.skipped ?? 'unknown'
-        })`,
-      )
+    let notified = false
+    if (o.status === 'approved') {
+      const label = String(portal.client.business_name || portal.client.full_name || 'A client')
+      notified = await notifyAdminProposalDecision({ kind: 'approved', proposalId, entityId: proposalId, clientLabel: label, number: String(o.proposal_number ?? '') })
+
+      // merchant lifecycle: a SEPARATE table, best effort, exactly as the previous Admin approval did
+      const merchantId = portal.client.merchant_id
+      if (merchantId) {
+        const now = new Date().toISOString()
+        const { error } = await portal.db.from('merchant_status').update({ status: ACCEPTED_LIFECYCLE_STATUS, current_stage: ACCEPTED_LIFECYCLE_STATUS, last_activity: now, updated_at: now }).eq('merchant_id', merchantId)
+        if (error) console.error('⚠️ Proposal approved but the merchant lifecycle update failed')
+      }
     }
-
-    return NextResponse.json({
-      success: true,
-      proposal: {
-        id: updated.id,
-        status: updated.status,
-        accepted_at: updated.accepted_at,
-        updated_at: updated.updated_at,
-      },
-      notified: notification.ok === true,
-    })
+    return NextResponse.json({ success: true, alreadyApproved: o.status === 'already_approved', version: o.version, projectId: o.project_id ?? null, notified })
   } catch (error) {
     console.error('❌ Client proposal approve error:', error)
     return NextResponse.json({ error: 'Failed to approve proposal' }, { status: 500 })
