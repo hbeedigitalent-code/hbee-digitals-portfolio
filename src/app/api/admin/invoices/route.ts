@@ -6,7 +6,8 @@
 //        ({project_id, currency, due_date?}). The database function does the work: it takes the number from the transactional
 //        counter, copies the APPROVED VERSION's line items (not the live ones), refuses a portfolio project, a non-approved
 //        proposal, a project that is not the proposal's, and a second live invoice for the same proposal. Nothing about
-//        totals, number, status or client is read from the body.
+//        totals, number, status or client is read from the body. A standalone create (no proposal_id) for a project that already has
+//        an approved proposal is refused with 409 approved_proposal_exists (+ proposal_id / proposal_number) before any number is taken.
 
 import { NextResponse } from 'next/server'
 import { requireActiveAdmin, queryFailure, ADMIN_UUID_RE } from '@/lib/admin-api-auth'
@@ -79,6 +80,30 @@ export async function POST(request: Request) {
     if (!proposalId && !isCurrency(body?.currency)) return NextResponse.json({ error: 'Choose USD, NGN, GBP or EUR.', field: 'currency' }, { status: 400 })
     const due = body?.due_date === undefined || body?.due_date === null || body?.due_date === '' ? null : String(body.due_date)
     if (due !== null && (!DATE_RE.test(due) || Number.isNaN(new Date(due).getTime()))) return NextResponse.json({ error: 'Enter a valid due date.', field: 'due_date' }, { status: 400 })
+
+    // A standalone invoice (no proposal_id) is refused when the project already has an APPROVED proposal: the approved version's
+    // line items, discount and currency must come from that proposal, never from a silent empty draft. Nothing is linked
+    // automatically and no number is allocated; the Admin is sent to the proposal. Extra-work invoices for a project with no
+    // approved proposal are unaffected. An explicit proposal_id always takes the RPC path below (the immutable approved version).
+    if (!proposalId) {
+      const { data: approved, error: approvedError } = await auth.db
+        .from('proposals')
+        .select('id, proposal_number')
+        .eq('converted_to_project_id', projectId)
+        .eq('status', 'approved')
+        .not('approved_version', 'is', null)
+        .order('created_at', { ascending: true })
+        .limit(1)
+      if (approvedError) return queryFailure('invoice approved-proposal check', approvedError)
+      const linked = Array.isArray(approved) ? approved[0] : null
+      if (linked) {
+        return NextResponse.json({
+          error: 'approved_proposal_exists', code: 'approved_proposal_exists',
+          message: 'This project has an approved proposal. Create the invoice from that proposal to preserve the approved commercial terms.',
+          proposal_id: linked.id, proposal_number: linked.proposal_number ?? null,
+        }, { status: 409, headers: { 'Cache-Control': 'no-store' } })
+      }
+    }
 
     const result = await callRpc(auth.db, 'create_invoice', { p_project_id: projectId, p_proposal_id: proposalId, p_currency: proposalId ? null : body.currency, p_due_date: due, p_actor: auth.userId })
     if (!result.ok) return result.response

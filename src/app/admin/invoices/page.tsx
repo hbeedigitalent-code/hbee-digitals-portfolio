@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { CURRENCIES, formatMoney } from '@/lib/commerce/money'
 
 interface Row { id: string; number: string; status: string; displayStatus: string; statusLabel: string; currency: string; total: string; paid: string; balance: string; dueDate: string | null; projectName: string | null; clientName: string | null }
+interface ApprovedRef { id: string; number: string | null }
 interface Project { id: string; project_name: string | null; project_id: string | null; client?: { business_name: string | null; full_name: string | null } | null }
 
 const FILTERS = [['', 'All'], ['draft', 'Draft'], ['issued', 'Issued'], ['partially_paid', 'Partially paid'], ['overdue', 'Overdue'], ['paid', 'Paid'], ['void', 'Void']] as const
@@ -26,6 +27,10 @@ export default function AdminInvoicesPage() {
   const [currency, setCurrency] = useState('USD')
   const [due, setDue] = useState('')
   const [msg, setMsg] = useState<string | null>(null)
+  const [blocked, setBlocked] = useState<ApprovedRef | null>(null)
+  const [approvedByProject, setApprovedByProject] = useState<Record<string, ApprovedRef>>({})
+  // the proposal this project came from (known up front, or returned by the server's 409)
+  const approvedProposal = blocked || (projectId ? approvedByProject[projectId] : undefined) || null
 
   const load = useCallback(async () => {
     setState('loading')
@@ -44,13 +49,24 @@ export default function AdminInvoicesPage() {
     const r = await fetch('/api/admin/projects?scope=client', { credentials: 'same-origin' })
     const p = await r.json().catch(() => null)
     if (r.ok && Array.isArray(p?.projects)) setProjects(p.projects)
+    // Best effort, for an early warning only: which projects came from an approved proposal. The server check stays authoritative.
+    try {
+      const pr = await fetch('/api/admin/proposals', { credentials: 'same-origin', cache: 'no-store' })
+      const pp = await pr.json().catch(() => null)
+      if (pr.ok && Array.isArray(pp?.proposals)) {
+        const map: Record<string, ApprovedRef> = {}
+        for (const x of pp.proposals) if (x?.status === 'approved' && x.approved_version && x.converted_to_project_id && !map[x.converted_to_project_id]) map[x.converted_to_project_id] = { id: x.id, number: x.proposal_number ?? null }
+        setApprovedByProject(map)
+      }
+    } catch { /* the server guard still applies */ }
   }
 
   async function create(e: React.FormEvent) {
-    e.preventDefault(); setMsg(null)
+    e.preventDefault(); setMsg(null); setBlocked(null)
     const r = await fetch('/api/admin/invoices', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: projectId, currency, due_date: due || undefined }) })
     const p = await r.json().catch(() => null)
-    if (!r.ok) return setMsg(p?.error || 'The invoice could not be created.')
+    if (r.status === 409 && p?.code === 'approved_proposal_exists' && typeof p?.proposal_id === 'string') return setBlocked({ id: p.proposal_id, number: p.proposal_number ?? null })
+    if (!r.ok) return setMsg(p?.message || p?.error || 'The invoice could not be created.')
     window.location.href = `/admin/invoices/${p.invoice.id}`
   }
 
@@ -63,13 +79,19 @@ export default function AdminInvoicesPage() {
 
       {open && (
         <form onSubmit={create} className="grid gap-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:grid-cols-[1fr_8rem_11rem_auto]">
-          <select aria-label="Client project" value={projectId} onChange={(e) => setProjectId(e.target.value)} className={field} required>
+          <select aria-label="Client project" value={projectId} onChange={(e) => { setProjectId(e.target.value); setBlocked(null); setMsg(null) }} className={field} required>
             <option value="">Choose a client project…</option>
             {projects.map((p) => <option key={p.id} value={p.id}>{(p.client?.business_name || p.client?.full_name || 'Client')} — {p.project_name || p.project_id}</option>)}
           </select>
           <select aria-label="Currency" value={currency} onChange={(e) => setCurrency(e.target.value)} className={field}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select>
           <input aria-label="Due date" type="date" value={due} onChange={(e) => setDue(e.target.value)} className={field} />
-          <button type="submit" className="min-h-[44px] rounded-lg bg-[var(--accent)] px-4 text-sm font-semibold text-white">Create draft</button>
+          <button type="submit" disabled={!!approvedProposal} className="min-h-[44px] rounded-lg bg-[var(--accent)] px-4 text-sm font-semibold text-white disabled:opacity-50">Create draft</button>
+          {approvedProposal && (
+            <div role="alert" className="rounded-lg border border-[var(--border)] p-3 text-sm text-[var(--text-secondary)] sm:col-span-4">
+              <p>This project has an approved proposal. Create the invoice from that proposal so the approved line items and pricing are carried over.</p>
+              <Link href={`/admin/proposals/${approvedProposal.id}`} className="mt-2 inline-block font-semibold underline">Open approved proposal{approvedProposal.number ? ` ${approvedProposal.number}` : ''}</Link>
+            </div>
+          )}
           {msg && <p role="alert" className="text-sm text-[var(--error)] sm:col-span-4">{msg}</p>}
           <p className="text-xs text-[var(--text-muted)] sm:col-span-4">To invoice an approved proposal, open the proposal and use “Create invoice from this proposal”: it copies the approved version.</p>
         </form>

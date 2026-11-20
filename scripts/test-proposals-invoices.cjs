@@ -632,6 +632,8 @@ const ALL_PORTAL = [
   const asClient = (u = USER_A) => { state.admin = false; as(u) }
   const sentProposal = async (extra) => { const id = await createDraft(extra); const r = await send(id); assert.equal(r.status, 200, JSON.stringify(r.json)); return id }
   const approvedProposal = async () => { const id = await sentProposal(); asClient(); const r = await call('client-portal/proposals/[id]/approve', 'POST', { params: { id }, body: { version: 1, confirm: true } }); assert.equal(r.status, 200, JSON.stringify(r.json)); return { id, projectId: r.json.projectId } }
+  // a client project that did NOT come from an approved proposal (extra work): standalone invoicing stays possible here
+  const plainProject = (client = CLIENT_A) => { const id = uuid(); state.tables.projects.push({ id, client_id: client, project_id: 'EXTRA-' + id.slice(0, 6), project_name: 'Extra work', title: 'Extra work', status: 'Pending Review', progress: 0 }); return id }
   const pdfHas = (bytes, text) => pdfTextHas(bytes, text)
   const pdfHasOld = (bytes, text) => {
     const buf = Buffer.from(bytes)
@@ -841,7 +843,7 @@ const ALL_PORTAL = [
     const inv = state.tables.project_invoices[0]
     assert.match(inv.invoice_number, new RegExp('^HBD-INV-' + new Date().getFullYear() + '-0001$')); assert.equal(inv.status, 'draft'); assert.equal(inv.currency, 'USD', 'inherits the proposal currency'); assert.equal(inv.amount, '20.00')
     const lines = state.tables.invoice_line_items.filter((l) => l.invoice_id === inv.id); assert.deepEqual(lines.map((l) => l.title), ['Design', 'Build']); assert.ok(!lines.some((l) => /LATER/.test(l.title)))
-    const second = await call('admin/invoices', 'POST', { body: { project_id: projectId, currency: 'GBP' } }); assert.match(second.json.invoice.number, /-0002$/)
+    const second = await call('admin/invoices', 'POST', { body: { project_id: plainProject(), currency: 'GBP' } }); assert.match(second.json.invoice.number, /-0002$/)
     assert.equal(new Set(state.tables.project_invoices.map((i) => i.invoice_number)).size, 2)
     const dup = await call('admin/invoices', 'POST', { body: { project_id: projectId, proposal_id: id } }); assert.equal(dup.status, 409); assert.equal(dup.json.code, 'already_invoiced')
   })
@@ -856,8 +858,8 @@ const ALL_PORTAL = [
     assert.equal((await call('admin/invoices', 'POST', { body: { project_id: 'bad' } })).status, 400)
   })
   await test('F3 a draft is edited with exact arithmetic; forged amount/status are ignored; issue needs a due date and freezes the invoice', async () => {
-    setup(); const { projectId } = await approvedProposal(); state.admin = true
-    const c = await call('admin/invoices', 'POST', { body: { project_id: projectId, currency: 'USD' } }); const iid = c.json.invoice.id
+    setup(); await approvedProposal(); state.admin = true
+    const c = await call('admin/invoices', 'POST', { body: { project_id: plainProject(), currency: 'USD' } }); const iid = c.json.invoice.id
     const add = await call('admin/invoices/[id]/lines', 'POST', { params: { id: iid }, body: { title: 'Hosting', quantity: '3', unit_price: '1.10', line_amount: '1' } }); assert.equal(add.status, 201)
     assert.equal(state.tables.project_invoices[0].amount, '3.30', '3 x 1.10 = 3.30 computed by the database')
     assert.equal((await call('admin/invoices/[id]/lines', 'POST', { params: { id: iid }, body: { title: 'x', quantity: '1', unit_price: '1.234' } })).status, 400)
@@ -876,8 +878,8 @@ const ALL_PORTAL = [
     assert.equal(state.tables.project_invoices[0].amount, '3.50')
   })
   await test('F4 the payment ledger: partial, overpayment, zero/negative/sub-cent refused, idempotent retry, paid, nothing after', async () => {
-    setup(); const { projectId } = await approvedProposal(); state.admin = true
-    const iid = (await call('admin/invoices', 'POST', { body: { project_id: projectId, currency: 'USD', due_date: '2030-02-01' } })).json.invoice.id
+    setup(); await approvedProposal(); state.admin = true
+    const iid = (await call('admin/invoices', 'POST', { body: { project_id: plainProject(), currency: 'USD', due_date: '2030-02-01' } })).json.invoice.id
     await call('admin/invoices/[id]/lines', 'POST', { params: { id: iid }, body: { title: 'Work', quantity: '1', unit_price: '25.20' } })
     const pay = (b) => call('admin/invoices/[id]/payments', 'POST', { params: { id: iid }, body: { paid_at: '2026-01-15', ...b } })
     assert.equal((await pay({ amount: '5.00' })).json.code, 'not_payable', 'a draft takes no payment')
@@ -894,16 +896,63 @@ const ALL_PORTAL = [
     assert.equal(state.tables.invoice_payments.length, 2)
   })
   await test('F5 void: a draft or unpaid issued invoice only; repeating is harmless; the reason stays out of the client\'s document', async () => {
-    setup(); const { projectId } = await approvedProposal(); state.admin = true
-    const iid = (await call('admin/invoices', 'POST', { body: { project_id: projectId, currency: 'USD' } })).json.invoice.id
-    const v = await call('admin/invoices/[id]/void', 'POST', { params: { id: iid }, body: { reason: SECRET_NOTE } }); assert.equal(v.status, 200)
+    setup(); await approvedProposal(); state.admin = true
+    const iid = (await call('admin/invoices', 'POST', { body: { project_id: plainProject(), currency: 'USD' } })).json.invoice.id
+    const v =await call('admin/invoices/[id]/void', 'POST', { params: { id: iid }, body: { reason: SECRET_NOTE } }); assert.equal(v.status, 200)
     assert.equal(state.tables.project_invoices[0].status, 'void'); assert.equal((await call('admin/invoices/[id]/void', 'POST', { params: { id: iid }, body: {} })).json.duplicate, true)
     assert.ok(!JSON.stringify(state.tables.project_invoices).includes(SECRET_NOTE), 'the reason is never written to the invoice')
   })
 
+  console.log('\nF+. Invoice creation from an approved proposal (production QA defect: silent empty draft)')
+  const QA_LINES = [{ title: 'Website Conversion Review', quantity: '1', unit_price: '150.00' }, { title: 'Email Automation Setup', quantity: '1', unit_price: '250.00' }]
+  const qaApproved = async () => { const r = await (async () => { const id = await sentProposal({ line_items: QA_LINES, discount_amount: '40.00', payment_terms: '30% upfront, 70% on completion' }); asClient(); const a = await call('client-portal/proposals/[id]/approve', 'POST', { params: { id }, body: { version: 1, confirm: true } }); assert.equal(a.status, 200, JSON.stringify(a.json)); return { id, projectId: a.json.projectId } })(); state.admin = true; return r }
+  await test('F6 a standalone create for a project with an approved proposal is refused (409), creates nothing, consumes no number, and names the proposal', async () => {
+    setup(); const { id, projectId } = await qaApproved()
+    const r = await call('admin/invoices', 'POST', { body: { project_id: projectId, currency: 'USD', due_date: '2026-12-05' } })
+    assert.equal(r.status, 409, JSON.stringify(r.json)); assert.equal(r.json.error, 'approved_proposal_exists'); assert.equal(r.json.code, 'approved_proposal_exists')
+    assert.equal(r.json.proposal_id, id); assert.equal(r.json.proposal_number, P(id).proposal_number)
+    assert.match(r.json.message, /approved proposal.*Create the invoice from that proposal/)
+    assert.equal(state.tables.project_invoices.length, 0, 'no invoice'); assert.equal((state.tables.document_counters || []).length, 0, 'no number allocated'); assert.ok(!state.rpcCalls.includes('create_invoice'))
+    assert.equal(state.tables.invoice_line_items.length, 0)
+    // an explicit proposal still works afterwards, and takes the FIRST number: nothing was consumed by the refusal
+    const ok = await call('admin/invoices', 'POST', { body: { project_id: projectId, proposal_id: id } }); assert.equal(ok.status, 201); assert.match(ok.json.invoice.number, /-0001$/)
+    // the same refusal when the proposal already has its invoice: still nothing created, still pointed at the proposal
+    const again = await call('admin/invoices', 'POST', { body: { project_id: projectId, currency: 'USD' } }); assert.equal(again.status, 409); assert.equal(state.tables.project_invoices.length, 1)
+  })
+  await test('F7 an invoice created WITH the approved proposal carries the approved version: 150 + 250, subtotal 400, discount 40, total 360, USD; later live edits change nothing', async () => {
+    setup(); const { id, projectId } = await qaApproved()
+    state.tables.proposal_line_items.push({ id: uuid(), proposal_id: id, title: 'LATER LIVE EDIT', quantity: '1', unit_price: '9999.00', amount: '9999.00' })
+    Object.assign(P(id), { discount_amount: '0.00', title: 'Edited after approval' })
+    const r = await call('admin/invoices', 'POST', { body: { project_id: projectId, proposal_id: id, due_date: '2026-12-05' } }); assert.equal(r.status, 201, JSON.stringify(r.json))
+    const inv = state.tables.project_invoices[0]; assert.equal(inv.proposal_id, id); assert.equal(inv.currency, 'USD')
+    const lines = state.tables.invoice_line_items.filter((l) => l.invoice_id === inv.id)
+    assert.deepEqual(lines.map((l) => [l.title, l.quantity, l.unit_price, l.line_amount]), [['Website Conversion Review', '1', '150.00', '150.00'], ['Email Automation Setup', '1', '250.00', '250.00']])
+    assert.equal(inv.subtotal, '400.00'); assert.equal(inv.discount_amount, '40.00'); assert.equal(inv.amount, '360.00')
+    const dup = await call('admin/invoices', 'POST', { body: { project_id: projectId, proposal_id: id } }); assert.equal(dup.status, 409); assert.equal(dup.json.code, 'already_invoiced'); assert.equal(state.tables.project_invoices.length, 1, 'one live invoice per proposal')
+  })
+  await test('F8 standalone invoicing still works for a project with no approved proposal, and a voided linked invoice does not change the rule', async () => {
+    setup(); await qaApproved()
+    const r = await call('admin/invoices', 'POST', { body: { project_id: plainProject(), currency: 'GBP' } }); assert.equal(r.status, 201, JSON.stringify(r.json)); assert.equal(state.tables.project_invoices[0].proposal_id, null); assert.equal(state.tables.project_invoices[0].currency, 'GBP')
+    // a project whose proposal is merely SENT (not approved) is not blocked
+    const sentOnly = plainProject(); state.tables.proposals.push({ id: uuid(), client_id: CLIENT_A, proposal_number: 'PROP-X', status: 'sent', approved_version: null, converted_to_project_id: sentOnly })
+    assert.equal((await call('admin/invoices', 'POST', { body: { project_id: sentOnly, currency: 'USD' } })).status, 201)
+    // an approved proposal of ANOTHER project never blocks this one
+    assert.equal((await call('admin/invoices', 'POST', { body: { project_id: plainProject(), currency: 'USD' } })).status, 201)
+  })
+  await test('F9 the guard needs an admin; the Admin invoices page surfaces the specific message with a link to the proposal, and the proposal-page flow still sends proposal_id', () => {
+    state.admin = false; as(USER_A)
+    const page = stripComments(read('src/app/admin/invoices/page.tsx')); const route = stripComments(read('src/app/api/admin/invoices/route.ts')); const panel = stripComments(read('src/components/admin/ProposalCommercialPanel.tsx'))
+    assert.match(page, /approved_proposal_exists/); assert.match(page, /approved proposal\. Create the invoice from that proposal so the approved line items and pricing are carried over\./)
+    assert.match(page, /\/admin\/proposals\/\$\{approvedProposal\.id\}/); assert.match(page, /Open approved proposal/); assert.doesNotMatch(page, /supabase/i)
+    assert.match(route, /converted_to_project_id/); assert.match(route, /status: 409/)
+    assert.ok(route.indexOf('approved_proposal_exists') < route.indexOf("callRpc(auth.db, 'create_invoice'"), 'the guard runs before the RPC (before any number is allocated)')
+    assert.match(route, /if \(!proposalId\)/, 'an explicit proposal_id skips the guard and takes the RPC path')
+    assert.match(panel, /project_id: p\.projectId, proposal_id: proposalId, due_date/)
+  })
+
   console.log('\nG. The client\'s invoices')
   const issuedFor = async (userRows = {}) => {
-    const { projectId } = await approvedProposal(); state.admin = true
+    await approvedProposal(); state.admin = true; const projectId = plainProject()
     const iid = (await call('admin/invoices', 'POST', { body: { project_id: projectId, currency: 'USD', due_date: '2030-02-01' } })).json.invoice.id
     await call('admin/invoices/[id]/lines', 'POST', { params: { id: iid }, body: { title: 'Work', quantity: '1', unit_price: '100.00' } })
     await call('admin/invoices/[id]', 'PATCH', { params: { id: iid }, body: { payment_instructions: 'Pay to Hbee Bank 123', notes: 'Thanks for your business' } })
