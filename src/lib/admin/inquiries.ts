@@ -37,6 +37,42 @@ export function filterInquiries(items: Inquiry[], opts: { filter: InquiryFilter;
 
 /** First meaningful line of a message, for the list (enquiry budget/timeline are appended after a "—" rule). */
 export function inquiryPreview(message: string | null | undefined, max = 160): string {
-  const text = (message || '').split(/\n—\n/)[0].replace(/\s+/g, ' ').trim()
+  const text = (message || '').split(/\n—\n/)[0].split(/\n\n--- Campaign attribution ---\n/)[0].replace(/\s+/g, ' ').trim()
   return text.length > max ? `${text.slice(0, max - 1)}…` : text
+}
+
+/* ── Free Growth Review campaign requests ───────────────────────────────────
+ * POST /api/growth-review-request stores these in the same table, marked by
+ * `service`. Pure helpers only: the inbox adds a compact badge, nothing else changes. */
+
+/** Must equal GROWTH_REQUEST_SERVICE in validators/growth-request-payload.ts (kept literal so this module stays dependency-free). */
+export const GROWTH_REVIEW_SERVICE = 'Free Growth Review (campaign)'
+const ATTRIBUTION_MARKER = '--- Campaign attribution ---'
+
+export function isGrowthReviewRequest(item: { service?: string | null }): boolean {
+  return item.service === GROWTH_REVIEW_SERVICE
+}
+
+const SOURCE_LABELS: Record<string, string> = {
+  linkedin: 'LinkedIn',
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  whatsapp: 'WhatsApp',
+  twitter: 'X',
+  x: 'X',
+  tiktok: 'TikTok',
+  email: 'Email',
+  google: 'Google',
+}
+
+/** "LinkedIn" / "Instagram" from the stored utm_source, or null when unattributed. Never throws. */
+export function growthReviewSource(message: string | null | undefined): string | null {
+  const text = message || ''
+  const at = text.indexOf(ATTRIBUTION_MARKER)
+  if (at === -1) return null
+  const match = text.slice(at).match(/^utm_source: (.+)$/m)
+  const raw = match?.[1]?.trim()
+  if (!raw) return null
+  const key = raw.toLowerCase()
+  return SOURCE_LABELS[key] ?? raw.slice(0, 30)
 }

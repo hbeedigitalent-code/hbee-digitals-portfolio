@@ -713,3 +713,54 @@ button.railNode:hover .railDot { background: var(--hb-ice); }
   color: var(--hb-fg);
 }
 .constraintLead { font-weight: 600; }
+
+/* ═══ Free Growth Review — short campaign form + offer sections (BFCM sprint) ═══ */
+.quickCard {
+  position: relative;
+  display: grid;
+  gap: 1.125rem;
+  width: 100%;
+  max-width: 34rem;
+  margin-inline: auto;
+  padding: clamp(1.25rem, 0.8rem + 2vw, 2rem);
+  border: 1px solid var(--hb-border);
+  border-radius: 20px 20px 36px 20px;
+  background: var(--hb-white);
+  box-shadow: var(--hb-shadow-2);
+}
+@media (min-width: 1024px) { .quickCard { margin-inline: 0 0; max-width: 36rem; margin-left: auto; } }
+.quickTextarea { min-height: 6.5rem; resize: vertical; }
+.quickSubmit { width: 100%; justify-content: center; }
+.quickNote { font-size: 0.8125rem; line-height: 1.5; color: var(--hb-fg-body); }
+/* Honeypot: off-screen (not display:none, which some bots detect), never focusable, hidden from assistive tech. */
+.honeypot { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+
+.lookCard { cursor: default; }
+.lookCard:hover { transform: none; }
+.lookNumber {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  place-items: center;
+  border-radius: 8px 8px 12px 8px;
+  background: rgba(255, 255, 255, 0.16);
+  font-family: var(--hb-font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.bfcm {
+  max-width: 56rem;
+  margin-inline: auto;
+  padding: clamp(1.5rem, 1rem + 2.5vw, 2.5rem);
+  border: 1px solid var(--hb-border);
+  border-left: 3px solid var(--hb-signal);
+  border-radius: 0 20px 28px 0;
+  background: var(--hb-white);
+}
+.bfcmList { display: grid; gap: 0.5rem; margin-top: 1rem; list-style: none; }
+.bfcm .trustItem { font-size: 1rem; color: var(--hb-fg); }
+
+.finalCta { max-width: 40rem; margin-inline: auto; text-align: center; }
+.finalCta .contextLine { margin-inline: auto; }

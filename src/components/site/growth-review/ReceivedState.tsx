@@ -5,7 +5,9 @@ import { SiteButton, SiteLinkArrow } from '../primitives/SiteButton'
 import { SiteDisplayHeading, SiteEyebrow } from '../primitives/SiteTypography'
 import { CapabilityDiagnosticSystem } from './CapabilityDiagnosticSystem'
 import { RECEIVED } from './growth-review-content'
+import { GR_REQUEST_RECEIVED } from './growth-review-campaign-content'
 import { RECEIPT_KEY, receiptIsValid } from './form-model'
+import { QUICK_RECEIPT_KIND } from './quick-form-model'
 import styles from './growth-review.module.css'
 
 /**
@@ -19,7 +21,7 @@ import styles from './growth-review.module.css'
  * sessionStorage and can only be read in the browser.
  */
 export function ReceivedState() {
-  const [state, setState] = useState<'checking' | 'received' | 'neutral'>('checking')
+  const [state, setState] = useState<'checking' | 'received' | 'request' | 'neutral'>('checking')
 
   useEffect(() => {
     let raw: string | null = null
@@ -36,7 +38,16 @@ export function ReceivedState() {
         /* ignore */
       }
     }
-    setState(valid ? 'received' : 'neutral')
+    // The marker's `kind` says which form was submitted: a quick Growth Review request or the full assessment.
+    let kind: unknown = null
+    if (valid) {
+      try {
+        kind = JSON.parse(raw as string)?.kind
+      } catch {
+        kind = null
+      }
+    }
+    setState(!valid ? 'neutral' : kind === QUICK_RECEIPT_KIND ? 'request' : 'received')
   }, [])
 
   if (state === 'checking') return <div className={styles.receivedPlaceholder} aria-hidden="true" />
@@ -56,6 +67,62 @@ export function ReceivedState() {
         {/* The system at rest: no signal, no completion — this is not a confirmation. */}
         <div className={styles.neutralVisual}>
           <CapabilityDiagnosticSystem variant="idle" className="mx-auto max-w-[300px] sm:max-w-[360px] lg:mr-0 lg:max-w-[460px]" />
+        </div>
+      </div>
+    )
+  }
+
+  if (state === 'request') {
+    const R = GR_REQUEST_RECEIVED
+    return (
+      <div className={styles.received} data-state="request-received">
+        <div className={styles.receivedText}>
+          <SiteEyebrow signal>{R.eyebrow}</SiteEyebrow>
+          <p className={styles.receivedStatus}>
+            <span aria-hidden="true" className={styles.receivedStatusNode} />
+            {R.status}
+          </p>
+          <SiteDisplayHeading as="h1" size="h1" className={styles.receivedTitle}>
+            {R.title}
+          </SiteDisplayHeading>
+          <p className={styles.receivedBody}>{R.body}</p>
+
+          <h2 className={styles.receivedH2}>{R.stepsTitle}</h2>
+          <ol className={styles.receivedSteps}>
+            {R.steps.map((step, i) => (
+              <li key={step}>
+                <span aria-hidden="true" className={styles.stepNumber}>
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+
+          <h2 className={styles.receivedH2}>{R.needTitle}</h2>
+          <p className={styles.receivedBody}>{R.need}</p>
+
+          <div className={styles.goodToKnow}>
+            <h2 className={styles.goodToKnowTitle}>{R.deeperTitle}</h2>
+            <p>{R.deeper}</p>
+            <div className="mt-4">
+              <SiteButton href="/growth-review#growth-review-assessment" variant="secondary" arrow>
+                {R.deeperCta}
+              </SiteButton>
+            </div>
+          </div>
+
+          <div className={styles.receivedLinks}>
+            <SiteLinkArrow href="/how-we-work" className="min-h-[44px]">
+              How We Work
+            </SiteLinkArrow>
+            <SiteLinkArrow href="/" className="min-h-[44px]">
+              Back to homepage
+            </SiteLinkArrow>
+          </div>
+        </div>
+        <div className={styles.receivedVisual}>
+          <CapabilityDiagnosticSystem variant="received" className="mx-auto max-w-[420px]" />
         </div>
       </div>
     )

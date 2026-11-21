@@ -49,6 +49,7 @@ const received = read('src/components/site/growth-review/ReceivedState.tsx')
 const diagnostic = read('src/components/site/growth-review/CapabilityDiagnosticSystem.tsx')
 const howPage = read('src/app/(site)/how-we-work/page.tsx')
 const grPage = read('src/app/(site)/growth-review/page.tsx')
+const OFFER = load('src/components/site/growth-review/growth-review-campaign-content.ts')
 const schemaSrc = read('src/lib/site/page-schema.ts')
 const navigation = read('src/components/site/navigation.ts')
 
@@ -77,7 +78,8 @@ const both = `${howCopy}\n${grCopy}`
 assert.equal((howSections.match(/<h1\b/g) || []).length, 1, 'How We Work renders exactly one <h1>')
 assert.equal((grSections.match(/<h1\b/g) || []).length, 1, 'Growth Review renders exactly one <h1>')
 assert.equal(`${HOW.HOW_HERO.headline} ${HOW.HOW_HERO.headlineAccent}`, 'How Hbee Digitals Approaches Ecommerce Growth')
-assert.equal(`${GR.GR_HERO.headline} ${GR.GR_HERO.headlineAccent}`, 'Ecommerce Growth Review: Find What to Fix First')
+// BFCM sprint: the page H1 is now the campaign offer (growth-review-campaign-content.ts). GR_HERO survives for other readers.
+assert.equal(`${OFFER.GR_OFFER_HERO.headline} ${OFFER.GR_OFFER_HERO.headlineAccent}`, 'Find What to Fix First')
 assert.equal(HOW.HOW_HERO.eyebrow, 'We start with the business. Not the service.', 'the old slogan survives as the supporting statement')
 assert.ok(!/as=["']h1["']/.test(howSections + grSections), 'No second h1 through SiteDisplayHeading')
 
@@ -121,13 +123,17 @@ assert.ok(!/\b(Visibility|Conversion|Retention|Authority|Scalability)\b[^.]*\b(s
 const scoredClaim = /\b(six|all six|each of the six|every one of the six)\b[^.]{0,80}\b(scored|are scored|assessed individually|rated)\b/i
 assert.ok(!scoredClaim.test(grStrings), 'No claim that the six capabilities are scored')
 assert.ok(/not six separate scores/.test(GR.GR_CAPABILITIES.note), 'The capability section says they are not six separate scores')
-assert.ok(/does not score each one separately/.test(GR.GR_QUESTIONS[1].answer), 'The "what does Hbee review" answer is precise')
+// BFCM sprint: the review is a human look at the buying experience; the answer must still not claim scoring.
+assert.ok(/mobile experience/.test(GR.GR_QUESTIONS[1].answer) && !/\bscor(e|ed|es|ing)\b/i.test(GR.GR_QUESTIONS[1].answer), 'The "what does Hbee review" answer is precise and claims no scoring')
 assert.ok(/review/i.test(GR.GR_CAPABILITIES.copy) && /structured signals/.test(GR.GR_CAPABILITIES.copy), 'Form signals + human review are described')
 assert.ok(!/GR_AREAS/.test(grSections + received + diagnostic), 'The five legacy areas are not used on /growth-review or its received state')
 
 /* ── 6. No unconfirmed promises ── */
-assert.ok(!/\bfree\b/i.test(both), 'No "free" promise')
-assert.ok(!/business days?|\b2\s*[–-]\s*5\b|within \d+|\b\d+\s*(hours|days|weeks)\b|turnaround/i.test(both), 'No timing or turnaround promise')
+assert.ok(!/\bfree\b/i.test(howCopy), 'No "free" promise on How We Work')
+// BFCM sprint (approved): the Growth Review itself is a free, 24-hour offer, stated exactly in the campaign copy.
+assert.equal(OFFER.GR_OFFER_HERO.trust, 'Free. No account needed. No obligation.')
+assert.ok(/Within 24 hours/.test(OFFER.GR_OFFER_HERO.lede))
+assert.ok(!/business days?|\b2\s*[–-]\s*5\b|within \d+|\b\d+\s*(hours|days|weeks)\b|turnaround/i.test(howCopy), 'No timing or turnaround promise on How We Work')
 assert.ok(!/guarantee|lifetime|every (submitter|applicant|merchant)|all (submitters|applicants)/i.test(both), 'No guaranteed or lifetime Growth Profile')
 const instant = (both.match(/instant\w*/gi) || [])
 assert.equal(instant.length, 1, 'Only one mention of "instant"')
@@ -178,12 +184,12 @@ assert.deepEqual(
 assert.deepEqual(
   JSON.parse(JSON.stringify(GR.GR_QUESTIONS.map((q) => q.question))),
   [
-    'What is an ecommerce Growth Review?',
+    'What is a Growth Review?',
     'What does Hbee review?',
     'What happens after I submit?',
     'Do I need an account?',
-    'Is the Growth Review a sales call?',
-    'Should I fix traffic, conversion or retention first?',
+    'Is the Growth Review really free?',
+    'What is the Growth Profile?',
   ],
 )
 assert.ok(!/pric|cost|phase|timeline/i.test(HOW.HOW_QUESTIONS.map((q) => q.answer).join(' ')), 'How We Work answers make no pricing, phase or timeline claims')
@@ -211,7 +217,7 @@ const heroModules = [...diagnostic.matchAll(/^ {4}(Brand|Experience|Technology|C
 assert.equal(heroModules.slice(0, 6).sort().join(','), 'Brand,Creative,Discovery,Experience,Growth,Technology', 'The six canonical module identities are placed')
 assert.ok(/variant === 'received'/.test(diagnostic) && /idle/.test(diagnostic), 'Received keeps its own state (the hub signal appears only there)')
 assert.ok(/variant="idle"/.test(received) && /variant="received"/.test(received), 'Both states use the capability visual')
-assert.ok(/receiptIsValid\(raw\)/.test(received) && /setState\(valid \? 'received' : 'neutral'\)/.test(received), 'The no-fake-success receipt gate is intact')
+assert.ok(/receiptIsValid\(raw\)/.test(received) && /setState\(!valid \? 'neutral'/.test(received), 'The no-fake-success receipt gate is intact')
 assert.ok(/GR_AREAS/.test(read('src/components/site/growth-review/DiagnosticSystem.tsx')), 'Homepage DiagnosticSystem is left as it was')
 
 /* ── 13. Evidence, spelling ── */

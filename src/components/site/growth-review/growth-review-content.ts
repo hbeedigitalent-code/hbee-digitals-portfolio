@@ -87,33 +87,32 @@ export const GR_NEXT = {
 export const GR_QUESTIONS_INTRO = { title: 'Questions merchants ask' } as const
 export const GR_QUESTIONS: { question: string; answer: string }[] = [
   {
-    question: 'What is an ecommerce Growth Review?',
+    question: 'What is a Growth Review?',
     answer:
-      'A focused assessment used to understand where growth appears constrained and what should be investigated first. You answer questions about your business, and the Hbee team reviews them alongside your store.',
+      "A free, focused look at your store. We review it the way a first-time customer meets it, then send you the top 3 things we'd fix first, why they matter and what to do next.",
   },
   {
     question: 'What does Hbee review?',
     answer:
-      'Your answers, together with your business and store context. From that, Hbee works out which of its capabilities, one or a combination, deserves attention first. The six capabilities organize the work that can follow; the form does not score each one separately.',
+      'The buying experience: mobile experience, product clarity, trust, checkout, delivery and tracking. From that, Hbee works out which issues deserve attention first.',
   },
   {
     question: 'What happens after I submit?',
     answer:
-      "You receive an email confirming your answers arrived. The Hbee team reviews them alongside your business and store, then tells you the next step. That might be a conversation, a Growth Profile where applicable, another recommended path, or an honest view that now isn't the right time.",
+      "You get an email confirming your request arrived. Within 24 hours, the Hbee team reviews your store and emails you the top 3 priorities.",
   },
   {
     question: 'Do I need an account?',
-    answer: 'No. You can submit the Growth Review without creating an account.',
+    answer: 'No. You can request the Growth Review without creating an account.',
   },
   {
-    question: 'Is the Growth Review a sales call?',
-    answer:
-      'No. Submitting is not an approval, a commitment or a scheduled sales call. The Hbee team reviews your answers first and then tells you the next step.',
+    question: 'Is the Growth Review really free?',
+    answer: 'Yes. It is free and carries no obligation. Requesting a review is not an approval or a commitment on either side.',
   },
   {
-    question: 'Should I fix traffic, conversion or retention first?',
+    question: 'What is the Growth Profile?',
     answer:
-      'It depends on the primary constraint and how the parts of the business depend on each other. More traffic does little for a broken buying journey, and retention needs first orders to build on. The review looks for the constraint instead of assuming an answer.',
+      'An optional, deeper assessment further down this page. It asks about your business in more depth and is prepared by the Hbee team after review. You do not need it to receive your free Growth Review.',
   },
 ]
 

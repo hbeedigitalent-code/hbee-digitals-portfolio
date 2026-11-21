@@ -274,7 +274,10 @@ ok(T.smtpclr.literals.includes('hbee.confirm_irreversible'), 'SMTP cleanup: a li
   ok(!src.some((x) => x.f !== 'src/app/admin/email-settings/page.tsx' && /from\(\s*['"`]email_settings['"`]\s*\)/.test(x.s)), 'SMTP: nothing but the Admin page touches email_settings')
 
   const contactInserts = src.filter((x) => /from\(\s*['"`]contact_submissions['"`]\s*\)\s*\.insert/.test(x.s.replace(/\s+/g, ' ').replace(/\) \./g, ').'))).map((x) => x.f)
-  ok(contactInserts.length === 1 && contactInserts[0] === 'src/app/api/contact/route.ts', `contact_submissions is inserted only by /api/contact (${contactInserts.join(', ')})`)
+  // BFCM sprint: /api/growth-review-request is the second sanctioned writer (service role, same columns/values as /api/contact).
+  ok(contactInserts.length === 2 && contactInserts.includes('src/app/api/contact/route.ts') && contactInserts.includes('src/app/api/growth-review-request/route.ts'), `contact_submissions is inserted only by /api/contact and /api/growth-review-request (${contactInserts.join(', ')})`)
+  const growthRequest = src.find((x) => x.f === 'src/app/api/growth-review-request/route.ts').s
+  ok(/SUPABASE_SERVICE_ROLE_KEY/.test(growthRequest) && !/NEXT_PUBLIC_SUPABASE_ANON_KEY/.test(growthRequest), '/api/growth-review-request builds its client with the service-role credential, not the anon key')
   const contact = src.find((x) => x.f === 'src/app/api/contact/route.ts').s
   ok(/SUPABASE_SERVICE_ROLE_KEY/.test(contact) && !/NEXT_PUBLIC_SUPABASE_ANON_KEY/.test(contact), '/api/contact builds its client with the service-role credential, not the anon key')
   ok(!src.some((x) => /from\(\s*['"`]subscribers['"`]\s*\)[\s\S]{0,200}\.(update|delete|upsert)\(/.test(x.s)), 'subscribers: no code updates or deletes rows of the legacy subscribers table')

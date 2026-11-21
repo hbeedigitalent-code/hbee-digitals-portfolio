@@ -160,6 +160,7 @@ async function main() {
   const OTHER_CONTROL = {
     '/api/admin/logout': 'only clears the caller\'s own 2FA cookie',
     '/api/growth-assessment': 'public form: Turnstile + rate limit + payload validation',
+    '/api/growth-review-request': 'public form: honeypot + Turnstile + rate limit + payload validation (BFCM Growth Review request)',
     '/api/contact': 'public form: Turnstile + rate limit', '/api/onboarding': 'public form: Turnstile + rate limit', '/api/subscribe': 'public form: Turnstile + rate limit',
     '/api/unsubscribe': 'signed token', '/api/track-click': 'signed email tracking', '/api/track-open': 'signed email tracking',
     '/api/auth/confirm': 'one-time Supabase token', '/api/portal-invitation/open': 'one-time invitation token (no session)', '/api/portal-invitation/accept': 'signed-in user + verified invitation',

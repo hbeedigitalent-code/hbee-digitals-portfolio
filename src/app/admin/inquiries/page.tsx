@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Mail } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { filterInquiries, inquiryCounts, inquiryPreview, type Inquiry, type InquiryFilter } from '@/lib/admin/inquiries'
+import { filterInquiries, growthReviewSource, inquiryCounts, inquiryPreview, isGrowthReviewRequest, type Inquiry, type InquiryFilter } from '@/lib/admin/inquiries'
 import {
   AdminButton,
   AdminCallout,
@@ -155,7 +155,14 @@ export default function InquiriesPage() {
                     <span className="mt-1.5 line-clamp-2 block text-sm text-[var(--text-muted)]">{inquiryPreview(msg.message)}</span>
                     <span className="mt-2 flex flex-wrap gap-1.5">
                       {!msg.is_read && <AdminStatusBadge tone="orange" dot>Unread</AdminStatusBadge>}
-                      {msg.service && <AdminStatusBadge>{msg.service}</AdminStatusBadge>}
+                      {isGrowthReviewRequest(msg) ? (
+                        <>
+                          <AdminStatusBadge tone="blue">Growth Review</AdminStatusBadge>
+                          {growthReviewSource(msg.message) && <AdminStatusBadge>{growthReviewSource(msg.message)}</AdminStatusBadge>}
+                        </>
+                      ) : (
+                        msg.service && <AdminStatusBadge>{msg.service}</AdminStatusBadge>
+                      )}
                     </span>
                   </button>
                 </li>

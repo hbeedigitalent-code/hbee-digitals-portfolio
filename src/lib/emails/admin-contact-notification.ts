@@ -49,6 +49,36 @@ export interface AdminContactNotificationInput {
     timeline?: string
     submittedAt: string
   }
+  /**
+   * Present only for the short Free Growth Review campaign request
+   * (POST /api/growth-review-request). Selects the Growth Review subject and
+   * rows. `message` is then the visitor's challenge ONLY — attribution travels
+   * separately as `source`, never inside the message.
+   */
+  growthReview?: {
+    /** Campaign source, e.g. "linkedin · bfcm_readiness_2026"; null when unattributed. */
+    source: string | null
+    submittedAt: string
+  }
+}
+
+function growthReviewContent(input: AdminContactNotificationInput & { growthReview: NonNullable<AdminContactNotificationInput['growthReview']> }) {
+  const g = input.growthReview
+  const rows = [
+    { label: 'Store URL', value: input.website || '' },
+    { label: 'Visitor email', value: input.email },
+    { label: 'Campaign source', value: g.source || '' },
+    { label: 'Submitted at', value: g.submittedAt },
+  ].filter((r) => r.value)
+  const blocks: EmailBlock[] = [
+    { type: 'facts', rows },
+    { type: 'callout', title: 'Biggest challenge', text: input.message },
+  ]
+  return {
+    subject: `New Growth Review request — ${input.fullName}`,
+    preheader: `Free Growth Review request for ${input.website || input.fullName}`,
+    blocks,
+  }
 }
 
 function enquiryContent(input: AdminContactNotificationInput & { enquiry: NonNullable<AdminContactNotificationInput['enquiry']> }) {
@@ -108,12 +138,26 @@ export async function sendAdminContactNotification(
 }
 
 export function adminContactSubject(input: AdminContactNotificationInput): string {
+  if (input.growthReview) return `New Growth Review request — ${input.fullName}`
   if (input.enquiry) return `New contact enquiry — ${input.enquiry.enquiryType} — ${input.fullName}`
   return `New ${input.isConsultation ? 'Consultation' : 'Inquiry'} from ${input.fullName}`
 }
 
 /** Subject and both bodies. Pure apart from the configured site origin. */
 export function renderAdminContactNotification(input: AdminContactNotificationInput) {
+  if (input.growthReview) {
+    const { subject, preheader, blocks } = growthReviewContent({ ...input, growthReview: input.growthReview })
+    const { html, text } = renderEmail({
+      preheader,
+      eyebrow: 'New Growth Review request',
+      heading: 'New Growth Review request',
+      blocks,
+      cta: { label: 'Open the inbox', url: '/admin/inquiries' },
+      reason: 'You are receiving this because a visitor requested a free Growth Review.',
+      supportEmail: supportEmail(),
+    })
+    return { subject, html, text }
+  }
   if (input.enquiry) {
     const { subject, preheader, blocks } = enquiryContent({ ...input, enquiry: input.enquiry })
     const { html, text } = renderEmail({

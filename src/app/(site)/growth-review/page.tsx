@@ -4,26 +4,30 @@ import { pageJsonLd } from '@/lib/site/page-schema'
 
 import {
   GrowthReviewAssessment,
-  GrowthReviewCapabilities,
+  GrowthReviewBfcm,
+  GrowthReviewFinalCta,
   GrowthReviewHero,
-  GrowthReviewNext,
+  GrowthReviewHow,
+  GrowthReviewLook,
   GrowthReviewQuestions,
-  GrowthReviewSymptoms,
+  GrowthReviewReceive,
 } from '@/components/site/growth-review/GrowthReviewSections'
 
 /**
- * Growth Review (/growth-review). Submits to the hardened POST
- * /api/growth-assessment — one submission API (unchanged by S2.2). Legacy
- * /growth-readiness and /assessment redirect here (next.config.js).
+ * Free Shopify Growth Review (/growth-review). The campaign entry is the short
+ * hero form (store URL, email, biggest challenge) → POST /api/growth-review-request,
+ * which captures a LEAD. The deeper, scored Growth Profile assessment stays lower
+ * on the page and still submits to the hardened POST /api/growth-assessment,
+ * unchanged. Legacy /growth-readiness and /assessment redirect here (next.config.js).
  *
- * Statically rendered: the homepage's ?constraint= continuity is read in the
- * browser by <ConstraintContext> (useSearchParams inside Suspense). Page-level
- * JSON-LD is WebPage + BreadcrumbList only (no FAQPage, Service, prices,
- * ratings or reviews).
+ * Statically rendered: the homepage's ?constraint= continuity and the campaign's
+ * utm_* parameters are read in the browser (useSearchParams inside Suspense /
+ * window.location). Page-level JSON-LD is WebPage + BreadcrumbList only (no
+ * FAQPage, Service, prices, ratings or reviews).
  */
-const TITLE = 'Ecommerce Growth Review for Shopify Brands'
+const TITLE = 'Free Shopify Growth Review: Find What to Fix First'
 const DESCRIPTION =
-  'Find what to fix first in your ecommerce business. Tell Hbee where growth feels stuck; the team reviews your business and store and recommends the next step.'
+  'Within 24 hours, we’ll review your Shopify store and send you the top 3 things we’d fix first. Free. No account needed. No obligation.'
 
 export const metadata: Metadata = pageMetadata({
   title: TITLE,
@@ -34,7 +38,7 @@ export const metadata: Metadata = pageMetadata({
 export default function GrowthReviewPage() {
   const jsonLd = pageJsonLd({
     path: '/growth-review',
-    name: 'Ecommerce Growth Review: Find What to Fix First',
+    name: 'Free Shopify Growth Review: Find What to Fix First',
     description: DESCRIPTION,
     breadcrumb: 'Growth Review',
   })
@@ -44,9 +48,11 @@ export default function GrowthReviewPage() {
         <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: block }} />
       ))}
       <GrowthReviewHero />
-      <GrowthReviewSymptoms />
-      <GrowthReviewCapabilities />
-      <GrowthReviewNext />
+      <GrowthReviewReceive />
+      <GrowthReviewLook />
+      <GrowthReviewHow />
+      <GrowthReviewBfcm />
+      <GrowthReviewFinalCta />
       <GrowthReviewQuestions />
       <GrowthReviewAssessment />
     </>
