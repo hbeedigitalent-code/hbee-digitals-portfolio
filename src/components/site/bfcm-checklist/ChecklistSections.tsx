@@ -17,7 +17,7 @@ import styles from './bfcm-checklist.module.css'
 
 export function ChecklistHero() {
   return (
-    <SiteSection tone="cloud" spacing="none" aria-labelledby="cl-hero-title" className="overflow-hidden">
+    <SiteSection tone="cloud" spacing="none" aria-labelledby="cl-hero-title" className={cn('overflow-hidden', styles.heroFill)}>
       <ChecklistViewTracker />
       <div aria-hidden="true" className={homeStyles.heroField}>
         <svg className={homeStyles.heroGrid} viewBox="0 0 600 500" preserveAspectRatio="none" focusable="false">

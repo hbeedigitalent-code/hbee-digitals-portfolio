@@ -85,3 +85,15 @@
   .item { padding: 0.75rem 0.875rem; }
   .progress { top: 4.25rem; }
 }
+
+/* First fold on desktop: let the hero fill the viewport (capped) so the checklist heading starts BELOW the fold,
+   instead of peeking out at the bottom edge where the fixed cookie banner of a first-time visitor would cover it.
+   Content stays vertically centred; nothing about the banner itself changes. */
+@media (min-width: 1024px) {
+  .heroFill {
+    display: flex;
+    min-height: min(calc(100svh - 5rem), 64rem);
+    flex-direction: column;
+    justify-content: center;
+  }
+}
