@@ -60,6 +60,27 @@ export interface AdminContactNotificationInput {
     source: string | null
     submittedAt: string
   }
+  /** Present only for a BFCM Readiness Checklist request (POST /api/bfcm-checklist-request). */
+  checklist?: {
+    source: string | null
+    submittedAt: string
+  }
+}
+
+function checklistContent(input: AdminContactNotificationInput & { checklist: NonNullable<AdminContactNotificationInput['checklist']> }) {
+  const rows = [
+    { label: 'Request', value: 'BFCM Readiness Checklist request' },
+    { label: 'Email', value: input.email },
+    { label: 'Store URL', value: input.website || '' },
+    { label: 'Campaign source', value: input.checklist.source || '' },
+    { label: 'Submitted at', value: input.checklist.submittedAt },
+  ].filter((r) => r.value)
+  const blocks: EmailBlock[] = [{ type: 'facts', rows }]
+  return {
+    subject: `New BFCM Readiness Checklist request — ${input.email}`,
+    preheader: `BFCM Readiness Checklist request from ${input.email}`,
+    blocks,
+  }
 }
 
 function growthReviewContent(input: AdminContactNotificationInput & { growthReview: NonNullable<AdminContactNotificationInput['growthReview']> }) {
@@ -138,6 +159,7 @@ export async function sendAdminContactNotification(
 }
 
 export function adminContactSubject(input: AdminContactNotificationInput): string {
+  if (input.checklist) return `New BFCM Readiness Checklist request — ${input.email}`
   if (input.growthReview) return `New Growth Review request — ${input.fullName}`
   if (input.enquiry) return `New contact enquiry — ${input.enquiry.enquiryType} — ${input.fullName}`
   return `New ${input.isConsultation ? 'Consultation' : 'Inquiry'} from ${input.fullName}`
@@ -145,6 +167,19 @@ export function adminContactSubject(input: AdminContactNotificationInput): strin
 
 /** Subject and both bodies. Pure apart from the configured site origin. */
 export function renderAdminContactNotification(input: AdminContactNotificationInput) {
+  if (input.checklist) {
+    const { subject, preheader, blocks } = checklistContent({ ...input, checklist: input.checklist })
+    const { html, text } = renderEmail({
+      preheader,
+      eyebrow: 'BFCM Readiness Checklist request',
+      heading: 'BFCM Readiness Checklist request',
+      blocks,
+      cta: { label: 'Open the inbox', url: '/admin/inquiries' },
+      reason: 'You are receiving this because a visitor requested the BFCM Readiness Checklist.',
+      supportEmail: supportEmail(),
+    })
+    return { subject, html, text }
+  }
   if (input.growthReview) {
     const { subject, preheader, blocks } = growthReviewContent({ ...input, growthReview: input.growthReview })
     const { html, text } = renderEmail({

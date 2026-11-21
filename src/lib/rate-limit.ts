@@ -59,6 +59,8 @@ export const RATE_LIMITS = {
   // Short Free Growth Review campaign request (POST /api/growth-review-request): one tiny form, so the quota
   // matches the contact form's — room for a typo and a retry, not for bulk submission.
   growth_request: { requests: 5, window: '10 m' },
+  // BFCM Readiness Checklist request (POST /api/bfcm-checklist-request): same sizing as the other one-field public forms.
+  checklist_request: { requests: 5, window: '10 m' },
   // Admin TOTP attempts, keyed by the signed-in admin's user id (NOT by IP, so rotating addresses does not help).
   // 8 per 10 minutes leaves room for typos but caps guessing a 6-digit code at ~1,100 tries a day.
   adminTotp: { requests: 8, window: '10 m' },

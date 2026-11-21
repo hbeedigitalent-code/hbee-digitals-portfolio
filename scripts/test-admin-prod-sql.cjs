@@ -275,7 +275,7 @@ ok(T.smtpclr.literals.includes('hbee.confirm_irreversible'), 'SMTP cleanup: a li
 
   const contactInserts = src.filter((x) => /from\(\s*['"`]contact_submissions['"`]\s*\)\s*\.insert/.test(x.s.replace(/\s+/g, ' ').replace(/\) \./g, ').'))).map((x) => x.f)
   // BFCM sprint: /api/growth-review-request is the second sanctioned writer (service role, same columns/values as /api/contact).
-  ok(contactInserts.length === 2 && contactInserts.includes('src/app/api/contact/route.ts') && contactInserts.includes('src/app/api/growth-review-request/route.ts'), `contact_submissions is inserted only by /api/contact and /api/growth-review-request (${contactInserts.join(', ')})`)
+  ok(contactInserts.length === 3 && contactInserts.includes('src/app/api/contact/route.ts') && contactInserts.includes('src/app/api/growth-review-request/route.ts') && contactInserts.includes('src/app/api/bfcm-checklist-request/route.ts'), `contact_submissions is inserted only by /api/contact, /api/growth-review-request and /api/bfcm-checklist-request (${contactInserts.join(', ')})`)
   const growthRequest = src.find((x) => x.f === 'src/app/api/growth-review-request/route.ts').s
   ok(/SUPABASE_SERVICE_ROLE_KEY/.test(growthRequest) && !/NEXT_PUBLIC_SUPABASE_ANON_KEY/.test(growthRequest), '/api/growth-review-request builds its client with the service-role credential, not the anon key')
   const contact = src.find((x) => x.f === 'src/app/api/contact/route.ts').s

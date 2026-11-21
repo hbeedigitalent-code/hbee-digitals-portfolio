@@ -98,7 +98,7 @@ async function main() {
   const sitemap = await sitemapModule.default()
   const byUrl = new Map(sitemap.map((entry) => [entry.url, entry]))
 
-  const staticPaths = ['', '/services', '/work', '/how-we-work', '/insights', '/about', '/growth-review', '/contact', '/privacy', '/terms', '/cookies']
+  const staticPaths = ['', '/services', '/work', '/how-we-work', '/insights', '/about', '/growth-review', '/bfcm-readiness-checklist', '/contact', '/privacy', '/terms', '/cookies']
   for (const route of staticPaths) {
     const entry = byUrl.get(`https://hbeedigitals.com${route}`)
     assert.ok(entry, `Sitemap includes ${route || '/'}`)
@@ -188,7 +188,7 @@ async function main() {
     'src/app/(site)/page.tsx', 'src/app/(site)/about/page.tsx', 'src/app/(site)/services/page.tsx',
     'src/app/(site)/services/[capability]/page.tsx', 'src/app/(site)/work/page.tsx', 'src/app/(site)/work/[slug]/page.tsx',
     'src/app/(site)/how-we-work/page.tsx', 'src/app/(site)/insights/page.tsx', 'src/app/(site)/insights/[slug]/page.tsx',
-    'src/app/(site)/growth-review/page.tsx', 'src/app/(site)/contact/page.tsx',
+    'src/app/(site)/growth-review/page.tsx', 'src/app/(site)/bfcm-readiness-checklist/page.tsx', 'src/app/(site)/contact/page.tsx',
   ]
   for (const file of publicMetadataFiles) assert.match(read(file), /pageMetadata\(|generateMetadata/, `${file} owns route metadata`)
   assert.match(read('src/lib/site/work-data.ts'), /\.eq\('is_active', true\)/)

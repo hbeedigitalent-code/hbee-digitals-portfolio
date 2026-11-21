@@ -143,3 +143,57 @@ export function trackContactFormSubmission(
   if (!isNewSuccessfulSubmission(acknowledgement)) return false
   return sendConversion('contact_form_submitted', 'contact', submissionKey)
 }
+
+/* ── BFCM Readiness Checklist ──────────────────────────────────────────────────
+ *
+ * Five events, same consent gate and GA4 loader. NO PII: only campaign
+ * attribution and a CTA location — never an email address, a store URL or which
+ * checks were ticked.
+ */
+
+export type ChecklistEventName =
+  | 'bfcm_checklist_viewed'
+  | 'bfcm_checklist_started'
+  | 'bfcm_checklist_requested'
+  | 'bfcm_checklist_downloaded'
+  | 'bfcm_checklist_growth_review_clicked'
+
+const ONCE_PER_PAGE: ChecklistEventName[] = ['bfcm_checklist_viewed', 'bfcm_checklist_started']
+const checklistSentThisPage = new Set<string>()
+
+function checklistParams(context: RequestAnalyticsContext): Record<string, string> {
+  const params = requestParams(context)
+  params.form_name = 'bfcm_checklist'
+  params.conversion_type = 'bfcm_checklist'
+  return params
+}
+
+/** Viewed / started fire once per page view; the click events fire every time. Returns whether gtag was called. */
+export function trackChecklistEvent(name: ChecklistEventName, context: RequestAnalyticsContext): boolean {
+  if (typeof window === 'undefined' || readCookieConsent() !== 'accepted') return false
+  if (typeof window.gtag !== 'function') return false
+  if (ONCE_PER_PAGE.includes(name)) {
+    if (checklistSentThisPage.has(name)) return false
+    checklistSentThisPage.add(name)
+  }
+  window.gtag('event', name, checklistParams(context))
+  return true
+}
+
+/** A NEW successful request only — a duplicate acknowledgement is never counted twice. */
+export function trackChecklistRequested(
+  acknowledgement: SubmissionAcknowledgement,
+  submissionKey: string,
+  context: RequestAnalyticsContext,
+): boolean {
+  if (!isNewSuccessfulSubmission(acknowledgement)) return false
+  if (typeof window === 'undefined' || readCookieConsent() !== 'accepted') return false
+  if (typeof window.gtag !== 'function' || !UUID_RE.test(submissionKey)) return false
+  const receipt = `${RECEIPT_PREFIX}bfcm_checklist_requested:${submissionKey}`
+  if (sentThisPage.has(receipt) || storageHas(window.localStorage, receipt) || storageHas(window.sessionStorage, receipt)) return false
+  sentThisPage.add(receipt)
+  storageMark(window.localStorage, receipt)
+  storageMark(window.sessionStorage, receipt)
+  window.gtag('event', 'bfcm_checklist_requested', checklistParams(context))
+  return true
+}

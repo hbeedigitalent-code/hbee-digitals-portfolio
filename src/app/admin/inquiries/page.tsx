@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Mail } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { filterInquiries, growthReviewSource, inquiryCounts, inquiryPreview, isGrowthReviewRequest, type Inquiry, type InquiryFilter } from '@/lib/admin/inquiries'
+import { filterInquiries, growthReviewSource, inquiryCounts, inquiryPreview, isChecklistRequest, isGrowthReviewRequest, type Inquiry, type InquiryFilter } from '@/lib/admin/inquiries'
 import {
   AdminButton,
   AdminCallout,
@@ -155,7 +155,12 @@ export default function InquiriesPage() {
                     <span className="mt-1.5 line-clamp-2 block text-sm text-[var(--text-muted)]">{inquiryPreview(msg.message)}</span>
                     <span className="mt-2 flex flex-wrap gap-1.5">
                       {!msg.is_read && <AdminStatusBadge tone="orange" dot>Unread</AdminStatusBadge>}
-                      {isGrowthReviewRequest(msg) ? (
+                      {isChecklistRequest(msg) ? (
+                        <>
+                          <AdminStatusBadge tone="amber">BFCM Checklist</AdminStatusBadge>
+                          {growthReviewSource(msg.message) && <AdminStatusBadge>{growthReviewSource(msg.message)}</AdminStatusBadge>}
+                        </>
+                      ) : isGrowthReviewRequest(msg) ? (
                         <>
                           <AdminStatusBadge tone="blue">Growth Review</AdminStatusBadge>
                           {growthReviewSource(msg.message) && <AdminStatusBadge>{growthReviewSource(msg.message)}</AdminStatusBadge>}

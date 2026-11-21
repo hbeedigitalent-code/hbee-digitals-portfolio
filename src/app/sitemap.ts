@@ -34,6 +34,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     { route: '/growth-review', priority: 0.9, changeFrequency: 'monthly' as const },
 
+    { route: '/bfcm-readiness-checklist', priority: 0.7, changeFrequency: 'monthly' as const },
+
     { route: '/contact', priority: 0.9, changeFrequency: 'monthly' as const },
 
     { route: '/privacy', priority: 0.35, changeFrequency: 'yearly' as const },

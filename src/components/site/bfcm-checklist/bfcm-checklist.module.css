@@ -1,0 +1,87 @@
+/* BFCM Readiness Checklist — page-specific styles. Shared form/button/card styles come from growth-review.module.css. */
+.anchor { scroll-margin-top: 6rem; }
+
+.formTitle { font-family: var(--hb-font-display); font-size: 1.375rem; font-weight: 700; letter-spacing: -0.02em; color: var(--hb-fg); }
+.readyCard { gap: 1rem; }
+.readyTitle { font-family: var(--hb-font-display); font-size: clamp(1.375rem, 1.1rem + 1vw, 1.75rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; color: var(--hb-fg); }
+.readyCopy { font-size: 1rem; line-height: 1.55; color: var(--hb-fg-body); }
+.readyCard > a { width: 100%; }
+
+.heroActions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-top: 1.75rem; }
+
+.listWrap { max-width: 56rem; margin-inline: auto; }
+.progress {
+  position: sticky;
+  top: 4.75rem;
+  z-index: 5;
+  padding: 0.875rem 1.125rem;
+  border: 1px solid var(--hb-border);
+  border-radius: 14px 14px 22px 14px;
+  background: var(--hb-white);
+  box-shadow: var(--hb-shadow-1);
+}
+.progressText { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.25rem 1rem; font-size: 1rem; color: var(--hb-fg); }
+.progressPercent { font-size: 0.875rem; color: var(--hb-fg-body); }
+.bar { height: 0.5rem; margin-top: 0.625rem; overflow: hidden; border-radius: 999px; background: var(--hb-mist); }
+.barFill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--hb-blue), var(--hb-electric)); transition: width var(--hb-dur-base) var(--hb-ease); }
+.hint { margin-top: 0.5rem; font-size: 0.875rem; color: var(--hb-fg-body); }
+.reset { min-height: 44px; margin-top: 0.125rem; padding: 0; border: 0; background: none; font-size: 0.875rem; font-weight: 600; color: var(--hb-link); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+.group { min-width: 0; margin: 1.75rem 0 0; padding: 0; border: 0; }
+.groupName { display: flex; align-items: center; gap: 0.75rem; padding: 0; font-family: var(--hb-font-display); font-size: 1.25rem; font-weight: 700; letter-spacing: -0.015em; color: var(--hb-fg); }
+.groupNumber {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  place-items: center;
+  border-radius: 8px 8px 14px 8px;
+  background: linear-gradient(160deg, #3b82ff, var(--hb-blue) 58%, var(--hb-deep-blue));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 2px 0 #052a75;
+  font-size: 0.875rem;
+  color: #ffffff;
+}
+.items { display: grid; gap: 0.625rem; margin-top: 0.875rem; list-style: none; }
+.item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  border: 1.5px solid var(--hb-border);
+  border-radius: 12px 12px 20px 12px;
+  background: var(--hb-white);
+  transition: border-color var(--hb-dur-fast) var(--hb-ease), background-color var(--hb-dur-fast) var(--hb-ease);
+}
+.item:hover { border-color: #b9cbe6; }
+.itemDone { border-color: var(--hb-blue); background: var(--hb-mist); }
+.item:focus-within { box-shadow: 0 0 0 3px rgba(29, 110, 255, 0.18); }
+/* Native checkbox kept (keyboard, screen readers, 44px target); only its look is themed. */
+.box {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: 0.125rem;
+  accent-color: var(--hb-blue);
+  cursor: pointer;
+}
+.box:focus-visible { outline: 2px solid var(--hb-electric); outline-offset: 2px; }
+.itemLabel { display: block; min-width: 0; flex: 1; cursor: pointer; }
+/* Stretch the label's hit area over the whole card for a comfortable mobile tap target. */
+.itemLabel::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+.itemTitle { display: flex; align-items: center; gap: 0.625rem; font-family: var(--hb-font-display); font-size: 1.0625rem; font-weight: 700; line-height: 1.3; color: var(--hb-fg); }
+.itemNumber { font-size: 0.8125rem; font-weight: 700; color: var(--hb-blue); }
+.itemQuestion { display: block; margin-top: 0.25rem; font-size: 0.9375rem; line-height: 1.5; color: var(--hb-fg-body); }
+.box { position: relative; z-index: 1; }
+.allDone { margin-top: 1.5rem; padding: 0.875rem 1.125rem; border-left: 3px solid var(--hb-blue); border-radius: 0 10px 10px 0; background: var(--hb-mist); font-size: 0.9375rem; font-weight: 500; color: var(--hb-fg); }
+
+.listCta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.25rem; max-width: 56rem; margin: 2rem auto 0; }
+.listCtaText { font-size: 0.9375rem; color: var(--hb-fg-body); }
+
+.finalCta { max-width: 40rem; margin-inline: auto; text-align: center; }
+.finalCta p { margin-inline: auto; }
+
+@media (max-width: 479px) {
+  .item { padding: 0.75rem 0.875rem; }
+  .progress { top: 4.25rem; }
+}

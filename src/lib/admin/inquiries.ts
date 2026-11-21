@@ -65,6 +65,13 @@ const SOURCE_LABELS: Record<string, string> = {
   google: 'Google',
 }
 
+/** Must equal CHECKLIST_REQUEST_SERVICE in validators/checklist-request-payload.ts (kept literal: this module stays dependency-free). */
+export const CHECKLIST_SERVICE = 'Free 15-Point BFCM Readiness Checklist'
+
+export function isChecklistRequest(item: { service?: string | null }): boolean {
+  return item.service === CHECKLIST_SERVICE
+}
+
 /** "LinkedIn" / "Instagram" from the stored utm_source, or null when unattributed. Never throws. */
 export function growthReviewSource(message: string | null | undefined): string | null {
   const text = message || ''

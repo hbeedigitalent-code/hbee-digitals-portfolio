@@ -109,7 +109,7 @@ export function comparableStoreKey(normalisedUrl: string): string {
   }
 }
 
-function pickAttribution(input: Record<string, unknown>): Attribution {
+export function pickAttribution(input: Record<string, unknown>): Attribution {
   const limits: Record<AttributionField, number> = {
     utm_source: MAX_UTM,
     utm_medium: MAX_UTM,
