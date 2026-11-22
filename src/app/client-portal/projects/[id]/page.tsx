@@ -17,6 +17,8 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Check, Download } from 'lucide-react'
 import { fileTypeLabel, formatBytes, formatDate } from '@/lib/client-portal/files-display'
+import { formatDay } from '@/lib/client-portal/support-display'
+import { formatMoney } from '@/lib/commerce/money'
 import {
   parseProgress,
   formatProjectDate,
@@ -26,6 +28,13 @@ import {
   statusTone,
 } from '@/lib/client-portal/projects-display'
 import styles from '../projects.module.css'
+
+/** Read-only Proposal & billing summary for this project (server allow-list). */
+interface Commerce {
+  proposal: { id: string; number: string | null; title: string; status: string; statusLabel: string; currency: string | null; total: string | null; approvedVersion: number | null } | null
+  invoice: { id: string; number: string | null; status: string; statusLabel: string; currency: string; total: string; paid: string; balance: string; dueDate: string | null } | null
+  otherInvoices: number
+}
 
 interface ProjectDetail {
   id: string
@@ -83,6 +92,7 @@ export default function ClientProjectDetailPage() {
   const [deliverables, setDeliverables] = useState<Deliverable[]>([])
   const [requests, setRequests] = useState<ProjectRequest[]>([])
   const [unavailable, setUnavailable] = useState<string[]>([])
+  const [commerce, setCommerce] = useState<Commerce | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [downloadError, setDownloadError] = useState<string | null>(null)
 
@@ -105,6 +115,7 @@ export default function ClientProjectDetailPage() {
       setDeliverables((payload.deliverables || []) as Deliverable[])
       setRequests((payload.requests || []) as ProjectRequest[])
       setUnavailable((payload.unavailable || []) as string[])
+      setCommerce((payload.commerce || null) as Commerce | null)
       setState('ready')
     } catch (err) {
       console.error('Error:', err)
@@ -310,6 +321,61 @@ export default function ClientProjectDetailPage() {
             </section>
           )}
         </div>
+      )}
+
+      {/* Proposal & billing: the documents of THIS engagement, read-only; the full lists live on Proposals and Invoices */}
+      {commerce && (commerce.proposal || commerce.invoice) && (
+        <section className={styles.panel} aria-labelledby="proj-billing">
+          <p className={styles.eyebrow}>
+            <span aria-hidden="true" className={styles.node} />
+            Proposal &amp; billing
+          </p>
+          <h2 id="proj-billing" className="sr-only">
+            Proposal and billing
+          </h2>
+          <ul className={styles.list}>
+            {commerce.proposal && (
+              <li className={styles.docRow}>
+                <div className={styles.docMain}>
+                  <p className={styles.docTitle}>
+                    <Link href={`/client-portal/proposals/${commerce.proposal.id}`} className={styles.link}>
+                      {commerce.proposal.number ? `${commerce.proposal.number} · ` : ''}
+                      {commerce.proposal.title}
+                    </Link>
+                  </p>
+                  <p className={styles.meta}>
+                    {commerce.proposal.total && commerce.proposal.currency && <span>{formatMoney(commerce.proposal.total, commerce.proposal.currency)}</span>}
+                    {commerce.proposal.approvedVersion && <span>Version {commerce.proposal.approvedVersion} approved</span>}
+                  </p>
+                </div>
+                <span className={styles.chip}>{commerce.proposal.statusLabel}</span>
+              </li>
+            )}
+            {commerce.invoice && (
+              <li className={styles.docRow}>
+                <div className={styles.docMain}>
+                  <p className={styles.docTitle}>
+                    <Link href={`/client-portal/invoices/${commerce.invoice.id}`} className={styles.link}>
+                      Invoice {commerce.invoice.number || ''}
+                    </Link>
+                  </p>
+                  <p className={styles.meta}>
+                    <span>Total {formatMoney(commerce.invoice.total, commerce.invoice.currency)}</span>
+                    {commerce.invoice.status !== 'paid' && <span>Balance {formatMoney(commerce.invoice.balance, commerce.invoice.currency)}</span>}
+                    {commerce.invoice.dueDate && commerce.invoice.status !== 'paid' && <span>Due {formatDay(commerce.invoice.dueDate)}</span>}
+                  </p>
+                </div>
+                <span className={styles.chip}>{commerce.invoice.statusLabel}</span>
+              </li>
+            )}
+          </ul>
+          {commerce.otherInvoices > 0 && (
+            <Link href="/client-portal/invoices" className={styles.link}>
+              {commerce.otherInvoices} more {commerce.otherInvoices === 1 ? 'invoice' : 'invoices'} · All invoices
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          )}
+        </section>
       )}
 
       {/* Milestones: real rows only, quiet */}

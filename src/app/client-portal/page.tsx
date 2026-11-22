@@ -186,7 +186,7 @@ export default function ClientPortalHome() {
   }
 
   const unavailable = new Set(data.unavailable)
-  const attentionReadable = !unavailable.has('projects') && !unavailable.has('proposals')
+  const attentionReadable = !unavailable.has('projects') && !unavailable.has('proposals') && !unavailable.has('invoices')
   const snapshot = data.growth.snapshot
   const priority = data.priority
   const firstName = data.client.firstName

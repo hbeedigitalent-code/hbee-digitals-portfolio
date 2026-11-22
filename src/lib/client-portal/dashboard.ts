@@ -12,6 +12,9 @@
 import { isProposalActionable } from './proposal-display'
 import { displayGrowthClassification } from '@/lib/growth-classification'
 import { parseProgress } from './projects-display'
+import { formatMoney } from '@/lib/commerce/money'
+import { isActionableInvoice, type InvoiceSummary } from '@/lib/commerce/summaries'
+import { formatDay } from './support-display'
 
 export const PILLAR_ORDER = ['visibility', 'conversion', 'retention', 'authority', 'scalability'] as const
 export type PillarKey = (typeof PILLAR_ORDER)[number]
@@ -201,7 +204,7 @@ export interface NotificationRow {
 }
 
 export interface AttentionItem {
-  kind: 'proposal' | 'project' | 'request'
+  kind: 'proposal' | 'project' | 'request' | 'invoice'
   title: string
   context: string
   href: string
@@ -217,10 +220,27 @@ const PROJECT_ATTENTION: Record<string, string> = {
   'assets required': 'Assets needed from you',
 }
 
+/** A concise line for one open invoice: status, what is owed and when. Existing money and date formatting only. */
+export function invoiceItem(inv: InvoiceSummary): AttentionItem {
+  const balance = formatMoney(inv.balance, inv.currency)
+  const due = formatDay(inv.dueDate)
+  const context =
+    inv.displayStatus === 'overdue'
+      ? `Overdue · ${balance} to pay${due ? ` · was due ${due}` : ''}`
+      : inv.status === 'partially_paid'
+        ? `Partially paid · ${balance} left${due ? ` · due ${due}` : ''}`
+        : `Payment due · ${balance}${due ? ` · due ${due}` : ''}`
+  return { kind: 'invoice', title: `Invoice ${inv.number || ''}`.trim(), context, href: `/client-portal/invoices/${inv.id}` }
+}
+
 /**
  * The most useful one to three items, in this priority order:
- *   1. proposals awaiting a response (sent / viewed, not past expiry),
- *   2. projects whose real status is Awaiting Client Feedback or Assets Required.
+ *   1. OVERDUE invoices (issued / partially paid, balance owing, past the due date),
+ *   2. requests Hbee has answered,
+ *   3. proposals awaiting a response (sent / viewed, not past expiry),
+ *   4. other open invoices (issued / partially paid, balance owing),
+ *   5. projects whose real status is Awaiting Client Feedback or Assets Required.
+ * Draft, paid and void invoices never qualify.
  * Nothing else qualifies. In particular, notifications never produce an item here: the
  * known types (growth_profile_ready, proposal_approved, proposal_changes_requested …) are
  * informational, so an unread notification is not evidence that the client must act.
@@ -233,10 +253,16 @@ export function buildAttention(input: {
   now: Date
   /** S6.3: requests Hbee has answered and the client has not yet replied to or closed. Real rows only. */
   answeredRequests?: Array<{ id: string; title: string | null }>
+  /** Finalization: the client's delivered invoices. Only those that ask something of the client (issued / partially paid, balance owing) ever produce an item; draft, paid and void never do. */
+  invoices?: InvoiceSummary[]
   max?: number
 }): AttentionItem[] {
   const max = input.max ?? 3
   const out: AttentionItem[] = []
+  const actionable = (input.invoices ?? []).filter(isActionableInvoice)
+
+  // An OVERDUE invoice is the most time-critical thing on the page: it leads. Other open invoices follow the client's decisions.
+  for (const inv of actionable.filter((i) => i.displayStatus === 'overdue')) out.push(invoiceItem(inv))
 
   for (const r of input.answeredRequests ?? []) {
     out.push({
@@ -255,6 +281,8 @@ export function buildAttention(input: {
       href: `/client-portal/proposals/${p.id}`,
     })
   }
+
+  for (const inv of actionable.filter((i) => i.displayStatus !== 'overdue')) out.push(invoiceItem(inv))
 
   for (const proj of input.projects) {
     const text = PROJECT_ATTENTION[(proj.status || '').trim().toLowerCase()]

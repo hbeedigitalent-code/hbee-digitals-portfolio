@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import SvgIcon from '@/components/ui/SvgIcon'
 import ProjectOperationsPanel from '@/components/admin/ProjectOperationsPanel'
+import CommerceSummary from '@/components/admin/CommerceSummary'
 import { formatCalendarDate, toDateInputValue } from '@/lib/projects/project-date'
 
 interface Project {
@@ -508,6 +509,8 @@ export default function AdminProjectDetailPage() {
           </div>
         )}
       </div>
+
+      <CommerceSummary projectId={String(project.id)} />
 
       <ProjectOperationsPanel
         projectId={String(project.id)}

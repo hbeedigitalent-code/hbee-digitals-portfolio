@@ -10,10 +10,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import ProjectOverlapNotice from '@/components/admin/ProjectOverlapNotice'
 import { CURRENCIES, formatMoney, isPlainMoney, isPlainQuantity, lineAmountMinor, minorToString, toMinor } from '@/lib/commerce/money'
 
 interface Line { title: string; description: string; quantity: string; unit_price: string }
-interface MerchantOption { id: string; business_name: string | null; has_client_portal_link?: boolean; profiles?: Array<{ id: string; hgri_score?: number | null }> }
+interface MerchantOption { id: string; business_name: string | null; has_client_portal_link?: boolean; client_id?: string | null; profiles?: Array<{ id: string; hgri_score?: number | null }> }
 
 const field = 'min-h-[44px] w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)]'
 const area = field + ' py-2'
@@ -143,6 +144,7 @@ export default function ProposalEditor({ proposalId }: { proposalId?: string }) 
               </select>
             </label>
             {selected && !selected.has_client_portal_link && <p className="text-xs text-[var(--warning)]">This business has no client portal account yet: you can save a draft, but it cannot be sent until one is linked.</p>}
+            {selected && selected.has_client_portal_link && <ProjectOverlapNotice clientId={selected.client_id} />}
             {selected && (selected.profiles || []).length > 0 && (
               <label className={label}>Growth profile (optional)
                 <select value={profileId} onChange={(e) => setProfileId(e.target.value)} className={field}>

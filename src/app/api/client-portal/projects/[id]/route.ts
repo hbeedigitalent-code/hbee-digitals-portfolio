@@ -17,6 +17,9 @@ import { NextResponse } from 'next/server'
 import { resolvePortalClient } from '@/lib/client-portal/portal-client'
 import { CLIENT_VISIBLE_DELIVERABLE_STATUSES } from '@/lib/projects/operations-validation'
 import { normalizeRequestStatus } from '@/lib/requests/request-status'
+import { CLIENT_VISIBLE_INVOICE_STATUSES, CLIENT_VISIBLE_PROPOSAL_STATUSES } from '@/lib/commerce/documents'
+import { loadInvoiceSummaries, pickProjectInvoice, pickProjectProposal, summarizeProposal } from '@/lib/commerce/summaries'
+import { proposalStatusLabel } from '@/lib/proposal-status'
 
 export const dynamic = 'force-dynamic'
 
@@ -109,6 +112,28 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     const requests = rows<any>('requests', requestsRes)
     const activity = rows<any>('activity', activityRes as any)
 
+    // PROPOSAL & BILLING (read-only). The proposal this project was created from (an approved proposal links to its project), and
+    // the invoice the client should look at. Both come through the verified project id and the delivered-status lists, so a draft
+    // or a voided invoice is never shown, and nothing here changes a proposal or an invoice.
+    const proposalRows = rows<any>(
+      'proposal',
+      await adminClient
+        .from('proposals')
+        .select('id, proposal_number, title, status, currency, total, approved_version, converted_to_project_id, created_at')
+        .eq('client_id', clientRow.id)
+        .eq('converted_to_project_id', project.id)
+        .in('status', CLIENT_VISIBLE_PROPOSAL_STATUSES)
+        .order('created_at', { ascending: false })
+        .limit(5),
+    )
+    const proposal = pickProjectProposal(proposalRows.map(summarizeProposal))
+    const invoiceRead = await loadInvoiceSummaries(adminClient, [project.id], { statuses: CLIENT_VISIBLE_INVOICE_STATUSES, limit: 20 })
+    if (!invoiceRead.ok) {
+      unavailable.push('invoice')
+      console.error('[client-portal/projects/id] invoice query failed')
+    }
+    const { invoice, others: otherInvoices } = pickProjectInvoice(invoiceRead.ok ? invoiceRead.invoices : [])
+
     return NextResponse.json({
       project: {
         id: project.id,
@@ -151,6 +176,34 @@ export async function GET(_request: Request, { params }: { params: { id: string 
         status: normalizeRequestStatus(r.status),
         createdAt: r.created_at || null,
       })),
+      commerce: {
+        proposal: proposal
+          ? {
+              id: proposal.id,
+              number: proposal.number,
+              title: proposal.title,
+              status: proposal.status,
+              statusLabel: proposalStatusLabel(proposal.status),
+              currency: proposal.currency,
+              total: proposal.total,
+              approvedVersion: proposal.approvedVersion,
+            }
+          : null,
+        invoice: invoice
+          ? {
+              id: invoice.id,
+              number: invoice.number,
+              status: invoice.displayStatus,
+              statusLabel: invoice.statusLabel,
+              currency: invoice.currency,
+              total: invoice.total,
+              paid: invoice.paid,
+              balance: invoice.balance,
+              dueDate: invoice.dueDate,
+            }
+          : null,
+        otherInvoices,
+      },
       teamSize: teamRes && !teamRes.error ? Number(teamRes.count) || 0 : null,
       activity: activity.map((a) => ({ id: a.id, summary: a.summary, createdAt: a.created_at })),
       unavailable,

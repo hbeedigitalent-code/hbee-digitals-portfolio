@@ -9,6 +9,7 @@ import SvgIcon from '@/components/ui/SvgIcon'
 import FileUploader from '@/components/uploads/FileUploader'
 import { ClientConnectionPanel } from '@/components/admin/ClientConnectionPanel'
 import ClientOperationsSummary from '@/components/admin/ClientOperationsSummary'
+import CommerceSummary from '@/components/admin/CommerceSummary'
 
 interface Client {
   id: string
@@ -247,6 +248,8 @@ export default function AdminClientDetailPage() {
             </div>
           </div>
         </div>
+
+        <CommerceSummary clientId={client.id} />
 
         <ClientOperationsSummary clientId={client.id} />
 

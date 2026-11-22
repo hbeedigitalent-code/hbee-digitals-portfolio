@@ -1417,6 +1417,144 @@ const ALL_PORTAL = [
     assert.ok((await check(await buildProposalPdf({ ...FIX_PROPOSAL, lines: many, subtotal: '70.00', discount: '0.00', total: '70.00' }), 'proposal 70 rows')) >= 2)
   })
 
+  // ── Finalization, Batch 2: commerce visibility ────────────────────────────────────────────────────────────────────────
+  console.log('\nM. Commerce visibility (Overview, project page, Admin summaries, duplicate-project awareness)')
+  // an invoice raised FROM the approved proposal (361 of the QA proposal = 150 + 250 - 40 = 360.00), optionally issued
+  const invoiceOf = async (proposalId, projectId, { due = '2030-12-05', issue = true } = {}) => {
+    state.admin = true
+    const c = await call('admin/invoices', 'POST', { body: { project_id: projectId, proposal_id: proposalId, due_date: due } }); assert.equal(c.status, 201, JSON.stringify(c.json))
+    const iid = c.json.invoice.id
+    if (issue) { const r = await call('admin/invoices/[id]/issue', 'POST', { params: { id: iid } }); assert.equal(r.status, 200, JSON.stringify(r.json)) }
+    return iid
+  }
+  const attentionOf = async (user = USER_A) => { asClient(user); const r = await call('client-portal/dashboard', 'GET'); assert.equal(r.status, 200, JSON.stringify(r.json)); return r.json }
+  const invItems = (d) => d.attention.filter((a) => a.kind === 'invoice')
+
+  await test('M1 the Overview surfaces an actionable invoice: number, what is owed, due date, status and a link; overdue and partly paid read correctly', async () => {
+    setup(); const { id, projectId } = await qaApproved(); const iid = await invoiceOf(id, projectId)
+    let d = await attentionOf(); let items = invItems(d)
+    assert.equal(items.length, 1); assert.equal(items[0].title, 'Invoice ' + state.tables.project_invoices[0].invoice_number)
+    assert.match(items[0].context, /^Payment due · .*360\.00 · due \d{1,2} Dec 2030$/); assert.equal(items[0].href, '/client-portal/invoices/' + iid)
+    // part-paid: the balance, not the total
+    state.admin = true; { const pay = await call('admin/invoices/[id]/payments', 'POST', { params: { id: iid }, body: { amount: '100.00', paid_at: '2026-01-10' } }); assert.ok(pay.status < 300, JSON.stringify(pay.json)) }
+    items = invItems(await attentionOf()); assert.match(items[0].context, /^Partially paid · .*260\.00 left · due \d{1,2} Dec 2030$/)
+    // overdue is DERIVED from the due date; the stored status stays partially_paid
+    state.tables.project_invoices[0].due_date = '2020-01-01'
+    items = invItems(await attentionOf()); assert.match(items[0].context, /^Overdue · .*260\.00 to pay · was due \d{1,2} (Dec 2019|Jan 2020)$/); assert.equal(state.tables.project_invoices[0].status, 'partially_paid')
+    // paid in full leaves the list
+    state.admin = true; { const pay = await call('admin/invoices/[id]/payments', 'POST', { params: { id: iid }, body: { amount: '260.00', paid_at: '2026-01-11' } }); assert.ok(pay.status < 300, JSON.stringify(pay.json)) }
+    assert.equal(invItems(await attentionOf()).length, 0, 'a paid invoice never asks anything of the client')
+  })
+
+  await test('M2 draft, paid and void invoices never appear; another client sees nothing; the Overview does not duplicate the invoice page', async () => {
+    setup(); const { id, projectId } = await qaApproved()
+    const draft = await invoiceOf(id, projectId, { issue: false })                       // draft
+    assert.equal(invItems(await attentionOf()).length, 0, 'a draft is invisible')
+    state.admin = true; assert.equal((await call('admin/invoices/[id]/void', 'POST', { params: { id: draft }, body: { reason: SECRET_NOTE } })).status, 200)
+    assert.equal(invItems(await attentionOf()).length, 0, 'a voided invoice never asks for money')
+    const live = await invoiceOf(id, projectId); assert.equal(invItems(await attentionOf()).length, 1)
+    assert.equal(invItems(await attentionOf(USER_B)).length, 0, "another client never sees this client's invoice")
+    const item = invItems(await attentionOf())[0]; assert.deepEqual(Object.keys(item).sort(), ['context', 'href', 'kind', 'title'], 'a concise item, not a copy of the invoice page')
+    assert.ok(!JSON.stringify(await attentionOf()).includes(SECRET_NOTE)); assert.equal(item.href, '/client-portal/invoices/' + live)
+  })
+
+  await test('M3 an overdue invoice leads the attention list; ordering and the cap are deterministic (pure)', () => {
+    const dash = load('src/lib/client-portal/dashboard.ts')
+    const inv = (o) => ({ id: o.id, number: o.n, status: o.status || 'issued', displayStatus: o.over ? 'overdue' : (o.status || 'issued'), statusLabel: '', currency: 'USD', total: '100.00', paid: '0.00', balance: o.balance || '100.00', issueDate: '2026-01-01', dueDate: '2030-01-01', projectId: 'p', createdAt: '2026-01-01' })
+    const now = new Date('2026-06-01T00:00:00Z')
+    const sent = { id: 'pr1', title: 'Prop', status: 'sent', expires_at: null }
+    const out = dash.buildAttention({ proposals: [sent], projects: [], now, answeredRequests: [{ id: 'r1', title: 'Q' }], invoices: [inv({ id: 'i1', n: 'INV-1' }), inv({ id: 'i2', n: 'INV-2', over: true })], max: 5 })
+    assert.deepEqual([...out.map((a) => a.kind + ':' + a.title)], ['invoice:Invoice INV-2', 'request:Q', 'proposal:Prop', 'invoice:Invoice INV-1'], 'overdue invoice, request, proposal, other invoice')
+    assert.equal(dash.buildAttention({ proposals: [sent], projects: [], now, answeredRequests: [{ id: 'r1', title: 'Q' }], invoices: [inv({ id: 'i1', n: 'INV-1' }), inv({ id: 'i2', n: 'INV-2', over: true })] }).length, 3, 'the default cap of three still holds')
+    // exclusion is enforced in the pure function too, whatever the caller passes
+    const none = dash.buildAttention({ proposals: [], projects: [], now, invoices: [inv({ id: 'a', n: 'D', status: 'draft' }), inv({ id: 'b', n: 'P', status: 'paid' }), inv({ id: 'c', n: 'V', status: 'void' }), inv({ id: 'd', n: 'Z', balance: '0.00' })] })
+    assert.equal(none.length, 0, 'draft, paid, void and a zero balance never qualify')
+  })
+
+  await test('M4 the project page carries a compact Proposal & billing block: the approved proposal and the live invoice, balance included; no draft, no void; extras are a count, not a ledger', async () => {
+    setup(); const { id, projectId } = await qaApproved()
+    asClient(); let r = await call('client-portal/projects/[id]', 'GET', { params: { id: projectId } }); assert.equal(r.status, 200, JSON.stringify(r.json))
+    assert.equal(r.json.commerce.proposal.id, id); assert.equal(r.json.commerce.proposal.statusLabel, 'Approved'); assert.equal(r.json.commerce.proposal.total, '360.00'); assert.equal(r.json.commerce.proposal.approvedVersion, P(id).approved_version, 'the approved version, as stored')
+    assert.equal(r.json.commerce.invoice, null, 'no invoice yet'); assert.equal(r.json.commerce.otherInvoices, 0)
+    const draft = await invoiceOf(id, projectId, { issue: false })
+    asClient(); r = await call('client-portal/projects/[id]', 'GET', { params: { id: projectId } }); assert.equal(r.json.commerce.invoice, null, 'a draft is not shown')
+    state.admin = true; await call('admin/invoices/[id]/void', 'POST', { params: { id: draft }, body: {} })
+    const iid = await invoiceOf(id, projectId)
+    asClient(); r = await call('client-portal/projects/[id]', 'GET', { params: { id: projectId } })
+    const inv = r.json.commerce.invoice; assert.equal(inv.id, iid); assert.equal(inv.status, 'issued'); assert.equal(inv.statusLabel, 'Issued'); assert.equal(inv.total, '360.00'); assert.equal(inv.balance, '360.00'); assert.equal(inv.dueDate, '2030-12-05')
+    assert.equal(r.json.commerce.otherInvoices, 0, 'the voided one is not counted')
+    assert.deepEqual(Object.keys(inv).sort(), ['balance', 'currency', 'dueDate', 'id', 'number', 'paid', 'status', 'statusLabel', 'total'], 'an allow-list: no project id, proposal id or notes')
+    assert.ok(!JSON.stringify(r.json.commerce).includes(SECRET_NOTE))
+    // a second live invoice on the same project is summarised as a count
+    state.tables.project_invoices.push({ ...state.tables.project_invoices.find((i) => i.id === iid), id: uuid(), invoice_number: 'HBD-INV-2026-9999', proposal_id: null, status: 'issued', created_at: '2020-01-01T00:00:00Z' })
+    asClient(); r = await call('client-portal/projects/[id]', 'GET', { params: { id: projectId } }); assert.equal(r.json.commerce.otherInvoices, 1)
+    // another client's project is still the same 404 and nothing leaks
+    asClient(USER_B); assert.equal((await call('client-portal/projects/[id]', 'GET', { params: { id: projectId } })).status, 404)
+    // the block is read-only: nothing here wrote a proposal or an invoice
+    assert.equal(state.tables.proposals.find((p) => p.id === id).status, 'approved')
+  })
+
+  await test('M5 Admin client and project summaries: counts, latest items, status, balance and links; Admin sees drafts and voided; read-only; admin-gated', async () => {
+    setup(); const { id, projectId } = await qaApproved(); const live = await invoiceOf(id, projectId)
+    state.admin = true; const extra = plainProject(); const draft = (await call('admin/invoices', 'POST', { body: { project_id: extra, currency: 'USD' } })).json.invoice.id
+    const snapshot = JSON.stringify(state.tables)
+    state.admin = false; as(USER_A)
+    assert.equal((await call('admin/clients/[client_id]/commerce', 'GET', { params: { client_id: CLIENT_A } })).status, 401, 'not an admin')
+    assert.equal((await call('admin/projects/[project_id]/commerce', 'GET', { params: { project_id: projectId } })).status, 401)
+    state.admin = true
+    assert.equal((await call('admin/clients/[client_id]/commerce', 'GET', { params: { client_id: 'not-a-uuid' } })).status, 404)
+    const c = await call('admin/clients/[client_id]/commerce', 'GET', { params: { client_id: CLIENT_A } }); assert.equal(c.status, 200, JSON.stringify(c.json)); assert.equal(c.headers.get('cache-control'), 'no-store')
+    assert.equal(c.json.proposals.total, 1); assert.equal(c.json.proposals.approved, 1); assert.equal(c.json.proposals.latest[0].id, id); assert.equal(c.json.proposals.latest[0].status, 'approved')
+    assert.equal(c.json.projects.total, 3, 'the seeded project, the approved one and the extra one'); assert.equal(c.json.invoices.total, 2, 'Admin sees the draft as well')
+    assert.deepEqual([...c.json.invoices.latest.map((i) => i.status)].sort(), ['draft', 'issued'])
+    assert.deepEqual(c.json.invoices.outstanding.map((o) => [o.currency, o.balance, o.invoices]), [['USD', '360.00', 1]], 'only the issued invoice is owing; the draft is not')
+    assert.deepEqual(c.json.unavailable, [])
+    const p = await call('admin/projects/[project_id]/commerce', 'GET', { params: { project_id: projectId } }); assert.equal(p.status, 200, JSON.stringify(p.json))
+    assert.deepEqual(p.json.proposals.map((x) => x.id), [id]); assert.deepEqual(p.json.invoices.map((i) => i.id), [live]); assert.equal(p.json.invoices[0].balance, '360.00')
+    assert.deepEqual(p.json.outstanding.map((o) => o.balance), ['360.00'])
+    // voided invoices stay visible to Admin, with their status, and owe nothing
+    assert.equal((await call('admin/invoices/[id]/void', 'POST', { params: { id: draft }, body: {} })).status, 200)
+    const after = await call('admin/clients/[client_id]/commerce', 'GET', { params: { client_id: CLIENT_A } })
+    assert.ok(after.json.invoices.latest.some((i) => i.id === draft && i.status === 'void'), 'void is kept in the history')
+    assert.deepEqual(after.json.invoices.outstanding.map((o) => o.balance), ['360.00'])
+    // reading never changed anything: the snapshot differs only by the one void we made ourselves
+    assert.equal(JSON.stringify(state.tables.proposals), JSON.stringify(JSON.parse(snapshot).proposals), 'proposals untouched')
+    // another client's data is not in the response
+    assert.ok(!JSON.stringify(c.json).includes(CLIENT_B))
+  })
+
+  await test('M6 duplicate-project awareness: the model never guesses between several projects, ignores closed ones, and recommends only a single request-created Pending Review project', () => {
+    const o = load('src/lib/commerce/project-overlap.ts')
+    const pr = (id, status) => ({ id, name: 'P ' + id, reference: 'PROJ-' + id, status })
+    assert.equal(o.assessProjectOverlap([]).level, 'none')
+    assert.equal(o.assessProjectOverlap([pr('1', 'Archived'), pr('2', 'Completed')]).level, 'none', 'closed projects are not relevant')
+    const one = o.assessProjectOverlap([pr('1', 'Pending Review'), pr('2', 'Archived')]); assert.equal(one.level, 'recommend'); assert.equal(one.recommended.id, '1')
+    const two = o.assessProjectOverlap([pr('1', 'Pending Review'), pr('2', 'Pending Review')]); assert.equal(two.level, 'review'); assert.equal(two.recommended, null, 'two candidates: no guess')
+    const mixed = o.assessProjectOverlap([pr('1', 'Pending Review'), pr('2', 'In Progress')]); assert.equal(mixed.level, 'review'); assert.equal(mixed.recommended, null)
+    const active = o.assessProjectOverlap([pr('1', 'In Progress')]); assert.equal(active.level, 'review'); assert.equal(active.recommended, null, 'a live non-intake project is shown, never presumed to be the match')
+    assert.match(o.APPROVAL_CREATES_PROJECT, /NEW project is created/); assert.match(o.ARCHIVE_ADVICE, /Archived/)
+  })
+
+  await test('M7 the Admin client route reports project overlap from real rows; the editor shows it for a portal-linked business and changes nothing', async () => {
+    setup(); const { projectId } = await qaApproved(); state.admin = true
+    const r = await call('admin/clients/[client_id]/commerce', 'GET', { params: { client_id: CLIENT_A } }); assert.equal(r.status, 200)
+    const names = state.tables.projects.filter((p) => p.client_id === CLIENT_A).map((p) => p.id)
+    assert.deepEqual(r.json.projectOverlap.relevant.map((p) => p.id).sort(), [...names].sort())
+    assert.ok(r.json.projectOverlap.relevant.some((p) => p.id === projectId))
+    // static wiring
+    const ed = read('src/components/admin/ProposalEditor.tsx')
+    assert.match(ed, /import ProjectOverlapNotice/); assert.match(ed, /selected && selected\.has_client_portal_link && <ProjectOverlapNotice clientId=\{selected\.client_id\} \/>/)
+    const notice = stripComments(read('src/components/admin/ProjectOverlapNotice.tsx'))
+    assert.doesNotMatch(notice, /method:\s*['"](POST|PATCH|PUT|DELETE)/, 'advisory only: it never writes'); assert.match(notice, /\/commerce/); assert.match(notice, /APPROVAL_CREATES_PROJECT/)
+    assert.doesNotMatch(notice, /fetch\([^)]*(archive|merge|delete)/i, 'it never archives, merges or deletes a project itself')
+    for (const f of ['src/components/admin/CommerceSummary.tsx', 'src/components/admin/ProjectOverlapNotice.tsx']) assert.doesNotMatch(stripComments(read(f)), /method:\s*['"](POST|PATCH|PUT|DELETE)/, f + ' is read-only')
+    assert.match(read('src/app/admin/client-portal/[client_id]/page.tsx'), /<CommerceSummary clientId=\{client\.id\} \/>/)
+    assert.match(read('src/app/admin/projects/[project_id]/page.tsx'), /<CommerceSummary projectId=\{String\(project\.id\)\} \/>/)
+    const page = read('src/app/client-portal/projects/[id]/page.tsx'); assert.match(page, /Proposal &amp; billing/); assert.match(page, /\/client-portal\/proposals\/\$\{commerce\.proposal\.id\}/); assert.match(page, /\/client-portal\/invoices\/\$\{commerce\.invoice\.id\}/)
+    // the approval path and invoice creation are untouched by this batch
+    assert.doesNotMatch(stripComments(read('src/lib/commerce/summaries.ts')), /\.(insert|update|delete|upsert|rpc)\(/, 'the summaries only read')
+  })
+
   console.log('\n' + passed + ' passed, ' + failures.length + ' failed')
   if (failures.length) process.exit(1)
 })()

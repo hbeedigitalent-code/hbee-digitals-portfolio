@@ -21,7 +21,8 @@
 
 import { NextResponse } from 'next/server'
 import { resolvePortalClient } from '@/lib/client-portal/portal-client'
-import { CLIENT_VISIBLE_PROPOSAL_STATUSES } from '@/lib/commerce/documents'
+import { CLIENT_VISIBLE_INVOICE_STATUSES, CLIENT_VISIBLE_PROPOSAL_STATUSES } from '@/lib/commerce/documents'
+import { loadInvoiceSummaries, type InvoiceSummary } from '@/lib/commerce/summaries'
 import { normalizeRequestStatus } from '@/lib/requests/request-status'
 import { CLIENT_VISIBLE_DELIVERABLE_STATUSES } from '@/lib/projects/operations-validation'
 import { GET as getGrowthProfile } from '../growth-profile/route'
@@ -176,6 +177,17 @@ export async function GET() {
       )
     }
 
+    // Invoices that may ask something of the client. invoices have no client_id: ownership is project_id -> projects.client_id,
+    // so only project ids this client already owns are queried, and only DELIVERED statuses (no draft, no void). A failed read
+    // is reported as unavailable, never as "nothing owed".
+    let invoices: InvoiceSummary[] = []
+    const invoiceRead = await loadInvoiceSummaries(adminClient, projectIds, { statuses: CLIENT_VISIBLE_INVOICE_STATUSES, limit: 50 })
+    if (invoiceRead.ok) invoices = invoiceRead.invoices
+    else {
+      unavailable.push('invoices')
+      console.error('[client-portal/dashboard] invoices query failed')
+    }
+
     const now = new Date()
     const profile = growth.profile
 
@@ -190,7 +202,7 @@ export async function GET() {
         state: growth.state,
         snapshot: profile ? deriveSnapshot(profile) : null,
       },
-      attention: buildAttention({ proposals, projects, now, answeredRequests }),
+      attention: buildAttention({ proposals, projects, now, answeredRequests, invoices }),
       activeWork: selectActiveWork(projects),
       activity: buildActivity({ notifications, files, deliverables, proposals, events }),
       files: files.map((f) => ({
