@@ -377,6 +377,30 @@
 .breadcrumbCurrent { flex: 1 1 auto; color: var(--hb-fg-body); }
 .breadcrumbCurrent span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* Share row (ArticleShareActions): quiet, outlined, one line where it fits and a clean wrap where it does not. Focus uses the site's global
+   [data-surface='site'] :focus-visible ring; nothing here removes it. */
+.share { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.875rem; margin-top: 1.5rem; max-width: 100%; }
+.shareLabel { margin: 0; font-size: 0.8125rem; font-weight: 600; line-height: 1.4; color: var(--hb-fg-muted); }
+.shareList { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.shareBtn {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--hb-border);
+  border-radius: var(--hb-radius-pill);
+  background: transparent;
+  color: var(--hb-fg-body);
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
+}
+.shareBtn:hover { border-color: var(--hb-structure-soft); background: var(--hb-white); color: var(--hb-fg); }
+.shareBtn[data-state='copied'] { border-color: var(--hb-structure-soft); color: var(--hb-link); }
+.shareStatus { margin: 0; min-height: 1.25rem; font-size: 0.8125rem; line-height: 1.4; color: var(--hb-fg-body); }
+@media (prefers-reduced-motion: reduce) { .shareBtn { transition: none; } }
+
 .bylineLink { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .bylineLink:hover { color: var(--hb-link); }
 

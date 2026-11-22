@@ -1,7 +1,9 @@
 import Link from 'next/link'
+import { ArticleShareActions } from './ArticleShareActions'
 import { InsightArticleBody } from './InsightArticleBody'
 import { InsightReadingProgress } from './InsightReadingProgress'
 import { cn } from '@/lib/cn'
+import { insightHref, SITE_URL } from '@/lib/blog-utils'
 import type { InsightDetail } from '@/lib/site/insights-data'
 import { SiteReveal } from '../motion/SiteReveal'
 import { SiteImage } from '../primitives/SiteImage'
@@ -18,6 +20,7 @@ import styles from './insights.module.css'
  *   the mapped Hbee capability, related Insights only when a real relation exists,
  *   and the Growth Review block only for articles in the explicit diagnostic set.
  * No callouts are manufactured; no metadata is filled in.
+ * A single compact share row sits at the end of the hero copy (title, meta, summary), before the body; there is no second one at the end.
  */
 const ARTICLE_ID = 'insight-article'
 
@@ -84,6 +87,8 @@ function InsightHero({ detail }: { detail: InsightDetail }) {
           </h1>
           <InsightMeta item={detail} className="mt-5" authorHref="/about" updated={detail.updatedAt} />
           {detail.excerpt && <p className="mt-5 max-w-[38rem] text-[length:var(--hb-text-lede)] leading-[1.55] text-hb-fg-body">{detail.excerpt}</p>}
+          {/* The one share row: below the title, meta and summary, before the body. Shares the article's own public URL. */}
+          <ArticleShareActions title={detail.title} url={`${SITE_URL}${insightHref(detail.slug)}`} />
         </div>
         {image && (
           <SiteReveal motion="focus" className={styles.articleHeroMedia}>
