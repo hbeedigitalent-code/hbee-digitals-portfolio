@@ -16,6 +16,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import EmptyState from '@/components/client-portal/EmptyState'
+import { PortalPageHeader } from '@/components/client-portal/PortalPageHeader'
+import { PortalStatus } from '@/components/client-portal/PortalStatus'
+import { toneForProposal } from '@/lib/client-portal/portal-status'
 import { proposalStatusLabel } from '@/lib/proposal-status'
 import {
   FILTERS,
@@ -25,11 +29,11 @@ import {
   isPastDate,
   matchesFilter,
   needsReview,
-  statusTone,
   type ProposalFilter,
   type ProposalPricing,
 } from '@/lib/client-portal/proposal-display'
-import styles from './proposals.module.css'
+import prim from '@/components/client-portal/portal-primitives.module.css'
+import styles from '@/components/client-portal/portal-screens.module.css'
 
 interface ProposalListItem {
   id: string
@@ -79,7 +83,7 @@ export default function ClientProposalsPage() {
 
   if (loading) {
     return (
-      <div className={styles.center}>
+      <div className={styles.center} role="status" aria-label="Loading">
         <div className={styles.spinner} />
       </div>
     )
@@ -89,33 +93,25 @@ export default function ClientProposalsPage() {
 
   return (
     <div className={styles.page}>
-      <header>
-        <p className={styles.eyebrow}>
-          <span aria-hidden="true" className={styles.node} />
-          Proposals
-        </p>
-        <h1 className={styles.h1}>Your proposals</h1>
-        <p className={styles.lead}>
-          What Hbee is proposing, what it includes and what it costs. Review each one, then approve it or ask for changes.
-        </p>
-      </header>
+      <PortalPageHeader
+        eyebrow="Proposals"
+        title="Your proposals"
+        lead="What Hbee is proposing, what it includes and what it costs. Review each one, then approve it or ask for changes."
+      />
 
       {error ? (
-        <div className={`${styles.panel} ${styles.center}`}>
+        <div className={styles.center}>
           <div className={styles.centerBody}>
             <p>{error}</p>
-            <button type="button" onClick={fetchProposals} className={styles.primary}>
+            <button type="button" onClick={fetchProposals} className={prim.secondary}>
               Try Again
             </button>
           </div>
         </div>
       ) : proposals.length === 0 ? (
-        <div className={`${styles.panel} ${styles.center}`}>
-          <div className={styles.centerBody}>
-            <h2>No proposals yet</h2>
-            <p>When Hbee Digitals sends you a proposal, it will appear here for review.</p>
-          </div>
-        </div>
+        <section className={styles.panel}>
+          <EmptyState title="No proposals yet" description="When Hbee Digitals sends you a proposal, it will appear here for review." />
+        </section>
       ) : (
         <>
           <div className={styles.filters} role="group" aria-label="Filter proposals">
@@ -124,15 +120,9 @@ export default function ClientProposalsPage() {
               // "Expired" is derived from real expiry dates; it is only offered when something is expired.
               if (f.key === 'expired' && count === 0) return null
               return (
-                <button
-                  key={f.key}
-                  type="button"
-                  className={styles.filter}
-                  aria-pressed={filter === f.key}
-                  onClick={() => setFilter(f.key)}
-                >
+                <button key={f.key} type="button" className={styles.filter} aria-pressed={filter === f.key} onClick={() => setFilter(f.key)}>
                   {f.label}
-                  <span className={styles.filterCount}>{count}</span>
+                  <span className={styles.count}>{count}</span>
                 </button>
               )
             })}
@@ -141,58 +131,53 @@ export default function ClientProposalsPage() {
           {shown.length === 0 ? (
             <p className={styles.quiet}>No proposals in this view.</p>
           ) : (
-            <ul className={styles.list}>
-              {shown.map((proposal) => {
-                const shownStatus = displayStatus(proposal)
-                const tone = statusTone(shownStatus)
-                const total = formatMoney(proposal.pricing?.total, proposal.pricing?.currency)
-                const sent = formatDate(proposal.sent_at || proposal.created_at)
-                const expiry = formatDate(proposal.expires_at)
-                const past = isPastDate(proposal.expires_at)
-                const showExpiry = needsReview(proposal.status) && !!expiry
-                return (
-                  <li key={proposal.id}>
-                    <Link href={`/client-portal/proposals/${proposal.id}`} className={styles.row}>
-                      <div>
-                        <p className={styles.rowTitle}>{proposal.title || 'Untitled proposal'}</p>
-                        <p className={styles.rowMeta}>
-                          {[proposal.proposal_number, proposal.merchant?.business_name].filter(Boolean).join(' · ') || 'Proposal'}
-                        </p>
-                      </div>
-                      <dl className={styles.facts}>
-                        <div>
-                          <dt>Investment</dt>
-                          <dd>{total ?? 'Not specified'}</dd>
+            <section className={styles.section} aria-label="Proposals">
+              <ul className={styles.rows}>
+                {shown.map((proposal) => {
+                  const shownStatus = displayStatus(proposal)
+                  const total = formatMoney(proposal.pricing?.total, proposal.pricing?.currency)
+                  const sent = formatDate(proposal.sent_at || proposal.created_at)
+                  const expiry = formatDate(proposal.expires_at)
+                  const past = isPastDate(proposal.expires_at)
+                  const showExpiry = needsReview(proposal.status) && !!expiry
+                  const awaiting = needsReview(proposal.status) && shownStatus !== 'expired'
+                  return (
+                    <li key={proposal.id}>
+                      <Link href={`/client-portal/proposals/${proposal.id}`} className={`${styles.row} ${styles.rowFig}`}>
+                        <div className={styles.rowMain}>
+                          <p className={styles.rowTitle}>{proposal.title || 'Untitled proposal'}</p>
+                          <div className={styles.rowMeta}>
+                            <span>{[proposal.proposal_number, proposal.merchant?.business_name].filter(Boolean).join(' · ') || 'Proposal'}</span>
+                            {sent && <span>{proposal.sent_at ? 'Sent' : 'Created'} {sent}</span>}
+                            {showExpiry && (
+                              <span>
+                                Valid until {expiry}
+                                {past && ' (date has passed)'}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        {sent && (
-                          <div>
-                            <dt>{proposal.sent_at ? 'Sent' : 'Created'}</dt>
-                            <dd>{sent}</dd>
+                        <dl className={styles.ledger}>
+                          <div className={styles.ledgerStrong}>
+                            <dt>Investment</dt>
+                            <dd>{total ?? 'Not specified'}</dd>
                           </div>
-                        )}
-                        {showExpiry && (
-                          <div>
-                            <dt>Valid until</dt>
-                            <dd className={past ? styles.past : undefined}>
-                              {expiry}
-                              {past && ' (date has passed)'}
-                            </dd>
-                          </div>
-                        )}
-                      </dl>
-                      <div className={styles.rowEnd}>
-                        <span
-                          className={`${styles.chip} ${tone === 'approved' ? styles.chipApproved : tone === 'changes' ? styles.chipChanges : tone === 'expired' ? styles.chipExpired : ''}`}
-                        >
-                          {shownStatus === 'expired' ? 'Expired' : proposalStatusLabel(proposal.status)}
-                        </span>
-                        <ArrowRight aria-hidden="true" />
-                      </div>
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
+                        </dl>
+                        <div className={styles.rowEnd}>
+                          <PortalStatus tone={shownStatus === 'expired' ? 'neutral' : toneForProposal(proposal.status)}>
+                            {shownStatus === 'expired' ? 'Expired' : proposalStatusLabel(proposal.status)}
+                          </PortalStatus>
+                          <span className={prim.link} aria-hidden="true">
+                            {awaiting ? 'Review' : 'View'}
+                            <ArrowRight />
+                          </span>
+                        </div>
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
           )}
         </>
       )}

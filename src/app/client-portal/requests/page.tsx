@@ -11,10 +11,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
+import EmptyState from '@/components/client-portal/EmptyState'
+import { PortalPageHeader } from '@/components/client-portal/PortalPageHeader'
+import { PortalStatus } from '@/components/client-portal/PortalStatus'
 import { SupportAmbiguous, SupportError, SupportLoading } from '@/components/client-portal/SupportState'
+import { toneForRequest } from '@/lib/client-portal/portal-status'
 import { formatDay } from '@/lib/client-portal/support-display'
 import { REQUEST_STATUS_LABELS, type RequestStatus } from '@/lib/requests/request-status'
-import styles from '@/components/client-portal/support.module.css'
+import prim from '@/components/client-portal/portal-primitives.module.css'
+import styles from '@/components/client-portal/portal-screens.module.css'
 
 interface PortalRequest {
   id: string
@@ -65,56 +70,64 @@ export default function ClientRequestsPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.head}>
-        <div>
-          <p className={styles.eyebrow}>
-            <span aria-hidden="true" className={styles.node} />
-            Requests
-          </p>
-          <h1 className={styles.h1}>What you&rsquo;ve asked Hbee for</h1>
-          <p className={styles.lead}>Each request you have submitted, the project it belongs to and where it stands.</p>
-        </div>
-        <Link href="/client-portal/project-request" className={styles.primary}>
-          <Plus aria-hidden="true" />
-          Submit a request
-        </Link>
-      </header>
+      <PortalPageHeader
+        eyebrow="Requests"
+        title="What you’ve asked Hbee for"
+        lead="Each request you have submitted, the project it belongs to and where it stands."
+        action={
+          <Link href="/client-portal/project-request" className={prim.primary}>
+            <Plus aria-hidden="true" />
+            Submit a request
+          </Link>
+        }
+      />
 
       {requests.length === 0 ? (
-        <section className={`${styles.panel} ${styles.center}`}>
-          <div className={styles.centerBody}>
-            <h2>No requests yet</h2>
-            <p>When you submit a request, it will be listed here with its status.</p>
-          </div>
+        <section className={styles.panel}>
+          <EmptyState
+            title="No requests yet"
+            description="When you submit a request, it will be listed here with its status."
+            action={
+              <Link href="/client-portal/project-request" className={prim.link}>
+                Submit a request
+              </Link>
+            }
+          />
         </section>
       ) : (
-        <section className={styles.panel} aria-label="Your requests">
-          <ul className={styles.list}>
+        <section className={styles.section} aria-label="Your requests">
+          <ul className={styles.rows}>
             {requests.map((r) => {
               const status = REQUEST_STATUS_LABELS[r.status] ?? null
               const date = formatDay(r.createdAt)
               return (
-                <li key={r.id} className={styles.item}>
-                  <div style={{ minWidth: 0 }}>
-                    <p className={styles.itemTitle}>
-                      <Link href={`/client-portal/requests/${r.id}`} className={styles.link}>
-                        {r.title}
-                      </Link>
-                    </p>
-                    {r.description && <p className={styles.itemText}>{r.description}</p>}
-                    <div className={styles.itemMeta}>
-                      {r.projectName && <span>Project: {r.projectName}</span>}
-                      {date && <span>Submitted {date}</span>}
-                      {r.unreadReplies > 0 && <span className={styles.chip}>{r.unreadReplies} new {r.unreadReplies === 1 ? 'reply' : 'replies'}</span>}
-                    </div>
-                    {r.response && (
-                      <div className={styles.response}>
-                        <strong>Latest reply from Hbee</strong>
-                        <p>{r.response}</p>
+                <li key={r.id}>
+                  <div className={`${styles.row}`}>
+                    <div className={styles.rowMain}>
+                      <p className={styles.rowTitle}>
+                        <Link href={`/client-portal/requests/${r.id}`}>{r.title}</Link>
+                      </p>
+                      {r.description && <p className={`${styles.rowText} ${styles.rowClamp}`}>{r.description}</p>}
+                      <div className={styles.rowMeta}>
+                        {r.projectName && <span>Project: {r.projectName}</span>}
+                        {date && <span>Submitted {date}</span>}
                       </div>
-                    )}
+                      {r.response && (
+                        <div className={styles.reply}>
+                          <strong>Latest reply from Hbee</strong>
+                          <p>{r.response}</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className={styles.rowEnd}>
+                      {r.unreadReplies > 0 && (
+                        <PortalStatus tone="needs-you" size="sm">
+                          {r.unreadReplies} new {r.unreadReplies === 1 ? 'reply' : 'replies'}
+                        </PortalStatus>
+                      )}
+                      {status && <PortalStatus tone={toneForRequest(r.status)}>{status}</PortalStatus>}
+                    </div>
                   </div>
-                  {status && <span className={styles.chip}>{status}</span>}
                 </li>
               )
             })}

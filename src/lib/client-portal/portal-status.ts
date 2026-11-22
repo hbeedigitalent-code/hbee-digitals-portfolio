@@ -61,6 +61,8 @@ export function toneForRequest(status: string | null | undefined): PortalTone {
     case 'open':
     case 'in_review':
       return 'working'
+    case 'closed':
+      return 'done' // resolved
     default:
       return 'neutral'
   }

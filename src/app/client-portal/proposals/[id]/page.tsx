@@ -15,12 +15,17 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Download, FileText } from 'lucide-react'
-import { SupportAmbiguous, SupportError, SupportLoading } from '@/components/client-portal/SupportState'
+import { Download, FileText } from 'lucide-react'
+import { PortalPageHeader } from '@/components/client-portal/PortalPageHeader'
+import { PortalStatus } from '@/components/client-portal/PortalStatus'
+import { SupportAmbiguous, SupportError, SupportLoading, SupportNotFound } from '@/components/client-portal/SupportState'
+import { toneForProposal } from '@/lib/client-portal/portal-status'
 import { proposalStatusLabel } from '@/lib/proposal-status'
 import { formatMoney } from '@/lib/commerce/money'
 import { formatDay } from '@/lib/client-portal/support-display'
-import support from '@/components/client-portal/support.module.css'
+import forms from '@/components/client-portal/support.module.css'
+import prim from '@/components/client-portal/portal-primitives.module.css'
+import support from '@/components/client-portal/portal-screens.module.css'
 import styles from '@/components/client-portal/commerce.module.css'
 
 interface Doc {
@@ -99,9 +104,7 @@ export default function ClientProposalDetailPage({ params }: { params: { id: str
   if (state === 'ambiguous') return <SupportAmbiguous what="proposals" />
   if (state === 'error') return <SupportError message="We could not load this proposal. Please try again in a moment." onRetry={load} />
   if (state === 'missing' || !doc) {
-    return (
-      <div className={support.page}><section className={`${support.panel} ${support.center}`}><div className={support.centerBody}><h2>Proposal not found</h2><Link href="/client-portal/proposals" className={support.link}>Back to proposals</Link></div></section></div>
-    )
+    return <SupportNotFound title="Proposal not found" links={[{ href: '/client-portal/proposals', label: 'Back to proposals' }]} />
   }
 
   const p = doc.proposal
@@ -109,19 +112,23 @@ export default function ClientProposalDetailPage({ params }: { params: { id: str
 
   return (
     <div className={support.page}>
-      <header className={support.head}>
-        <div>
-          <Link href="/client-portal/proposals" className={support.link}><ArrowLeft aria-hidden="true" /> All proposals</Link>
-          <h1 className={support.h1}>{p.title}</h1>
-          <div className={styles.meta}>
-            <span className={support.chip}>{label}</span>
+      <PortalPageHeader
+        back={{ href: '/client-portal/proposals', label: 'All proposals' }}
+        title={p.title}
+        meta={
+          <>
+            <PortalStatus tone={doc.expired ? 'neutral' : toneForProposal(p.displayStatus)}>{label}</PortalStatus>
             <span>{p.number} · version {p.shownVersion}</span>
             {p.sentAt && <span>Sent {formatDay(p.sentAt)}</span>}
             {p.expiresAt && <span>{doc.expired ? 'Expired' : 'Valid until'} {formatDay(p.expiresAt)}</span>}
-          </div>
-        </div>
-        <a className={support.secondary} href={`/api/client-portal/proposals/${p.id}/pdf`} target="_blank" rel="noopener noreferrer"><Download aria-hidden="true" /> Download PDF</a>
-      </header>
+          </>
+        }
+        action={
+          <a className={prim.secondary} href={`/api/client-portal/proposals/${p.id}/pdf`} target="_blank" rel="noopener noreferrer">
+            <Download aria-hidden="true" /> Download PDF
+          </a>
+        }
+      />
 
       {notice && <p role="status" className={notice.kind === 'ok' ? support.ok : support.err}>{notice.text}</p>}
 
@@ -162,7 +169,7 @@ export default function ClientProposalDetailPage({ params }: { params: { id: str
               {doc.files.map((f) => (
                 <li key={f.id} className={styles.file}>
                   <span className={styles.fileName}><FileText aria-hidden="true" size={16} /> {f.file_name}</span>
-                  <button type="button" className={support.link} onClick={() => download(f.id)}>Download</button>
+                  <button type="button" className={prim.link} onClick={() => download(f.id)}>Download</button>
                 </li>
               ))}
             </ul>
@@ -171,7 +178,7 @@ export default function ClientProposalDetailPage({ params }: { params: { id: str
       </section>
 
       {doc.responses.length > 0 && (
-        <section className={support.panel} aria-label="Your responses">
+        <section className={support.section} aria-label="Your responses">
           <p className={styles.sectionTitle}>Your responses</p>
           {doc.responses.map((r) => (
             <div key={r.id} className={styles.note}>
@@ -186,7 +193,7 @@ export default function ClientProposalDetailPage({ params }: { params: { id: str
       {p.displayStatus === 'approved' && (
         <p className={support.ok}>
           You approved version {p.approvedVersion ?? p.shownVersion}{p.acceptedAt ? ` on ${formatDay(p.acceptedAt)}` : ''}.{' '}
-          {p.converted && p.projectId ? <Link href={`/client-portal/projects/${p.projectId}`} className={support.link}>Open your project</Link> : 'Hbee Digitals will set up your project.'}
+          {p.converted && p.projectId ? <Link href={`/client-portal/projects/${p.projectId}`} className={prim.link}>Open your project</Link> : 'Hbee Digitals will set up your project.'}
         </p>
       )}
       {p.displayStatus === 'declined' && <p className={support.warn}>This proposal was declined{p.declinedAt ? ` on ${formatDay(p.declinedAt)}` : ''}.</p>}
@@ -197,38 +204,38 @@ export default function ClientProposalDetailPage({ params }: { params: { id: str
         <section className={styles.actions} aria-label="Your decision">
           {mode === null && (
             <div className={styles.actionRow}>
-              <button type="button" className={support.primary} onClick={() => { setMode('approve'); setNotice(null) }}>Approve this proposal</button>
-              <button type="button" className={support.secondary} onClick={() => { setMode('changes'); setNotice(null) }}>Request changes</button>
-              <button type="button" className={`${support.secondary} ${styles.danger}`} onClick={() => { setMode('decline'); setNotice(null) }}>Decline</button>
+              <button type="button" className={prim.primary} onClick={() => { setMode('approve'); setNotice(null) }}>Approve this proposal</button>
+              <button type="button" className={prim.secondary} onClick={() => { setMode('changes'); setNotice(null) }}>Request changes</button>
+              <button type="button" className={`${prim.secondary} ${support.danger}`} onClick={() => { setMode('decline'); setNotice(null) }}>Decline</button>
             </div>
           )}
           {mode === 'approve' && (
             <>
               <label className={styles.confirm}><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} /> I approve version {p.version} of proposal {p.number}, for {formatMoney(p.total, p.currency)}.</label>
               <div className={styles.actionRow}>
-                <button type="button" className={support.primary} disabled={!confirmed || busy} onClick={() => decide('approve')}>{busy ? 'Approving…' : 'Confirm approval'}</button>
-                <button type="button" className={support.secondary} disabled={busy} onClick={() => { setMode(null); setConfirmed(false) }}>Cancel</button>
+                <button type="button" className={prim.primary} disabled={!confirmed || busy} onClick={() => decide('approve')}>{busy ? 'Approving…' : 'Confirm approval'}</button>
+                <button type="button" className={prim.secondary} disabled={busy} onClick={() => { setMode(null); setConfirmed(false) }}>Cancel</button>
               </div>
             </>
           )}
           {mode === 'changes' && (
             <>
-              <label className={support.label} htmlFor="chg">What would you like changed?</label>
-              <textarea id="chg" className={support.textarea} rows={4} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} />
+              <label className={forms.label} htmlFor="chg">What would you like changed?</label>
+              <textarea id="chg" className={forms.textarea} rows={4} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} />
               <div className={styles.actionRow}>
-                <button type="button" className={support.primary} disabled={!text.trim() || busy} onClick={() => decide('request-changes')}>{busy ? 'Sending…' : 'Send request'}</button>
-                <button type="button" className={support.secondary} disabled={busy} onClick={() => { setMode(null); setText('') }}>Cancel</button>
+                <button type="button" className={prim.primary} disabled={!text.trim() || busy} onClick={() => decide('request-changes')}>{busy ? 'Sending…' : 'Send request'}</button>
+                <button type="button" className={prim.secondary} disabled={busy} onClick={() => { setMode(null); setText('') }}>Cancel</button>
               </div>
             </>
           )}
           {mode === 'decline' && (
             <>
-              <label className={support.label} htmlFor="dec">Anything you would like to tell us? (optional)</label>
-              <textarea id="dec" className={support.textarea} rows={3} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} />
+              <label className={forms.label} htmlFor="dec">Anything you would like to tell us? (optional)</label>
+              <textarea id="dec" className={forms.textarea} rows={3} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} />
               <label className={styles.confirm}><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} /> I want to decline this proposal. I understand Hbee would need to send a new one.</label>
               <div className={styles.actionRow}>
-                <button type="button" className={`${support.primary} ${styles.danger}`} disabled={!confirmed || busy} onClick={() => decide('decline')}>{busy ? 'Declining…' : 'Confirm decline'}</button>
-                <button type="button" className={support.secondary} disabled={busy} onClick={() => { setMode(null); setConfirmed(false); setText('') }}>Cancel</button>
+                <button type="button" className={`${prim.secondary} ${support.danger}`} disabled={!confirmed || busy} onClick={() => decide('decline')}>{busy ? 'Declining…' : 'Confirm decline'}</button>
+                <button type="button" className={prim.secondary} disabled={busy} onClick={() => { setMode(null); setConfirmed(false); setText('') }}>Cancel</button>
               </div>
             </>
           )}

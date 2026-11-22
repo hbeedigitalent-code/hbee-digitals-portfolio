@@ -31,6 +31,11 @@ import {
   type FileFilter,
   type ProjectLike,
 } from '@/lib/client-portal/files-display'
+import EmptyState from '@/components/client-portal/EmptyState'
+import { PortalEyebrow, PortalPageHeader } from '@/components/client-portal/PortalPageHeader'
+import { SupportAmbiguous, SupportError, SupportLoading } from '@/components/client-portal/SupportState'
+import prim from '@/components/client-portal/portal-primitives.module.css'
+import screens from '@/components/client-portal/portal-screens.module.css'
 import styles from './files.module.css'
 
 interface PortalFile {
@@ -218,39 +223,9 @@ export default function ClientFilesPage() {
   )
   const groups = useMemo(() => (grouped ? groupByProject(visible, projects) : []), [grouped, visible, projects])
 
-  if (state === 'loading') {
-    return (
-      <div className={styles.center}>
-        <div className={styles.spinner} />
-      </div>
-    )
-  }
-
-  if (state === 'ambiguous') {
-    return (
-      <div className={styles.center}>
-        <div className={styles.centerBody}>
-          <p>Your sign-in is linked to more than one business record, so we have not shown your files. Please contact us and we will sort it out.</p>
-          <Link href="/contact" className={styles.secondary}>
-            Contact Hbee Digitals
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  if (state === 'error') {
-    return (
-      <div className={styles.center}>
-        <div className={styles.centerBody}>
-          <p>We could not load your files. Please try again in a moment.</p>
-          <button type="button" onClick={() => fetchData(true)} className={styles.secondary}>
-            Try Again
-          </button>
-        </div>
-      </div>
-    )
-  }
+  if (state === 'loading') return <SupportLoading />
+  if (state === 'ambiguous') return <SupportAmbiguous what="files" />
+  if (state === 'error') return <SupportError message="We could not load your files. Please try again in a moment." onRetry={() => fetchData(true)} />
 
   const hasGeneral = files.some((f) => !f.projectId)
 
@@ -276,7 +251,7 @@ export default function ClientFilesPage() {
             type="button"
             onClick={() => handleDownload(file)}
             disabled={downloadingId === file.id || deletingId === file.id}
-            className={styles.dl}
+            className={screens.dl}
             aria-label={`Download ${file.name}`}
           >
             <Download aria-hidden="true" />
@@ -306,41 +281,37 @@ export default function ClientFilesPage() {
   }
 
   return (
-    <div className={styles.page}>
-      {/* 1 — Context */}
-      <header className={styles.hero}>
-        <div>
-          <p className={styles.eyebrow}>
-            <span aria-hidden="true" className={styles.node} />
-            Files
-          </p>
-          <h1 className={styles.h1}>
+    <div className={screens.page}>
+      <PortalPageHeader
+        eyebrow="Files"
+        title={
+          <>
             Everything shared for your work, <em>in one place.</em>
-          </h1>
-          <p className={styles.lead}>
-            Access project files, assets and deliverables shared through your work with Hbee Digitals.
-          </p>
-        </div>
-        <a href="#upload" className={styles.primary}>
-          <Upload aria-hidden="true" />
-          Upload file
-        </a>
-      </header>
+          </>
+        }
+        lead="Access project files, assets and deliverables shared through your work with Hbee Digitals."
+        action={
+          <a href="#upload" className={prim.primary}>
+            <Upload aria-hidden="true" />
+            Upload file
+          </a>
+        }
+      />
 
       {pageError && (
-        <div role="alert" className={styles.err}>
+        <div role="alert" className={screens.err}>
           {pageError}
         </div>
       )}
       {pageNotice && (
-        <div role="status" className={styles.ok}>
+        <div role="status" className={screens.ok}>
           {pageNotice}
         </div>
       )}
 
-      {/* 2 — Search and filters (presentation only) */}
+      {/* Compact controls: no box of their own */}
       {files.length > 0 && (
-        <section className={`${styles.panel} ${styles.controls}`} aria-label="Search and filter files">
+        <div className={styles.controls} role="group" aria-label="Search and filter files">
           <label className={styles.search}>
             <span className="sr-only">Search files</span>
             <Search aria-hidden="true" />
@@ -352,16 +323,16 @@ export default function ClientFilesPage() {
               className={styles.input}
             />
           </label>
-          <div className={styles.row2} role="group" aria-label="File type">
+          <div className={screens.filters} role="group" aria-label="File type">
             {FILE_FILTERS.map((f) => (
-              <button key={f.key} type="button" className={styles.chip} aria-pressed={filter === f.key} onClick={() => setFilter(f.key)}>
+              <button key={f.key} type="button" className={screens.filter} aria-pressed={filter === f.key} onClick={() => setFilter(f.key)}>
                 {f.label}
-                <span className={styles.count}>{counts[f.key]}</span>
+                <span className={screens.count}>{counts[f.key]}</span>
               </button>
             ))}
           </div>
           {(projects.length > 0 || hasGeneral) && (
-            <div className={styles.selectWrap} style={{ gridColumn: '1 / -1' }}>
+            <div className={styles.selectWrap}>
               <label className="sr-only" htmlFor="files-project-filter">
                 Filter by project
               </label>
@@ -379,28 +350,33 @@ export default function ClientFilesPage() {
               </button>
             </div>
           )}
-        </section>
+        </div>
       )}
 
-      {/* 3 — Project files */}
-      <section className={styles.panel} aria-labelledby="files-list">
-        <p className={styles.eyebrow}>
-          <span aria-hidden="true" className={styles.node} />
-          Project files
-        </p>
+      {/* Project files */}
+      <section className={screens.section} aria-labelledby="files-list">
+        <PortalEyebrow>Project files</PortalEyebrow>
         <h2 id="files-list" className="sr-only">
           Project files
         </h2>
         {files.length === 0 ? (
-          <p className={styles.quiet} style={{ marginTop: '0.75rem' }}>
-            No files yet. Files shared with you, and files you upload below, will appear here.
-          </p>
+          <div style={{ marginTop: '0.75rem' }}>
+            <EmptyState
+              title="No files yet"
+              description="Files shared with you, and files you upload below, will appear here."
+              action={
+                <a href="#upload" className={prim.link}>
+                  Upload a file
+                </a>
+              }
+            />
+          </div>
         ) : visible.length === 0 ? (
           <div style={{ marginTop: '0.75rem' }}>
-            <p className={styles.quiet}>No files match your search or filters.</p>
+            <p className={screens.quiet}>No files match your search or filters.</p>
             <button
               type="button"
-              className={styles.secondary}
+              className={prim.secondary}
               style={{ marginTop: '0.75rem' }}
               onClick={() => {
                 setQuery('')
@@ -417,7 +393,7 @@ export default function ClientFilesPage() {
               <div key={g.key} className={styles.group}>
                 <div className={styles.groupHead}>
                   <h3 className={styles.groupName}>{g.label}</h3>
-                  <span className={styles.muted}>
+                  <span className={screens.muted}>
                     {g.files.length} {g.files.length === 1 ? 'file' : 'files'}
                   </span>
                 </div>
@@ -440,58 +416,11 @@ export default function ClientFilesPage() {
         )}
       </section>
 
-      {/* 4 — Upload. Uploads use the single signed-TUS transport (context "client_file"). The
-          browser asks the server to authorize a batch, sends bytes to a server-selected path with
-          a scoped token, and finalizes by upload ID. The selected project is re-verified against
-          this client account server-side, so a project id belonging to another client cannot be
-          attached. */}
-      <section id="upload" className={styles.panel} aria-labelledby="files-upload">
-        <p className={styles.eyebrow}>
-          <span aria-hidden="true" className={styles.node} />
-          Upload
-        </p>
-        <h2 id="files-upload" className={styles.h2}>
-          Add a file to your work
-        </h2>
-        {!connected ? (
-          <p className={styles.lead}>
-            Uploading becomes available once Hbee connects your business. Your account is ready in the meantime.
-          </p>
-        ) : (
-        <div className={styles.uploadGrid}>
-          <div className={styles.field}>
-            <label htmlFor="file-project" className={styles.label}>
-              Attach to project
-            </label>
-            <select id="file-project" value={selectedProjectId} onChange={(e) => setSelectedProjectId(e.target.value)} className={styles.select}>
-              <option value={GENERAL_VALUE}>General / No specific project</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <FileUploader
-            context="client_file"
-            projectId={selectedProjectId || null}
-            label="Upload files"
-            onComplete={() => {
-              void fetchData()
-            }}
-          />
-        </div>
-        )}
-      </section>
-
-      {/* 5 — Deliverables (only when real rows exist) */}
+      {/* Deliverables (only when real rows exist) */}
       {deliverables.length > 0 && (
-        <section id="deliverables" className={styles.panel} aria-labelledby="files-deliverables">
-          <p className={styles.eyebrow}>
-            <span aria-hidden="true" className={styles.node} />
-            Deliverables
-          </p>
-          <h2 id="files-deliverables" className={styles.h2}>
+        <section id="deliverables" className={screens.section} aria-labelledby="files-deliverables">
+          <PortalEyebrow>Deliverables</PortalEyebrow>
+          <h2 id="files-deliverables" className={screens.h2}>
             Delivered to you
           </h2>
           <ul className={styles.dels}>
@@ -512,7 +441,7 @@ export default function ClientFilesPage() {
                   {d.hasFile && (
                     <button
                       type="button"
-                      className={styles.dl}
+                      className={screens.dl}
                       onClick={() => handleDeliverableDownload(d)}
                       disabled={downloadingId === d.id}
                       aria-label={`Download ${d.title || 'deliverable'}`}
@@ -528,26 +457,55 @@ export default function ClientFilesPage() {
         </section>
       )}
       {deliverablesUnavailable && (
-        <p className={styles.quiet} role="status">
+        <p className={screens.quiet} role="status">
           Deliverables could not be loaded just now.
         </p>
       )}
 
-      {/* 6 — Request / help */}
-      <section className={`${styles.panel} ${styles.help}`} aria-labelledby="files-help">
-        <div>
-          <h2 id="files-help" className={styles.h2} style={{ marginTop: 0 }}>
-            Need something you can&rsquo;t find?
-          </h2>
-          <p className={styles.quiet} style={{ marginTop: '0.375rem' }}>
-            Tell Hbee what you&rsquo;re looking for through a project request.
-          </p>
-        </div>
-        <Link href="/client-portal/project-request" className={styles.secondary}>
+      {/* Upload — the one action region. Uploads use the single signed-TUS transport (context "client_file"): the browser asks the
+          server to authorize a batch, sends bytes to a server-selected path with a scoped token, and finalizes by upload ID. The selected
+          project is re-verified against this client account server-side, so a project id belonging to another client cannot be attached. */}
+      <section id="upload" className={screens.panelSoft} aria-labelledby="files-upload">
+        <PortalEyebrow>Upload</PortalEyebrow>
+        <h2 id="files-upload" className={screens.h2}>
+          Add a file to your work
+        </h2>
+        {!connected ? (
+          <p className={screens.lead}>Uploading becomes available once Hbee connects your business. Your account is ready in the meantime.</p>
+        ) : (
+          <div className={styles.uploadGrid}>
+            <div className={styles.field}>
+              <label htmlFor="file-project" className={styles.label}>
+                Attach to project
+              </label>
+              <select id="file-project" value={selectedProjectId} onChange={(e) => setSelectedProjectId(e.target.value)} className={styles.select}>
+                <option value={GENERAL_VALUE}>General / No specific project</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <FileUploader
+              context="client_file"
+              projectId={selectedProjectId || null}
+              label="Upload files"
+              onComplete={() => {
+                void fetchData()
+              }}
+            />
+          </div>
+        )}
+      </section>
+
+      <p className={screens.quiet}>
+        Need something you can&rsquo;t find?{' '}
+        <Link href="/client-portal/project-request" className={prim.link}>
           Submit a request
           <ArrowRight aria-hidden="true" />
         </Link>
-      </section>
+      </p>
     </div>
   )
 }

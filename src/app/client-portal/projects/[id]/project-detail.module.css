@@ -1,0 +1,46 @@
+/* Project detail — only what is specific to this screen. Page frame, panels, rows, filters, notices and states come from portal-screens;
+   buttons and the bar from portal-primitives. The engagement module uses the same language as the Overview, with timing and the
+   project's own next step added; it is the one Royal Blue module on the page. */
+
+.engagement { display: grid; gap: 0; color: rgba(255, 255, 255, 0.9); }
+.engName { margin: 0.5rem 0 0; font-family: var(--hb-font-display); font-size: clamp(1.375rem, 1.1rem + 1vw, 1.875rem); font-weight: 800; line-height: 1.12; letter-spacing: -0.025em; color: var(--hb-white); overflow-wrap: anywhere; }
+.engRef { margin: 0.25rem 0 0; font-size: 0.8125rem; color: rgba(255, 255, 255, 0.82); overflow-wrap: anywhere; }
+.engStatus { margin-top: 0.75rem; }
+.engProgress { margin-top: 1rem; }
+.engProgressRow { display: flex; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.375rem; font-size: 0.8125rem; color: rgba(255, 255, 255, 0.88); }
+.engProgressRow b { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--hb-white); }
+.engNote { margin: 0.875rem 0 0; font-size: 0.875rem; color: rgba(255, 255, 255, 0.85); }
+.engNext { margin: 0.875rem 0 0; font-size: 0.9375rem; line-height: 1.5; color: rgba(255, 255, 255, 0.92); overflow-wrap: anywhere; }
+.engNext > span { display: block; margin-bottom: 0.125rem; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255, 255, 255, 0.78); }
+.engNeeds > p { margin: 0.125rem 0 0; }
+.engNeeds b { display: block; font-family: var(--hb-font-display); font-size: 1.0625rem; font-weight: 800; color: var(--hb-white); }
+.engActions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin-top: 1rem; }
+.dates { display: flex; flex-wrap: wrap; gap: 0.5rem 2rem; margin: 1rem 0 0; padding: 0.875rem 0 0; border-top: 1px solid rgba(255, 255, 255, 0.2); }
+.dates dt { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255, 255, 255, 0.78); }
+.dates dd { margin: 0.125rem 0 0; font-size: 0.9375rem; font-weight: 600; color: var(--hb-white); }
+.clear { display: flex; align-items: center; gap: 0.5rem; margin: 0.875rem 0 0; font-size: 0.9375rem; color: rgba(255, 255, 255, 0.92); }
+.clear svg { width: 1rem; height: 1rem; flex: none; }
+
+/* Proposal & billing: two document tiles. Each is one link to the real document. */
+.docs { display: grid; gap: var(--hb-portal-gap); margin: 0.75rem 0 0; padding: 0; list-style: none; }
+@media (min-width: 700px) { .docs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.docs > li { display: flex; min-width: 0; }
+.docTile { display: grid; width: 100%; align-content: start; gap: 0.625rem; color: inherit; text-decoration: none; }
+.docKind { margin: 0; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--hb-slate); }
+.docTitle { margin: 0; font-family: var(--hb-font-display); font-size: 1.0625rem; font-weight: 800; line-height: 1.3; letter-spacing: -0.01em; color: var(--hb-ink); overflow-wrap: anywhere; }
+.docTile:hover .docTitle { color: var(--hb-blue); }
+.docMeta { display: flex; flex-wrap: wrap; gap: 0.25rem 0.875rem; margin: 0; font-size: 0.8125rem; color: var(--hb-slate); }
+.docGo { display: inline-flex; min-height: 2.75rem; align-items: center; gap: 0.375rem; font-size: 0.875rem; font-weight: 600; color: var(--hb-blue); }
+.docGo svg { width: 1rem; height: 1rem; }
+
+.two { display: grid; min-width: 0; gap: var(--hb-portal-gap); }
+@media (min-width: 900px) { .two { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
+
+.fileRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; padding: 0.5rem 0; }
+.fileMain { min-width: 0; flex: 1 1 12rem; }
+.fileName { margin: 0; font-size: 0.9375rem; font-weight: 600; line-height: 1.4; color: var(--hb-ink); overflow-wrap: anywhere; }
+.fileName a { display: inline-flex; min-height: 2.75rem; align-items: center; color: inherit; text-decoration: none; }
+.fileName a:hover { color: var(--hb-blue); text-decoration: underline; text-underline-offset: 3px; }
+.fileSub { margin: 0.125rem 0 0; font-size: 0.8125rem; line-height: 1.5; color: var(--hb-slate); overflow-wrap: anywhere; }
+.foot { margin: 0; font-size: 0.9375rem; line-height: 1.6; color: var(--hb-slate); }
+.foot a { display: inline-flex; vertical-align: middle; }

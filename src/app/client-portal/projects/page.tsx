@@ -10,6 +10,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Plus } from 'lucide-react'
+import EmptyState from '@/components/client-portal/EmptyState'
+import { PortalPageHeader } from '@/components/client-portal/PortalPageHeader'
+import { PortalStatus } from '@/components/client-portal/PortalStatus'
+import { SupportAmbiguous, SupportError, SupportLoading } from '@/components/client-portal/SupportState'
+import { toneFromProjectTone } from '@/lib/client-portal/portal-status'
 import {
   PROJECT_FILTERS,
   parseProgress,
@@ -19,8 +24,8 @@ import {
   statusTone,
   type ProjectFilter,
 } from '@/lib/client-portal/projects-display'
-import { HbeeModuleGroup } from '@/components/site/module/HbeeModuleGroup'
-import styles from './projects.module.css'
+import prim from '@/components/client-portal/portal-primitives.module.css'
+import styles from '@/components/client-portal/portal-screens.module.css'
 
 interface PortalProject {
   id: string
@@ -69,74 +74,42 @@ export default function ClientProjectsPage() {
     load()
   }, [load])
 
-  if (state === 'loading') {
-    return (
-      <div className={styles.center}>
-        <div className={styles.spinner} />
-      </div>
-    )
-  }
-
-  if (state === 'ambiguous') {
-    return (
-      <div className={styles.center}>
-        <div className={styles.centerBody}>
-          <p>Your sign-in is linked to more than one business record, so we have not shown your projects. Please contact us and we will sort it out.</p>
-          <Link href="/contact" className={styles.secondary}>
-            Contact Hbee Digitals
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  if (state === 'error') {
-    return (
-      <div className={styles.center}>
-        <div className={styles.centerBody}>
-          <p>We could not load your projects. Please try again in a moment.</p>
-          <button type="button" onClick={load} className={styles.secondary}>
-            Try Again
-          </button>
-        </div>
-      </div>
-    )
-  }
+  if (state === 'loading') return <SupportLoading />
+  if (state === 'ambiguous') return <SupportAmbiguous what="projects" />
+  if (state === 'error') return <SupportError message="We could not load your projects. Please try again in a moment." onRetry={load} />
 
   const shown = projects.filter((p) => matchesProjectFilter(p.status, filter))
 
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div>
-          <p className={styles.eyebrow}>
-            <span aria-hidden="true" className={styles.node} />
-            Projects
-          </p>
-          <h1 className={styles.h1}>
+      <PortalPageHeader
+        eyebrow="Projects"
+        title={
+          <>
             Your work with Hbee, <em>in progress.</em>
-          </h1>
-          <p className={styles.lead}>Every project, its current status and how far along it is.</p>
-        </div>
-        {/* Brand signature only: the connected module system. It says nothing about any project. */}
-        <div className={styles.heroModule} aria-hidden="true">
-          <HbeeModuleGroup motion="settle" showLabels={false} idPrefix="portal-projects" label="Hbee system" />
-        </div>
-        <div className={styles.heroActions}>
-          <Link href="/client-portal/project-request" className={styles.primary}>
+          </>
+        }
+        lead="Every project, its current status and how far along it is."
+        action={
+          <Link href="/client-portal/project-request" className={prim.primary}>
             <Plus aria-hidden="true" />
             Request new project
           </Link>
-        </div>
-      </header>
+        }
+      />
 
       {projects.length === 0 ? (
-        <div className={`${styles.panel} ${styles.center}`}>
-          <div className={styles.centerBody}>
-            <h2>No projects yet</h2>
-            <p>Start by requesting a new project. Our team will review it and get back to you.</p>
-          </div>
-        </div>
+        <section className={styles.panel}>
+          <EmptyState
+            title="No projects yet"
+            description="Start by requesting a new project. Our team will review it and get back to you."
+            action={
+              <Link href="/client-portal/project-request" className={prim.link}>
+                Request new project
+              </Link>
+            }
+          />
+        </section>
       ) : (
         <>
           <div className={styles.filters} role="group" aria-label="Filter projects">
@@ -156,51 +129,48 @@ export default function ClientProjectsPage() {
           {shown.length === 0 ? (
             <p className={styles.quiet}>No projects in this view.</p>
           ) : (
-            <ul className={styles.list}>
-              {shown.map((p) => {
-                const tone = statusTone(p.status)
-                const progress = parseProgress(p.progress)
-                const due = formatProjectDate(p.expectedCompletion)
-                return (
-                  <li key={p.id}>
-                    <Link href={`/client-portal/projects/${p.id}`} className={styles.row}>
-                      <div style={{ minWidth: 0 }}>
-                        <p className={styles.rowTitle}>{p.name}</p>
-                        {p.reference && <p className={styles.rowRef}>{p.reference}</p>}
-                        {p.description && <p className={styles.rowDesc}>{p.description}</p>}
-                      </div>
-                      <div className={styles.rowMeta}>
-                        {progress === null ? (
-                          <p className={styles.due}>Progress not set</p>
-                        ) : (
-                          <>
-                            <div className={styles.progressRow}>
-                              <span>Progress</span>
-                              <b>{progress}%</b>
-                            </div>
-                            <div className={styles.bar} aria-hidden="true">
-                              <span style={{ width: `${progress}%` }} />
-                            </div>
-                          </>
-                        )}
-                        {due && <p className={styles.due}>Expected completion {due}</p>}
-                      </div>
-                      <div className={styles.rowEnd}>
-                        <span
-                          className={`${styles.chip} ${tone === 'needs' ? styles.chipNeeds : tone === 'done' ? styles.chipDone : tone === 'muted' ? styles.chipMuted : ''}`}
-                        >
-                          {statusLabel(p.status)}
-                        </span>
-                        <span className={styles.link} aria-hidden="true">
-                          Open project
-                          <ArrowRight />
-                        </span>
-                      </div>
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
+            <section className={styles.section} aria-label="Projects">
+              <ul className={styles.rows}>
+                {shown.map((p) => {
+                  const progress = parseProgress(p.progress)
+                  const due = formatProjectDate(p.expectedCompletion)
+                  return (
+                    <li key={p.id}>
+                      <Link href={`/client-portal/projects/${p.id}`} className={`${styles.row} ${styles.rowFig}`}>
+                        <div className={styles.rowMain}>
+                          <p className={styles.rowTitle}>{p.name}</p>
+                          {p.reference && <p className={styles.rowMeta}>{p.reference}</p>}
+                          {p.description && <p className={`${styles.rowText} ${styles.rowClamp}`}>{p.description}</p>}
+                        </div>
+                        <div className={styles.progressCol}>
+                          {progress === null ? (
+                            <p className={styles.rowMeta}>Progress not set</p>
+                          ) : (
+                            <>
+                              <div className={styles.progressRow}>
+                                <span>Progress</span>
+                                <b>{progress}%</b>
+                              </div>
+                              <div className={styles.bar} aria-hidden="true">
+                                <span style={{ width: `${progress}%` }} />
+                              </div>
+                            </>
+                          )}
+                          {due && <p className={styles.rowMeta}>Expected completion {due}</p>}
+                        </div>
+                        <div className={styles.rowEnd}>
+                          <PortalStatus tone={toneFromProjectTone(statusTone(p.status))}>{statusLabel(p.status)}</PortalStatus>
+                          <span className={prim.link} aria-hidden="true">
+                            Open
+                            <ArrowRight />
+                          </span>
+                        </div>
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
           )}
         </>
       )}

@@ -27,7 +27,15 @@ import {
   statusLabel,
   statusTone,
 } from '@/lib/client-portal/projects-display'
-import styles from '../projects.module.css'
+import { cn } from '@/lib/cn'
+import { PortalEyebrow } from '@/components/client-portal/PortalPageHeader'
+import { PortalStatus } from '@/components/client-portal/PortalStatus'
+import { PortalSurface, portalSurfaceClass } from '@/components/client-portal/PortalSurface'
+import { SupportError, SupportLoading, SupportNotFound } from '@/components/client-portal/SupportState'
+import { toneForInvoice, toneForProposal, toneForRequest, toneFromProjectTone } from '@/lib/client-portal/portal-status'
+import prim from '@/components/client-portal/portal-primitives.module.css'
+import screens from '@/components/client-portal/portal-screens.module.css'
+import styles from './project-detail.module.css'
 
 /** Read-only Proposal & billing summary for this project (server allow-list). */
 interface Commerce {
@@ -147,230 +155,192 @@ export default function ClientProjectDetailPage() {
     }
   }
 
-  if (state === 'loading') {
-    return (
-      <div className={styles.center}>
-        <div className={styles.spinner} />
-      </div>
-    )
-  }
+  if (state === 'loading') return <SupportLoading />
 
   if (state === 'notfound' || (state === 'ready' && !project)) {
     return (
-      <div className={styles.center}>
-        <div className={styles.centerBody}>
-          <h2>Project not found</h2>
-          <p>The project you&apos;re looking for doesn&apos;t exist or you don&apos;t have access.</p>
-          <Link href="/client-portal/projects" className={styles.secondary}>
-            Back to projects
-          </Link>
-        </div>
-      </div>
+      <SupportNotFound
+        title="Project not found"
+        text="The project you're looking for doesn't exist or you don't have access."
+        links={[{ href: '/client-portal/projects', label: 'Back to projects' }]}
+      />
     )
   }
 
-  if (state === 'error' || !project) {
-    return (
-      <div className={styles.center}>
-        <div className={styles.centerBody}>
-          <p>We could not load this project. Please try again in a moment.</p>
-          <button type="button" onClick={load} className={styles.secondary}>
-            Try Again
-          </button>
-        </div>
-      </div>
-    )
-  }
+  if (state === 'error' || !project) return <SupportError message="We could not load this project. Please try again in a moment." onRetry={load} />
 
-  const tone = statusTone(project.status)
   const progress = parseProgress(project.progress)
   const explanation = statusExplanation(project.status)
   const needs = needsFromYou(project.status)
   const start = formatProjectDate(project.startDate)
   const due = formatProjectDate(project.expectedCompletion)
   const hasObjective = !!(project.description && project.description.trim())
-  const hasTiming = !!(start || due)
-  const chipClass = `${styles.chip} ${tone === 'needs' ? styles.chipNeeds : tone === 'done' ? styles.chipDone : tone === 'muted' ? styles.chipMuted : ''}`
+  const projectTone = toneFromProjectTone(statusTone(project.status))
 
   return (
-    <div className={styles.page}>
-      <Link href="/client-portal/projects" className={styles.back}>
+    <div className={screens.page}>
+      <Link href="/client-portal/projects" className={prim.link}>
         <ArrowLeft aria-hidden="true" />
         All projects
       </Link>
 
       {unavailable.length > 0 && (
-        <p className={styles.note} role="status">
+        <p className={screens.note} role="status">
           Some details of this project could not be loaded just now, so parts of this page may be incomplete.
         </p>
       )}
       {downloadError && (
-        <p role="alert" className={styles.err}>
+        <p role="alert" className={screens.err}>
           {downloadError}
         </p>
       )}
 
-      {/* Header: project, reference, real status, real progress */}
-      <header className={styles.panel}>
-        <div className={styles.headTop}>
-          <div style={{ minWidth: 0 }}>
-            <p className={styles.eyebrow}>
-              <span aria-hidden="true" className={styles.node} />
-              Project
-            </p>
-            <h1 className={styles.h1}>{project.name}</h1>
-            <p className={styles.meta}>{project.reference && <span>{project.reference}</span>}</p>
-          </div>
-          <span className={chipClass}>{statusLabel(project.status)}</span>
-        </div>
-        <div className={styles.bigProgress}>
-          {progress === null ? (
-            <p className={styles.quiet}>Progress not set</p>
-          ) : (
-            <>
-              <div className={styles.progressRow}>
-                <span>Progress</span>
-                <b>{progress}%</b>
-              </div>
-              <div className={styles.bar} aria-hidden="true">
-                <span style={{ width: `${progress}%` }} />
-              </div>
-            </>
-          )}
-        </div>
-      </header>
-
-      {/* Current status + what is needed from the client */}
-      <section className={`${styles.panel} ${styles.twoCol}`} aria-labelledby="proj-status">
-        <div className={styles.statusBlock}>
-          <p className={styles.eyebrow}>
-            <span aria-hidden="true" className={styles.node} />
-            Current status
-          </p>
-          <h2 id="proj-status" className={styles.h2} style={{ marginTop: 0 }}>
+      {/* The engagement: project, real status, real progress, what the project needs next, timing. The one Royal Blue module here. */}
+      <PortalSurface as="header" variant="blue" className={styles.engagement}>
+        <p className={cn(prim.eyebrow, prim.onBlue)}>
+          <span aria-hidden="true" className={prim.node} />
+          Project
+        </p>
+        <h1 className={styles.engName}>{project.name}</h1>
+        {project.reference && <p className={styles.engRef}>{project.reference}</p>}
+        <div className={styles.engStatus}>
+          <PortalStatus tone={projectTone} onBlue>
             {statusLabel(project.status)}
-          </h2>
-          {explanation && <p className={styles.statusLine}>{explanation}</p>}
+          </PortalStatus>
         </div>
-        <div>
-          <p className={styles.eyebrow}>
-            <span aria-hidden="true" className={styles.node} />
-            Needs from you
-          </p>
-          {needs ? (
-            <div className={styles.needs} style={{ marginTop: '0.75rem' }}>
-              <p className={styles.needsTitle}>{needs.title}</p>
-              <p className={styles.needsText}>{needs.text}</p>
-              <div className={styles.needsActions}>
-                {needs.actions.map((a) => (
-                  <Link key={a.href} href={a.href} className={styles.secondary}>
-                    {a.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <p className={styles.nothing} style={{ marginTop: '0.875rem' }}>
-              <span className={styles.tick} aria-hidden="true">
-                <Check strokeWidth={3} />
-              </span>
-              Nothing needed from you right now.
-            </p>
-          )}
-        </div>
-      </section>
 
-      {/* Objective + timing: only what the project actually has */}
-      {(hasObjective || hasTiming) && (
-        <div className={hasObjective && hasTiming ? styles.twoCol : undefined}>
-          {hasObjective && (
-            <section className={styles.panel} aria-labelledby="proj-objective">
-              <p className={styles.eyebrow}>
-                <span aria-hidden="true" className={styles.node} />
-                Project objective
-              </p>
-              <h2 id="proj-objective" className="sr-only">
-                Project objective
-              </h2>
-              <p className={styles.objective}>{project.description}</p>
-            </section>
-          )}
-          {hasTiming && (
-            <section className={styles.panel} aria-labelledby="proj-timing">
-              <p className={styles.eyebrow}>
-                <span aria-hidden="true" className={styles.node} />
-                Timing
-              </p>
-              <h2 id="proj-timing" className="sr-only">
-                Project timing
-              </h2>
-              <dl className={styles.dates}>
-                {start && (
-                  <div>
-                    <dt>Started</dt>
-                    <dd>{start}</dd>
-                  </div>
-                )}
-                {due && (
-                  <div>
-                    <dt>Expected completion</dt>
-                    <dd>{due}</dd>
-                  </div>
-                )}
-              </dl>
-            </section>
-          )}
-        </div>
+        {progress === null ? (
+          <p className={styles.engNote}>Progress not set</p>
+        ) : (
+          <div className={styles.engProgress}>
+            <div className={styles.engProgressRow}>
+              <span>Progress</span>
+              <b>{progress}%</b>
+            </div>
+            <div className={cn(prim.bar, prim.barOnBlue)} aria-hidden="true">
+              <span style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+        )}
+
+        {needs ? (
+          <div className={cn(styles.engNext, styles.engNeeds)}>
+            <span>Needs from you</span>
+            <b>{needs.title}</b>
+            <p>{needs.text}</p>
+          </div>
+        ) : explanation ? (
+          <p className={styles.engNext}>
+            <span>Current status</span>
+            {explanation}
+          </p>
+        ) : null}
+
+        {needs ? (
+          <div className={styles.engActions}>
+            {needs.actions.map((a, i) => (
+              <Link key={a.href} href={a.href} className={i === 0 ? prim.primary : prim.secondary}>
+                {a.label}
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className={styles.clear}>
+            <Check aria-hidden="true" strokeWidth={3} />
+            Nothing needed from you right now.
+          </p>
+        )}
+
+        {(start || due) && (
+          <dl className={styles.dates}>
+            {start && (
+              <div>
+                <dt>Started</dt>
+                <dd>{start}</dd>
+              </div>
+            )}
+            {due && (
+              <div>
+                <dt>Expected completion</dt>
+                <dd>{due}</dd>
+              </div>
+            )}
+          </dl>
+        )}
+      </PortalSurface>
+
+      {/* Objective: only what the project actually has */}
+      {hasObjective && (
+        <section className={screens.section} aria-labelledby="proj-objective">
+          <PortalEyebrow>Project objective</PortalEyebrow>
+          <h2 id="proj-objective" className="sr-only">
+            Project objective
+          </h2>
+          <p className={screens.prose}>{project.description}</p>
+        </section>
       )}
 
-      {/* Proposal & billing: the documents of THIS engagement, read-only; the full lists live on Proposals and Invoices */}
+      {/* Proposal & billing: the documents of THIS engagement (the server's project-linked summary), read-only */}
       {commerce && (commerce.proposal || commerce.invoice) && (
-        <section className={styles.panel} aria-labelledby="proj-billing">
-          <p className={styles.eyebrow}>
-            <span aria-hidden="true" className={styles.node} />
-            Proposal &amp; billing
-          </p>
+        <section className={screens.section} aria-labelledby="proj-billing">
+          <PortalEyebrow>Proposal &amp; billing</PortalEyebrow>
           <h2 id="proj-billing" className="sr-only">
             Proposal and billing
           </h2>
-          <ul className={styles.list}>
+          <ul className={styles.docs}>
             {commerce.proposal && (
-              <li className={styles.docRow}>
-                <div className={styles.docMain}>
+              <li>
+                <Link href={`/client-portal/proposals/${commerce.proposal.id}`} className={cn(portalSurfaceClass({ compact: true, interactive: true }), styles.docTile)}>
+                  <p className={styles.docKind}>Proposal</p>
                   <p className={styles.docTitle}>
-                    <Link href={`/client-portal/proposals/${commerce.proposal.id}`} className={styles.link}>
-                      {commerce.proposal.number ? `${commerce.proposal.number} · ` : ''}
-                      {commerce.proposal.title}
-                    </Link>
+                    {commerce.proposal.number ? `${commerce.proposal.number} · ` : ''}
+                    {commerce.proposal.title}
                   </p>
-                  <p className={styles.meta}>
+                  <p className={styles.docMeta}>
                     {commerce.proposal.total && commerce.proposal.currency && <span>{formatMoney(commerce.proposal.total, commerce.proposal.currency)}</span>}
                     {commerce.proposal.approvedVersion && <span>Version {commerce.proposal.approvedVersion} approved</span>}
                   </p>
-                </div>
-                <span className={styles.chip}>{commerce.proposal.statusLabel}</span>
+                  <div>
+                    <PortalStatus tone={toneForProposal(commerce.proposal.status)}>{commerce.proposal.statusLabel}</PortalStatus>
+                  </div>
+                  <span className={styles.docGo}>
+                    View proposal
+                    <ArrowRight aria-hidden="true" />
+                  </span>
+                </Link>
               </li>
             )}
             {commerce.invoice && (
-              <li className={styles.docRow}>
-                <div className={styles.docMain}>
-                  <p className={styles.docTitle}>
-                    <Link href={`/client-portal/invoices/${commerce.invoice.id}`} className={styles.link}>
-                      Invoice {commerce.invoice.number || ''}
-                    </Link>
-                  </p>
-                  <p className={styles.meta}>
-                    <span>Total {formatMoney(commerce.invoice.total, commerce.invoice.currency)}</span>
-                    {commerce.invoice.status !== 'paid' && <span>Balance {formatMoney(commerce.invoice.balance, commerce.invoice.currency)}</span>}
-                    {commerce.invoice.dueDate && commerce.invoice.status !== 'paid' && <span>Due {formatDay(commerce.invoice.dueDate)}</span>}
-                  </p>
-                </div>
-                <span className={styles.chip}>{commerce.invoice.statusLabel}</span>
+              <li>
+                <Link href={`/client-portal/invoices/${commerce.invoice.id}`} className={cn(portalSurfaceClass({ compact: true, interactive: true }), styles.docTile)}>
+                  <p className={styles.docKind}>Invoice</p>
+                  <p className={styles.docTitle}>Invoice {commerce.invoice.number || ''}</p>
+                  <dl className={screens.ledger}>
+                    <div>
+                      <dt>Total</dt>
+                      <dd>{formatMoney(commerce.invoice.total, commerce.invoice.currency)}</dd>
+                    </div>
+                    {commerce.invoice.status !== 'paid' && (
+                      <div className={screens.ledgerStrong}>
+                        <dt>Balance</dt>
+                        <dd>{formatMoney(commerce.invoice.balance, commerce.invoice.currency)}</dd>
+                      </div>
+                    )}
+                  </dl>
+                  {commerce.invoice.dueDate && commerce.invoice.status !== 'paid' && <p className={styles.docMeta}>Due {formatDay(commerce.invoice.dueDate)}</p>}
+                  <div>
+                    <PortalStatus tone={toneForInvoice(commerce.invoice.status)}>{commerce.invoice.statusLabel}</PortalStatus>
+                  </div>
+                  <span className={styles.docGo}>
+                    View invoice
+                    <ArrowRight aria-hidden="true" />
+                  </span>
+                </Link>
               </li>
             )}
           </ul>
           {commerce.otherInvoices > 0 && (
-            <Link href="/client-portal/invoices" className={styles.link}>
+            <Link href="/client-portal/invoices" className={prim.link}>
               {commerce.otherInvoices} more {commerce.otherInvoices === 1 ? 'invoice' : 'invoices'} · All invoices
               <ArrowRight aria-hidden="true" />
             </Link>
@@ -378,27 +348,30 @@ export default function ClientProjectDetailPage() {
         </section>
       )}
 
-      {/* Milestones: real rows only, quiet */}
+      {/* Milestones: real rows only, as the connection-line timeline */}
       {milestones.length > 0 && (
-        <section className={styles.panel} aria-labelledby="proj-milestones">
-          <p className={styles.eyebrow}>
-            <span aria-hidden="true" className={styles.node} />
-            Milestones
-          </p>
+        <section className={screens.section} aria-labelledby="proj-milestones">
+          <PortalEyebrow>Milestones</PortalEyebrow>
           <h2 id="proj-milestones" className="sr-only">
             Milestones
           </h2>
-          <ul className={styles.rows}>
+          <ul className={screens.feed}>
             {milestones.map((m) => {
               const date = formatProjectDate(m.dueDate)
               return (
-                <li key={m.id} className={styles.item}>
-                  <div className={styles.itemMain}>
-                    <p className={styles.itemTitle}>{m.title}</p>
-                    {m.description && <p className={styles.itemSub}>{m.description}</p>}
-                    {date && <p className={styles.itemSub}>Due {date}</p>}
+                <li key={m.id}>
+                  <div className={screens.feedItem}>
+                    <span className={screens.feedTitle}>{m.title}</span>
+                    {m.description && <span className={screens.feedText}>{m.description}</span>}
+                    {date && <span className={screens.feedMeta}>Due {date}</span>}
+                    {m.status && (
+                      <span className={screens.feedMeta}>
+                        <PortalStatus tone={toneFromProjectTone(statusTone(m.status))} size="sm">
+                          {statusLabel(m.status)}
+                        </PortalStatus>
+                      </span>
+                    )}
                   </div>
-                  {m.status && <span className={styles.inlineStatus}>{statusLabel(m.status)}</span>}
                 </li>
               )
             })}
@@ -408,15 +381,12 @@ export default function ClientProjectDetailPage() {
 
       {/* Files + deliverables belonging to this project */}
       {(files.length > 0 || deliverables.length > 0) && (
-        <div className={files.length > 0 && deliverables.length > 0 ? styles.grid2 : undefined}>
+        <div className={files.length > 0 && deliverables.length > 0 ? styles.two : undefined}>
           {files.length > 0 && (
-            <section className={styles.panel} aria-labelledby="proj-files">
-              <div className={styles.panelHead}>
-                <p className={styles.eyebrow}>
-                  <span aria-hidden="true" className={styles.node} />
-                  Recent files
-                </p>
-                <Link href="/client-portal/files" className={styles.link}>
+            <section className={screens.section} aria-labelledby="proj-files">
+              <div className={screens.sectionHead}>
+                <PortalEyebrow>Recent files</PortalEyebrow>
+                <Link href="/client-portal/files" className={prim.link}>
                   View all files
                   <ArrowRight aria-hidden="true" />
                 </Link>
@@ -424,25 +394,25 @@ export default function ClientProjectDetailPage() {
               <h2 id="proj-files" className="sr-only">
                 Recent files
               </h2>
-              <ul className={styles.rows}>
+              <ul className={cn(screens.rows, screens.rowsTight)}>
                 {files.map((f) => (
-                  <li key={f.id} className={styles.item}>
-                    <div className={styles.itemMain}>
-                      <p className={styles.itemTitle}>{f.name}</p>
-                      <p className={styles.itemSub}>
-                        {[fileTypeLabel(f.type, f.name), formatBytes(f.size), formatDate(f.uploadedAt)].filter(Boolean).join(' · ')}
-                      </p>
+                  <li key={f.id}>
+                    <div className={styles.fileRow}>
+                      <div className={styles.fileMain}>
+                        <p className={styles.fileName}>{f.name}</p>
+                        <p className={styles.fileSub}>{[fileTypeLabel(f.type, f.name), formatBytes(f.size), formatDate(f.uploadedAt)].filter(Boolean).join(' · ')}</p>
+                      </div>
+                      <button
+                        type="button"
+                        className={screens.dl}
+                        onClick={() => openSigned(f.id, `/api/client-portal/files/${f.id}/signed-url`)}
+                        disabled={downloadingId === f.id}
+                        aria-label={`Download ${f.name}`}
+                      >
+                        <Download aria-hidden="true" />
+                        {downloadingId === f.id ? 'Preparing…' : 'Download'}
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      className={styles.dl}
-                      onClick={() => openSigned(f.id, `/api/client-portal/files/${f.id}/signed-url`)}
-                      disabled={downloadingId === f.id}
-                      aria-label={`Download ${f.name}`}
-                    >
-                      <Download aria-hidden="true" />
-                      {downloadingId === f.id ? 'Preparing…' : 'Download'}
-                    </button>
                   </li>
                 ))}
               </ul>
@@ -450,36 +420,33 @@ export default function ClientProjectDetailPage() {
           )}
 
           {deliverables.length > 0 && (
-            <section className={styles.panel} aria-labelledby="proj-deliverables">
-              <p className={styles.eyebrow}>
-                <span aria-hidden="true" className={styles.node} />
-                Deliverables
-              </p>
+            <section className={screens.section} aria-labelledby="proj-deliverables">
+              <PortalEyebrow>Deliverables</PortalEyebrow>
               <h2 id="proj-deliverables" className="sr-only">
                 Deliverables
               </h2>
-              <ul className={styles.rows}>
+              <ul className={cn(screens.rows, screens.rowsTight)}>
                 {deliverables.map((d) => (
-                  <li key={d.id} className={styles.item}>
-                    <div className={styles.itemMain}>
-                      <p className={styles.itemTitle}>{d.title || 'Deliverable'}</p>
-                      {d.description && <p className={styles.itemSub}>{d.description}</p>}
-                      <p className={styles.itemSub}>
-                        {[d.version && `Version ${d.version}`, formatDate(d.uploadedAt)].filter(Boolean).join(' · ')}
-                      </p>
+                  <li key={d.id}>
+                    <div className={styles.fileRow}>
+                      <div className={styles.fileMain}>
+                        <p className={styles.fileName}>{d.title || 'Deliverable'}</p>
+                        {d.description && <p className={styles.fileSub}>{d.description}</p>}
+                        <p className={styles.fileSub}>{[d.version && `Version ${d.version}`, formatDate(d.uploadedAt)].filter(Boolean).join(' · ')}</p>
+                      </div>
+                      {d.hasFile && (
+                        <button
+                          type="button"
+                          className={screens.dl}
+                          onClick={() => openSigned(d.id, `/api/client-portal/deliverables/${d.id}/signed-url`)}
+                          disabled={downloadingId === d.id}
+                          aria-label={`Download ${d.title || 'deliverable'}`}
+                        >
+                          <Download aria-hidden="true" />
+                          {downloadingId === d.id ? 'Preparing…' : 'Download'}
+                        </button>
+                      )}
                     </div>
-                    {d.hasFile && (
-                      <button
-                        type="button"
-                        className={styles.dl}
-                        onClick={() => openSigned(d.id, `/api/client-portal/deliverables/${d.id}/signed-url`)}
-                        disabled={downloadingId === d.id}
-                        aria-label={`Download ${d.title || 'deliverable'}`}
-                      >
-                        <Download aria-hidden="true" />
-                        {downloadingId === d.id ? 'Preparing…' : 'Download'}
-                      </button>
-                    )}
                   </li>
                 ))}
               </ul>
@@ -490,13 +457,10 @@ export default function ClientProjectDetailPage() {
 
       {/* Requests made for this project — they are waiting on Hbee, not on the client */}
       {requests.length > 0 && (
-        <section className={styles.panel} aria-labelledby="proj-requests">
-          <div className={styles.panelHead}>
-            <p className={styles.eyebrow}>
-              <span aria-hidden="true" className={styles.node} />
-              Requests
-            </p>
-            <Link href="/client-portal/requests" className={styles.link}>
+        <section className={screens.section} aria-labelledby="proj-requests">
+          <div className={screens.sectionHead}>
+            <PortalEyebrow>Requests</PortalEyebrow>
+            <Link href="/client-portal/requests" className={prim.link}>
               All requests
               <ArrowRight aria-hidden="true" />
             </Link>
@@ -504,23 +468,31 @@ export default function ClientProjectDetailPage() {
           <h2 id="proj-requests" className="sr-only">
             Requests for this project
           </h2>
-          <ul className={styles.rows}>
+          <ul className={cn(screens.rows, screens.rowsTight)}>
             {requests.map((r) => (
-              <li key={r.id} className={styles.item}>
-                <div className={styles.itemMain}>
-                  <p className={styles.itemTitle}>{r.title}</p>
-                  {formatDate(r.createdAt) && <p className={styles.itemSub}>Sent {formatDate(r.createdAt)}</p>}
+              <li key={r.id}>
+                <div className={styles.fileRow}>
+                  <div className={styles.fileMain}>
+                    <p className={styles.fileName}>
+                      <Link href={`/client-portal/requests/${r.id}`}>{r.title}</Link>
+                    </p>
+                    {formatDate(r.createdAt) && <p className={styles.fileSub}>Sent {formatDate(r.createdAt)}</p>}
+                  </div>
+                  {r.status && (
+                    <PortalStatus tone={toneForRequest(r.status)} size="sm">
+                      {statusLabel(r.status)}
+                    </PortalStatus>
+                  )}
                 </div>
-                {r.status && <span className={styles.inlineStatus}>{statusLabel(r.status)}</span>}
               </li>
             ))}
           </ul>
         </section>
       )}
 
-      <p className={styles.quiet}>
+      <p className={styles.foot}>
         Have a question about this project?{' '}
-        <Link href="/client-portal/project-request" className={styles.link} style={{ display: 'inline-flex' }}>
+        <Link href="/client-portal/project-request" className={prim.link}>
           Submit a request
           <ArrowRight aria-hidden="true" />
         </Link>

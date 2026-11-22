@@ -8,11 +8,15 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Download } from 'lucide-react'
-import { SupportAmbiguous, SupportError, SupportLoading } from '@/components/client-portal/SupportState'
+import { Download } from 'lucide-react'
+import { PortalPageHeader } from '@/components/client-portal/PortalPageHeader'
+import { PortalStatus } from '@/components/client-portal/PortalStatus'
+import { SupportAmbiguous, SupportError, SupportLoading, SupportNotFound } from '@/components/client-portal/SupportState'
+import { toneForInvoice } from '@/lib/client-portal/portal-status'
 import { formatDay } from '@/lib/client-portal/support-display'
 import { formatMoney } from '@/lib/commerce/money'
-import support from '@/components/client-portal/support.module.css'
+import prim from '@/components/client-portal/portal-primitives.module.css'
+import support from '@/components/client-portal/portal-screens.module.css'
 import styles from '@/components/client-portal/commerce.module.css'
 
 interface Inv {
@@ -46,38 +50,37 @@ export default function ClientInvoiceDetailPage({ params }: { params: { id: stri
   if (state === 'error') return <SupportError message="We could not load this invoice. Please try again in a moment." onRetry={load} />
   if (state === 'unavailable') {
     return (
-      <div className={support.page}>
-        <section className={`${support.panel} ${support.center}`}>
-          <div className={support.centerBody}>
-            <h2>This invoice is no longer available</h2>
-            <p>It has been withdrawn by Hbee Digitals. If you have a question about it, please contact us.</p>
-            <Link href="/client-portal/invoices" className={support.link}>Back to invoices</Link>
-            <Link href="/contact" className={support.link}>Contact Hbee Digitals</Link>
-          </div>
-        </section>
-      </div>
+      <SupportNotFound
+        title="This invoice is no longer available"
+        text="It has been withdrawn by Hbee Digitals. If you have a question about it, please contact us."
+        links={[{ href: '/client-portal/invoices', label: 'Back to invoices' }, { href: '/contact', label: 'Contact Hbee Digitals' }]}
+      />
     )
   }
   if (state === 'missing' || !inv) {
-    return <div className={support.page}><section className={`${support.panel} ${support.center}`}><div className={support.centerBody}><h2>Invoice not found</h2><Link href="/client-portal/invoices" className={support.link}>Back to invoices</Link></div></section></div>
+    return <SupportNotFound title="Invoice not found" links={[{ href: '/client-portal/invoices', label: 'Back to invoices' }]} />
   }
   const open = inv.status === 'issued' || inv.status === 'partially_paid'
 
   return (
     <div className={support.page}>
-      <header className={support.head}>
-        <div>
-          <Link href="/client-portal/invoices" className={support.link}><ArrowLeft aria-hidden="true" /> All invoices</Link>
-          <h1 className={support.h1}>{inv.number}</h1>
-          <div className={styles.meta}>
-            <span className={support.chip}>{inv.statusLabel}</span>
+      <PortalPageHeader
+        back={{ href: '/client-portal/invoices', label: 'All invoices' }}
+        title={inv.number}
+        meta={
+          <>
+            <PortalStatus tone={toneForInvoice(inv.displayStatus)}>{inv.statusLabel}</PortalStatus>
             <span>{inv.project.name}</span>
             {inv.issueDate && <span>Issued {formatDay(inv.issueDate)}</span>}
             {inv.dueDate && <span>Due {formatDay(inv.dueDate)}</span>}
-          </div>
-        </div>
-        <a className={support.secondary} href={`/api/client-portal/invoices/${inv.id}/pdf`} target="_blank" rel="noopener noreferrer"><Download aria-hidden="true" /> Download PDF</a>
-      </header>
+          </>
+        }
+        action={
+          <a className={prim.secondary} href={`/api/client-portal/invoices/${inv.id}/pdf`} target="_blank" rel="noopener noreferrer">
+            <Download aria-hidden="true" /> Download PDF
+          </a>
+        }
+      />
 
       <section className={`${support.panel} ${styles.doc}`}>
         <div className={styles.section}>
@@ -113,15 +116,16 @@ export default function ClientInvoiceDetailPage({ params }: { params: { id: stri
           </div>
         )}
 
-        {open && (
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>How to pay</h2>
-            {inv.paymentInstructions ? <p className={styles.prose}>{inv.paymentInstructions}</p> : <p className={styles.prose}>Payment instructions have not been added to this invoice yet. Please contact Hbee Digitals and quote {inv.number}.</p>}
-            {inv.paymentLink && <p><a className={support.link} href={inv.paymentLink} target="_blank" rel="noopener noreferrer">Open the payment link</a></p>}
-          </div>
-        )}
         {inv.notes && <div className={styles.section}><h2 className={styles.sectionTitle}>Notes</h2><p className={styles.prose}>{inv.notes}</p></div>}
       </section>
+
+      {open && (
+        <section className={styles.actions} aria-labelledby="inv-pay">
+          <h2 id="inv-pay" className={styles.sectionTitle}>How to pay</h2>
+          {inv.paymentInstructions ? <p className={styles.prose}>{inv.paymentInstructions}</p> : <p className={styles.prose}>Payment instructions have not been added to this invoice yet. Please contact Hbee Digitals and quote {inv.number}.</p>}
+          {inv.paymentLink && <p><a className={prim.link} href={inv.paymentLink} target="_blank" rel="noopener noreferrer">Open the payment link</a></p>}
+        </section>
+      )}
     </div>
   )
 }

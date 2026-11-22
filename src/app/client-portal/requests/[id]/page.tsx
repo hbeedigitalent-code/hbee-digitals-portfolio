@@ -10,10 +10,14 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import RequestThread, { type ThreadMessage } from '@/components/requests/RequestThread'
-import { SupportError, SupportLoading } from '@/components/client-portal/SupportState'
+import { PortalPageHeader, PortalEyebrow } from '@/components/client-portal/PortalPageHeader'
+import { PortalStatus } from '@/components/client-portal/PortalStatus'
+import { SupportError, SupportLoading, SupportNotFound } from '@/components/client-portal/SupportState'
+import { toneForRequest } from '@/lib/client-portal/portal-status'
 import { REQUEST_STATUS_LABELS, type RequestStatus } from '@/lib/requests/request-status'
 import { formatDay } from '@/lib/client-portal/support-display'
-import styles from '@/components/client-portal/support.module.css'
+import prim from '@/components/client-portal/portal-primitives.module.css'
+import styles from '@/components/client-portal/portal-screens.module.css'
 
 interface Detail {
   request: {
@@ -90,18 +94,7 @@ export default function ClientRequestDetailPage({ params }: { params: { id: stri
   if (state === 'loading') return <SupportLoading />
   if (state === 'error') return <SupportError message="We could not load this request. Please try again in a moment." onRetry={load} />
   if (state === 'missing' || !data) {
-    return (
-      <div className={styles.page}>
-        <section className={`${styles.panel} ${styles.center}`}>
-          <div className={styles.centerBody}>
-            <h2>Request not found</h2>
-            <Link href="/client-portal/requests" className={styles.link}>
-              Back to requests
-            </Link>
-          </div>
-        </section>
-      </div>
-    )
+    return <SupportNotFound title="Request not found" links={[{ href: '/client-portal/requests', label: 'Back to requests' }]} />
   }
 
   const { request, messages, activity } = data
@@ -109,36 +102,40 @@ export default function ClientRequestDetailPage({ params }: { params: { id: stri
 
   return (
     <div className={styles.page}>
-      <header className={styles.head}>
-        <div>
-          <Link href="/client-portal/requests" className={styles.link}>
-            <ArrowLeft aria-hidden="true" /> All requests
-          </Link>
-          <h1 className={styles.h1}>{request.title}</h1>
-          <div className={styles.itemMeta}>
-            <span className={styles.chip}>{REQUEST_STATUS_LABELS[request.status]}</span>
+      <PortalPageHeader
+        back={{ href: '/client-portal/requests', label: 'All requests' }}
+        title={request.title}
+        meta={
+          <>
+            <PortalStatus tone={toneForRequest(request.status)}>{REQUEST_STATUS_LABELS[request.status]}</PortalStatus>
             {request.createdAt && <span>Submitted {formatDay(request.createdAt)}</span>}
-            {request.project && <Link href={`/client-portal/projects/${request.project.id}`} className={styles.link}>Project: {request.project.name}</Link>}
-          </div>
-          <p className={styles.lead}>{request.statusHint}</p>
-        </div>
-        {request.canClose && (
-          <button type="button" onClick={markResolved} className={styles.secondary}>
-            Mark as resolved
-          </button>
-        )}
-      </header>
+            {request.project && (
+              <Link href={`/client-portal/projects/${request.project.id}`} className={prim.link}>
+                Project: {request.project.name}
+              </Link>
+            )}
+          </>
+        }
+        lead={request.statusHint}
+        action={
+          request.canClose ? (
+            <button type="button" onClick={markResolved} className={prim.secondary}>
+              Mark as resolved
+            </button>
+          ) : undefined
+        }
+      />
 
       {notice && <p className={styles.err}>{notice}</p>}
 
       {request.description && (
-        <section className={styles.panel} aria-label="Your original request">
-          <p className={styles.eyebrow}>Your request</p>
-          <p className={styles.itemText}>{request.description}</p>
+        <section className={styles.section} aria-label="Your original request">
+          <PortalEyebrow>Your request</PortalEyebrow>
+          <p className={styles.prose}>{request.description}</p>
         </section>
       )}
 
-      <section className={styles.panel}>
+      <section className={styles.section} aria-label="Conversation with Hbee">
         <RequestThread
           viewer="client"
           messages={thread}
@@ -149,14 +146,14 @@ export default function ClientRequestDetailPage({ params }: { params: { id: stri
       </section>
 
       {activity.length > 0 && (
-        <section className={styles.panel} aria-label="Request history">
-          <p className={styles.eyebrow}>History</p>
-          <ul className={styles.list}>
+        <section className={styles.section} aria-label="Request history">
+          <PortalEyebrow>History</PortalEyebrow>
+          <ul className={styles.feed}>
             {activity.map((a) => (
-              <li key={a.id} className={styles.item}>
-                <p className={styles.itemText}>{a.summary}</p>
-                <div className={styles.itemMeta}>
-                  <span>{formatDay(a.createdAt)}</span>
+              <li key={a.id}>
+                <div className={styles.feedItem}>
+                  <span className={styles.feedTitle}>{a.summary}</span>
+                  <span className={styles.feedMeta}>{formatDay(a.createdAt)}</span>
                 </div>
               </li>
             ))}

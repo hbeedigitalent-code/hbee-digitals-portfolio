@@ -10,10 +10,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Download } from 'lucide-react'
+import EmptyState from '@/components/client-portal/EmptyState'
+import { PortalPageHeader } from '@/components/client-portal/PortalPageHeader'
+import { PortalStatus } from '@/components/client-portal/PortalStatus'
 import { SupportAmbiguous, SupportError, SupportLoading } from '@/components/client-portal/SupportState'
+import { toneForInvoice } from '@/lib/client-portal/portal-status'
 import { formatDay } from '@/lib/client-portal/support-display'
 import { formatMoney } from '@/lib/commerce/money'
-import styles from '@/components/client-portal/support.module.css'
+import prim from '@/components/client-portal/portal-primitives.module.css'
+import styles from '@/components/client-portal/portal-screens.module.css'
 
 interface Invoice { id: string; number: string | null; amount: string; currency: string | null; status: string; statusLabel: string; paid: string; balance: string; issueDate: string | null; dueDate: string | null; projectName: string | null }
 type LoadState = 'loading' | 'ready' | 'ambiguous' | 'error'
@@ -40,41 +45,54 @@ export default function ClientInvoicesPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.head}>
-        <div>
-          <p className={styles.eyebrow}><span aria-hidden="true" className={styles.node} />Invoices</p>
-          <h1 className={styles.h1}>What you have been invoiced</h1>
-          <p className={styles.lead}>Each invoice Hbee has issued, what has been paid and what is still due.</p>
-        </div>
-      </header>
+      <PortalPageHeader
+        eyebrow="Invoices"
+        title="What you have been invoiced"
+        lead="Each invoice Hbee has issued, what has been paid and what is still due."
+      />
 
       {invoices.length === 0 ? (
-        <section className={`${styles.panel} ${styles.center}`}>
-          <div className={styles.centerBody}><h2>No invoices yet</h2><p>When Hbee issues an invoice for your work it will appear here.</p></div>
+        <section className={styles.panel}>
+          <EmptyState title="No invoices yet" description="When Hbee issues an invoice for your work it will appear here." />
         </section>
       ) : (
-        <section className={styles.panel} aria-label="Your invoices">
-          <ul className={styles.list}>
+        <section className={styles.section} aria-label="Your invoices">
+          <ul className={styles.rows}>
             {invoices.map((i) => {
               const currency = i.currency || 'USD'
               return (
-                <li key={i.id} className={styles.item}>
-                  <div style={{ minWidth: 0 }}>
-                    <p className={styles.itemTitle}><Link href={`/client-portal/invoices/${i.id}`} className={styles.link}>{i.number || 'Invoice'}</Link></p>
-                    <div className={styles.itemMeta}>
-                      {i.projectName && <span>{i.projectName}</span>}
-                      {i.issueDate && <span>Issued {formatDay(i.issueDate)}</span>}
-                      {i.dueDate && <span>Due {formatDay(i.dueDate)}</span>}
+                <li key={i.id}>
+                  <div className={`${styles.row} ${styles.rowFig}`}>
+                    <div className={styles.rowMain}>
+                      <p className={styles.rowTitle}>
+                        <Link href={`/client-portal/invoices/${i.id}`}>{i.number || 'Invoice'}</Link>
+                      </p>
+                      <div className={styles.rowMeta}>
+                        {i.projectName && <span>{i.projectName}</span>}
+                        {i.issueDate && <span>Issued {formatDay(i.issueDate)}</span>}
+                        {i.dueDate && <span>Due {formatDay(i.dueDate)}</span>}
+                      </div>
                     </div>
-                    <div className={styles.itemMeta}>
-                      <span>Total {formatMoney(i.amount, currency)}</span>
-                      <span>Paid {formatMoney(i.paid, currency)}</span>
-                      <span>Balance {formatMoney(i.balance, currency)}</span>
+                    <dl className={styles.ledger}>
+                      <div>
+                        <dt>Total</dt>
+                        <dd>{formatMoney(i.amount, currency)}</dd>
+                      </div>
+                      <div>
+                        <dt>Paid</dt>
+                        <dd>{formatMoney(i.paid, currency)}</dd>
+                      </div>
+                      <div className={styles.ledgerStrong}>
+                        <dt>Balance</dt>
+                        <dd>{formatMoney(i.balance, currency)}</dd>
+                      </div>
+                    </dl>
+                    <div className={styles.rowEnd}>
+                      <PortalStatus tone={toneForInvoice(i.status)}>{i.statusLabel}</PortalStatus>
+                      <a className={prim.link} href={`/api/client-portal/invoices/${i.id}/pdf`} target="_blank" rel="noopener noreferrer">
+                        <Download aria-hidden="true" /> PDF
+                      </a>
                     </div>
-                  </div>
-                  <div className={styles.endCol}>
-                    <span className={styles.chip}>{i.statusLabel}</span>
-                    <a className={styles.link} href={`/api/client-portal/invoices/${i.id}/pdf`} target="_blank" rel="noopener noreferrer"><Download aria-hidden="true" /> PDF</a>
                   </div>
                 </li>
               )

@@ -22,9 +22,13 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import EmptyState from '@/components/client-portal/EmptyState'
+import { PortalPageHeader } from '@/components/client-portal/PortalPageHeader'
+import { PortalStatus } from '@/components/client-portal/PortalStatus'
 import { SupportError, SupportLoading } from '@/components/client-portal/SupportState'
 import { formatDateTime, safeNotificationLink } from '@/lib/client-portal/support-display'
-import styles from '@/components/client-portal/support.module.css'
+import prim from '@/components/client-portal/portal-primitives.module.css'
+import styles from '@/components/client-portal/portal-screens.module.css'
 
 interface ClientNotification {
   id: string
@@ -157,21 +161,18 @@ export default function ClientNotificationsPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.head}>
-        <div>
-          <p className={styles.eyebrow}>
-            <span aria-hidden="true" className={styles.node} />
-            Notifications
-          </p>
-          <h1 className={styles.h1}>Updates from Hbee</h1>
-          <p className={styles.lead}>{unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}</p>
-        </div>
-        {unreadCount > 0 && (
-          <button type="button" onClick={handleMarkAll} className={`${styles.secondary} ${styles.markAll}`}>
-            Mark all as read
-          </button>
-        )}
-      </header>
+      <PortalPageHeader
+        eyebrow="Notifications"
+        title="Updates from Hbee"
+        lead={unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
+        action={
+          unreadCount > 0 ? (
+            <button type="button" onClick={handleMarkAll} className={prim.secondary}>
+              Mark all as read
+            </button>
+          ) : undefined
+        }
+      />
 
       {error && (
         <p role="alert" className={styles.err}>
@@ -180,15 +181,12 @@ export default function ClientNotificationsPage() {
       )}
 
       {notifications.length === 0 ? (
-        <section className={`${styles.panel} ${styles.center}`}>
-          <div className={styles.centerBody}>
-            <h2>No notifications yet</h2>
-            <p>Updates about your projects, files and invoices will appear here.</p>
-          </div>
+        <section className={styles.panel}>
+          <EmptyState title="No notifications yet" description="Updates about your projects, files and invoices will appear here." />
         </section>
       ) : (
-        <section className={styles.panel} aria-label="Notifications">
-          <ul className={styles.list}>
+        <section className={styles.section} aria-label="Notifications">
+          <ul className={styles.feed}>
             {notifications.map((notification) => {
               const isUnread = !notification.read_at
               const destination = safeNotificationLink(notification.link)
@@ -201,25 +199,23 @@ export default function ClientNotificationsPage() {
                     type="button"
                     disabled={!actionable || pendingId === notification.id}
                     onClick={() => handleSelect(notification)}
-                    className={`${styles.notif} ${isUnread ? styles.unread : ''}`}
+                    className={`${styles.feedItem} ${isUnread ? styles.feedUnread : ''}`}
                   >
-                    <span aria-hidden="true" className={styles.dot} />
-                    <span style={{ minWidth: 0, flex: 1 }}>
-                      <span className={styles.itemTitle} style={{ display: 'block' }}>
-                        {notification.title}
-                        <span className="sr-only">{isUnread ? ' (unread)' : ' (read)'}</span>
-                      </span>
-                      {notification.message && (
-                        <span className={styles.itemText} style={{ display: 'block' }}>
-                          {notification.message}
-                        </span>
-                      )}
-                      {when && (
-                        <span className={styles.itemMeta} style={{ display: 'flex' }}>
-                          {when}
-                        </span>
-                      )}
+                    <span className={styles.feedTitle}>
+                      {notification.title}
+                      <span className="sr-only">{isUnread ? ' (unread)' : ' (read)'}</span>
                     </span>
+                    {notification.message && <span className={styles.feedText}>{notification.message}</span>}
+                    {(when || isUnread) && (
+                      <span className={styles.feedMeta}>
+                        {isUnread && (
+                          <PortalStatus tone="needs-you" size="sm">
+                            New
+                          </PortalStatus>
+                        )}{' '}
+                        {when}
+                      </span>
+                    )}
                   </button>
                 </li>
               )
