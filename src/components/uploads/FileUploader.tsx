@@ -143,7 +143,7 @@ export default function FileUploader({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={disabled || busy}
-          className={`inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--text-on-inverse)] transition hover:opacity-90 disabled:opacity-50 ${FOCUS_RING}`}
+          className={`inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--text-on-inverse)] transition hover:opacity-90 disabled:opacity-50 ${FOCUS_RING}`}
         >
           <SvgIcon name="upload" size={14} color="white" />
           {busy ? 'Uploading…' : label}
@@ -153,7 +153,7 @@ export default function FileUploader({
           <button
             type="button"
             onClick={() => cancelRef.current?.()}
-            className={`rounded-full border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--bg-card-hover)] ${FOCUS_RING}`}
+            className={`min-h-[44px] rounded-full border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--bg-card-hover)] ${FOCUS_RING}`}
           >
             Cancel
           </button>
@@ -166,7 +166,7 @@ export default function FileUploader({
               setItems([])
               setError(null)
             }}
-            className={`rounded-full px-3 py-2 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text-primary)] ${FOCUS_RING}`}
+            className={`min-h-[44px] rounded-full px-3 py-2 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text-primary)] ${FOCUS_RING}`}
           >
             Clear
           </button>
