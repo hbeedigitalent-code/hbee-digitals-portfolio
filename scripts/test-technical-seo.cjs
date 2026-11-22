@@ -138,14 +138,22 @@ async function main() {
   assert.equal(robots.sitemap, 'https://hbeedigitals.com/sitemap.xml')
   assert.equal(robots.host, 'https://hbeedigitals.com')
 
+  const blogUtilsMock = { SITE_URL: 'https://hbeedigitals.com', DEFAULT_OG_IMAGE: '/og/hbee-og-default.jpg' }
+  const socialImageModule = loadTypeScript('src/lib/site/social-image.ts', { '@/lib/blog-utils': blogUtilsMock })
   const { pageMetadata } = loadTypeScript('src/lib/site/seo.ts', {
-    '@/lib/blog-utils': { SITE_URL: 'https://hbeedigitals.com', DEFAULT_OG_IMAGE: '/svgs/og-image.jpg' },
+    '@/lib/blog-utils': blogUtilsMock,
+    '@/lib/site/social-image': socialImageModule,
   })
   const metadata = pageMetadata({ title: 'Work', description: 'Real work.', path: '/work' })
   assert.equal(metadata.alternates.canonical, 'https://hbeedigitals.com/work')
   assert.equal(metadata.openGraph.url, 'https://hbeedigitals.com/work')
-  assert.equal(metadata.openGraph.images[0].url, 'https://hbeedigitals.com/svgs/og-image.jpg')
+  // The default social image is a real 1200x630 JPEG, and the metadata declares exactly that.
+  assert.equal(metadata.openGraph.images[0].url, 'https://hbeedigitals.com/og/hbee-og-default.jpg')
+  assert.equal(metadata.openGraph.images[0].width, 1200)
+  assert.equal(metadata.openGraph.images[0].height, 630)
+  assert.equal(metadata.openGraph.images[0].type, 'image/jpeg')
   assert.equal(metadata.twitter.card, 'summary_large_image')
+  assert.equal(metadata.twitter.images[0].url, 'https://hbeedigitals.com/og/hbee-og-default.jpg')
   assert.ok(!metadata.alternates.canonical.includes('?'))
 
   const nextConfig = require(path.join(root, 'next.config.js'))
@@ -195,13 +203,18 @@ async function main() {
   assert.match(read('src/lib/site/insights-data.ts'), /\.eq\('status', 'published'\)/)
   assert.match(read('src/lib/site/insights-data.ts'), /'@type': 'BlogPosting'/)
 
-  for (const asset of ['public/svgs/og-image.jpg', 'public/svgs/twitter-image.jpg', 'public/favicon.ico', 'public/apple-touch-icon.png', 'public/site.webmanifest']) {
+  for (const asset of ['public/og/hbee-og-default.jpg', 'public/favicon.ico', 'public/apple-touch-icon.png', 'public/site.webmanifest']) {
     assert.ok(fs.existsSync(path.join(root, asset)), `${asset} exists`)
   }
-  for (const asset of ['public/svgs/og-image.jpg', 'public/svgs/twitter-image.jpg']) {
+  // The social card is EXACTLY the size the metadata declares (1200x630) and light enough for link-preview crawlers. The previous check
+  // only required "at least 1200x630 at about 1.91:1", which let a 3264x1713 / 1.4 MB file through while the metadata claimed 1200x630.
+  {
+    const asset = 'public/og/hbee-og-default.jpg'
     const image = await sharp(path.join(root, asset)).metadata()
-    assert.ok(image.width >= 1200 && image.height >= 630, `${asset} has social-card resolution`)
-    assert.ok(Math.abs(image.width / image.height - 1200 / 630) < 0.01, `${asset} has 1.91:1 social-card aspect ratio`)
+    assert.equal(image.format, 'jpeg', `${asset} is a real JPEG`)
+    assert.equal(image.width, 1200, `${asset} is exactly 1200px wide`)
+    assert.equal(image.height, 630, `${asset} is exactly 630px tall`)
+    assert.ok(fs.statSync(path.join(root, asset)).size < 300 * 1024, `${asset} is under 300 KB`)
   }
 
     // Flag on: a Case Study is listed once, at its canonical page, plus the library route.

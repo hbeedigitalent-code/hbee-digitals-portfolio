@@ -250,7 +250,12 @@ const TITLE = 'Why stores lose sales — and "fix" #1 & what\'s next?'
   })
 
   await test('S14 scope: only the share component, its logic, its styles, the one article template and this test changed; no CMS, sanitizer, schema, portal, admin or BFCM file', () => {
-    const changed = execSync('git status --porcelain --untracked-files=all', { cwd: root }).toString().split('\n').filter(Boolean).map((l) => l.slice(3).replace(/^"|"$/g, '')).filter((f) => !f.startsWith('campaign-assets/'))
+    // The share feature's OWN change set: its commit when it exists (later, unrelated work on the branch must not affect this guarantee),
+    // otherwise the working tree.
+    const sha = execSync('git log -n 1 --format=%H --grep="^Insights: add article share actions$"', { cwd: root }).toString().trim()
+    const changed = sha
+      ? execSync('git show --name-only --format= ' + sha, { cwd: root }).toString().split('\n').filter(Boolean)
+      : execSync('git status --porcelain --untracked-files=all', { cwd: root }).toString().split('\n').filter(Boolean).map((l) => l.slice(3).replace(/^"|"$/g, '')).filter((f) => !f.startsWith('campaign-assets/'))
     const allowed = new Set(['src/components/site/insights/ArticleShareActions.tsx', 'src/lib/site/share-links.ts', 'src/components/site/insights/insights.module.css', 'src/components/site/insights/InsightDetail.tsx', 'scripts/test-insight-share.cjs'])
     assert.deepEqual(changed.filter((f) => !allowed.has(f)), [], 'unexpected files changed')
     for (const forbidden of ['src/lib/blog-utils.ts', 'src/lib/site/insights-data.ts', 'src/components/site/insights/InsightArticleBody.tsx', 'package.json', 'package-lock.json']) assert.ok(!changed.includes(forbidden), forbidden + ' untouched')

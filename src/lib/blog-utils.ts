@@ -186,10 +186,11 @@ export function slugify(text: string): string {
 export const SITE_URL = 'https://hbeedigitals.com'
 
 /**
- * Default social-preview image used when a post has no `og_image` / `featured_image`.
- * Real asset: /public/svgs/og-image.jpg (3264×1713, 1.91:1 — correct OG ratio).
+ * The Hbee default social-preview image: a real 1200×630 JPEG (public/og/hbee-og-default.jpg, built by scripts/build-og-default.cjs).
+ * It replaces /svgs/og-image.jpg, a 3264×1713 / 1.4 MB file in the retired visual identity that was declared as 1200×630. Do not point this
+ * back at a file whose true size differs from the size declared in the metadata (see src/lib/site/social-image.ts).
  */
-export const DEFAULT_OG_IMAGE = '/svgs/og-image.jpg'
+export const DEFAULT_OG_IMAGE = '/og/hbee-og-default.jpg'
 
 /**
  * Absolute URL helper for OG images. Uses the one apex `SITE_URL`; never falls

@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google'
 
 import Providers from './providers'
 import { ThemeProvider } from '@/context/ThemeContext'
+import { defaultSocialImage } from '@/lib/site/social-image'
 
 // Optimize font loading
 const inter = Inter({
@@ -55,13 +56,14 @@ export const metadata: Metadata = {
     title: siteTitle,
     description: siteDescription,
     siteName,
-    images: [{ url: `${siteUrl}/svgs/og-image.jpg`, width: 1200, height: 630, alt: 'Hbee Digitals — Digital Growth Studio' }],
+    // The Hbee default: a real 1200×630 JPEG whose declared size is its true size (social-image.ts).
+    images: [{ ...defaultSocialImage() }],
   },
   twitter: {
     card: 'summary_large_image',
     title: siteTitle,
     description: siteDescription,
-    images: [`${siteUrl}/svgs/twitter-image.jpg`],
+    images: [{ url: defaultSocialImage().url, alt: defaultSocialImage().alt }],
   },
   robots: {
     index: true,

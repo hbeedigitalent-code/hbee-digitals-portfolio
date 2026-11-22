@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import { CaseStudyPage } from '@/components/site/work/CaseStudySections'
 import { portfolioCreativeEnabled } from '@/lib/portfolio-creative'
 import { pageMetadata } from '@/lib/site/seo'
+import { generatedSocialImage } from '@/lib/site/social-image'
 import { pageJsonLd } from '@/lib/site/page-schema'
 import { getRelatedWork, getWorkDetail, getWorkSeo } from '@/lib/site/work-data'
 
@@ -21,8 +22,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     title: seo.title,
     description: seo.description,
     path: `/case-studies/${params.slug}`,
-    ogImage: seo.image,
-    ogImageAlt: seo.imageAlt,
+    // A generated 1200×630 card (project name + Hbee identity), not the raw hero image, whatever its ratio or weight.
+    socialImage: generatedSocialImage('work', params.slug, `${seo.title} — a Hbee Digitals case study`, [seo.title]),
   })
 }
 

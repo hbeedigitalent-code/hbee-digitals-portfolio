@@ -165,6 +165,11 @@ const nextConfig = {
   experimental: {
     optimizeCss: true, // Requires critters package
     scrollRestoration: true,
+    // The generated social-preview cards (src/app/og/[kind]/[slug]/route.tsx) read their fonts and brand images from src/assets/og at
+    // request time; make sure the serverless function ships them.
+    outputFileTracingIncludes: {
+      '/og/[kind]/[slug]': ['./src/assets/og/**/*'],
+    },
   },
   
   // Increase static page generation timeout

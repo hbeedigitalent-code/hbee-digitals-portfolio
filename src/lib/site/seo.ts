@@ -12,7 +12,8 @@
 
 import type { Metadata } from 'next'
 
-import { DEFAULT_OG_IMAGE, SITE_URL } from '@/lib/blog-utils'
+import { SITE_URL } from '@/lib/blog-utils'
+import { defaultSocialImage, type SocialImage } from '@/lib/site/social-image'
 
 interface PageMetadataInput {
   title?: string
@@ -20,16 +21,19 @@ interface PageMetadataInput {
   description: string
   /** Site-relative path, e.g. "/services". */
   path: string
-  ogImage?: string
-  ogImageAlt?: string
+  /**
+   * A deliberate social image for this page (e.g. a generated article card). Its declared size must be its true size: build it with
+   * generatedSocialImage() / defaultSocialImage() from social-image.ts. Omit to inherit the Hbee default.
+   */
+  socialImage?: SocialImage
 }
 
 const SITE_NAME = 'Hbee Digitals'
 
-export function pageMetadata({ title, absoluteTitle, description, path, ogImage, ogImageAlt }: PageMetadataInput): Metadata {
+export function pageMetadata({ title, absoluteTitle, description, path, socialImage }: PageMetadataInput): Metadata {
   const url = `${SITE_URL}${path === '/' ? '' : path}`
   const socialTitle = absoluteTitle ?? (title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} — Digital Growth Studio`)
-  const image = ogImage ?? `${SITE_URL}${DEFAULT_OG_IMAGE}`
+  const image = socialImage ?? defaultSocialImage()
   return {
     ...(absoluteTitle ? { title: { absolute: absoluteTitle } } : title ? { title } : {}),
     description,
@@ -40,9 +44,9 @@ export function pageMetadata({ title, absoluteTitle, description, path, ogImage,
       url,
       siteName: SITE_NAME,
       type: 'website',
-      images: [{ url: image, width: 1200, height: 630, alt: ogImageAlt ?? socialTitle }],
+      images: [{ url: image.url, width: image.width, height: image.height, type: image.type, alt: image.alt }],
     },
-    twitter: { card: 'summary_large_image', title: socialTitle, description, images: [image] },
+    twitter: { card: 'summary_large_image', title: socialTitle, description, images: [{ url: image.url, alt: image.alt }] },
   }
 }
 
