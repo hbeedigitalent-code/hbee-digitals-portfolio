@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { proposalStatusLabel, adminProposalActions, isEditableProposalStatus } from '@/lib/proposal-status'
 import ProposalCommercialPanel from '@/components/admin/ProposalCommercialPanel'
+import { emailFeedbackMessage } from '@/lib/commerce/email-feedback'
 import { formatFileSize } from '@/lib/proposal-file-validation'
 import StatusBadge from '@/components/ui/StatusBadge'
 import SvgIcon from '@/components/ui/SvgIcon'
@@ -202,7 +203,8 @@ export default function AdminProposalDetailPage({ params }: PageProps) {
       }
 
       await fetchProposal()
-      alert('Proposal sent to the client portal.')
+      // The proposal IS sent either way; the sentence says whether the client's email was accepted by the provider (never "delivered").
+      alert(emailFeedbackMessage('proposal', payload?.email, { revised: payload?.proposal?.revised === true }))
     } catch (error) {
       console.error('Error:', error)
       alert('Failed to send this proposal.')

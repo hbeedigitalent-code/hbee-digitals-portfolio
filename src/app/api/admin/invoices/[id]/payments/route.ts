@@ -13,6 +13,8 @@ import { requireActiveAdmin, ADMIN_UUID_RE } from '@/lib/admin-api-auth'
 import { callRpc, refusal } from '@/lib/commerce/rpc'
 import { isPlainMoney } from '@/lib/commerce/money'
 import { notifyPaymentRecorded } from '@/lib/commerce/notify'
+import { emailPaymentRecorded } from '@/lib/commerce/transactional-email'
+import type { EmailFeedback } from '@/lib/commerce/email-feedback'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,7 +47,16 @@ export async function POST(request: Request, { params }: { params: { id: string 
     if (o.duplicate !== true && o.client_id) {
       notified = await notifyPaymentRecorded({ clientId: String(o.client_id), invoiceId: id, paymentId: String(o.payment_id), number: String(o.invoice_number ?? ''), paid: o.invoice_status === 'paid' })
     }
-    return NextResponse.json({ success: true, duplicate: o.duplicate === true, payment: { id: o.payment_id }, invoice: { status: o.invoice_status, paid: o.paid_total, balance: o.balance }, notified }, { status: o.duplicate === true ? 200 : 201 })
+    // ONE client email per NEW payment. A retried POST (`duplicate`) recorded nothing and mails nothing. The payment has committed; a failed
+    // email never undoes it, and the Admin page receives a safe result, not the provider's error.
+    let email: EmailFeedback | undefined
+    if (o.duplicate !== true && o.client_id) {
+      email = await emailPaymentRecorded(auth.db, {
+        clientId: String(o.client_id), invoiceId: id, paymentId: String(o.payment_id), number: String(o.invoice_number ?? ''), currency: String(o.currency ?? 'USD'),
+        balance: String(o.balance ?? ''), invoiceStatus: String(o.invoice_status ?? ''), fallbackAmount: amount, fallbackPaidAt: paidAt, sentBy: auth.userId,
+      })
+    }
+    return NextResponse.json({ success: true, duplicate: o.duplicate === true, email, payment: { id: o.payment_id }, invoice: { status: o.invoice_status, paid: o.paid_total, balance: o.balance }, notified }, { status: o.duplicate === true ? 200 : 201 })
   } catch (error) {
     console.error('❌ Admin payment error:', error)
     return NextResponse.json({ error: 'The payment could not be recorded.' }, { status: 500 })

@@ -10,11 +10,13 @@
 // an immutable VERSION (a re-send after "changes requested" is version N+1), resolves the open change requests, and records the
 // event. The client notification is keyed on that VERSION, so a revision notifies and a retried send does not.
 // Nothing commercial or identity-bearing is read from the body: only `status` is consumed.
+// The client also gets ONE transactional email per version (transactional-email.ts); its failure never fails the send.
 
 import { NextResponse } from 'next/server'
 import { requireActiveAdmin, ADMIN_UUID_RE } from '@/lib/admin-api-auth'
 import { callRpc, refusal } from '@/lib/commerce/rpc'
 import { notifyProposalSent } from '@/lib/commerce/notify'
+import { emailProposalSent } from '@/lib/commerce/transactional-email'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,7 +45,13 @@ export async function POST(request: Request, { params }: { params: { id: string 
       clientId: String(o.client_id), proposalId: id, versionId: String(o.version_id), number: String(o.proposal_number ?? ''), title: String(o.title ?? ''),
       revised: o.revised === true, version: Number(o.version),
     })
-    return NextResponse.json({ success: true, proposal: { id, status: 'sent', version: o.version, revised: o.revised === true }, notified })
+    // The client email goes out ALONGSIDE the in-app notification, whatever its outcome. The send has already committed: a failed email
+    // never undoes it, and the result below is only what the Admin page shows (a safe reason code, never the provider's text).
+    const email = await emailProposalSent(auth.db, {
+      clientId: String(o.client_id), proposalId: id, versionId: String(o.version_id), number: String(o.proposal_number ?? ''), title: String(o.title ?? ''),
+      version: Number(o.version), revised: o.revised === true, sentBy: auth.userId,
+    })
+    return NextResponse.json({ success: true, proposal: { id, status: 'sent', version: o.version, revised: o.revised === true }, notified, email })
   } catch (error) {
     console.error('❌ Admin proposal send error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -76,9 +76,6 @@ export interface SettingsPatch {
   whatsapp?: string
   website_url?: string
   country?: string
-  email_notifications?: boolean
-  project_updates?: boolean
-  marketing_emails?: boolean
 }
 
 const TEXT_LIMITS = { whatsapp: 40, website_url: 300, country: 80 } as const
@@ -127,12 +124,6 @@ export function validateSettingsPatch(
     const w = normalizeWebsite(b.website_url)
     if (w === null) return { ok: false, error: 'Please enter a valid website address.' }
     patch.website_url = w
-  }
-
-  for (const key of ['email_notifications', 'project_updates', 'marketing_emails'] as const) {
-    if (b[key] === undefined) continue
-    if (typeof b[key] !== 'boolean') return { ok: false, error: 'Invalid request.' }
-    patch[key] = b[key] as boolean
   }
 
   if (Object.keys(patch).length === 0) return { ok: false, error: 'Nothing to update.' }

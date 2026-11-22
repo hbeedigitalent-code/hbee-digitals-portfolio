@@ -6,8 +6,9 @@
 // Replaces the browser-side clients.select('*') and clients.update(...) under RLS. Scope comes from
 // the session alone: auth.uid() -> clients row -> clients.id; the update is `.eq('id', <that id>)`,
 // never a user id or client id from the body. The request cannot name a column to write: the body
-// is validated into a fixed set (WhatsApp, website, country, and the three notification
-// preferences) and everything else is ignored. Name and business are NOT client-editable: they
+// is validated into a fixed set (WhatsApp, website and country) and everything else is ignored. The three old notification
+// toggles (email_notifications, project_updates, marketing_emails) are NOT part of it: nothing ever read them, so the portal no
+// longer offers, returns or writes them (the columns are left as they are). Account emails are transactional. Name and business are NOT client-editable: they
 // are printed on invoices and proposals, so a change is refused (403 identity_locked). The avatar URL, when supplied, must be
 // one of THIS user's own uploads in the client-portal bucket. Email is never writable.
 //
@@ -22,7 +23,7 @@ export const dynamic = 'force-dynamic'
 
 
 const COLUMNS =
-  'id, full_name, business_name, email, whatsapp, website_url, country, profile_image, created_at, email_notifications, project_updates, marketing_emails'
+  'id, full_name, business_name, email, whatsapp, website_url, country, profile_image, created_at'
 
 function present(row: any) {
   return {
@@ -36,11 +37,6 @@ function present(row: any) {
       profileImage: typeof row.profile_image === 'string' && /^https:\/\//i.test(row.profile_image) ? row.profile_image : null,
       createdAt: row.created_at || null,
       reference: typeof row.id === 'string' ? row.id.slice(0, 8) : null,
-    },
-    preferences: {
-      emailNotifications: row.email_notifications !== false,
-      projectUpdates: row.project_updates !== false,
-      marketingEmails: row.marketing_emails === true,
     },
   }
 }

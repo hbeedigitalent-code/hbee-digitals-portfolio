@@ -520,6 +520,27 @@ function load(relative) {
     }
     if (name === '@upstash/ratelimit') return { Ratelimit: class { static slidingWindow() { return {} } } }
     if (name === '@upstash/redis') return { Redis: class {} }
+    // NEVER a real provider: every send is captured in state.sentEmails. state.emailMode: 'ok' | 'reject' (provider answers with an error) | 'throw' (transport failure).
+    if (name === 'resend') {
+      return {
+        Resend: class {
+          constructor() {
+            this.emails = {
+              send: async (payload, options) => {
+                state.sentEmails = state.sentEmails || []
+                if (state.emailMode === 'throw') throw new Error('socket hang up (RAW-TRANSPORT-DETAIL)')
+                if (state.emailMode === 'reject') return { data: null, error: { message: 'RAW-PROVIDER-ERROR: the domain is not verified' } }
+                const again = options && options.idempotencyKey && state.sentEmails.find((e) => e.options && e.options.idempotencyKey === options.idempotencyKey)
+                if (again) return { data: { id: again.id }, error: null } // the provider returns the first message instead of sending another
+                const id = 're_' + (state.sentEmails.length + 1)
+                state.sentEmails.push({ id, payload, options })
+                return { data: { id }, error: null }
+              },
+            }
+          }
+        },
+      }
+    }
     if (name === '@/lib/rate-limit') {
       const real = load('src/lib/rate-limit.ts')
       return {
@@ -552,7 +573,7 @@ function load(relative) {
   }
   vm.runInNewContext(js, {
     require: requireFn, module: mod, exports: mod.exports, process: { env }, console: { error() {}, log() {}, warn() {} },
-    Response, Request, Headers, URL, URLSearchParams, Date, crypto: nodeCrypto.webcrypto, TextEncoder, TextDecoder, Uint8Array, btoa, atob, setTimeout, Buffer,
+    Response, Request, Headers, URL, URLSearchParams, Date, crypto: nodeCrypto.webcrypto, TextEncoder, TextDecoder, Uint8Array, btoa, atob, setTimeout, clearTimeout, Buffer,
     // admin-api-auth refuses to load where `window` exists; none is defined here.
   }, { filename: file })
   return mod.exports
@@ -1553,6 +1574,148 @@ const ALL_PORTAL = [
     const page = read('src/app/client-portal/projects/[id]/page.tsx'); assert.match(page, /Proposal &amp; billing/); assert.match(page, /\/client-portal\/proposals\/\$\{commerce\.proposal\.id\}/); assert.match(page, /\/client-portal\/invoices\/\$\{commerce\.invoice\.id\}/)
     // the approval path and invoice creation are untouched by this batch
     assert.doesNotMatch(stripComments(read('src/lib/commerce/summaries.ts')), /\.(insert|update|delete|upsert|rpc)\(/, 'the summaries only read')
+  })
+
+  // ── Finalization, Batch 3: transactional email ─────────────────────────────────────────────────────────────────────────
+  console.log('\nN. Transactional email (provider is a stub: no test can send real email)')
+  const mail = () => { state.sentEmails = []; state.emailMode = 'ok'; state.tables.email_logs = [] }
+  const sent = () => state.sentEmails
+  const logs = () => state.tables.email_logs || []
+  const CLIENT_ROW = () => state.tables.clients.find((c) => c.id === CLIENT_A)
+  const RAW = /RAW-(PROVIDER|TRANSPORT)/
+
+  await test('N1 proposal sent: exactly one email to the CLIENT, correct subject, copy and deep link; the in-app notification still exists; a repeat sends nothing', async () => {
+    setup(); mail(); const id = await createDraft(); assert.equal(sent().length, 0, 'saving a draft emails nobody')
+    CLIENT_ROW().email_notifications = false; CLIENT_ROW().marketing_emails = false // no preference gates a transactional email
+    const r = await send(id); assert.equal(r.status, 200, JSON.stringify(r.json))
+    assert.equal(sent().length, 1); const m = sent()[0]
+    assert.equal(m.payload.to, 'a@a.test'); assert.equal(m.payload.subject, 'Your Hbee Digitals proposal is ready — Website build')
+    assert.match(m.payload.from, /Hbee Digitals/)
+    for (const body of [m.payload.html, m.payload.text]) { assert.match(body, /Hi Alice,/); assert.match(body, /Your proposal for Website build is ready to review/); assert.match(body, /Review proposal/); assert.match(body, new RegExp('https://site\\.test/client-portal/proposals/' + id)) }
+    assert.match(m.payload.text, /scope, pricing, payment terms and proposal details/)
+    assert.ok(!/revised/i.test(m.payload.subject), 'the first send is not a revision')
+    assert.equal(r.json.email.status, 'sent'); assert.equal(r.json.notified, true); assert.equal(notes('proposal_sent').length, 1, 'the in-app notification is unchanged')
+    assert.equal(m.options.idempotencyKey, 'proposal-sent:' + state.tables.proposal_versions[0].id, 'keyed on the exact version')
+    const again = await send(id); assert.ok(again.status >= 400, 'the business operation is one-shot'); assert.equal(sent().length, 1, 'a repeated send mails nothing')
+  })
+
+  await test('N2 a REVISED proposal gets the revised copy and a new email; the first email is untouched', async () => {
+    setup(); mail(); const id = await sentProposal(); asClient()
+    await call('client-portal/proposals/[id]/request-changes', 'POST', { params: { id }, body: { reason: 'Cheaper please', clientKey: 'key-0000-0002' } })
+    state.admin = true
+    assert.equal((await call('admin/proposals/[id]', 'PATCH', { params: { id }, body: { discount_amount: '0', line_items: [{ title: 'Design', quantity: '2', unit_price: '10.10' }] } })).status, 200)
+    const r = await send(id); assert.equal(r.status, 200); assert.equal(r.json.proposal.revised, true)
+    assert.equal(sent().length, 2); const [first, second] = sent()
+    assert.equal(first.payload.subject, 'Your Hbee Digitals proposal is ready — Website build')
+    assert.equal(second.payload.subject, 'Your revised Hbee Digitals proposal is ready — Website build'); assert.equal(second.payload.to, 'a@a.test')
+    for (const body of [second.payload.html, second.payload.text]) { assert.match(body, /We’ve updated your proposal for Website build/); assert.match(body, /newest version \(version 2\)/); assert.match(body, /Review revised proposal/); assert.match(body, new RegExp('/client-portal/proposals/' + id)) }
+    assert.notEqual(first.options.idempotencyKey, second.options.idempotencyKey, 'a revision is a new version, so a new key')
+    assert.deepEqual(logs().map((l) => l.template_slug), ['proposal-sent', 'proposal-revised'])
+  })
+
+  await test('N3 an email failure never fails the proposal send: it is logged, shown to Admin without provider text, and the portal copy still exists', async () => {
+    for (const [mode, reason] of [['reject', 'provider_rejected'], ['throw', 'delivery_failed']]) {
+      setup(); mail(); state.emailMode = mode; const id = await createDraft()
+      const r = await send(id); assert.equal(r.status, 200, mode + ' ' + JSON.stringify(r.json)); assert.equal(P(id).status, 'sent', 'the proposal IS sent')
+      assert.deepEqual({ ...r.json.email }, { status: 'failed', reason }); assert.ok(!RAW.test(JSON.stringify(r.json)), 'no raw provider/transport text reaches the Admin response')
+      assert.equal(notes('proposal_sent').length, 1, 'the in-app notification exists regardless'); assert.equal(sent().length, 0)
+      assert.equal(logs().length, 1); assert.equal(logs()[0].delivery_state, 'failed'); assert.equal(logs()[0].status, 'failed'); assert.ok(logs()[0].error_message, 'a sanitised failure reason is recorded'); if (mode === 'reject') assert.match(String(logs()[0].error_message), RAW, 'the detail is kept in the log only')
+      asClient(); const seen = await call('client-portal/proposals/[id]', 'GET', { params: { id } }); assert.equal(seen.status, 200, 'the client still sees the proposal')
+    }
+    setup(); mail(); CLIENT_ROW().email = ''; const id = await createDraft(); const r = await send(id)
+    assert.equal(r.status, 200); assert.equal(r.json.email.reason, 'no_recipient'); assert.equal(sent().length, 0); assert.equal(P(id).status, 'sent')
+  })
+
+  await test('N4 invoice issued: one email with the number, total, balance, due date, currency and deep link; draft, void and a repeat send nothing; a failure does not undo the issue', async () => {
+    setup(); const { id, projectId } = await qaApproved(); mail(); state.admin = true // (approval itself sent proposal emails: start counting after it)
+    const c = await call('admin/invoices', 'POST', { body: { project_id: projectId, proposal_id: id, due_date: '2030-12-05' } }); assert.equal(c.status, 201); const iid = c.json.invoice.id
+    assert.equal(sent().length, 0, 'creating a draft emails nobody')
+    const r = await call('admin/invoices/[id]/issue', 'POST', { params: { id: iid } }); assert.equal(r.status, 200, JSON.stringify(r.json))
+    const number = state.tables.project_invoices[0].invoice_number
+    assert.equal(sent().length, 1); const m = sent()[0]
+    assert.equal(m.payload.to, 'a@a.test'); assert.equal(m.payload.subject, 'Invoice ' + number + ' from Hbee Digitals')
+    for (const body of [m.payload.html, m.payload.text]) { for (const piece of [number, 'USD 360.00', '5 December 2030', 'USD', 'View invoice', 'Balance due', 'Total']) assert.ok(body.includes(piece), 'email contains ' + piece); assert.match(body, new RegExp('https://site\\.test/client-portal/invoices/' + iid)) }
+    assert.deepEqual({ ...r.json.email }, { status: 'sent', reason: 'accepted' }); assert.equal(m.options.idempotencyKey, 'invoice-issued:' + iid)
+    assert.equal(logs()[0].template_slug, 'invoice-issued'); assert.equal(logs()[0].delivery_state, 'accepted'); assert.equal(logs()[0].resend_id, m.id)
+    assert.ok(!(m.payload.attachments && m.payload.attachments.length), 'no PDF attachment: the client downloads it securely from the portal')
+    // issuing again is refused by the business rule and mails nothing
+    assert.ok((await call('admin/invoices/[id]/issue', 'POST', { params: { id: iid } })).status >= 400); assert.equal(sent().length, 1)
+    // a voided draft is never mailed
+    const extra = plainProject(); const d = await call('admin/invoices', 'POST', { body: { project_id: extra, currency: 'USD' } }); const did = d.json.invoice.id
+    assert.equal((await call('admin/invoices/[id]/void', 'POST', { params: { id: did }, body: {} })).status, 200); assert.equal(sent().length, 1, 'void sends nothing')
+    // a provider failure does not undo the issue
+    const p2 = plainProject(); const e = await call('admin/invoices', 'POST', { body: { project_id: p2, currency: 'USD', due_date: '2031-01-10' } }); const eid = e.json.invoice.id
+    await call('admin/invoices/[id]/lines', 'POST', { params: { id: eid }, body: { title: 'Work', quantity: '1', unit_price: '50.00' } })
+    state.emailMode = 'reject'; const f = await call('admin/invoices/[id]/issue', 'POST', { params: { id: eid } })
+    assert.equal(f.status, 200); assert.equal(state.tables.project_invoices.find((i) => i.id === eid).status, 'issued', 'the invoice IS issued')
+    assert.deepEqual({ ...f.json.email }, { status: 'failed', reason: 'provider_rejected' }); assert.ok(!RAW.test(JSON.stringify(f.json))); assert.equal(f.json.notified, true)
+    assert.equal(logs().filter((l) => l.delivery_state === 'failed').length, 1)
+    asClient(); assert.equal((await call('client-portal/invoices/[id]', 'GET', { params: { id: eid } })).status, 200, 'the client still sees the invoice in the portal')
+  })
+
+  await test('N5 payment recorded: one email per NEW payment with amount, date, balance and status; partial shows the remainder, final says paid; a retry or a failure changes nothing', async () => {
+    setup(); const { id, projectId } = await qaApproved(); mail(); const iid = await invoiceOf(id, projectId); const number = state.tables.project_invoices[0].invoice_number
+    assert.equal(sent().length, 1, 'the issue email'); state.admin = true
+    const p1 = await call('admin/invoices/[id]/payments', 'POST', { params: { id: iid }, body: { amount: '100.00', paid_at: '2026-03-04', clientKey: 'pay-key-0001' } }); assert.equal(p1.status, 201, JSON.stringify(p1.json))
+    assert.equal(sent().length, 2); const m = sent()[1]
+    assert.equal(m.payload.to, 'a@a.test'); assert.equal(m.payload.subject, 'Payment recorded for invoice ' + number)
+    for (const body of [m.payload.html, m.payload.text]) { for (const piece of [number, 'USD 100.00', '4 March 2026', 'USD 260.00', 'Partially paid', 'View invoice', 'recorded a payment']) assert.ok(body.includes(piece), 'email contains ' + piece); assert.match(body, new RegExp('/client-portal/invoices/' + iid)) }
+    assert.ok(/not a payment-processor receipt/i.test(m.payload.text), 'it does not pose as a gateway receipt'); assert.ok(!/now paid in full/i.test(m.payload.text), 'a partial payment is not "paid"')
+    assert.equal(p1.json.email.status, 'sent'); assert.equal(m.options.idempotencyKey, 'payment-recorded:' + p1.json.payment.id)
+    assert.equal(logs().filter((l) => l.template_slug === 'payment-recorded').length, 1)
+    // a retried POST (same clientKey) records nothing and emails nothing
+    const dup = await call('admin/invoices/[id]/payments', 'POST', { params: { id: iid }, body: { amount: '100.00', paid_at: '2026-03-04', clientKey: 'pay-key-0001' } })
+    assert.equal(dup.json.duplicate, true); assert.equal(dup.json.email, undefined); assert.equal(sent().length, 2)
+    // a failed email does not undo a payment
+    state.emailMode = 'reject'
+    const p2 = await call('admin/invoices/[id]/payments', 'POST', { params: { id: iid }, body: { amount: '60.00', paid_at: '2026-03-05', clientKey: 'pay-key-0002' } })
+    assert.equal(p2.status, 201); assert.equal(state.tables.invoice_payments.length, 2, 'the ledger has both payments'); assert.deepEqual({ ...p2.json.email }, { status: 'failed', reason: 'provider_rejected' }); assert.ok(!RAW.test(JSON.stringify(p2.json)))
+    state.emailMode = 'ok'
+    // the final payment says paid and shows a zero balance
+    const p3 = await call('admin/invoices/[id]/payments', 'POST', { params: { id: iid }, body: { amount: '200.00', paid_at: '2026-03-06', clientKey: 'pay-key-0003' } }); assert.equal(p3.status, 201)
+    const fin = sent()[sent().length - 1]; assert.equal(p3.json.invoice.status, 'paid')
+    for (const body of [fin.payload.html, fin.payload.text]) { for (const piece of ['USD 200.00', 'USD 0.00', 'Paid', 'nothing further is due']) assert.ok(body.includes(piece), 'final email contains ' + piece) }
+    assert.match(fin.payload.subject, /^Payment recorded for invoice /); assert.match(fin.payload.text, /now paid/i)
+    // a refused payment (nothing owed any more) sends nothing
+    const n = sent().length; const over = await call('admin/invoices/[id]/payments', 'POST', { params: { id: iid }, body: { amount: '1.00', paid_at: '2026-03-07' } }); assert.ok(over.status >= 400); assert.equal(sent().length, n)
+  })
+
+  await test('N6 the recipient is the client\'s own record, never the browser: a forged address in the body is ignored on all three events', async () => {
+    setup(); mail(); const id = await createDraft(); state.admin = true
+    assert.equal((await call('admin/proposals/[id]/status', 'POST', { params: { id }, body: { status: 'sent', to: 'evil@x.test', email: 'evil@x.test', recipient: 'evil@x.test', client_id: CLIENT_B } })).status, 200)
+    const { id: qid, projectId } = await qaApproved(); state.admin = true
+    const iid = (await call('admin/invoices', 'POST', { body: { project_id: projectId, proposal_id: qid, due_date: '2030-12-05' } })).json.invoice.id
+    assert.equal((await call('admin/invoices/[id]/issue', 'POST', { params: { id: iid }, body: { to: 'evil@x.test', email: 'evil@x.test' } })).status, 200)
+    assert.equal((await call('admin/invoices/[id]/payments', 'POST', { params: { id: iid }, body: { amount: '10.00', paid_at: '2026-03-04', to: 'evil@x.test', email: 'evil@x.test' } })).status, 201)
+    assert.ok(sent().length >= 3); for (const m of sent()) { assert.equal(m.payload.to, 'a@a.test'); assert.ok(!JSON.stringify(m.payload).includes('evil@x.test')) }
+    for (const f of ['src/app/api/admin/proposals/[id]/status/route.ts', 'src/app/api/admin/invoices/[id]/issue/route.ts', 'src/app/api/admin/invoices/[id]/payments/route.ts']) assert.doesNotMatch(stripComments(read(f)), /body\??\.(to|email|recipient)\b/, f + ' never reads an address from the body')
+  })
+
+  await test('N7 Admin feedback wording is exact, honest ("sent" = provider accepted, never "delivered") and free of provider text', () => {
+    const fb = load('src/lib/commerce/email-feedback.ts')
+    const ok = { status: 'sent', reason: 'accepted' }, bad = { status: 'failed', reason: 'provider_rejected' }
+    assert.equal(fb.emailFeedbackMessage('proposal', ok), 'Proposal sent and client email sent.'); assert.equal(fb.emailFeedbackMessage('proposal', bad), 'Proposal sent, but client email failed.')
+    assert.equal(fb.emailFeedbackMessage('proposal', ok, { revised: true }), 'Revised proposal sent and client email sent.')
+    assert.equal(fb.emailFeedbackMessage('invoice', ok), 'Invoice issued and client email sent.'); assert.equal(fb.emailFeedbackMessage('invoice', bad), 'Invoice issued, but client email failed.')
+    assert.equal(fb.emailFeedbackMessage('payment', ok), 'Payment recorded and client email sent.'); assert.equal(fb.emailFeedbackMessage('payment', bad), 'Payment recorded, but client email failed.')
+    assert.match(fb.emailFeedbackMessage('invoice', { status: 'failed', reason: 'no_recipient' }), /no email address on file/); assert.equal(fb.emailFeedbackMessage('invoice', undefined), 'Invoice issued.')
+    for (const a of ['proposal', 'invoice', 'payment']) for (const e of [ok, bad, undefined]) assert.ok(!/deliver/i.test(fb.emailFeedbackMessage(a, e)), 'never claims delivery')
+    for (const f of ['src/app/admin/proposals/[id]/page.tsx', 'src/app/admin/invoices/[id]/page.tsx']) assert.match(read(f), /emailFeedbackMessage\(/, f + ' shows the result')
+    assert.match(read('src/app/admin/invoices/[id]/page.tsx'), /emailFeedbackMessage\('invoice', p\.email\)/); assert.match(read('src/app/admin/invoices/[id]/page.tsx'), /emailFeedbackMessage\('payment', p\.email\)/)
+  })
+
+  await test('N8 the emails are escaped and safe: hostile titles cannot inject markup or header lines; links are absolute https; no secrets', () => {
+    const t = load('src/lib/commerce/transactional-email.ts')
+    const built = t.buildProposalEmail({ firstName: 'Al<b>ice', proposalId: '11111111-1111-4111-8111-111111111111', number: 'PROP-1', title: 'Big <script>alert(1)</script>\r\nBcc: evil@x.test', revised: false, version: 1 })
+    assert.ok(!/[\r\n]/.test(built.subject), 'no header injection through the subject')
+    const { renderHbeeEmail } = load('src/lib/emails/hbee-email.ts'); const { subject, ...opts } = built; const out = renderHbeeEmail(opts)
+    assert.ok(!out.html.includes('<script>') && !out.html.includes('<b>ice'), 'markup is escaped'); assert.ok(out.html.includes('&lt;script&gt;'))
+    assert.ok(!/href="\/(?!\/)/.test(out.html), 'every link is absolute'); assert.match(out.html, /href="https:\/\/site\.test\/client-portal\/proposals\/11111111-1111-4111-8111-111111111111"/)
+    assert.equal(t.emailDate('2030-12-05'), '5 December 2030'); assert.equal(t.emailDate('not a date'), null)
+    const inv = t.buildInvoiceIssuedEmail({ firstName: 'A', invoiceId: '22222222-2222-4222-8222-222222222222', number: 'HBD-INV-2026-0003', total: '350.00', balance: '350.00', currency: 'USD', dueDate: null })
+    assert.equal(inv.subject, 'Invoice HBD-INV-2026-0003 from Hbee Digitals'); assert.ok(renderHbeeEmail((({ subject: _s, ...o }) => o)(inv)).text.includes('See your invoice'), 'a missing due date is not invented')
+    assert.doesNotMatch(stripComments(read('src/lib/commerce/transactional-email.ts')), /service_role|SERVICE_ROLE|RESEND_API_KEY\s*\+|console\.(log|error)\([^)]*(html|text|payload)/i, 'nothing secret or full-body is logged')
+    assert.match(read('src/lib/commerce/transactional-email.ts'), /new Resend\(process\.env\.RESEND_API_KEY\)/); assert.doesNotMatch(read('src/lib/commerce/transactional-email.ts').split('async function sendOne')[0], /^const resend = new Resend/m, 'the provider is built lazily, so a missing key is a logged failure, not a broken route')
   })
 
   console.log('\n' + passed + ' passed, ' + failures.length + ' failed')

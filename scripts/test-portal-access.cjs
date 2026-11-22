@@ -267,6 +267,27 @@ function load(relative) {
     }
     if (name === '@upstash/ratelimit') return { Ratelimit: class { static slidingWindow() { return {} } } }
     if (name === '@upstash/redis') return { Redis: class {} }
+    // NEVER a real provider: every send is captured in state.sentEmails. state.emailMode: 'ok' | 'reject' (provider answers with an error) | 'throw' (transport failure).
+    if (name === 'resend') {
+      return {
+        Resend: class {
+          constructor() {
+            this.emails = {
+              send: async (payload, options) => {
+                state.sentEmails = state.sentEmails || []
+                if (state.emailMode === 'throw') throw new Error('socket hang up (RAW-TRANSPORT-DETAIL)')
+                if (state.emailMode === 'reject') return { data: null, error: { message: 'RAW-PROVIDER-ERROR: the domain is not verified' } }
+                const again = options && options.idempotencyKey && state.sentEmails.find((e) => e.options && e.options.idempotencyKey === options.idempotencyKey)
+                if (again) return { data: { id: again.id }, error: null } // the provider returns the first message instead of sending another
+                const id = 're_' + (state.sentEmails.length + 1)
+                state.sentEmails.push({ id, payload, options })
+                return { data: { id }, error: null }
+              },
+            }
+          }
+        },
+      }
+    }
     if (name === '@/lib/rate-limit') {
       const real = load('src/lib/rate-limit.ts')
       return {
@@ -294,7 +315,7 @@ function load(relative) {
   const js = ts.transpileModule(read(path.relative(root, file)), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true } }).outputText
   vm.runInNewContext(js, {
     require: requireFn, module: mod, exports: mod.exports, process: { env }, console: { error() {}, log() {}, warn() {} },
-    Response, Request, Headers, URL, URLSearchParams, Date, crypto: nodeCrypto.webcrypto, TextEncoder, TextDecoder, Uint8Array, btoa, atob, setTimeout, Buffer,
+    Response, Request, Headers, URL, URLSearchParams, Date, crypto: nodeCrypto.webcrypto, TextEncoder, TextDecoder, Uint8Array, btoa, atob, setTimeout, clearTimeout, Buffer,
     // admin-api-auth refuses to load where `window` exists; none is defined here.
   }, { filename: file })
   return mod.exports
@@ -1086,6 +1107,53 @@ const ALL_PORTAL = [
     // normal client self-recovery is unchanged: created once, then idempotent
     const first = await call('account/provision', 'POST'); assert.equal(first.status, 200); assert.equal(first.json.client, 'created'); assert.equal(count('clients'), clientsBefore + 1)
     const again = await call('account/provision', 'POST'); assert.equal(again.status, 200); assert.equal(again.json.client, 'existing'); assert.equal(count('clients'), clientsBefore + 1)
+  })
+
+  await test('Z11 the three dead notification toggles are gone from the page AND the API; nothing reads or writes them; stored values are left alone; the profile still saves', async () => {
+    const page = read('src/app/client-portal/settings/page.tsx'); const code = stripComments(page)
+    for (const gone of ['Switch', 'notif-', 'Email notifications', 'Marketing emails', 'Project updates', 'Notification preferences', 'email_notifications', 'project_updates', 'marketing_emails', 'prefs']) assert.ok(!code.includes(gone), 'the page no longer mentions ' + gone)
+    assert.match(page, /Important account and project emails may still be sent when action is required\./)
+    assert.match(page, /<button type="submit"[^>]*>\s*\{saving \? 'Saving…' : 'Save changes'\}/, 'the profile can still be saved')
+    const route = stripComments(read('src/app/api/client-portal/settings/route.ts')); assert.ok(!/email_notifications|project_updates|marketing_emails|preferences/.test(route), 'the API neither selects, returns nor writes them')
+    resetState(); db = makeDb(); cache.clear(); as(USER_A)
+    const row = state.tables.clients.find((c) => c.id === CLIENT_A); Object.assign(row, { email_notifications: true, project_updates: true, marketing_emails: false })
+    const got = await call('client-portal/settings', 'GET'); assert.equal(got.status, 200); assert.equal(got.json.preferences, undefined, 'no preferences in the response'); assert.ok(got.json.profile)
+    // sending only the old fields is "nothing to update"; they are never written
+    for (const body of [{ email_notifications: false }, { marketing_emails: true, project_updates: false }]) {
+      const r = await call('client-portal/settings', 'PATCH', { body }); assert.equal(r.status, 400, JSON.stringify(body))
+    }
+    // mixed with a real field: the real field saves, the old ones are ignored
+    const mixed = await call('client-portal/settings', 'PATCH', { body: { whatsapp: '+1 234 567 8900', email_notifications: false, project_updates: false, marketing_emails: true } })
+    assert.equal(mixed.status, 200); assert.equal(row.whatsapp, '+1 234 567 8900')
+    assert.deepEqual([row.email_notifications, row.project_updates, row.marketing_emails], [true, true, false], 'the stored values are untouched')
+    const sd = load('src/lib/client-portal/support-display.ts')
+    assert.equal(sd.validateSettingsPatch({ email_notifications: true, project_updates: true, marketing_emails: true }).ok, false)
+    assert.deepEqual({ ...sd.validateSettingsPatch({ country: 'Nigeria', marketing_emails: true }).patch }, { country: 'Nigeria' })
+  })
+
+  await test('Z12 email deep links: a signed-out client following a proposal or invoice link reaches login, signs in and returns to THAT page; external or unsafe destinations are rejected', async () => {
+    const tx = load('src/lib/commerce/transactional-email.ts'), ps = load('src/lib/client-portal/portal-session.ts')
+    const PID = '11111111-1111-4111-8111-111111111111', IID = '22222222-2222-4222-8222-222222222222'
+    const links = [
+      ['proposal', tx.buildProposalEmail({ firstName: 'A', proposalId: PID, number: 'PROP-1', title: 'T', revised: false, version: 1 }).primaryAction.url, '/client-portal/proposals/' + PID],
+      ['revised proposal', tx.buildProposalEmail({ firstName: 'A', proposalId: PID, number: 'PROP-1', title: 'T', revised: true, version: 2 }).primaryAction.url, '/client-portal/proposals/' + PID],
+      ['invoice', tx.buildInvoiceIssuedEmail({ firstName: 'A', invoiceId: IID, number: 'N', total: '1.00', balance: '1.00', currency: 'USD', dueDate: null }).primaryAction.url, '/client-portal/invoices/' + IID],
+      ['payment', tx.buildPaymentRecordedEmail({ firstName: 'A', invoiceId: IID, number: 'N', amount: '1.00', paidAt: null, balance: '0.00', currency: 'USD', invoiceStatus: 'paid' }).primaryAction.url, '/client-portal/invoices/' + IID],
+    ]
+    resetState(); db = makeDb(); cache.clear(); state.user = null
+    const mw = load('src/middleware.ts')
+    for (const [what, url, expected] of links) {
+      assert.equal(url, expected, what + ' email links straight at the document')
+      const u = new URL('http://localhost' + url); u.clone = () => new URL(u.href)
+      const res = await mw.middleware({ nextUrl: u, cookies: { getAll: () => [], get: () => undefined, set() {} }, headers: new Headers() })
+      const loc = new URL(res.headers.get('location'))
+      assert.equal(loc.pathname, '/client-login', what + ': a signed-out client is sent to login'); assert.equal(loc.searchParams.get('next'), expected, what + ': the destination is remembered')
+      assert.equal(ps.postLoginDestination(loc.searchParams.get('next')), expected, what + ': after sign-in they return to the same page')
+    }
+    for (const bad of ['https://evil.example/client-portal/invoices/' + IID, '//evil.example/client-portal/invoices/' + IID, '/\\evil.example', '/client-portal/../admin', '/client-portal/%2e%2e/admin', '/admin/dashboard', 'javascript:alert(1)', '/client-portal/invoices/x\n/y', '/client-login?next=/admin']) {
+      assert.equal(ps.postLoginDestination(bad), '/client-portal', 'rejected: ' + JSON.stringify(bad))
+    }
+    assert.match(read('src/app/(client-auth)/client-login/page.tsx'), /router\.push\(postLoginDestination\(searchParams\.get\('next'\)\)\)/, 'the login page only follows the validated destination')
   })
 
   await test('Z9 request submit: stays on a confirmation that links to the request thread; no timed redirect to Projects; the wording no longer says the project was "added"', async () => {

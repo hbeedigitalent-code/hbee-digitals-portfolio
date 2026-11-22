@@ -2,8 +2,9 @@
 //
 // Profile settings (Phase 18.7). Reads and saves through ONE session-bound endpoint,
 // /api/client-portal/settings (GET / PATCH), which scopes to the caller's own clients row and only
-// ever writes the fields shown here: name, business, WhatsApp, website, country and the three
-// notification preferences. It replaces the browser-side clients.select('*') / clients.update(...).
+// ever writes the fields shown here: WhatsApp, website and country (name and business are read-only).
+// There are no notification preference controls: the old toggles changed nothing, and the account and
+// project emails the portal sends are transactional. It replaces the browser-side clients.select('*') / clients.update(...).
 //
 // The profile photo is still uploaded by the browser to the existing `client-portal` bucket
 // (unchanged — that bucket is public today and is recorded for the final security pass); the
@@ -33,45 +34,21 @@ interface Profile {
   reference: string | null
 }
 
-interface Preferences {
-  emailNotifications: boolean
-  projectUpdates: boolean
-  marketingEmails: boolean
-}
-
 type LoadState = 'loading' | 'ready' | 'ambiguous' | 'error'
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
-
-function Switch({ id, title, desc, checked, onChange }: { id: string; title: string; desc: string; checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <div className={styles.switchRow}>
-      <div className={styles.switchText}>
-        <p id={id} className={styles.switchTitle}>
-          {title}
-        </p>
-        <p className={styles.switchDesc}>{desc}</p>
-      </div>
-      <label className={styles.switch}>
-        <input type="checkbox" aria-labelledby={id} checked={checked} onChange={(e) => onChange(e.target.checked)} />
-        <span className={styles.track} aria-hidden="true" />
-      </label>
-    </div>
-  )
-}
 
 export default function ClientSettingsPage() {
   const [state, setState] = useState<LoadState>('loading')
   const [profile, setProfile] = useState<Profile | null>(null)
   const [form, setForm] = useState({ fullName: '', businessName: '', whatsapp: '', websiteUrl: '', country: '' })
-  const [prefs, setPrefs] = useState<Preferences>({ emailNotifications: true, projectUpdates: true, marketingEmails: false })
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [pw, setPw] = useState<{ status: 'idle' | 'sending' | 'sent' | 'error'; text: string }>({ status: 'idle', text: '' })
 
-  const apply = useCallback((payload: { profile: Profile; preferences: Preferences }) => {
+  const apply = useCallback((payload: { profile: Profile }) => {
     setProfile(payload.profile)
     setForm({
       fullName: payload.profile.fullName,
@@ -80,7 +57,6 @@ export default function ClientSettingsPage() {
       websiteUrl: payload.profile.websiteUrl,
       country: payload.profile.country,
     })
-    setPrefs(payload.preferences)
   }, [])
 
   const load = useCallback(async () => {
@@ -184,9 +160,6 @@ export default function ClientSettingsPage() {
         whatsapp: form.whatsapp,
         website_url: form.websiteUrl,
         country: form.country,
-        email_notifications: prefs.emailNotifications,
-        project_updates: prefs.projectUpdates,
-        marketing_emails: prefs.marketingEmails,
       })
       if (!result.ok) {
         setMessage({ type: 'error', text: result.error })
@@ -268,7 +241,7 @@ export default function ClientSettingsPage() {
         </div>
       </section>
 
-      {/* One form: personal information + notification preferences, saved together as before */}
+      {/* One form: personal information */}
       <form onSubmit={handleSubmit} className={styles.form}>
         <section className={styles.panel} aria-labelledby="set-personal">
           <p className={styles.eyebrow}>
@@ -322,25 +295,12 @@ export default function ClientSettingsPage() {
           </div>
         </section>
 
-        <section className={styles.panel} aria-labelledby="set-notifications">
-          <p className={styles.eyebrow}>
-            <span aria-hidden="true" className={styles.node} />
-            Notification preferences
-          </p>
-          <h2 id="set-notifications" className="sr-only">
-            Notification preferences
-          </h2>
-          <div style={{ marginTop: '0.5rem' }}>
-            <Switch id="notif-email-notifications" title="Email notifications" desc="Receive updates about your projects via email" checked={prefs.emailNotifications} onChange={(v) => setPrefs({ ...prefs, emailNotifications: v })} />
-            <Switch id="notif-project-updates" title="Project updates" desc="Get notified when your projects are updated" checked={prefs.projectUpdates} onChange={(v) => setPrefs({ ...prefs, projectUpdates: v })} />
-            <Switch id="notif-marketing-emails" title="Marketing emails" desc="Receive marketing and promotional emails" checked={prefs.marketingEmails} onChange={(v) => setPrefs({ ...prefs, marketingEmails: v })} />
-          </div>
-          <div className={styles.actions} style={{ marginTop: '0.75rem' }}>
-            <button type="submit" disabled={saving} className={styles.primary}>
-              {saving ? 'Saving…' : 'Save changes'}
-            </button>
-          </div>
-        </section>
+        <div className={styles.actions}>
+          <button type="submit" disabled={saving} className={styles.primary}>
+            {saving ? 'Saving…' : 'Save changes'}
+          </button>
+        </div>
+        <p className={styles.hint}>Important account and project emails may still be sent when action is required.</p>
       </form>
 
       {/* Password: the existing email reset flow */}

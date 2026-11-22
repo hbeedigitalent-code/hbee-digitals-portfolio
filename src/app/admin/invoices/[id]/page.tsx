@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { formatMoney, isPlainMoney, isPlainQuantity } from '@/lib/commerce/money'
+import { emailFeedbackMessage } from '@/lib/commerce/email-feedback'
 
 interface Detail {
   invoice: { id: string; number: string; status: string; displayStatus: string; statusLabel: string; currency: string; issueDate: string | null; dueDate: string | null; subtotal: string; discount: string; tax: string; total: string; paid: string; balance: string; notes: string | null; paymentInstructions: string | null; paymentLink: string | null; payments: Array<{ id: string; paid_at: string; amount: string; method: string | null; reference: string | null }>; project: { id: string; name: string; reference: string | null }; proposalId: string | null; proposalNumber: string | null; clientId: string | null }
@@ -76,12 +77,14 @@ export default function AdminInvoiceDetailPage({ params }: { params: { id: strin
   }
   async function removeLine(id: string) { if (await call(`${base}/lines/${id}`, 'DELETE')) await load() }
   async function issue() {
-    if (!confirm('Issue this invoice? Its amounts and lines will be locked and the client will be notified.')) return
-    if (await call(`${base}/issue`, 'POST')) await load()
+    if (!confirm('Issue this invoice? Its amounts and lines will be locked and the client will be notified in the portal and by email.')) return
+    const p = await call(`${base}/issue`, 'POST')
+    if (p) { await load(); setMsg(emailFeedbackMessage('invoice', p.email)) }
   }
   async function record() {
     if (!isPlainMoney(pay.amount) || Number(pay.amount) <= 0) return setMsg('Enter the amount received (greater than zero, at most two decimals).')
-    if (await call(`${base}/payments`, 'POST', { ...pay, clientKey: payKey })) { setPayKey(newKey()); setPay({ ...pay, amount: '', reference: '', note: '' }); await load() }
+    const p = await call(`${base}/payments`, 'POST', { ...pay, clientKey: payKey })
+    if (p) { setPayKey(newKey()); setPay({ ...pay, amount: '', reference: '', note: '' }); await load(); setMsg(p.duplicate === true ? 'That payment was already recorded.' : emailFeedbackMessage('payment', p.email)) }
   }
   async function voidIt() {
     if (!confirm('Void this invoice? This cannot be undone.')) return
