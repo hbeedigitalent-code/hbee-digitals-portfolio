@@ -3,24 +3,11 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  ChevronDown,
-  ClipboardList,
-  FileSignature,
-  FolderOpen,
-  Gauge,
-  LayoutGrid,
-  LogOut,
-  Menu,
-  MonitorCheck,
-  Receipt,
-  Settings,
-  X,
-  type LucideIcon,
-} from 'lucide-react'
+import { ChevronDown, LogOut, Menu, X } from 'lucide-react'
 import ClientNotificationBell from '@/components/notifications/ClientNotificationBell'
 import { HbeeLogo } from '@/components/site/brand/HbeeLogo'
-import { PORTAL_NAV, PORTAL_ROOT, isPortalNavActive, portalSectionTitle, type PortalNavIcon } from './portal-nav'
+import { PORTAL_NAV, PORTAL_ROOT, isPortalNavActive, portalSectionTitle } from './portal-nav'
+import { PORTAL_NAV_ICONS } from './portal-icons'
 import styles from './portal-shell.module.css'
 
 /**
@@ -32,17 +19,6 @@ import styles from './portal-shell.module.css'
  * ONE navigation definition (portal-nav.ts) feeds both the desktop sidebar and
  * the drawer, so they cannot drift apart.
  */
-
-const ICONS: Record<PortalNavIcon, LucideIcon> = {
-  overview: LayoutGrid,
-  'growth-profile': Gauge,
-  projects: MonitorCheck,
-  proposals: FileSignature,
-  files: FolderOpen,
-  requests: ClipboardList,
-  invoices: Receipt,
-  settings: Settings,
-}
 
 export interface PortalClient {
   full_name?: string | null
@@ -111,7 +87,7 @@ function SidebarBody({
       <nav aria-label="Client portal" className={styles.navScroll}>
         <ul className={styles.navList}>
           {PORTAL_NAV.map((item) => {
-            const Icon = ICONS[item.icon]
+            const Icon = PORTAL_NAV_ICONS[item.icon]
             const active = isPortalNavActive(path, item)
             return (
               <li key={item.href}>

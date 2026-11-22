@@ -57,6 +57,33 @@
   --ring: rgba(29, 110, 255, 0.4);
   --radius-control: var(--hb-radius-md);
 
+  /* ── Portal rhythm (visual refinement, Batch A) ──────────────
+     One tightened scale for the shell and every portal surface. Pages should take their gaps and padding from
+     here rather than hard-coding rem values. */
+  --hb-portal-gap: clamp(1rem, 0.85rem + 0.5vw, 1.25rem);
+  --hb-portal-pad: 1.25rem;
+  --hb-portal-canvas-pad: clamp(1rem, 0.5rem + 1.6vw, 1.75rem);
+  --hb-portal-topbar: 3.25rem;
+
+  /* ── Portal status tones (PortalStatus) ──────────────────────
+     Text colours are the accessible darker values (orange text is #b43a07, never Signal Orange itself). Fills and rules
+     are quiet; the SHAPE of the leading mark, not the colour alone, tells the tones apart. */
+  --hb-portal-working-text: var(--hb-deep-blue);
+  --hb-portal-working-bg: var(--hb-mist);
+  --hb-portal-working-rule: var(--hb-ice);
+  --hb-portal-needs-text: #b43a07;
+  --hb-portal-needs-bg: #fff7f3;
+  --hb-portal-needs-rule: rgba(252, 93, 28, 0.45);
+  --hb-portal-done-text: #166534;
+  --hb-portal-done-bg: #dcfce7;
+  --hb-portal-done-rule: #bfe5cf;
+  --hb-portal-neutral-text: var(--hb-slate);
+  --hb-portal-neutral-bg: var(--hb-cloud);
+  --hb-portal-neutral-rule: var(--hb-border-soft);
+  --hb-portal-alert-text: var(--hb-error);
+  --hb-portal-alert-bg: #fef2f2;
+  --hb-portal-alert-rule: #f5b5b5;
+
   background-color: var(--hb-bg);
   color: var(--hb-fg-body);
   font-family: var(--hb-font-body);

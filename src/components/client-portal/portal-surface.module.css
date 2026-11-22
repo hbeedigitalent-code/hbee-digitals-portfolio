@@ -1,0 +1,7 @@
+/* PortalSurface — the portal's own additions to the shared hbee-surface anatomy. Colours and radii come from the --hb-* tokens. */
+
+/* Standard padding. The extra top inset keeps content clear of the 3px open-channel rule. */
+.padded { padding: calc(var(--hb-portal-pad) + 0.125rem) var(--hb-portal-pad) var(--hb-portal-pad); }
+
+/* A surface never widens its grid track, and long names wrap instead of pushing the layout. */
+.fill { min-width: 0; overflow-wrap: anywhere; }

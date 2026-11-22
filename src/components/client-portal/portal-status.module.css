@@ -1,0 +1,39 @@
+/* PortalStatus — one status component for the whole portal. The tone sets colour; the leading SHAPE (dot, capsule, check, ring, triangle)
+   and the printed words carry the meaning, so status never relies on colour alone. Tones come from [data-surface='portal'] (portal-tokens.css). */
+
+.status {
+  display: inline-flex;
+  max-width: 100%;
+  flex: none;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--tone-rule);
+  border-radius: var(--hb-radius-pill);
+  background: var(--tone-bg);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--tone-text);
+}
+.label { min-width: 0; overflow-wrap: anywhere; }
+.mark { width: 0.75rem; height: 0.75rem; flex: none; }
+
+.working { --tone-text: var(--hb-portal-working-text); --tone-bg: var(--hb-portal-working-bg); --tone-rule: var(--hb-portal-working-rule); }
+.needs { --tone-text: var(--hb-portal-needs-text); --tone-bg: var(--hb-portal-needs-bg); --tone-rule: var(--hb-portal-needs-rule); }
+.done { --tone-text: var(--hb-portal-done-text); --tone-bg: var(--hb-portal-done-bg); --tone-rule: var(--hb-portal-done-rule); }
+.neutral { --tone-text: var(--hb-portal-neutral-text); --tone-bg: var(--hb-portal-neutral-bg); --tone-rule: var(--hb-portal-neutral-rule); }
+.alert { --tone-text: var(--hb-portal-alert-text); --tone-bg: var(--hb-portal-alert-bg); --tone-rule: var(--hb-portal-alert-rule); }
+
+/* On a Royal Blue surface: translucent white, never a coloured fill that could clash with the blue. The shape still differs per tone. */
+.onBlue { --tone-text: #ffffff; --tone-bg: rgba(255, 255, 255, 0.14); --tone-rule: rgba(255, 255, 255, 0.34); }
+.onBlue.needs { --tone-bg: rgba(252, 93, 28, 0.28); --tone-rule: rgba(255, 255, 255, 0.55); }
+
+/* Plain: just the mark and the words, for dense lists and tiles where a pill would add weight. */
+.plain { padding: 0; border: 0; background: transparent; font-size: 0.8125rem; }
+
+.sm { padding: 0.125rem 0.5rem; font-size: 0.6875rem; }
+
+/* Shape only (PortalToneMark): coloured by the tone, sized a little larger because it stands alone beside text. */
+.markOnly { display: inline-flex; flex: none; color: var(--tone-text); }
+.markOnly .mark { width: 0.9rem; height: 0.9rem; }

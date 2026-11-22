@@ -15,6 +15,7 @@ import { parseProgress } from './projects-display'
 import { formatMoney } from '@/lib/commerce/money'
 import { isActionableInvoice, type InvoiceSummary } from '@/lib/commerce/summaries'
 import { formatDay } from './support-display'
+import { INVOICE_OVERDUE_LABEL } from './attention-labels'
 
 export const PILLAR_ORDER = ['visibility', 'conversion', 'retention', 'authority', 'scalability'] as const
 export type PillarKey = (typeof PILLAR_ORDER)[number]
@@ -226,7 +227,7 @@ export function invoiceItem(inv: InvoiceSummary): AttentionItem {
   const due = formatDay(inv.dueDate)
   const context =
     inv.displayStatus === 'overdue'
-      ? `Overdue · ${balance} to pay${due ? ` · was due ${due}` : ''}`
+      ? `${INVOICE_OVERDUE_LABEL} · ${balance} to pay${due ? ` · was due ${due}` : ''}`
       : inv.status === 'partially_paid'
         ? `Partially paid · ${balance} left${due ? ` · due ${due}` : ''}`
         : `Payment due · ${balance}${due ? ` · due ${due}` : ''}`

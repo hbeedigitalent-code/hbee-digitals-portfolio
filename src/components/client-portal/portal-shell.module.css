@@ -33,7 +33,7 @@
 }
 .sidebarBody { display: flex; min-height: 0; flex: 1; flex-direction: column; }
 
-.brand { padding: 1.375rem 1.5rem 1.125rem; }
+.brand { padding: 1.125rem 1.5rem 0.875rem; }
 .context {
   display: flex;
   align-items: center;
@@ -52,13 +52,15 @@
 .identity {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.625rem;
   margin: 0 1rem;
-  padding: 0.75rem;
+  padding: 0.5rem 0.625rem;
   border: 1px solid var(--hb-border-soft);
   border-radius: 12px;
   background: var(--hb-cloud);
 }
+/* A shorter identity block: the avatar steps down so the navigation starts higher. */
+.identity .avatar { width: 2.25rem; height: 2.25rem; font-size: 0.875rem; }
 .avatar {
   display: grid;
   width: 2.5rem;
@@ -149,7 +151,7 @@
   position: relative;
   z-index: 30;
   display: flex;
-  min-height: 4.25rem;
+  min-height: 3.75rem; /* the 44px menu button plus its padding */
   flex: none;
   align-items: center;
   justify-content: space-between;
@@ -161,7 +163,8 @@
   -webkit-backdrop-filter: blur(8px);
 }
 @media (min-width: 1024px) {
-  .topbar { min-height: 4.5rem; padding-inline: 2.5rem; }
+  /* A slim bar on desktop: bell and account only. Its edges line up with the content canvas below. */
+  .topbar { min-height: var(--hb-portal-topbar); padding: 0.25rem var(--hb-portal-canvas-pad); }
 }
 .topLeft { display: flex; min-width: 0; align-items: center; gap: 0.75rem; }
 .topRight { display: flex; align-items: center; gap: 0.5rem; }
@@ -194,6 +197,10 @@
   font-weight: 800;
   letter-spacing: -0.015em;
   color: var(--hb-ink);
+}
+/* Desktop: every page already shows its own H1, so the bar does not repeat the section name. Mobile keeps it. */
+@media (min-width: 1024px) {
+  .section { display: none; }
 }
 
 .profileWrap { position: relative; }
@@ -258,7 +265,7 @@
   /* Absolutely positioned page content (sr-only headings, visually-hidden inputs) stays
      inside, and scrolls with, the content canvas instead of leaking to the document. */
   position: relative;
-  padding: 1.25rem 1rem;
+  padding: var(--hb-portal-canvas-pad);
   background-color: var(--hb-cloud);
   background-image:
     radial-gradient(ellipse 70% 38% at 0% 0%, rgba(234, 242, 255, 0.9), rgba(234, 242, 255, 0) 70%),
@@ -266,7 +273,6 @@
     linear-gradient(90deg, rgba(6, 66, 179, 0.045) 1px, transparent 1px);
   background-size: auto, 64px 64px, 64px 64px;
 }
-@media (min-width: 1024px) { .content { padding: 2.5rem; } }
 .content:focus { outline: none; }
 /* Quiet, relationship-oriented note for an account Hbee has not connected to a business yet. Not an alert. */
 .readyNote { margin: 0 0 1.25rem; padding: 0.75rem 1rem; border: 1px solid var(--hb-border-soft, rgba(6, 66, 179, 0.14)); border-radius: 0.75rem; background: rgba(234, 242, 255, 0.6); color: var(--hb-slate); font-size: 0.9rem; line-height: 1.5; }
