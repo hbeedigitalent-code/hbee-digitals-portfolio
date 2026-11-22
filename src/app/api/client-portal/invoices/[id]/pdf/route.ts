@@ -6,9 +6,9 @@
 
 import { NextResponse } from 'next/server'
 import { resolvePortalClient } from '@/lib/client-portal/portal-client'
-import { loadInvoiceView, invoicePdfInput } from '@/lib/commerce/documents'
+import { isVoidedInvoiceOfClient, loadInvoiceView, invoicePdfInput } from '@/lib/commerce/documents'
 import { buildInvoicePdf, pdfFileName } from '@/lib/commerce/pdf'
-import { pdfResponse, pdfFailure } from '@/lib/commerce/pdf-response'
+import { pdfResponse, pdfFailure, invoiceUnavailablePage } from '@/lib/commerce/pdf-response'
 import { UUID_RE } from '@/lib/commerce/rpc'
 
 export const dynamic = 'force-dynamic'
@@ -21,7 +21,11 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     const id = typeof params?.id === 'string' ? params.id.trim() : ''
     if (!UUID_RE.test(id)) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     const loaded = await loadInvoiceView(portal.db, id, { clientId: portal.client.id })
-    if (!loaded) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!loaded) {
+      // A voided invoice has no client PDF. This link opens in a new tab, so answer with a small readable page, not JSON.
+      if (await isVoidedInvoiceOfClient(portal.db, id, portal.client.id)) return invoiceUnavailablePage()
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
     const bytes = await buildInvoicePdf(invoicePdfInput(loaded.view, loaded.client))
     return pdfResponse(bytes, pdfFileName('invoice', loaded.view.number))
   } catch (error) {

@@ -1,7 +1,8 @@
 // src/components/client-portal/ProjectRequestForm.tsx
 //
-// Project request form. Validation, copy, success/failure semantics and the redirect to
-// /client-portal/projects are unchanged. Phase 18.8: the three writes (request, Pending Review
+// Project request form. Validation and failure semantics are unchanged. Finalization: after a successful submit the
+// client stays on a confirmation that links to the REQUEST (the thread where Hbee replies, from the returned requestId);
+// there is no timed redirect to Projects. Phase 18.8: the three writes (request, Pending Review
 // project, link) no longer run in the browser under RLS with a browser-supplied client_id — the form
 // sends { title, service, description } to POST /api/client-portal/project-requests, which derives the
 // client from the session and performs the same writes in the same order.
@@ -11,7 +12,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { Check } from 'lucide-react'
 import { REQUEST_SERVICES } from '@/lib/client-portal/project-request'
 import styles from './support.module.css'
@@ -33,10 +33,11 @@ export function ProjectRequestForm({
   onSuccess,
   onCancel
 }: ProjectRequestFormProps) {
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  // The id the server returned for the new request; the confirmation links to its thread.
+  const [requestId, setRequestId] = useState<string | null>(null)
   // Non-blocking notice shown on the success screen when the project was
   // created but could not be linked back to its originating request row.
   const [linkWarning, setLinkWarning] = useState<string | null>(null)
@@ -103,13 +104,9 @@ export function ProjectRequestForm({
         )
       }
 
+      setRequestId(typeof payload.requestId === 'string' && /^[0-9a-f-]{36}$/i.test(payload.requestId) ? payload.requestId : null)
       setSuccess(true)
       if (onSuccess) onSuccess()
-
-      // Redirect after 2 seconds
-      setTimeout(() => {
-        router.push('/client-portal/projects')
-      }, 2000)
 
     } catch (err) {
       console.error('❌ Request error:', err)
@@ -128,13 +125,16 @@ export function ProjectRequestForm({
           </span>
           <h2>Request received</h2>
           <p>
-            Your project has been added to your portal with the status <strong>Pending Review</strong>. Hbee will review it from there.
+            Hbee Digitals has your request and will reply on the request page, where you can follow the conversation. A project
+            record has also been set up for it and appears under Projects as <strong>Pending Review</strong>.
           </p>
           {linkWarning && <p className={styles.warn}>{linkWarning}</p>}
-          <Link href="/client-portal/projects" className={styles.secondary}>
-            Go to your projects
+          <Link href={requestId ? `/client-portal/requests/${requestId}` : '/client-portal/requests'} className={styles.primary}>
+            {requestId ? 'View your request' : 'Go to your requests'}
           </Link>
-          <p className={styles.hint}>Taking you to your projects…</p>
+          <Link href="/client-portal/projects" className={styles.secondary}>
+            See your projects
+          </Link>
         </div>
       </div>
     )

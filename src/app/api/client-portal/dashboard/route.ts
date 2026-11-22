@@ -21,6 +21,7 @@
 
 import { NextResponse } from 'next/server'
 import { resolvePortalClient } from '@/lib/client-portal/portal-client'
+import { CLIENT_VISIBLE_PROPOSAL_STATUSES } from '@/lib/commerce/documents'
 import { normalizeRequestStatus } from '@/lib/requests/request-status'
 import { CLIENT_VISIBLE_DELIVERABLE_STATUSES } from '@/lib/projects/operations-validation'
 import { GET as getGrowthProfile } from '../growth-profile/route'
@@ -42,8 +43,9 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-// Same visibility set as /api/client-portal/proposals.
-const CLIENT_VISIBLE_STATUSES = ['sent', 'viewed', 'approved', 'changes_requested']
+// The SAME visibility set as /api/client-portal/proposals (one definition, in commerce/documents.ts). The dashboard only acts on
+// the ones awaiting a response (sent / viewed, not expired — isAwaitingResponse); the rest are read but never surfaced as work.
+const CLIENT_VISIBLE_STATUSES = CLIENT_VISIBLE_PROPOSAL_STATUSES
 
 
 /** Growth Profile via the existing route, so its release gate is the only gate. */

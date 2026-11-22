@@ -80,10 +80,11 @@ export async function middleware(request: NextRequest) {
     },
   })
 
-  const redirect = (to: string) => {
+  const redirect = (to: string, params?: Record<string, string>) => {
     const url = request.nextUrl.clone()
     url.pathname = to
     url.search = ''
+    for (const [key, value] of Object.entries(params ?? {})) url.searchParams.set(key, value)
     return NextResponse.redirect(url)
   }
 
@@ -94,8 +95,9 @@ export async function middleware(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser()
 
-    // Layer 1 — must be authenticated.
-    if (!user) return redirect(loginPath)
+    // Layer 1 — must be authenticated. A portal client is sent back to sign in, and the login page returns them to the page
+    // they asked for. Only the PATHNAME travels (never the query string) and the login page re-validates it (portal-session.ts).
+    if (!user) return redirect(loginPath, isPortalArea ? { next: pathname } : undefined)
 
     // Layer 2 — must hold the right role, resolved via the existing tables.
     if (isAdminArea) {
@@ -137,7 +139,9 @@ export async function middleware(request: NextRequest) {
         .eq('user_id', user.id)
         .maybeSingle()
 
-      if (!error && !data) return redirect('/client-login')
+      // Signed in but no client profile. The login page recovers this (one idempotent provisioning attempt, then Retry / Sign
+      // out / Contact) instead of showing a bare login form that would send them straight back here.
+      if (!error && !data) return redirect('/client-login', { account: 'no-profile', next: pathname })
 
       // S6.2 — page-level suspension. The Portal stays open to ANY confirmed account with one clients row,
       // connected to a merchant or not; this is only the suspended case. It is a second, separate read so that a

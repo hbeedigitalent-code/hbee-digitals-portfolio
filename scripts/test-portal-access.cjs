@@ -327,7 +327,7 @@ const ALL_PORTAL = [
   ['client-portal/proposals/[id]/approve', 'POST', { id: PROP_A }], ['client-portal/proposals/[id]/request-changes', 'POST', { id: PROP_A }, { reason: 'please change the scope' }],
   ['client-portal/proposals/[id]/viewed', 'POST', { id: PROP_A }], ['client-portal/proposals/[id]/files', 'GET', { id: PROP_A }],
   ['client-portal/requests', 'GET'], ['client-portal/invoices', 'GET'], ['client-portal/growth-profile', 'GET'],
-  ['client-portal/settings', 'GET'], ['client-portal/settings', 'PATCH', {}, { full_name: 'Renamed' }],
+  ['client-portal/settings', 'GET'], ['client-portal/settings', 'PATCH', {}, { whatsapp: '+1 234 567 8900' }],
   ['client-portal/project-requests', 'POST', {}, REQ_BODY],
   ['uploads/initiate', 'POST', {}, UPLOAD_BODY],
 ]
@@ -365,9 +365,10 @@ const ALL_PORTAL = [
       const r = await call(rel, method, { params, body })
       assert.equal(r.status, 200, rel + ' should open for an unconnected account, got ' + r.status + ' ' + JSON.stringify(r.json))
     }
-    const settings = await call('client-portal/settings', 'PATCH', { body: { full_name: 'Nina Renamed' } })
+    // Finalization: name and business are managed by Hbee (identity is printed on invoices/proposals); the other profile fields stay editable.
+    const settings = await call('client-portal/settings', 'PATCH', { body: { whatsapp: '+1 234 567 8900' } })
     assert.equal(settings.status, 200, 'profile/settings write is allowed while unconnected')
-    assert.equal(state.tables.clients.find((c) => c.id === CLIENT_NEW).full_name, 'Nina Renamed')
+    assert.equal(state.tables.clients.find((c) => c.id === CLIENT_NEW).whatsapp, '+1 234 567 8900')
   })
 
   await test('A4 /me reports connected:false and no approval wording is returned', async () => {
@@ -641,7 +642,7 @@ const ALL_PORTAL = [
     assert.equal(count('project_requests'), before.pr)
     assert.equal(count('projects'), before.pj)
     assert.equal(count('upload_sessions'), before.sess)
-    assert.equal(state.tables.clients.find((c) => c.id === CLIENT_A).full_name, 'Alice A', 'settings PATCH did not apply')
+    assert.ok(!state.tables.clients.find((c) => c.id === CLIENT_A).whatsapp, 'settings PATCH did not apply')
   })
 
   await test('E2 suspension is case-insensitive and suspended + unconnected still reads as suspended', async () => {
@@ -692,10 +693,18 @@ const ALL_PORTAL = [
     state.middlewareStatusError = true
     assert.equal((await hit('/client-portal')).next, true, 'a status read error falls through; the APIs still refuse')
     state.middlewareStatusError = false
+    // Finalization: signed in but no client row → the login page's recovery path (account=no-profile), not a bare login form
+    // that would bounce straight back; not signed in → login remembering the page. Only the PATHNAME travels.
     state.user = sess(uuid())
-    assert.match((await hit('/client-portal')).location, /\/client-login$/)
+    const noRow = new URL((await hit('/client-portal/invoices')).location)
+    assert.equal(noRow.pathname, '/client-login')
+    assert.equal(noRow.searchParams.get('account'), 'no-profile')
+    assert.equal(noRow.searchParams.get('next'), '/client-portal/invoices')
     state.user = null
-    assert.match((await hit('/client-portal')).location, /\/client-login$/)
+    const noSession = new URL((await hit('/client-portal/requests?secret=1#x')).location)
+    assert.equal(noSession.pathname, '/client-login')
+    assert.equal(noSession.searchParams.get('next'), '/client-portal/requests', 'pathname only: no query string or fragment is carried')
+    assert.equal(noSession.searchParams.get('account'), null)
   })
 
   // ── Request flow ─────────────────────────────────────────────────────────
@@ -915,6 +924,178 @@ const ALL_PORTAL = [
     for (const f of ['src/lib/client-portal/portal-client.ts', 'src/app/api/admin/clients/[client_id]/create-business/route.ts']) {
       for (const n of diffNames) assert.ok(!read(f).includes(n), f + ' mentions ' + n)
     }
+  })
+
+  // ── Finalization, Batch 1 ────────────────────────────────────────────────
+  console.log('\nFinalization: integrity and recovery')
+
+  await test('Z1 identity is not client-editable: a CHANGE to name or business is refused (403) and nothing is written; an unchanged value is tolerated', async () => {
+    resetState(); db = makeDb(); cache.clear(); as(USER_A)
+    const before = JSON.stringify(state.tables.clients.find((c) => c.id === CLIENT_A))
+    for (const body of [{ full_name: 'Someone Else' }, { business_name: 'Renamed Co' }, { full_name: 'Alice A', business_name: 'Hacked' }, { whatsapp: '+1 234 567 8900', business_name: 'Renamed Co' }]) {
+      const r = await call('client-portal/settings', 'PATCH', { body })
+      assert.equal(r.status, 403, JSON.stringify(body)); assert.equal(r.json.code, 'identity_locked'); assert.match(r.json.error, /only be changed by Hbee Digitals/)
+    }
+    assert.equal(JSON.stringify(state.tables.clients.find((c) => c.id === CLIENT_A)), before, 'a refused change wrote nothing — not even the other field in the same request')
+    // a stale tab re-sending what is stored is not a change; the rest of the request still applies
+    const ok = await call('client-portal/settings', 'PATCH', { body: { full_name: ' Alice A ', business_name: 'A Co', whatsapp: '+1 234 567 8900', country: 'Nigeria' } })
+    assert.equal(ok.status, 200)
+    const row = state.tables.clients.find((c) => c.id === CLIENT_A)
+    assert.equal(row.full_name, 'Alice A'); assert.equal(row.business_name, 'A Co'); assert.equal(row.whatsapp, '+1 234 567 8900'); assert.equal(row.country, 'Nigeria')
+    // the same applies to an unconnected account, and another client's row is never touched
+    as(USER_NEW); assert.equal((await call('client-portal/settings', 'PATCH', { body: { business_name: 'Mine now' } })).status, 403)
+    assert.equal(state.tables.clients.find((c) => c.id === CLIENT_B).business_name, 'B Co')
+    // defence in depth: the validator itself no longer knows these fields
+    const sd = load('src/lib/client-portal/support-display.ts')
+    assert.equal(sd.validateSettingsPatch({ full_name: 'X', business_name: 'Y' }).ok, false, 'nothing left to update')
+    assert.deepEqual({ ...sd.validateSettingsPatch({ full_name: 'X', whatsapp: '+1 234 567 8900' }).patch }, { whatsapp: '+1 234 567 8900' })
+  })
+
+  await test('Z2 the Settings page shows name and business read-only, never sends them, and offers the existing password-reset flow', () => {
+    const page = read('src/app/client-portal/settings/page.tsx')
+    assert.match(page, /id="settings-full-name"[^>]*disabled readOnly/); assert.match(page, /id="settings-business-name"[^>]*disabled readOnly/)
+    assert.match(page, /Contact Hbee Digitals<\/Link> if these details need to be changed\./)
+    const submit = page.slice(page.indexOf('async function handleSubmit'), page.indexOf('async function sendPasswordReset'))
+    assert.doesNotMatch(submit, /full_name|business_name/, 'the form never sends identity')
+    assert.match(page, /resetPasswordForEmail\(profile\.email, \{ redirectTo: `\$\{siteUrl\}\/client-reset-password` \}\)/)
+    assert.match(page, /Change password/); assert.doesNotMatch(page, /updateUser|signInWithPassword/, 'no password is handled on this page')
+  })
+
+  await test('Z3 the dashboard reads the canonical proposal visibility set and still surfaces only a proposal awaiting a response', async () => {
+    resetState(); db = makeDb(); cache.clear(); as(USER_A)
+    const docs = load('src/lib/commerce/documents.ts')
+    assert.deepEqual([...docs.CLIENT_VISIBLE_PROPOSAL_STATUSES].sort(), ['approved', 'changes_requested', 'converted', 'declined', 'expired', 'rejected', 'sent', 'viewed'])
+    const src = stripComments(read('src/app/api/client-portal/dashboard/route.ts'))
+    assert.match(src, /CLIENT_VISIBLE_STATUSES = CLIENT_VISIBLE_PROPOSAL_STATUSES/); assert.doesNotMatch(src, /\['sent', 'viewed', 'approved', 'changes_requested'\]/)
+    for (const [i, status] of ['declined', 'expired', 'rejected', 'converted'].entries()) {
+      state.tables.proposals.push({ id: 'aaaaaaaa-2222-4000-8000-00000000009' + i, client_id: CLIENT_A, merchant_id: MERCHANT_A, status, title: 'Old ' + status, proposal_number: 'PROP-OLD' + i, sent_at: '2026-01-01T00:00:00Z' })
+    }
+    const r = await call('client-portal/dashboard', 'GET'); assert.equal(r.status, 200)
+    assert.equal(r.json.proposal.id, PROP_A, 'the sent proposal is the one surfaced')
+    assert.ok(!JSON.stringify(r.json.attention).match(/Old (declined|expired|rejected|converted)/), 'closed proposals are never presented as work')
+  })
+
+  await test('Z4 login destinations: only a validated portal PATHNAME is ever returned to; everything else lands on the portal', () => {
+    const ps = load('src/lib/client-portal/portal-session.ts')
+    assert.equal(ps.postLoginDestination('/client-portal/invoices/abc'), '/client-portal/invoices/abc')
+    assert.equal(ps.postLoginDestination('/portal-invitation'), '/portal-invitation')
+    assert.equal(ps.postLoginDestination('/client-portal/requests?x=1#y'), '/client-portal/requests', 'query and fragment are dropped')
+    for (const bad of [undefined, null, '', 'https://evil.example/client-portal', '//evil.example', '/\\evil.example', '/client-portal/../admin', '/client-portal/%2e%2e/admin', '/admin', '/client-login', '/client-confirmation', 'javascript:alert(1)', '/client-portalx', '/client-portal\n/x']) {
+      assert.equal(ps.postLoginDestination(bad), '/client-portal', 'unsafe next must not be followed: ' + String(bad))
+    }
+    assert.equal(ps.loginUrlFor('/client-portal/projects/p1'), '/client-login?next=%2Fclient-portal%2Fprojects%2Fp1')
+    assert.equal(ps.loginUrlFor('/client-portal'), '/client-login'); assert.equal(ps.loginUrlFor('/admin'), '/client-login'); assert.equal(ps.loginUrlFor('https://evil.example'), '/client-login')
+  })
+
+  await test('Z5 provisioning recovery is attempted ONCE per user per session; only an explicit retry repeats it; unusable storage never loops', async () => {
+    const rec = load('src/lib/client-portal/account-recovery.ts')
+    const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), m } }
+    let calls = 0, ok = true
+    const fetchFn = async (url, init) => { calls++; assert.equal(url, '/api/account/provision'); assert.equal(init.method, 'POST'); assert.equal(init.body, undefined, 'no body: the caller names nothing'); return { ok } }
+    const storage = mem()
+    assert.equal(await rec.attemptProvisionOnce('u1', {}, { fetchFn, storage }), 'recovered'); assert.equal(calls, 1)
+    assert.equal(await rec.attemptProvisionOnce('u1', {}, { fetchFn, storage }), 'skipped', 'a second automatic attempt is refused'); assert.equal(calls, 1)
+    assert.equal(await rec.attemptProvisionOnce('u2', {}, { fetchFn, storage }), 'recovered', 'another user is independent'); assert.equal(calls, 2)
+    ok = false; assert.equal(await rec.attemptProvisionOnce('u1', { force: true }, { fetchFn, storage }), 'failed', 'the Try again button repeats it'); assert.equal(calls, 3)
+    // the marker is written BEFORE the request, so a crash mid-flight cannot retry on reload
+    const s2 = mem()
+    assert.equal(await rec.attemptProvisionOnce('u3', {}, { fetchFn: async () => { throw new Error('boom') }, storage: s2 }), 'failed', 'a network failure is a failed attempt, never a throw')
+    assert.equal(await rec.attemptProvisionOnce('u3', {}, { fetchFn, storage: s2 }), 'skipped', 'and it is not retried automatically')
+    // storage that cannot be written cannot enforce "once": no automatic attempt at all
+    const n = calls
+    assert.equal(await rec.attemptProvisionOnce('u4', {}, { fetchFn, storage: null }), 'skipped')
+    assert.equal(await rec.attemptProvisionOnce('u4', {}, { fetchFn, storage: { getItem() { throw new Error('blocked') }, setItem() { throw new Error('blocked') } } }), 'skipped'); assert.equal(calls, n)
+    assert.equal(await rec.attemptProvisionOnce('', {}, { fetchFn, storage }), 'skipped')
+  })
+
+  await test('Z6 the 401 guard sends an expired session to login (remembering the page) for portal APIs only, once, and restores fetch on cleanup', async () => {
+    const g = load('src/lib/client-portal/portal-session-guard.ts')
+    const assigned = []
+    const mk = (status, pathname = '/client-portal/invoices') => {
+      const win = { location: { origin: 'https://site.test', pathname, assign: (u) => assigned.push(u) } }
+      win.fetch = async () => ({ status })
+      return win
+    }
+    // portal API 401 → login, with the current page remembered
+    let win = mk(401); const original = win.fetch; const off = g.installPortalSessionGuard(win)
+    assert.notEqual(win.fetch, original)
+    const res = await win.fetch('/api/client-portal/invoices'); assert.equal(res.status, 401, 'the response is passed through')
+    assert.deepEqual(assigned, ['/client-login?next=%2Fclient-portal%2Finvoices'])
+    await win.fetch('/api/client-portal/requests'); assert.equal(assigned.length, 1, 'redirects once, not per request')
+    off(); assert.equal(win.fetch, original, 'cleanup restores fetch')
+    // other responses and non-portal URLs are untouched
+    for (const [status, url] of [[200, '/api/client-portal/me'], [403, '/api/client-portal/me'], [500, '/api/client-portal/me'], [401, '/api/other'], [401, 'https://evil.example/api/client-portal/x'], [401, '/api/uploads/finalize']]) {
+      const w = mk(status); const before = assigned.length; g.installPortalSessionGuard(w); await w.fetch(url); assert.equal(assigned.length, before, status + ' ' + url)
+    }
+    assert.equal(g.isPortalApiRequest('/api/client-portal/me', 'https://site.test'), true); assert.equal(g.isPortalApiRequest('/api/account/provision', 'https://site.test'), false)
+  })
+
+  await test('Z7 friendly sign-in and reset messages: the raw Supabase wording is never shown, and bad credentials do not reveal whether an account exists', () => {
+    const m = load('src/lib/client-portal/auth-messages.ts')
+    const cases = [
+      [{ message: 'Invalid login credentials', status: 400, code: 'invalid_credentials' }, m.LOGIN_MESSAGES.credentials],
+      [{ message: 'Email not confirmed', code: 'email_not_confirmed' }, m.LOGIN_MESSAGES.unconfirmed],
+      [{ message: 'Email rate limit exceeded', status: 429 }, m.LOGIN_MESSAGES.rateLimited],
+      [{ message: 'For security purposes, you can only request this after 20 seconds', status: 429, code: 'over_request_rate_limit' }, m.LOGIN_MESSAGES.rateLimited],
+      [new TypeError('Failed to fetch'), m.LOGIN_MESSAGES.network],
+      [{ message: 'AuthRetryableFetchError: fetch failed' }, m.LOGIN_MESSAGES.network],
+      [{ message: 'JWT expired weird internal 0xDEAD' }, m.LOGIN_MESSAGES.generic], [null, m.LOGIN_MESSAGES.generic], ['x', m.LOGIN_MESSAGES.generic],
+    ]
+    for (const [err, want] of cases) {
+      const got = m.friendlyLoginError(err); assert.equal(got, want)
+      assert.ok(!/AuthApiError|AuthRetryable|JWT|0xDEAD|Invalid login credentials|rate limit exceeded/i.test(got), 'raw text leaked: ' + got)
+    }
+    assert.equal(m.friendlyResetError({ status: 429 }), m.RESET_MESSAGES.rateLimited); assert.equal(m.friendlyResetError(new TypeError('Failed to fetch')), m.RESET_MESSAGES.network)
+    assert.equal(m.friendlyResetError({ message: 'User not found' }), m.RESET_MESSAGES.generic)
+    const login = read('src/app/(client-auth)/client-login/page.tsx')
+    assert.doesNotMatch(stripComments(login), /err\.message|setError\(err instanceof Error/, 'the page never prints a raw error'); assert.match(login, /friendlyLoginError\(err\)/); assert.match(login, /friendlyResetError\(err\)/)
+  })
+
+  await test('Z8 stranded-account wiring: the middleware sends a profile-less user to the recovery path (no loop), the gate and login page recover once and always offer Try again / Contact / Sign out', () => {
+    const mw = stripComments(read('src/middleware.ts'))
+    assert.match(mw, /redirect\('\/client-login', \{ account: 'no-profile', next: pathname \}\)/); assert.match(mw, /redirect\(loginPath, isPortalArea \? \{ next: pathname \} : undefined\)/)
+    const gate = stripComments(read('src/components/client-portal/PortalAuthGate.tsx'))
+    assert.match(gate, /attemptProvisionOnce\(user\.id, \{ force: opts\.forceProvision \}\)/); assert.match(gate, /installPortalSessionGuard\(\)/)
+    for (const label of ['Try again', 'Contact Hbee Digitals', 'Sign out']) assert.ok(gate.includes(label), 'gate offers: ' + label)
+    assert.equal((gate.match(/attemptProvisionOnce\(/g) || []).length, 1, 'exactly one provisioning call site in the gate: no recursion, no loop')
+    const login = stripComments(read('src/app/(client-auth)/client-login/page.tsx'))
+    assert.match(login, /searchParams\.get\('account'\) !== 'no-profile'/); assert.match(login, /attemptProvisionOnce\(user\.id\)/); assert.match(login, /\{ force: true \}/)
+    for (const label of ['Try again', 'Contact Hbee Digitals', 'Sign out']) assert.ok(login.includes(label), 'login recovery offers: ' + label)
+    const route = stripComments(read('src/app/api/account/provision/route.ts'))
+    assert.doesNotMatch(route, /request\.json|body/, 'the provisioning endpoint reads no body, so the recovery names nothing')
+  })
+
+  await test('Z10 an Admin account is NEVER provisioned as a client (endpoint and function); a normal client still self-recovers; a failed admin lookup refuses', async () => {
+    resetState(); db = makeDb(); cache.clear()
+    state.tables.admin_users = [{ user_id: ADMIN, is_active: true }, { user_id: 'dddddddd-0000-4000-8000-00000000000d', is_active: false }]
+    const clientsBefore = count('clients'), merchantsBefore = count('merchants')
+    // an active admin opening the recovery path
+    as(ADMIN, { email: 'boss@hbee.test' })
+    const a = await call('account/provision', 'POST'); assert.equal(a.status, 403); assert.equal(a.json.code, 'admin_account'); assert.match(a.json.error, /administrator/)
+    // a deactivated admin is still an admin account
+    as('dddddddd-0000-4000-8000-00000000000d'); assert.equal((await call('account/provision', 'POST')).status, 403)
+    assert.equal(count('clients'), clientsBefore, 'no clients row created for an admin'); assert.equal(count('merchants'), merchantsBefore, 'no merchants row created for an admin')
+    // the function itself refuses too (the confirmation path calls it directly)
+    const prov = load('src/lib/provision-account.ts')
+    const direct = await prov.provisionAccount({ id: ADMIN, email: 'boss@hbee.test', email_confirmed_at: '2026-01-01', user_metadata: {} })
+    assert.equal(direct.ok, false); assert.equal(direct.reason, 'admin_account'); assert.equal(count('clients'), clientsBefore)
+    // a failed admin lookup refuses (fail closed) and creates nothing
+    const fresh = uuid(); state.failures['admin_users:select'] = 'XX000'; as(fresh, { email: 'fresh@x.test' })
+    assert.equal((await call('account/provision', 'POST')).status, 500); assert.equal(count('clients'), clientsBefore)
+    delete state.failures['admin_users:select']
+    // normal client self-recovery is unchanged: created once, then idempotent
+    const first = await call('account/provision', 'POST'); assert.equal(first.status, 200); assert.equal(first.json.client, 'created'); assert.equal(count('clients'), clientsBefore + 1)
+    const again = await call('account/provision', 'POST'); assert.equal(again.status, 200); assert.equal(again.json.client, 'existing'); assert.equal(count('clients'), clientsBefore + 1)
+  })
+
+  await test('Z9 request submit: stays on a confirmation that links to the request thread; no timed redirect to Projects; the wording no longer says the project was "added"', async () => {
+    resetState(); db = makeDb(); cache.clear(); as(USER_A)
+    const r = await call('client-portal/project-requests', 'POST', { body: REQ_BODY }); assert.equal(r.status, 200); assert.match(r.json.requestId, /^[0-9a-f-]{36}$/)
+    const form = read('src/components/client-portal/ProjectRequestForm.tsx'); const code = stripComments(form)
+    assert.doesNotMatch(code, /setTimeout|router\.push|useRouter/, 'no automatic redirect')
+    assert.match(code, /payload\.requestId/); assert.match(code, /\/client-portal\/requests\/\$\{requestId\}/); assert.match(code, /View your request/)
+    assert.doesNotMatch(form, /Your project has been added|Taking you to your projects/)
+    assert.match(form, /will reply on the request page/); assert.match(form, /Pending Review/)
   })
 
   console.log('\n' + passed + ' passed, ' + failures.length + ' failed')

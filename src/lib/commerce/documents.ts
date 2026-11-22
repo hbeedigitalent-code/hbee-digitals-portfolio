@@ -21,7 +21,9 @@ if (typeof window !== 'undefined') {
 }
 
 export const CLIENT_VISIBLE_PROPOSAL_STATUSES = ['sent', 'viewed', 'approved', 'changes_requested', 'declined', 'rejected', 'converted', 'expired']
-export const CLIENT_VISIBLE_INVOICE_STATUSES = ['issued', 'partially_paid', 'paid', 'void']
+// A VOIDED invoice is never shown to a client: it is not listed, its detail and PDF are refused, and it can never read as money
+// owed. Admin keeps the full history (loadInvoiceView with the admin scope does not use this list).
+export const CLIENT_VISIBLE_INVOICE_STATUSES = ['issued', 'partially_paid', 'paid']
 
 const PROPOSAL_COLUMNS =
   'id, proposal_number, title, status, client_id, merchant_id, currency, subtotal, discount_amount, total, version, approved_version, converted_to_project_id, ' +
@@ -210,6 +212,18 @@ export interface InvoiceView {
   proposalId: string | null
   proposalNumber: string | null
   clientId: string | null
+}
+
+/**
+ * True only when the invoice exists, is VOIDED, and belongs (through its project) to this client. Used by the client detail and
+ * PDF routes to answer an old direct link with a clear "no longer available" instead of a bare "not found". It reveals nothing
+ * about another client's invoices: a foreign, missing or non-void invoice is false and keeps the ordinary 404.
+ */
+export async function isVoidedInvoiceOfClient(db: any, invoiceId: string, clientId: string): Promise<boolean> {
+  const { data: inv, error } = await db.from('project_invoices').select('status, project_id').eq('id', invoiceId).maybeSingle()
+  if (error || !inv || String(inv.status) !== 'void') return false
+  const { data: project } = await db.from('projects').select('client_id').eq('id', inv.project_id).maybeSingle()
+  return !!project && project.client_id === clientId
 }
 
 export async function loadInvoiceView(

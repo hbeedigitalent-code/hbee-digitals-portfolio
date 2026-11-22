@@ -7,10 +7,12 @@
 
 import { NextResponse } from 'next/server'
 import { resolvePortalClient } from '@/lib/client-portal/portal-client'
-import { loadInvoiceView } from '@/lib/commerce/documents'
+import { isVoidedInvoiceOfClient, loadInvoiceView } from '@/lib/commerce/documents'
 import { UUID_RE } from '@/lib/commerce/rpc'
 
 export const dynamic = 'force-dynamic'
+
+const INVOICE_UNAVAILABLE_BODY = { state: 'unavailable', code: 'invoice_unavailable', error: 'This invoice is no longer available.' } as const
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   try {
@@ -19,7 +21,12 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     const id = typeof params?.id === 'string' ? params.id.trim() : ''
     if (!UUID_RE.test(id)) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     const loaded = await loadInvoiceView(portal.db, id, { clientId: portal.client.id })
-    if (!loaded) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!loaded) {
+      // A voided invoice is not shown to clients. An old direct link (an email, a bookmark, a notification) gets a clear message
+      // rather than a bare not-found. Only the owner can learn this; anything else stays the same 404.
+      if (await isVoidedInvoiceOfClient(portal.db, id, portal.client.id)) return NextResponse.json(INVOICE_UNAVAILABLE_BODY, { status: 410 })
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
     const { clientId: _c, proposalId: _p, ...safe } = loaded.view
     return NextResponse.json({ invoice: safe })
   } catch (error) {

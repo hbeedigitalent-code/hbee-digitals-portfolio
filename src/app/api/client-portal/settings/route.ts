@@ -6,8 +6,9 @@
 // Replaces the browser-side clients.select('*') and clients.update(...) under RLS. Scope comes from
 // the session alone: auth.uid() -> clients row -> clients.id; the update is `.eq('id', <that id>)`,
 // never a user id or client id from the body. The request cannot name a column to write: the body
-// is validated into a fixed set (name, business, WhatsApp, website, country, and the three
-// notification preferences) and everything else is ignored. The avatar URL, when supplied, must be
+// is validated into a fixed set (WhatsApp, website, country, and the three notification
+// preferences) and everything else is ignored. Name and business are NOT client-editable: they
+// are printed on invoices and proposals, so a change is refused (403 identity_locked). The avatar URL, when supplied, must be
 // one of THIS user's own uploads in the client-portal bucket. Email is never writable.
 //
 // The avatar bucket (client-portal/profile-images) is PUBLIC today — recorded for the final
@@ -15,7 +16,7 @@
 
 import { NextResponse } from 'next/server'
 import { resolvePortalClient } from '@/lib/client-portal/portal-client'
-import { isOwnAvatarUrl, validateSettingsPatch } from '@/lib/client-portal/support-display'
+import { IDENTITY_FIELDS, IDENTITY_LOCKED_MESSAGE, identityChangeAttempted, isOwnAvatarUrl, validateSettingsPatch } from '@/lib/client-portal/support-display'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,6 +72,13 @@ export async function PATCH(request: Request) {
     const body: any = await request.json().catch(() => null)
     const update: Record<string, unknown> = {}
 
+    // IDENTITY IS NOT CLIENT-EDITABLE. Name and business are printed on invoices and proposals from the live client record, so
+    // a client changing them would rewrite issued documents. An attempt to CHANGE either is refused; an unchanged value (a stale
+    // tab re-sending what is stored) is simply ignored. Neither key can reach the update below.
+    if (identityChangeAttempted(body, r.row)) {
+      return NextResponse.json({ error: IDENTITY_LOCKED_MESSAGE, code: 'identity_locked' }, { status: 403 })
+    }
+
     // Avatar: only the caller's own uploaded object may become their profile image.
     if (body && typeof body === 'object' && body.profile_image !== undefined) {
       if (!isOwnAvatarUrl(body.profile_image, r.user.id, process.env.NEXT_PUBLIC_SUPABASE_URL)) {
@@ -79,7 +87,9 @@ export async function PATCH(request: Request) {
       update.profile_image = body.profile_image
     }
 
-    const { profile_image: _ignored, ...rest } = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>
+    const { profile_image: _ignored, ...withIdentity } = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>
+    const rest = { ...withIdentity }
+    for (const key of IDENTITY_FIELDS) delete rest[key]
     if (Object.keys(rest).length > 0 || Object.keys(update).length === 0) {
       const v = validateSettingsPatch(rest)
       if (!v.ok) return NextResponse.json({ error: v.error }, { status: 400 })

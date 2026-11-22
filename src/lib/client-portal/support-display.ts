@@ -57,9 +57,22 @@ export const safeNotificationLink = safePortalLink
 
 // ── Settings validation ─────────────────────────────────────────────
 
+/**
+ * Identity fields. They are printed on invoices ("Bill to") and proposals ("Prepared for") from the live client record, so a
+ * client may NOT change them: they are managed by Hbee Digitals. The settings update never writes them.
+ */
+export const IDENTITY_FIELDS = ['full_name', 'business_name'] as const
+export const IDENTITY_LOCKED_MESSAGE = 'Your name and business details can only be changed by Hbee Digitals. Please contact us if they need updating.'
+
+/** True when `body` tries to CHANGE an identity field. An unchanged value (a stale browser tab re-sending what is stored) is not a change. */
+export function identityChangeAttempted(body: unknown, stored: Record<string, unknown>): boolean {
+  if (!body || typeof body !== 'object') return false
+  const b = body as Record<string, unknown>
+  const norm = (v: unknown) => (typeof v === 'string' ? v.trim() : v == null ? '' : String(v).trim())
+  return IDENTITY_FIELDS.some((key) => b[key] !== undefined && norm(b[key]) !== norm(stored[key]))
+}
+
 export interface SettingsPatch {
-  full_name?: string
-  business_name?: string
   whatsapp?: string
   website_url?: string
   country?: string
@@ -68,7 +81,7 @@ export interface SettingsPatch {
   marketing_emails?: boolean
 }
 
-const TEXT_LIMITS = { full_name: 120, business_name: 160, whatsapp: 40, website_url: 300, country: 80 } as const
+const TEXT_LIMITS = { whatsapp: 40, website_url: 300, country: 80 } as const
 const PHONE_RE = /^[0-9+()\-\s.]*$/
 
 /** Add https:// when a website was typed without a scheme; validate it; '' stays '' (cleared). */
@@ -99,7 +112,8 @@ export function validateSettingsPatch(
   const b = body as Record<string, unknown>
   const patch: SettingsPatch = {}
 
-  for (const key of ['full_name', 'business_name', 'whatsapp', 'country'] as const) {
+  // full_name / business_name are deliberately NOT here: identity is managed by Hbee Digitals (see IDENTITY_FIELDS).
+  for (const key of ['whatsapp', 'country'] as const) {
     if (b[key] === undefined) continue
     if (typeof b[key] !== 'string') return { ok: false, error: 'Invalid request.' }
     const v = (b[key] as string).trim()

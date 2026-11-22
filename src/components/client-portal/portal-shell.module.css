@@ -313,7 +313,9 @@
 
 /* ── Gate states (auth check / no client) ────────────────────── */
 .centered { display: grid; min-height: 100vh; min-height: 100dvh; place-items: center; padding: 1rem; background: var(--hb-cloud); text-align: center; }
-.centeredAction { margin-top: 1rem; padding: 0.6rem 1.25rem; border: 1px solid var(--hb-blue); border-radius: 999px; background: transparent; color: var(--hb-blue); font: inherit; cursor: pointer; }
+.centeredAction { display: inline-block; padding: 0.6rem 1.25rem; border: 1px solid var(--hb-blue); border-radius: 999px; background: transparent; color: var(--hb-blue); font: inherit; text-decoration: none; cursor: pointer; }
+.centeredAction:disabled { opacity: 0.6; cursor: default; }
+.centeredActions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-top: 1rem; }
 .centeredText { max-width: 28rem; font-size: 1rem; color: var(--hb-slate); }
 .spinner { width: 2.5rem; height: 2.5rem; border: 2px solid var(--hb-blue); border-top-color: transparent; border-radius: 50%; }
 @keyframes portalSpin { to { transform: rotate(360deg); } }

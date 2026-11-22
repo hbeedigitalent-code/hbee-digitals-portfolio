@@ -983,6 +983,40 @@ const ALL_PORTAL = [
     for (const rel of ['client-portal/invoices', 'client-portal/proposals']) assert.equal((await call(rel, 'GET')).json.code, 'account_suspended', rel)
   })
 
+  await test('G4 a VOIDED invoice is hidden from the client (list, detail, PDF) with a clear message for an old link, never leaks to another client, and stays in Admin', async () => {
+    setup(); const { iid } = await issuedFor(); const number = state.tables.project_invoices[0].invoice_number
+    assert.equal((await call('admin/invoices/[id]/void', 'POST', { params: { id: iid }, body: { reason: SECRET_NOTE } })).status, 200)
+    assert.equal(state.tables.project_invoices[0].status, 'void')
+
+    asClient()
+    const list = await call('client-portal/invoices', 'GET'); assert.equal(list.status, 200)
+    assert.deepEqual(list.json.invoices, [], 'a voided invoice is not listed, so it can never read as money owed')
+    const detail = await call('client-portal/invoices/[id]', 'GET', { params: { id: iid } })
+    assert.equal(detail.status, 410); assert.equal(detail.json.state, 'unavailable'); assert.equal(detail.json.code, 'invoice_unavailable')
+    assert.match(detail.json.error, /no longer available/); assert.ok(!('invoice' in detail.json), 'no invoice data comes with the message')
+    const pdf = await call('client-portal/invoices/[id]/pdf', 'GET', { params: { id: iid } })
+    assert.equal(pdf.status, 410); assert.match(pdf.headers.get('content-type') || '', /text\/html/)
+    const page = await pdf.res.text(); assert.match(page, /no longer available/); assert.ok(!page.includes(number) && !page.includes(SECRET_NOTE), 'the page says nothing about the invoice')
+
+    // another client learns nothing: the same 404 as an invoice that does not exist
+    asClient(USER_B)
+    assert.equal((await call('client-portal/invoices/[id]', 'GET', { params: { id: iid } })).status, 404)
+    assert.equal((await call('client-portal/invoices/[id]/pdf', 'GET', { params: { id: iid } })).status, 404)
+    assert.equal((await call('client-portal/invoices/[id]', 'GET', { params: { id: '00000000-0000-4000-8000-000000000000' } })).status, 404)
+
+    // Admin keeps the full history: the voided invoice is still readable and printable there
+    state.admin = true
+    const adminView = await call('admin/invoices/[id]', 'GET', { params: { id: iid } }); assert.equal(adminView.status, 200)
+    assert.equal((await call('admin/invoices/[id]/pdf', 'GET', { params: { id: iid } })).status, 200)
+    assert.ok(state.tables.project_invoices.some((i) => i.id === iid && i.status === 'void'), 'the row is kept')
+  })
+  await test('G5 the client invoice screens handle a withdrawn invoice: a friendly message on a 410, no void branch left to show a balance', () => {
+    const page = read('src/app/client-portal/invoices/[id]/page.tsx')
+    assert.match(page, /status === 410/); assert.match(page, /This invoice is no longer available/); assert.match(page, /\/contact/)
+    assert.doesNotMatch(stripComments(page), /status === 'void'/, 'the dead void branch is gone')
+    assert.deepEqual([...load('src/lib/commerce/documents.ts').CLIENT_VISIBLE_INVOICE_STATUSES], ['issued', 'partially_paid', 'paid'])
+  })
+
   console.log('\nH. PDFs')
   await test('H1 the proposal PDF is generated from the server record: number, version, currency and total are printed; internal notes are not', async () => {
     setup(); const id = await sentProposal(); asClient()

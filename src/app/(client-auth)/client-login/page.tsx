@@ -5,13 +5,23 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClientComponentClient } from '@/lib/supabase-client'
 import SvgIcon from '@/components/ui/SvgIcon'
+import { attemptProvisionOnce } from '@/lib/client-portal/account-recovery'
+import { friendlyLoginError, friendlyResetError, RESET_MESSAGES } from '@/lib/client-portal/auth-messages'
+import { postLoginDestination } from '@/lib/client-portal/portal-session'
 
 // Create a separate component that uses useSearchParams
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClientComponentClient()
-  
+
+  // A signed-in user with no client profile is sent here by the portal (?account=no-profile). 'checking' = one idempotent
+  // provisioning attempt is running; 'help' = it did not fix it, so show Try again / Sign out / Contact.
+  const [recovery, setRecovery] = useState<'idle' | 'checking' | 'help'>(searchParams.get('account') === 'no-profile' ? 'checking' : 'idle')
+  const [recoveryUserId, setRecoveryUserId] = useState<string | null>(null)
+  const [recoveryBusy, setRecoveryBusy] = useState(false)
+  const [recoveryNote, setRecoveryNote] = useState('')
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -33,6 +43,51 @@ function LoginContent() {
     }
   }, [searchParams])
 
+  // Recovery for a signed-in user with no client profile. Automatic provisioning is attempted at most once per browser session
+  // (account-recovery.ts); after that only the "Try again" button retries, so this can never loop with the portal's redirect.
+  useEffect(() => {
+    if (searchParams.get('account') !== 'no-profile') return
+    let cancelled = false
+    ;(async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (cancelled) return
+      if (!user) {
+        setRecovery('idle') // not signed in: this is an ordinary login
+        return
+      }
+      setRecoveryUserId(user.id)
+      const outcome = await attemptProvisionOnce(user.id)
+      if (cancelled) return
+      if (outcome === 'recovered') {
+        router.replace(postLoginDestination(searchParams.get('next')))
+        return
+      }
+      setRecovery('help')
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
+
+  const retryRecovery = async () => {
+    if (!recoveryUserId) return
+    setRecoveryBusy(true)
+    setRecoveryNote('')
+    const outcome = await attemptProvisionOnce(recoveryUserId, { force: true })
+    setRecoveryBusy(false)
+    if (outcome === 'recovered') router.replace(postLoginDestination(searchParams.get('next')))
+    else setRecoveryNote("That didn't work. Please try once more, or contact Hbee Digitals.")
+  }
+
+  const signOutFromRecovery = async () => {
+    await supabase.auth.signOut()
+    setRecovery('idle')
+    router.replace('/client-login')
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -47,14 +102,10 @@ function LoginContent() {
 
       if (error) throw error
 
-      // Only one allow-listed return path (the portal invitation); anything else goes to the portal.
-      router.push(searchParams.get('next') === '/portal-invitation' ? '/portal-invitation' : '/client-portal')
+      // Return to the page the client asked for when it is a validated portal path (or the invitation page); else the portal.
+      router.push(postLoginDestination(searchParams.get('next')))
     } catch (err) {
-      if (err instanceof Error && err.message.includes('Email not confirmed')) {
-        setError('Please confirm your email address first. Check your inbox for the confirmation link.')
-      } else {
-        setError(err instanceof Error ? err.message : 'Login failed')
-      }
+      setError(friendlyLoginError(err))
     } finally {
       setLoading(false)
     }
@@ -62,7 +113,7 @@ function LoginContent() {
 
   const handleResetPassword = async () => {
     if (!email) {
-      setError('Please enter your email address')
+      setError(RESET_MESSAGES.emailRequired)
       return
     }
 
@@ -82,7 +133,7 @@ function LoginContent() {
       setResetSent(true)
       setShowReset(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send reset email')
+      setError(friendlyResetError(err))
     } finally {
       setLoading(false)
     }
@@ -99,7 +150,36 @@ function LoginContent() {
       </div>
 
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-        {resetSent ? (
+        {recovery === 'checking' ? (
+          <div className="py-6 text-center" role="status" aria-live="polite">
+            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-[var(--accent-orange)] border-t-transparent" />
+            <p className="text-[var(--text-muted)]">Checking your account…</p>
+          </div>
+        ) : recovery === 'help' ? (
+          <div className="py-2 text-center" role="alert">
+            <h3 className="text-lg font-semibold text-[var(--text-primary)]">We couldn&apos;t open your portal</h3>
+            <p className="mt-2 text-[var(--text-muted)]">
+              You&apos;re signed in, but your account isn&apos;t fully set up yet. You can try again, or contact Hbee Digitals and we will sort it out.
+            </p>
+            {recoveryNote && <p className="mt-3 text-sm text-red-400">{recoveryNote}</p>}
+            <div className="mt-5 flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={retryRecovery}
+                disabled={recoveryBusy || !recoveryUserId}
+                className="w-full rounded-full bg-[var(--accent-orange)] px-6 py-3 text-sm font-semibold text-[var(--cta-text)] transition hover:bg-[var(--orange-600)] disabled:opacity-50"
+              >
+                {recoveryBusy ? 'Trying again…' : 'Try again'}
+              </button>
+              <Link href="/contact" className="w-full rounded-full border border-[var(--border)] px-6 py-3 text-sm font-semibold text-[var(--text-primary)] transition hover:border-[var(--accent-orange)]">
+                Contact Hbee Digitals
+              </Link>
+              <button type="button" onClick={signOutFromRecovery} className="text-sm text-[var(--text-muted)] transition hover:text-[var(--accent-orange)]">
+                Sign out
+              </button>
+            </div>
+          </div>
+        ) : resetSent ? (
           <div className="text-center py-4">
             <SvgIcon name="email" size={48} color="var(--accent-lime)" className="mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-[var(--text-primary)]">Check Your Email</h3>

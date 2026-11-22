@@ -22,7 +22,7 @@ interface Inv {
   payments: Array<{ id: string; paid_at: string; amount: string; method: string | null; reference: string | null }>
   project: { id: string; name: string; reference: string | null }; proposalNumber: string | null
 }
-type LoadState = 'loading' | 'ready' | 'ambiguous' | 'missing' | 'error'
+type LoadState = 'loading' | 'ready' | 'ambiguous' | 'missing' | 'unavailable' | 'error'
 
 export default function ClientInvoiceDetailPage({ params }: { params: { id: string } }) {
   const [state, setState] = useState<LoadState>('loading')
@@ -33,6 +33,7 @@ export default function ClientInvoiceDetailPage({ params }: { params: { id: stri
       const r = await fetch(`/api/client-portal/invoices/${params.id}`, { credentials: 'same-origin' })
       if (r.status === 409) return setState('ambiguous')
       if (r.status === 404) return setState('missing')
+      if (r.status === 410) return setState('unavailable') // withdrawn (voided) — an old link, not an error
       const p = await r.json().catch(() => null)
       if (!r.ok || !p?.invoice) return setState('error')
       setInv(p.invoice); setState('ready')
@@ -43,6 +44,20 @@ export default function ClientInvoiceDetailPage({ params }: { params: { id: stri
   if (state === 'loading') return <SupportLoading />
   if (state === 'ambiguous') return <SupportAmbiguous what="invoices" />
   if (state === 'error') return <SupportError message="We could not load this invoice. Please try again in a moment." onRetry={load} />
+  if (state === 'unavailable') {
+    return (
+      <div className={support.page}>
+        <section className={`${support.panel} ${support.center}`}>
+          <div className={support.centerBody}>
+            <h2>This invoice is no longer available</h2>
+            <p>It has been withdrawn by Hbee Digitals. If you have a question about it, please contact us.</p>
+            <Link href="/client-portal/invoices" className={support.link}>Back to invoices</Link>
+            <Link href="/contact" className={support.link}>Contact Hbee Digitals</Link>
+          </div>
+        </section>
+      </div>
+    )
+  }
   if (state === 'missing' || !inv) {
     return <div className={support.page}><section className={`${support.panel} ${support.center}`}><div className={support.centerBody}><h2>Invoice not found</h2><Link href="/client-portal/invoices" className={support.link}>Back to invoices</Link></div></section></div>
   }
@@ -106,7 +121,6 @@ export default function ClientInvoiceDetailPage({ params }: { params: { id: stri
           </div>
         )}
         {inv.notes && <div className={styles.section}><h2 className={styles.sectionTitle}>Notes</h2><p className={styles.prose}>{inv.notes}</p></div>}
-        {inv.status === 'void' && <p className={support.warn}>This invoice was voided and is no longer payable.</p>}
       </section>
     </div>
   )

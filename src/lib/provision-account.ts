@@ -127,6 +127,18 @@ export async function provisionAccount(user: VerifiedUser): Promise<ProvisionRes
     return { ok: false, client: 'failed', merchant: 'failed', reason: 'server_configuration' }
   }
 
+  // ADMIN ACCOUNTS ARE NEVER PROVISIONED AS CLIENTS. Provisioning is reachable from the portal's recovery path, so an
+  // Hbee administrator who opens /client-portal must not receive a clients or merchants row. ANY admin_users row blocks it
+  // (active or not: a deactivated admin is still not a client), and a failed lookup refuses rather than guesses.
+  const { data: adminRow, error: adminError } = await db.from('admin_users').select('user_id').eq('user_id', user.id).limit(1).maybeSingle()
+  if (adminError) {
+    console.error(`[provision-account] admin check failed (code=${(adminError as { code?: string }).code ?? 'n/a'}) — provisioning refused`)
+    return { ok: false, client: 'failed', merchant: 'failed', reason: 'admin_check_failed' }
+  }
+  if (adminRow) {
+    return { ok: false, client: 'failed', merchant: 'failed', reason: 'admin_account' }
+  }
+
   const profile = readProfile(user)
   const email = text(user.email)
   const emailVerified = Boolean(user.email_confirmed_at)

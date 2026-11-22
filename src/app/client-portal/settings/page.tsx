@@ -14,7 +14,9 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { createClientComponentClient } from '@/lib/supabase-client'
+import { friendlyResetError } from '@/lib/client-portal/auth-messages'
 import { SupportAmbiguous, SupportError, SupportLoading } from '@/components/client-portal/SupportState'
 import { formatDay } from '@/lib/client-portal/support-display'
 import styles from '@/components/client-portal/support.module.css'
@@ -67,6 +69,7 @@ export default function ClientSettingsPage() {
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [pw, setPw] = useState<{ status: 'idle' | 'sending' | 'sent' | 'error'; text: string }>({ status: 'idle', text: '' })
 
   const apply = useCallback((payload: { profile: Profile; preferences: Preferences }) => {
     setProfile(payload.profile)
@@ -176,9 +179,8 @@ export default function ClientSettingsPage() {
     setMessage(null)
 
     try {
+      // Name and business are managed by Hbee Digitals and are never sent from here.
       const result = await patch({
-        full_name: form.fullName,
-        business_name: form.businessName,
         whatsapp: form.whatsapp,
         website_url: form.websiteUrl,
         country: form.country,
@@ -196,6 +198,22 @@ export default function ClientSettingsPage() {
       setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' })
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Change password: the EXISTING reset flow. A reset link is emailed to the account address; the link opens
+  // /client-reset-password, where the new password is set. Nothing about the password is handled on this page.
+  async function sendPasswordReset() {
+    if (!profile?.email) return
+    setPw({ status: 'sending', text: '' })
+    try {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.hbeedigitals.com'
+      const supabase = createClientComponentClient()
+      const { error } = await supabase.auth.resetPasswordForEmail(profile.email, { redirectTo: `${siteUrl}/client-reset-password` })
+      if (error) throw error
+      setPw({ status: 'sent', text: `We've sent a password reset link to ${profile.email}. It opens a page where you can choose a new password.` })
+    } catch (err) {
+      setPw({ status: 'error', text: friendlyResetError(err) })
     }
   }
 
@@ -265,14 +283,17 @@ export default function ClientSettingsPage() {
               <label htmlFor="settings-full-name" className={styles.label}>
                 Full name
               </label>
-              <input id="settings-full-name" className={styles.input} value={form.fullName} maxLength={120} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="Your full name" />
+              <input id="settings-full-name" className={styles.input} value={profile.fullName} disabled readOnly aria-describedby="settings-identity-note" />
             </div>
             <div className={styles.field}>
               <label htmlFor="settings-business-name" className={styles.label}>
                 Business name
               </label>
-              <input id="settings-business-name" className={styles.input} value={form.businessName} maxLength={160} onChange={(e) => setForm({ ...form, businessName: e.target.value })} placeholder="Your business name" />
+              <input id="settings-business-name" className={styles.input} value={profile.businessName} disabled readOnly aria-describedby="settings-identity-note" />
             </div>
+            <p id="settings-identity-note" className={styles.hint} style={{ gridColumn: '1 / -1' }}>
+              <Link href="/contact" className={styles.link}>Contact Hbee Digitals</Link> if these details need to be changed.
+            </p>
             <div className={styles.field}>
               <label htmlFor="settings-email" className={styles.label}>
                 Email address
@@ -321,6 +342,28 @@ export default function ClientSettingsPage() {
           </div>
         </section>
       </form>
+
+      {/* Password: the existing email reset flow */}
+      <section className={styles.panel} aria-labelledby="set-password">
+        <p className={styles.eyebrow}>
+          <span aria-hidden="true" className={styles.node} />
+          Password
+        </p>
+        <h2 id="set-password" className="sr-only">
+          Password
+        </h2>
+        <p className={styles.lead}>To change your password, we email a secure link to {profile.email}.</p>
+        {pw.text && (
+          <div role={pw.status === 'error' ? 'alert' : 'status'} className={pw.status === 'error' ? styles.err : styles.ok} style={{ marginTop: '0.75rem' }}>
+            {pw.text}
+          </div>
+        )}
+        <div className={styles.actions} style={{ marginTop: '0.75rem' }}>
+          <button type="button" className={styles.secondary} onClick={sendPasswordReset} disabled={pw.status === 'sending'}>
+            {pw.status === 'sending' ? 'Sending…' : pw.status === 'sent' ? 'Send the link again' : 'Change password'}
+          </button>
+        </div>
+      </section>
 
       {/* Account facts: only real fields */}
       <section className={styles.panel} aria-labelledby="set-account">

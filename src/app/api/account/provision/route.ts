@@ -45,6 +45,14 @@ export async function POST() {
       user_metadata: user.user_metadata,
     })
 
+    if (!result.ok && result.reason === 'admin_account') {
+      // An Hbee administrator has no client portal profile and never gets one from here. A clear 403, not a server error.
+      return NextResponse.json(
+        { error: 'This is an Hbee Digitals administrator account. It has no client portal profile.', code: 'admin_account' },
+        { status: 403 },
+      )
+    }
+
     if (!result.ok) {
       // A PARTIAL failure is reported as a failure. The previous browser code
       // logged the error and returned success, which is how signup could report
