@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import ImageUpload from '@/components/ImageUpload'
+import MediaImageField from '@/components/admin/media/MediaImageField'
 import PortfolioGallery from '@/components/admin/PortfolioGallery'
 import PortfolioCreativeMedia from '@/components/admin/PortfolioCreativeMedia'
 import PortfolioClassification from '@/components/admin/PortfolioClassification'
@@ -175,21 +175,21 @@ export default function EditPortfolioPage() {
           </Section>
 
           <Section id="media" title="Media">
-            <p className="text-sm text-[var(--text-muted)]">Use existing HTTPS image URLs, local /paths, or the existing public image uploader. Uploads use the project-images bucket.</p>
+            <p className="text-sm text-[var(--text-muted)]">Choose images from the Media Library, or upload new ones into it. Existing image URLs keep working under “Advanced”. Removing an image from this project never deletes the file.</p>
             <p className="text-sm text-[var(--text-muted)]">If the main image is blank, the public page retains its existing featured-image / after-image fallback. This editor leaves any legacy featured image untouched.</p>
             <div className="grid gap-6 lg:grid-cols-2">
-              <div className="space-y-4">
-                <ImageUpload key={`cover-${form.image_url}`} label="Upload main / cover image" currentImage={validPortfolioImage(form.image_url) ? form.image_url : ''} folder="portfolio" contain onUpload={(url) => updateField('image_url', url)} />
+              <MediaImageField label="Main / cover image" urlLabel="Main / cover image URL" value={form.image_url} onChange={(url) => updateField('image_url', url)}
+                isPreviewable={validPortfolioImage} pickerCategory="project_image" uploadCategory="project_image" suggestedTitle={form.title} disabled={saving}>
                 {field('image_url', 'Main / cover image URL')}
-              </div>
-              <div className="space-y-4">
-                <ImageUpload key={`before-${form.before_image}`} label="Upload before image" currentImage={validPortfolioImage(form.before_image) ? form.before_image : ''} folder="portfolio-before-after" contain onUpload={(url) => updateField('before_image', url)} />
+              </MediaImageField>
+              <MediaImageField label="Before image" urlLabel="Before image URL" value={form.before_image} onChange={(url) => updateField('before_image', url)}
+                isPreviewable={validPortfolioImage} pickerCategory="project_image" uploadCategory="project_image" suggestedTitle={form.title ? `${form.title} before` : ''} disabled={saving}>
                 {field('before_image', 'Before image URL')}
-              </div>
-              <div className="space-y-4">
-                <ImageUpload key={`after-${form.after_image}`} label="Upload after image" currentImage={validPortfolioImage(form.after_image) ? form.after_image : ''} folder="portfolio-before-after" contain onUpload={(url) => updateField('after_image', url)} />
+              </MediaImageField>
+              <MediaImageField label="After image" urlLabel="After image URL" value={form.after_image} onChange={(url) => updateField('after_image', url)}
+                isPreviewable={validPortfolioImage} pickerCategory="project_image" uploadCategory="project_image" suggestedTitle={form.title ? `${form.title} after` : ''} disabled={saving}>
                 {field('after_image', 'After image URL')}
-              </div>
+              </MediaImageField>
             </div>
             <p className="text-sm text-[var(--text-muted)]">The public comparison requires two distinct images, with neither already used as the cover. An unpaired before image is omitted.</p>
             <h3 className="text-lg font-black text-[var(--text-primary)]">Gallery images</h3>

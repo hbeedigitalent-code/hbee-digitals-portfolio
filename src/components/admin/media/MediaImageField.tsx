@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import MediaPicker from './MediaPicker'
 import type { ImageCategory, MediaAsset } from '@/lib/media/media-types'
 
@@ -25,6 +25,8 @@ export interface MediaImageFieldProps {
   /** Allow removing the reference (never deletes the file). */
   clearable?: boolean
   previewClassName?: string
+  /** Replaces the built-in URL box inside "Advanced" (e.g. an existing validated form field). */
+  children?: ReactNode
 }
 
 /**
@@ -33,7 +35,7 @@ export interface MediaImageFieldProps {
  */
 export default function MediaImageField({
   value, onChange, label, urlLabel = 'Image URL', isPreviewable = (v) => /^(https:\/\/|\/(?!\/))/.test(v), pickerCategory = '', uploadCategory = 'general',
-  suggestedTitle = '', disabled = false, hint, clearable = true, previewClassName = 'max-h-full max-w-full object-contain',
+  suggestedTitle = '', disabled = false, hint, clearable = true, previewClassName = 'max-h-full max-w-full object-contain', children,
 }: MediaImageFieldProps) {
   const [open, setOpen] = useState(false)
   const previewable = !!value && isPreviewable(value)
@@ -52,7 +54,7 @@ export default function MediaImageField({
     {hint && <p className="text-xs text-[var(--text-muted)]">{hint}</p>}
     <details className="rounded-lg border border-[var(--border)] p-3 text-sm">
       <summary className="cursor-pointer font-semibold">Advanced: {urlLabel}</summary>
-      <label className="mt-3 block text-sm text-[var(--text-secondary)]">{urlLabel}<input className={inputClass} value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} /></label>
+      {children ?? <label className="mt-3 block text-sm text-[var(--text-secondary)]">{urlLabel}<input className={inputClass} value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} /></label>}
       <p className="mt-2 text-xs text-[var(--text-muted)]">Existing images keep working through their URL. Removing an image here never deletes the file.</p>
     </details>
     <MediaPicker open={open} onClose={() => setOpen(false)} heading={`Choose: ${label}`} initialCategory={pickerCategory} uploadCategory={uploadCategory}

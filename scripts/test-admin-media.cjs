@@ -251,6 +251,25 @@ assert.equal(row.alt_text, '', 'decorative rows store no alt text'); assert.equa
   assert.deepEqual(scan.unscanned.map((u) => u.area), ['Team'], 'a table that cannot be read is reported, not hidden')
   assert.ok(scan.usages.every((u) => u.href.startsWith('/admin/')))
 
+  // ── Batch 2: usage scan sees the references the Insights and Portfolio integrations create ──────────────────────
+  {
+    const b = asset({ public_url: 'https://example.test/storage/v1/object/public/project-images/media/insight-images/hero-1.png', object_path: 'media/insight-images/hero-1.png' })
+    const figure = ['<figure>', '  <img src="' + b.public_url + '" alt="Hero" width="1200" height="630" loading="lazy" />', '  <figcaption>Cap</figcaption>', '</figure>'].join('\n')
+    const batch2 = {
+      blog_posts: () => ({ data: [{ id: 'p1', title: 'Social', og_image: b.public_url, featured_image: null, content: '<p>x</p>' }, { id: 'p2', title: 'Inline', content: '<p>Intro</p>\n\n' + figure }, { id: 'p3', title: 'Clean', content: '<p>no image</p>' }], error: null }),
+      portfolio_items: () => ({ data: [{ id: 'w1', title: 'Cover', image_url: b.public_url, before_image: '', gallery_images: [] }, { id: 'w2', title: 'Gallery', gallery_images: ['/a.png', b.public_url] }, { id: 'w3', title: 'BeforeAfter', before_image: b.public_url, after_image: 'https://other.test/x.png' }], error: null }),
+      portfolio_media: () => ({ data: [{ id: 'm1', portfolio_id: 'w9', title: 'Creative', image_url: b.public_url }], error: null }),
+      trust_section: () => ({ data: [], error: null }), hero_section: () => ({ data: [], error: null }), team_members: () => ({ data: [], error: null }), about_page: () => ({ data: [], error: null }),
+    }
+    const found = await library.scanAssetUsage(makeDb(batch2), b)
+    assert.deepEqual(found.usages.map((u) => u.area + ':' + u.label + ':' + u.field).sort(), [
+      'Insights:Inline:content', 'Insights:Social:og_image',
+      'Portfolio creative media:Creative:image_url',
+      'Portfolio:BeforeAfter:before_image', 'Portfolio:Cover:image_url', 'Portfolio:Gallery:gallery_images'])
+    assert.equal(found.usages.find((u) => u.label === 'Creative').href, '/admin/portfolio/w9')
+    assert.equal(found.unscanned.length, 0)
+  }
+
   // ── components (server-rendered initial state; effects do not run) ──────────────────────────────────────────
   currentDb = makeDb({ media_assets: () => ({ data: [], error: null }) })
   const { default: MediaPicker } = load('src/components/admin/media/MediaPicker.tsx')
@@ -261,6 +280,15 @@ assert.equal(row.alt_text, '', 'decorative rows store no alt text'); assert.equa
   assert.match(pickerHtml, /role="dialog"/); assert.match(pickerHtml, /aria-modal="true"/); assert.match(pickerHtml, /aria-labelledby=/)
   assert.match(pickerHtml, /role="tablist"/); assert.match(pickerHtml, /type="search"/); assert.match(pickerHtml, /All categories/)
   assert.ok(!/Video|Background video|UGC/.test(pickerHtml), 'no video categories in the picker')
+  const keepOpenHtml = renderToStaticMarkup(React.createElement(MediaPicker, { open: true, keepOpen: true, onClose() {}, onSelect() {} }))
+  assert.match(keepOpenHtml, />Done</); assert.ok(!/>Close</.test(keepOpenHtml), 'a multi-select picker offers Done')
+  assert.match(pickerHtml, />Close</)
+  const { default: MediaImageField } = load('src/components/admin/media/MediaImageField.tsx')
+  const emptyField = renderToStaticMarkup(React.createElement(MediaImageField, { label: 'Cover', value: '', onChange() {} }))
+  assert.match(emptyField, /Choose from Media Library/); assert.match(emptyField, /No image selected/); assert.ok(!/Remove image/.test(emptyField))
+  const filledField = renderToStaticMarkup(React.createElement(MediaImageField, { label: 'Cover', value: 'https://legacy.test/old.png', urlLabel: 'Cover URL', onChange() {} }))
+  assert.match(filledField, /Replace image/); assert.match(filledField, /Remove image/); assert.match(filledField, /Advanced: Cover URL/); assert.match(filledField, /value="https:\/\/legacy\.test\/old\.png"/)
+  assert.ok(!/storage\.from|\.remove\(|\.delete\(/.test(read('src/components/admin/media/MediaImageField.tsx')), 'removing an image reference never deletes a file')
   const uploaderHtml = renderToStaticMarkup(React.createElement(MediaUploader, { onUploaded() {} }))
   assert.match(uploaderHtml, /accept="image\/png,image\/jpeg,image\/webp,image\/avif"/); assert.match(uploaderHtml, /SVG is not accepted/); assert.match(uploaderHtml, /drag and drop/)
   const pageHtml = renderToStaticMarkup(React.createElement(MediaPage))

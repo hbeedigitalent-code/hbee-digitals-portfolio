@@ -173,6 +173,16 @@ const submit = () => ({ preventDefault() {} })
   field(detail, 'solution').props.onChange('Updated solution'); detail.render()
   field(detail, 'results_summary').props.onChange('Updated public outcome'); detail.render()
   field(detail, 'seo_title').props.onChange('Updated SEO title'); detail.render()
+  // Cover, before and after: existing URLs load untouched; Media Library selection and clearing change only the URL field.
+  const imageField = label => find(detail, n => n.props?.label === label && typeof n.props?.onChange === 'function' && 'urlLabel' in n.props)
+  assert.equal(imageField('Main / cover image').props.value, sample.image_url)
+  assert.equal(imageField('Main / cover image').props.pickerCategory, 'project_image'); assert.equal(imageField('Before image').props.uploadCategory, 'project_image')
+  imageField('Main / cover image').props.onChange('https://example.test/storage/v1/object/public/project-images/media/project-images/cover.png', { id: '33333333-3333-4333-8333-333333333333', title: 'Cover' }); detail.render()
+  assert.equal(field(detail, 'image_url').props.value, 'https://example.test/storage/v1/object/public/project-images/media/project-images/cover.png')
+  imageField('Before image').props.onChange(''); detail.render(); assert.equal(field(detail, 'before_image').props.value, '', 'Remove image clears the reference only')
+  imageField('After image').props.onChange('/manual-after.png'); detail.render(); assert.equal(field(detail, 'after_image').props.value, '/manual-after.png')
+  assert.ok(!nodes(detail.tree).some(n => n.type === stubUpload), 'the legacy uploader is no longer mounted for cover, before or after')
+  for (const [label, key] of [['Main / cover image', 'image_url'], ['Before image', 'before_image'], ['After image', 'after_image']]) imageField(label).props.onChange(sample[key]); detail.render() // restore: the mocked save mutates the shared sample row
   find(detail, n => n.type === stubGallery).props.onChange(['/two.png', '/one.png']); detail.render()
   await find(detail, n => n.type === 'form').props.onSubmit(submit()); detail.render()
   const update = calls.filter(call => call.operations.some(op => op[0] === 'update')).at(-1).operations.find(op => op[0] === 'update')[1]
@@ -213,10 +223,28 @@ const submit = () => ({ preventDefault() {} })
   find(gallery, n => n.props?.id === 'gallery-new-url').props.onChange({ target: { value: '/three.png' } }); gallery.render(galleryProps())
   button(gallery, 'Add image').props.onClick(); gallery.render(galleryProps())
   assert.deepEqual(plain(galleryImages), ['/two.png', '/three.png'])
-  const pendingUpload = find(gallery, n => n.type === stubUpload).props.onUpload
+  // Media Library: gallery additions come from the shared picker (existing assets or new uploads) as plain URLs.
+  const libraryPicker = () => find(gallery, n => typeof n.props?.onSelect === 'function')
+  assert.equal(libraryPicker().props.open, false); assert.equal(libraryPicker().props.keepOpen, true, 'several images can be added in one visit')
+  assert.equal(libraryPicker().props.initialCategory, 'project_image'); assert.equal(libraryPicker().props.uploadCategory, 'project_image')
+  button(gallery, 'Add from Media Library').props.onClick(); gallery.render(galleryProps()); assert.equal(libraryPicker().props.open, true)
+  const pendingSelect = libraryPicker().props.onSelect
+  const libAsset = (n, patch = {}) => ({ id: '2222222' + n + '-2222-4222-8222-222222222222', title: 'Shot ' + n, public_url: 'https://example.test/storage/v1/object/public/project-images/media/project-images/shot-' + n + '.png', ...patch })
   galleryImages = ['/changed.png']; gallery.render(galleryProps())
-  pendingUpload('/uploaded.png'); gallery.render(galleryProps())
-  assert.deepEqual(plain(galleryImages), ['/changed.png', '/uploaded.png'], 'Upload completion preserves edits made while uploading')
+  pendingSelect(libAsset(1)); gallery.render(galleryProps())
+  assert.deepEqual(plain(galleryImages), ['/changed.png', libAsset(1).public_url], 'Selection preserves edits made while the picker was open')
+  libraryPicker().props.onSelect(libAsset(2)); gallery.render(galleryProps())
+  assert.equal(galleryImages.length, 3, 'a second asset can be added without reopening')
+  libraryPicker().props.onSelect(libAsset(2)); gallery.render(galleryProps())
+  assert.equal(galleryImages.length, 3, 'the same asset is not added twice'); assert.match(flattenText(gallery.tree), /already in this gallery/)
+  assert.ok(galleryImages.every(url => typeof url === 'string'), 'gallery_images stays an array of URL strings (no shape change)')
+  // reorder and remove act on the reference only: the gallery never touches storage or the library table
+  find(gallery, n => n.props?.['aria-label'] === 'Move image 3 up').props.onClick(); gallery.render(galleryProps())
+  assert.deepEqual(plain(galleryImages).slice(1), [libAsset(2).public_url, libAsset(1).public_url])
+  find(gallery, n => n.props?.['aria-label'] === 'Remove image 2').props.onClick(); gallery.render(galleryProps())
+  assert.deepEqual(plain(galleryImages), ['/changed.png', libAsset(1).public_url])
+  assert.ok(!calls.some(call => call.table === 'media_assets'), 'removing a gallery entry does not touch the Media Library')
+  assert.ok(!fs.readFileSync(path.join(root, 'src/components/admin/PortfolioGallery.tsx'), 'utf8').includes('storage'), 'the gallery has no storage code at all')
 
   const ImageUpload = load('src/components/ImageUpload.tsx').default
   const uploaderA = host(ImageUpload, { currentImage: '/image.png', label: 'Cover', contain: true, onUpload() {} })
