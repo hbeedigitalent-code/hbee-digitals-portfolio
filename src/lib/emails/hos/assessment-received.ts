@@ -18,7 +18,7 @@
 // The assessmentId still arrives in the queued payload and is still used — as
 // the provider idempotency key — but it is never rendered.
 
-import { Resend } from 'resend'
+import { getResend } from '@/lib/emails/resend-client'
 import {
   configuredReplyTo,
   deliver,
@@ -28,7 +28,6 @@ import {
 } from '@/lib/emails/layout'
 import { cleanText, renderHbeeEmail, type HbeeEmailOptions } from '@/lib/emails/hbee-email'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 export const ASSESSMENT_RECEIVED_SUBJECT = "We've received your Growth Review"
 
@@ -112,7 +111,7 @@ export async function sendAssessmentReceivedEmail(data: EmailData): Promise<Emai
 
       // Returned, not awaited-and-discarded: deliver() inspects the provider
       // envelope, because the Resend SDK RESOLVES with { error } on rejection.
-      return resend.emails.send(
+      return getResend().emails.send(
         {
           from: emailFrom(),
           ...(replyTo ? { replyTo: replyTo.header } : {}),

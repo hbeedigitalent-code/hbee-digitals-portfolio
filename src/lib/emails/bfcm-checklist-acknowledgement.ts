@@ -6,12 +6,11 @@
 // wrapper as the other acknowledgements. Best-effort: deliver() never throws
 // and the route does not depend on the outcome.
 
-import { Resend } from 'resend'
+import { getResend } from '@/lib/emails/resend-client'
 import { configuredReplyTo, deliver, emailFrom, supportEmail, type EmailSendResult } from '@/lib/emails/layout'
 import { renderHbeeEmail, type HbeeEmailBlock, type HbeeEmailOptions } from '@/lib/emails/hbee-email'
 import { CHECKLIST_GROUPS, CHECKLIST_PDF_PATH } from '@/components/site/bfcm-checklist/checklist-content'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 export const CHECKLIST_ACK_SUBJECT = 'Your BFCM Readiness Checklist — Hbee Digitals'
 
@@ -66,7 +65,7 @@ export async function sendChecklistAcknowledgementEmail(data: ChecklistAcknowled
     async () => {
       const { html, text } = renderChecklistAcknowledgementEmail()
       const replyTo = configuredReplyTo()
-      return resend.emails.send(
+      return getResend().emails.send(
         { from: emailFrom(), ...(replyTo ? { replyTo: replyTo.header } : {}), to: data.email, subject: CHECKLIST_ACK_SUBJECT, html, text },
         data.idempotencyKey ? { idempotencyKey: `bfcm-checklist-ack:${data.idempotencyKey}` } : undefined,
       )

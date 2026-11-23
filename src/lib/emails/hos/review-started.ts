@@ -1,8 +1,7 @@
 // src/lib/emails/hos/review-started.ts
-import { Resend } from 'resend'
+import { getResend } from '@/lib/emails/resend-client'
 import { emailFrom } from '@/lib/emails/layout'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 interface EmailData {
   firstName: string
@@ -147,7 +146,7 @@ export async function sendReviewStartedEmail(data: EmailData) {
   `
 
   try {
-    await resend.emails.send({
+    await getResend().emails.send({
       from: emailFrom(),
       to: data.email,
       subject: 'Your Growth Review Has Started',

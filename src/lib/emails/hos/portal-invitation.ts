@@ -9,12 +9,11 @@
 // the invitation page; connecting requires a signed-in, verified account whose
 // email matches the invited address. No internal id is rendered.
 
-import { Resend } from 'resend'
+import { getResend } from '@/lib/emails/resend-client'
 import { configuredReplyTo, deliver, emailFrom, EmailConfigurationError, supportEmail, type EmailSendResult } from '@/lib/emails/layout'
 import { cleanText, renderHbeeEmail, type HbeeEmailOptions } from '@/lib/emails/hbee-email'
 import { invitationToken } from '@/lib/portal-invitations'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 export const PORTAL_INVITATION_SUBJECT = 'Your invitation to the Hbee client portal'
 
@@ -99,7 +98,7 @@ export async function sendPortalInvitationEmail(data: PortalInvitationData): Pro
       }
       const { html, text } = renderPortalInvitationEmail(data, token)
       const replyTo = configuredReplyTo()
-      return resend.emails.send(
+      return getResend().emails.send(
         { from: emailFrom(), ...(replyTo ? { replyTo: replyTo.header } : {}), to: data.email, subject: PORTAL_INVITATION_SUBJECT, html, text },
         { idempotencyKey: `portal-invitation:${data.invitationId}` },
       )

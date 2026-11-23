@@ -11,11 +11,10 @@
 //
 // The legacy contact forms keep contact-confirmation.ts unchanged.
 
-import { Resend } from 'resend'
+import { getResend } from '@/lib/emails/resend-client'
 import { configuredReplyTo, deliver, emailFrom, supportEmail, type EmailSendResult } from '@/lib/emails/layout'
 import { cleanText, renderHbeeEmail, type HbeeEmailBlock, type HbeeEmailOptions } from '@/lib/emails/hbee-email'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 export const CONTACT_ACK_SUBJECT = 'We’ve received your message — Hbee Digitals'
 
@@ -99,7 +98,7 @@ export async function sendContactAcknowledgementEmail(data: ContactAcknowledgeme
     async () => {
       const { html, text } = renderContactAcknowledgementEmail(data)
       const replyTo = configuredReplyTo()
-      return resend.emails.send(
+      return getResend().emails.send(
         { from: emailFrom(), ...(replyTo ? { replyTo: replyTo.header } : {}), to: data.email, subject: CONTACT_ACK_SUBJECT, html, text },
         data.idempotencyKey ? { idempotencyKey: `contact-acknowledgement:${data.idempotencyKey}` } : undefined,
       )

@@ -1,10 +1,9 @@
 // src/lib/emails/growth-assessment-confirmation.ts
 // No 'use client' needed - server-side email utility
 
-import { Resend } from 'resend'
+import { getResend } from '@/lib/emails/resend-client'
 import { emailFrom } from '@/lib/emails/layout'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function sendGrowthAssessmentConfirmation(
   contactName: string,
@@ -150,7 +149,7 @@ export async function sendGrowthAssessmentConfirmation(
   `
 
   try {
-    await resend.emails.send({
+    await getResend().emails.send({
       from: emailFrom(),
       to: email,
       subject: 'Growth Readiness Assessment Received',

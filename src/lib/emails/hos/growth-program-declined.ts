@@ -14,11 +14,10 @@
 // language (Growth Review; no programme/capacity/slot wording), a team signoff,
 // and reply-to from the configured RESEND_REPLY_TO.
 
-import { Resend } from 'resend'
+import { getResend } from '@/lib/emails/resend-client'
 import { configuredReplyTo, deliver, emailFrom, supportEmail, type EmailSendResult } from '@/lib/emails/layout'
 import { cleanText, renderHbeeEmail, type HbeeEmailBlock, type HbeeEmailOptions } from '@/lib/emails/hbee-email'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 export interface GrowthProgramDeclinedData {
   firstName: string
@@ -82,7 +81,7 @@ export async function sendGrowthProgramDeclinedEmail(data: GrowthProgramDeclined
     async () => {
       const { html, text } = renderGrowthProgramDeclinedEmail(data)
       const replyTo = configuredReplyTo()
-      return resend.emails.send(
+      return getResend().emails.send(
         { from: emailFrom(), ...(replyTo ? { replyTo: replyTo.header } : {}), to: data.email, subject, html, text },
         { idempotencyKey: `growth-program-declined:${data.decisionId}` },
       )

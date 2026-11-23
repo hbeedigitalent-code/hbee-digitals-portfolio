@@ -8,7 +8,7 @@
 // details and a link into the admin area — no assessment answers, no scores and
 // no review notes travel by email.
 
-import { Resend } from 'resend'
+import { getResend } from '@/lib/emails/resend-client'
 import {
   renderEmail,
   deliver,
@@ -19,7 +19,6 @@ import {
   type EmailSendResult,
 } from '@/lib/emails/layout'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function sendAdminGrowthAssessmentNotification(
   contactName: string,
@@ -68,7 +67,7 @@ export async function sendAdminGrowthAssessmentNotification(
 
     // Returned, not awaited-and-discarded: deliver() inspects the provider
     // envelope, because the Resend SDK RESOLVES with { error } on rejection.
-    return resend.emails.send(
+    return getResend().emails.send(
       {
         from: emailFrom(),
         ...emailReplyTo(),

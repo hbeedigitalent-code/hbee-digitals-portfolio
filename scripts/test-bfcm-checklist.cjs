@@ -404,6 +404,8 @@ async function main() {
     const changed = execFileSync('git', ['diff', '--name-only', base], { cwd: root, encoding: 'utf8' }).split('\n').filter(Boolean)
     const untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { cwd: root, encoding: 'utf8' }).split('\n').filter((f) => f && !f.startsWith('campaign-assets/'))
     for (const f of [...changed, ...untracked]) {
+      // Email helpers are application code whose NAMES can contain these words (hos/proposal-ready.ts is the Growth Review email, not commerce).
+      if (f.startsWith('src/lib/emails/')) continue
       assert.ok(!/\.sql$|migration|supabase\/|proposal|invoice|commerce\/pdf/i.test(f), `unexpected file in the change set: ${f}`)
     }
     // The live Growth Review funnel and the assessment system are not changed by this work.

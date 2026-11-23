@@ -16,11 +16,10 @@
 // "free for life"; no capacity/slot language; signed by the team. Reply-to uses
 // the configured RESEND_REPLY_TO via configuredReplyTo().
 
-import { Resend } from 'resend'
+import { getResend } from '@/lib/emails/resend-client'
 import { configuredReplyTo, deliver, emailFrom, supportEmail, type EmailSendResult } from '@/lib/emails/layout'
 import { cleanText, renderHbeeEmail, type HbeeEmailBlock, type HbeeEmailOptions } from '@/lib/emails/hbee-email'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 export interface GrowthProgramApprovedData {
   firstName: string
@@ -124,7 +123,7 @@ export async function sendGrowthProgramApprovedEmail(data: GrowthProgramApproved
     async () => {
       const { html, text } = renderGrowthProgramApprovedEmail(data)
       const replyTo = configuredReplyTo()
-      return resend.emails.send(
+      return getResend().emails.send(
         { from: emailFrom(), ...(replyTo ? { replyTo: replyTo.header } : {}), to: data.email, subject, html, text },
         // Provider-side de-duplication, keyed on the decision itself (unchanged).
         { idempotencyKey: `growth-program-approved:${data.decisionId}` },

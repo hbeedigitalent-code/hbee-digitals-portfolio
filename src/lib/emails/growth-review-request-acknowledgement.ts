@@ -9,11 +9,10 @@
 // eligibility implication, and sends no score. Best-effort: deliver() never
 // throws, and the route does not depend on the outcome.
 
-import { Resend } from 'resend'
+import { getResend } from '@/lib/emails/resend-client'
 import { configuredReplyTo, deliver, emailFrom, supportEmail, type EmailSendResult } from '@/lib/emails/layout'
 import { cleanText, renderHbeeEmail, type HbeeEmailBlock, type HbeeEmailOptions } from '@/lib/emails/hbee-email'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 export const GROWTH_REQUEST_ACK_SUBJECT = 'Your free Growth Review request is in — Hbee Digitals'
 
@@ -80,7 +79,7 @@ export async function sendGrowthRequestAcknowledgementEmail(
     async () => {
       const { html, text } = renderGrowthRequestAcknowledgementEmail(data)
       const replyTo = configuredReplyTo()
-      return resend.emails.send(
+      return getResend().emails.send(
         { from: emailFrom(), ...(replyTo ? { replyTo: replyTo.header } : {}), to: data.email, subject: GROWTH_REQUEST_ACK_SUBJECT, html, text },
         data.idempotencyKey ? { idempotencyKey: `growth-request-ack:${data.idempotencyKey}` } : undefined,
       )
