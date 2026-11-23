@@ -14,7 +14,7 @@ export function HomeTrustedBrands({ brands }: { brands: PublicTrustBrand[] }) {
     return <ul className={styles.group} aria-hidden={duplicate || undefined}>
       {sequence.map((brand, index) => {
         const copy = duplicate || index >= brands.length
-        const image = <img src={brand.logo} alt={copy ? '' : brand.name} loading="lazy" decoding="async" className={styles.logo} />
+        const image = <img src={brand.logo} alt={copy ? '' : brand.alt || brand.name} loading="lazy" decoding="async" className={styles.logo} />
         return <li key={index} className={`${styles.item}${index >= brands.length ? ` ${styles.copy}` : ''}`} aria-hidden={copy || undefined}>
           {!copy && brand.url ? <a href={brand.url} target="_blank" rel="noopener noreferrer" className={styles.link}>{image}</a> : image}
         </li>
