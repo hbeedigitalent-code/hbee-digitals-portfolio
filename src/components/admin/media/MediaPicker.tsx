@@ -24,9 +24,11 @@ export interface MediaPickerProps {
   uploadCategory?: ImageCategory
   suggestedTitle?: string
   heading?: string
+  /** Stay open after each choice (e.g. adding several gallery images). The Close button becomes Done. */
+  keepOpen?: boolean
 }
 
-export default function MediaPicker({ open, onClose, onSelect, selectedId = null, selectedUrl = null, initialCategory = '', uploadCategory = 'general', suggestedTitle = '', heading = 'Choose from the Media Library' }: MediaPickerProps) {
+export default function MediaPicker({ open, onClose, onSelect, selectedId = null, selectedUrl = null, initialCategory = '', uploadCategory = 'general', suggestedTitle = '', heading = 'Choose from the Media Library', keepOpen = false }: MediaPickerProps) {
   const headingId = useId()
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const searchRef = useRef<HTMLInputElement | null>(null)
@@ -38,12 +40,13 @@ export default function MediaPicker({ open, onClose, onSelect, selectedId = null
   const [assets, setAssets] = useState<MediaAsset[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [added, setAdded] = useState('')
 
   // Remember who opened the dialog; give focus back when it closes.
   useEffect(() => {
     if (!open) return
     returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    setTab('library'); setCategory(initialCategory); setSearch(''); setQuery('')
+    setTab('library'); setCategory(initialCategory); setSearch(''); setQuery(''); setAdded('')
     const timer = window.setTimeout(() => searchRef.current?.focus(), 0)
     return () => { window.clearTimeout(timer); returnFocus.current?.focus?.() }
   }, [open, initialCategory])
@@ -68,7 +71,10 @@ export default function MediaPicker({ open, onClose, onSelect, selectedId = null
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
   }
 
-  function choose(asset: MediaAsset) { onSelect(asset); onClose() }
+  function choose(asset: MediaAsset) {
+    onSelect(asset)
+    if (keepOpen) { setAdded(`Added “${asset.title}”. Choose another, or press Done.`); setTab('library') } else onClose()
+  }
 
   if (!open) return null
   return <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
@@ -76,7 +82,7 @@ export default function MediaPicker({ open, onClose, onSelect, selectedId = null
       className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-xl">
       <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
         <h2 id={headingId} className="text-lg font-black text-[var(--text-primary)]">{heading}</h2>
-        <button type="button" className={button} onClick={onClose}>Close</button>
+        <button type="button" className={button} onClick={onClose}>{keepOpen ? 'Done' : 'Close'}</button>
       </div>
       <div role="tablist" aria-label="Media source" className="flex gap-2 border-b border-[var(--border)] px-5 py-2">
         {(['library', 'upload'] as const).map((value) => <button key={value} type="button" role="tab" aria-selected={tab === value}
@@ -92,6 +98,7 @@ export default function MediaPicker({ open, onClose, onSelect, selectedId = null
                 <option value="">All categories</option>
                 {IMAGE_CATEGORIES.map((value) => <option key={value} value={value}>{CATEGORY_LABELS[value]}</option>)}</select></label>
           </div>
+          {added && <p role="status" className="text-sm text-[var(--accent)]">{added}</p>}
           {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
           {loading && <p role="status" className="text-sm text-[var(--text-muted)]">Loading…</p>}
           {!loading && !error && !assets.length && <p className="rounded-lg border border-dashed border-[var(--border)] p-6 text-sm text-[var(--text-muted)]">Nothing found. Try another search, or use “Upload new”.</p>}

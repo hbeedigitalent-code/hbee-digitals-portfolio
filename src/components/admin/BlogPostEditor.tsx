@@ -1,11 +1,15 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { estimateReadTime, insightCanonical, insightHref, insightTags, SITE_URL, validReadTime } from '@/lib/blog-utils'
 import { insightPublicationLabel, revalidateInsightPublicPages, writeInsightPost } from '@/lib/admin/insights-editor'
 import { InsightArticleBody } from '@/components/site/insights/InsightArticleBody'
+import MediaImageField from '@/components/admin/media/MediaImageField'
+import MediaPicker from '@/components/admin/media/MediaPicker'
+import { ArticleMediaError, buildArticleFigureHtml, insertHtmlBlock } from '@/lib/admin/article-media'
+import type { MediaAsset } from '@/lib/media/media-types'
 import type { InsightDetail } from '@/lib/site/insights-data'
 import '@/styles/site-tokens.css'
 
@@ -59,12 +63,22 @@ export default function BlogPostEditor({
   const router = useRouter()
 
   const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [preview, setPreview] = useState<InsightDetail | null>(null)
   const [previewing, setPreviewing] = useState(false)
   const savePending = useRef(false)
-  const uploadPending = useRef(false)
+  const contentRef = useRef<HTMLTextAreaElement | null>(null)
+  const selectionRef = useRef<{ start: number; end: number } | null>(null)
+  const pendingCaret = useRef<number | null>(null)
+  const [inlinePicker, setInlinePicker] = useState(false)
+  const [inlineAsset, setInlineAsset] = useState<MediaAsset | null>(null)
+  const [inlineAlt, setInlineAlt] = useState('')
+  const [inlineCaption, setInlineCaption] = useState('')
+  const [inlineDecorative, setInlineDecorative] = useState(false)
+  const [inlineError, setInlineError] = useState('')
+  const [inlineNote, setInlineNote] = useState('')
+  /** Alt text the Media Library holds for the featured image, offered (never forced) when the article's alt differs. */
+  const [libraryAlt, setLibraryAlt] = useState('')
 
   const [title, setTitle] = useState(initialPost?.title || '')
   const [slug, setSlug] = useState(initialPost?.slug || '')
@@ -116,40 +130,48 @@ export default function BlogPostEditor({
     setContent((prev) => `${prev}\n\n${snippet}`)
   }
 
-  async function uploadFeaturedImage(file: File) {
-    if (savePending.current || uploadPending.current) return
-    uploadPending.current = true
-    try {
-      setUploading(true)
-
-      const ext = file.name.split('.').pop()
-      const fileName = `${Date.now()}-${slugify(file.name.replace(`.${ext}`, ''))}.${ext}`
-
-      const { error } = await supabase.storage
-        .from('blog-images')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-        })
-
-      if (error) {
-        setErrorMessage(error.message)
-        setUploading(false)
-        return
-      }
-
-      const { data } = supabase.storage.from('blog-images').getPublicUrl(fileName)
-
-      setFeaturedImage(data.publicUrl)
-      setUploading(false)
-    } catch {
-      setErrorMessage('Image upload failed.')
-      setUploading(false)
-    } finally { uploadPending.current = false }
+  /** Featured image chosen from / uploaded into the Media Library. Existing article alt text is never overwritten silently. */
+  function changeFeaturedImage(url: string, asset?: MediaAsset) {
+    setFeaturedImage(url)
+    if (!asset) { setLibraryAlt(''); return }
+    const assetAlt = asset.is_decorative ? '' : asset.alt_text
+    if (!featuredImageAlt.trim()) { setFeaturedImageAlt(assetAlt); setLibraryAlt('') }
+    else setLibraryAlt(assetAlt && assetAlt !== featuredImageAlt ? assetAlt : '')
   }
 
+  function rememberSelection() {
+    const el = contentRef.current
+    if (el) selectionRef.current = { start: el.selectionStart, end: el.selectionEnd }
+  }
+
+  function chooseInlineAsset(asset: MediaAsset) {
+    setInlineAsset(asset); setInlineAlt(asset.is_decorative ? '' : asset.alt_text); setInlineCaption(asset.caption || '')
+    setInlineDecorative(asset.is_decorative); setInlineError(''); setInlineNote('')
+  }
+
+  function insertInlineImage() {
+    if (!inlineAsset) return
+    try {
+      const html = buildArticleFigureHtml({ src: inlineAsset.public_url, alt: inlineAlt, decorative: inlineDecorative, caption: inlineCaption, width: inlineAsset.width, height: inlineAsset.height })
+      const result = insertHtmlBlock(content, html, selectionRef.current)
+      pendingCaret.current = result.caret
+      setContent(result.content)
+      setInlineNote(result.atCursor ? 'Image inserted at the cursor position. Refresh the preview to see it.' : 'Image inserted at the end of the article (click inside the text first to choose where). Refresh the preview to see it.')
+      setInlineAsset(null); setInlineError('')
+    } catch (error) { setInlineError(error instanceof ArticleMediaError ? error.message : 'The image could not be inserted.') }
+  }
+
+  // Put the cursor after an inserted block once React has rendered the new text.
+  useEffect(() => {
+    const caret = pendingCaret.current
+    if (caret === null) return
+    pendingCaret.current = null
+    const el = contentRef.current
+    if (el) { el.focus(); el.setSelectionRange(caret, caret); selectionRef.current = { start: caret, end: caret } }
+  }, [content])
+
   async function savePost() {
-    if (savePending.current || uploadPending.current) return
+    if (savePending.current) return
     if (mode === 'edit' && !initialPost?.id) { setErrorMessage('Reload the article before saving.'); return }
     if (!title.trim() || !finalSlug || !content.trim()) {
       setErrorMessage('Title, slug, and content are required.')
@@ -233,35 +255,35 @@ export default function BlogPostEditor({
                 <ToolButton onClick={() => insertSnippet('<ul>\n  <li>First point</li>\n  <li>Second point</li>\n</ul>')}>List</ToolButton>
                 <ToolButton onClick={() => insertSnippet('<blockquote>Important insight or quote here.</blockquote>')}>Quote</ToolButton>
                 <ToolButton onClick={() => insertSnippet('<a href="https://hbeedigitals.com/growth-review" target="_blank" rel="noopener">Request a Growth Review</a>')}>Link</ToolButton>
+                <ToolButton onClick={() => { rememberSelection(); setInlineNote(''); setInlinePicker(true) }}>Insert image</ToolButton>
               </div>
 
-              <Textarea label="HTML Content" value={content} setValue={setContent} rows={24} mono />
+              {inlineAsset && <div className="mb-3 space-y-3 rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-4">
+                <p className="text-sm font-bold text-[var(--text-primary)]">Insert “{inlineAsset.title}” into the article</p>
+                <img src={inlineAsset.public_url} alt="" className="max-h-32 rounded-lg bg-white object-contain p-1" />
+                <Input label="Alt text (describes the image)" value={inlineDecorative ? '' : inlineAlt} setValue={setInlineAlt} />
+                <label className="flex items-center gap-2 text-sm text-[var(--text-primary)]"><input type="checkbox" checked={inlineDecorative} onChange={(e) => setInlineDecorative(e.target.checked)} />Decorative image (no alt text needed)</label>
+                <Input label="Caption (optional)" value={inlineCaption} setValue={setInlineCaption} />
+                {inlineError && <p role="alert" className="text-sm text-red-500">{inlineError}</p>}
+                <div className="flex gap-2">
+                  <button type="button" onClick={insertInlineImage} className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-black text-[#07111F]">Insert image</button>
+                  <button type="button" onClick={() => { setInlineAsset(null); setInlineError('') }} className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-bold text-[var(--text-primary)]">Cancel</button>
+                </div>
+              </div>}
+              {inlineNote && <p role="status" className="mb-3 text-sm text-[var(--accent)]">{inlineNote}</p>}
+              <MediaPicker open={inlinePicker} onClose={() => setInlinePicker(false)} heading="Insert an image into the article" initialCategory="insight_image" uploadCategory="insight_image" onSelect={chooseInlineAsset} />
+
+              <Textarea label="HTML Content" value={content} setValue={setContent} rows={24} mono textareaRef={contentRef} onSelectionChange={rememberSelection} />
             </div>
           </Card>
 
           <Card title="Image & Metadata">
-            <label className="block">
-              <span className="mb-2 block text-sm font-bold text-[var(--text-primary)]">
-                Upload Featured Image
-              </span>
-
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) uploadFeaturedImage(file)
-                }}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-sm text-[var(--text-primary)]"
-              />
-
-              {uploading && (
-                <p className="mt-2 text-sm font-bold text-[var(--accent)]">Uploading image...</p>
-              )}
-            </label>
-
-            <Input label="Featured Image URL" value={featuredImage} setValue={setFeaturedImage} />
+            <MediaImageField label="Featured image" urlLabel="Featured Image URL" value={featuredImage} onChange={changeFeaturedImage}
+              pickerCategory="insight_image" uploadCategory="insight_image" suggestedTitle={title}
+              hint="Choose an image from the Media Library or upload a new one there. No URL copying needed." />
             <Input label="Featured Image Alt Text" value={featuredImageAlt} setValue={setFeaturedImageAlt} />
+            {libraryAlt && <p className="text-xs text-[var(--text-muted)]">The Media Library describes this image as “{libraryAlt}”. Your article's alt text was kept. <button type="button" className="font-bold text-[var(--accent)] underline" onClick={() => { setFeaturedImageAlt(libraryAlt); setLibraryAlt('') }}>Use the library alt text</button></p>}
+            {finalFeaturedImage && !featuredImageAlt.trim() && <p role="status" className="text-xs text-amber-600">Add alt text so the featured image is described for people who cannot see it.</p>}
             <Input label="Author" value={author} setValue={setAuthor} />
             <Input label="Topics / tags (comma separated)" value={tags} setValue={setTags} />
             <p className="text-xs text-[var(--text-muted)]">Public topics come from these tags. Legacy blog categories do not control Insights.</p>
@@ -273,12 +295,9 @@ export default function BlogPostEditor({
             <Input label="Focus Keyword" value={focusKeyword} setValue={setFocusKeyword} />
             <Input label="OG Title" value={ogTitle} setValue={setOgTitle} />
             <Textarea label="OG Description" value={ogDescription} setValue={setOgDescription} rows={3} />
-            <Input
-              label="OG Image URL"
-              value={ogImage}
-              setValue={setOgImage}
-              placeholder={finalFeaturedImage || 'Defaults to featured image'}
-            />
+            <MediaImageField label="Social share (OG) image" urlLabel="OG Image URL" value={ogImage} onChange={(url) => setOgImage(url)}
+              pickerCategory="graphic" uploadCategory="graphic" suggestedTitle={title ? `${title} social image` : ''}
+              hint="Optional. Leave empty to use the featured image. Best at 1200 × 630 pixels." />
             <Input
               label="Canonical URL"
               value={canonicalUrl}
@@ -301,7 +320,7 @@ export default function BlogPostEditor({
 
           <button
             onClick={savePost}
-            disabled={saving || uploading}
+            disabled={saving}
             className="rounded-full bg-[var(--accent)] px-8 py-3 text-sm font-black text-[#07111F]"
           >
             {saving ? 'Saving...' : mode === 'edit' ? 'Update Insight' : 'Save Insight'}
@@ -364,7 +383,7 @@ export default function BlogPostEditor({
               {excerpt || 'Blog excerpt preview will appear here.'}
             </p>
             <p className="text-xs text-[var(--text-muted)]">{author} · {finalReadTime}</p>
-            <button type="button" onClick={previewArticle} disabled={previewing || uploading} className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-bold text-[var(--text-primary)]">{previewing ? 'Preparing preview…' : 'Refresh sanitized preview'}</button>
+            <button type="button" onClick={previewArticle} disabled={previewing} className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-bold text-[var(--text-primary)]">{previewing ? 'Preparing preview…' : 'Refresh sanitized preview'}</button>
           </Card>
         </div>
       </fieldset>
@@ -418,19 +437,29 @@ function Textarea({
   setValue,
   rows,
   mono,
+  textareaRef,
+  onSelectionChange,
 }: {
   label: string
   value: string
   setValue: (value: string) => void
   rows: number
   mono?: boolean
+  textareaRef?: React.Ref<HTMLTextAreaElement>
+  /** Fired on blur / selection / click / key-up so the caller can remember the cursor. */
+  onSelectionChange?: () => void
 }) {
   return (
     <label className="block">
       <span className="mb-2 block text-sm font-bold text-[var(--text-primary)]">{label}</span>
       <textarea
+        ref={textareaRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
+        onBlur={onSelectionChange}
+        onSelect={onSelectionChange}
+        onClick={onSelectionChange}
+        onKeyUp={onSelectionChange}
         rows={rows}
         className={`w-full rounded-xl border border-[var(--border)] bg-[var(--bg-section)] p-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)] ${
           mono ? 'font-mono text-sm' : ''

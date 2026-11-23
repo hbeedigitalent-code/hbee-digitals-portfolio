@@ -161,6 +161,90 @@ const plain=value=>JSON.parse(JSON.stringify(value))
   const sharedBody=load('src/components/site/insights/InsightArticleBody.tsx').InsightArticleBody
   const rendered=require('react-dom/server').renderToStaticMarkup(React.createElement(sharedBody,{html:preview.props.html}))
   assert.ok(!rendered.includes('<script'))
+  // ── Media Library integration (Admin media Batch 2) ───────────────────────────────────────────────────────────
+  {
+    const media=(patch={})=>({id:'11111111-1111-4111-8111-111111111111',title:'Hero shot',alt_text:'Library alt',is_decorative:false,caption:'Library caption',public_url:'https://example.test/storage/v1/object/public/project-images/media/insight-images/hero-1.png',width:1200,height:630,...patch})
+    const featured=h=>find(h,n=>n.props?.urlLabel==='Featured Image URL')
+    const social=h=>find(h,n=>n.props?.urlLabel==='OG Image URL')
+    const picker=h=>find(h,n=>typeof n.props?.onSelect==='function'&&n.props.heading==='Insert an image into the article')
+    const editorSource=fs.readFileSync(path.join(root,'src/components/admin/BlogPostEditor.tsx'),'utf8')
+    assert.ok(!editorSource.includes('storage.from')&&!editorSource.includes('blog-images')&&!/type="file"/.test(editorSource),'Insights no longer uploads through its own file input; uploads go through the Media Library')
+    // legacy values load untouched
+    const legacy=host(Editor,{mode:'edit',initialPost:{...article,featured_image:'https://legacy.test/old.jpg',featured_image_alt:'Legacy alt',og_image:'https://legacy.test/og.jpg'}});legacy.render()
+    assert.equal(featured(legacy).props.value,'https://legacy.test/old.jpg');assert.equal(social(legacy).props.value,'https://legacy.test/og.jpg')
+    assert.equal(featured(legacy).props.pickerCategory,'insight_image');assert.equal(featured(legacy).props.uploadCategory,'insight_image');assert.equal(social(legacy).props.pickerCategory,'graphic')
+    assert.ok(!nodes(legacy.tree).some(n=>n.type==='input'&&n.props.type==='file'))
+    // choosing a library image never silently overwrites an existing alt text
+    featured(legacy).props.onChange(media().public_url,media());legacy.render()
+    assert.equal(featured(legacy).props.value,media().public_url);assert.equal(field(legacy,'Featured Image Alt Text').props.value,'Legacy alt')
+    assert.match(textOf(legacy.tree),/Media Library describes this image as “Library alt”/)
+    find(legacy,n=>n.type==='button'&&textOf(n)==='Use the library alt text').props.onClick();legacy.render()
+    assert.equal(field(legacy,'Featured Image Alt Text').props.value,'Library alt')
+    // an empty alt takes the library alt as a default; a decorative asset leaves it empty
+    const blank=host(Editor,{mode:'edit',initialPost:{...article,featured_image_alt:'',alt_text:''}});blank.render()
+    featured(blank).props.onChange(media().public_url,media());blank.render()
+    assert.equal(field(blank,'Featured Image Alt Text').props.value,'Library alt')
+    const decorative=host(Editor,{mode:'edit',initialPost:{...article,featured_image_alt:'',alt_text:''}});decorative.render()
+    featured(decorative).props.onChange(media().public_url,media({is_decorative:true,alt_text:''}));decorative.render()
+    assert.equal(field(decorative,'Featured Image Alt Text').props.value,'');assert.match(textOf(decorative.tree),/Add alt text so the featured image is described/)
+    // a manually typed URL (no asset) changes only the URL
+    featured(legacy).props.onChange('https://manual.test/x.png');legacy.render()
+    assert.equal(featured(legacy).props.value,'https://manual.test/x.png');assert.equal(field(legacy,'Featured Image Alt Text').props.value,'Library alt')
+    // OG image: existing og_image field, library selection and saving; featured clear stores null (the file is never touched)
+    social(legacy).props.onChange(media().public_url,media());legacy.render()
+    featured(legacy).props.onChange('');legacy.render()
+    rows=[{...article}]
+    const beforeStorage=calls.length
+    await button(legacy,'Update Insight').props.onClick();legacy.render()
+    assert.equal(rows[0].og_image,media().public_url);assert.equal(rows[0].featured_image,null)
+    assert.ok(calls.slice(beforeStorage).every(c=>!c.operations.some(op=>op[0]==='delete')),'clearing an image never deletes anything')
+    revalidatedPaths.splice(0)
+    // inline image: picker → panel → figure HTML at the end (no cursor in this harness) with existing text untouched
+    const inline=host(Editor,{mode:'edit',initialPost:{...article,content:'<p>Existing body.</p>'}});inline.render()
+    const tool=find(inline,n=>n.props?.children==='Insert image'&&typeof n.props.onClick==='function')
+    assert.equal(picker(inline).props.open,false);tool.props.onClick();inline.render()
+    assert.equal(picker(inline).props.open,true);assert.equal(picker(inline).props.initialCategory,'insight_image');assert.equal(picker(inline).props.uploadCategory,'insight_image')
+    picker(inline).props.onSelect(media());inline.render()
+    assert.equal(field(inline,'Alt text (describes the image)').props.value,'Library alt');assert.equal(field(inline,'Caption (optional)').props.value,'Library caption')
+    field(inline,'Alt text (describes the image)').props.setValue('A "quoted" <b>alt</b> & more');field(inline,'Caption (optional)').props.setValue('Caption <script>bad()</script>');inline.render()
+    button(inline,'Insert image').props.onClick();inline.render()
+    const html=field(inline,'HTML Content').props.value
+    assert.ok(html.startsWith('<p>Existing body.</p>'),'existing article HTML is untouched')
+    assert.match(html,/<figure>\n  <img src="https:\/\/example\.test\/storage\/v1\/object\/public\/project-images\/media\/insight-images\/hero-1\.png" alt="A &quot;quoted&quot; &lt;b&gt;alt&lt;\/b&gt; &amp; more" width="1200" height="630" loading="lazy" \/>\n  <figcaption>Caption &lt;script&gt;bad\(\)&lt;\/script&gt;<\/figcaption>\n<\/figure>/)
+    assert.ok(!html.includes('<script')&&!/\son\w+=/.test(html));assert.match(textOf(inline.tree),/inserted at the end/)
+    // the sanitized preview shows the inserted image
+    await button(inline,'Refresh sanitized preview').props.onClick();inline.render()
+    const inlinePreview=nodes(inline.tree).find(n=>n.type?.name==='InsightArticleBody')
+    assert.match(inlinePreview.props.html,/<figure>\s*<img src="https:\/\/example\.test\/storage[^"]+hero-1\.png"[^>]*alt="A &quot;quoted&quot;/);assert.match(inlinePreview.props.html,/<figcaption>/);assert.ok(!inlinePreview.props.html.includes('<script'))
+    // alt text is required unless decorative; decorative inserts an empty alt
+    const strict=host(Editor,{mode:'edit',initialPost:{...article,content:''}});strict.render()
+    find(strict,n=>n.props?.children==='Insert image'&&typeof n.props.onClick==='function').props.onClick();strict.render()
+    picker(strict).props.onSelect(media({alt_text:''}));strict.render()
+    button(strict,'Insert image').props.onClick();strict.render()
+    assert.match(textOf(strict.tree),/Add alt text for the image/);assert.equal(field(strict,'HTML Content').props.value,'')
+    const decoLabel=nodes(strict.tree).find(n=>n.type==='label'&&textOf(n).includes('Decorative image'))
+    nodes(decoLabel).find(n=>n.type==='input').props.onChange({target:{checked:true}});strict.render()
+    button(strict,'Insert image').props.onClick();strict.render()
+    assert.match(field(strict,'HTML Content').props.value,/<img src="https:\/\/example\.test[^"]+" alt="" width="1200"/)
+  }
+  // helper unit tests: escaping, URL safety, cursor insertion
+  {
+    const am=load('src/lib/admin/article-media.ts')
+    for(const bad of ['javascript:alert(1)','data:image/svg+xml,<svg/>','http://insecure.test/x.png','/relative.png','//evil.test/x.png','https://exa mple.test/x.png','https://x.test/"onerror="bad()'])assert.throws(()=>am.buildArticleFigureHtml({src:bad,alt:'Alt'}),/HTTPS/,bad)
+    assert.throws(()=>am.buildArticleFigureHtml({src:'https://x.test/a.png',alt:''}),/alt text/)
+    assert.equal(am.buildArticleFigureHtml({src:'https://x.test/a.png',alt:'ignored',decorative:true}),'<figure>\n  <img src="https://x.test/a.png" alt="" loading="lazy" />\n</figure>')
+    assert.ok(!am.buildArticleFigureHtml({src:'https://x.test/a.png',alt:'x',width:99999,height:5}).includes('width='))
+    const r=am.insertHtmlBlock('<p>A</p><p>B</p>','<figure></figure>',{start:8,end:8})
+    assert.equal(r.atCursor,true);assert.equal(r.content,'<p>A</p>\n\n<figure></figure>\n\n<p>B</p>');assert.equal(r.content.slice(0,r.caret).endsWith('</figure>\n\n'),true)
+    assert.equal(am.insertHtmlBlock('abc','<f/>',null).content,'abc\n\n<f/>\n');assert.equal(am.insertHtmlBlock('abc','<f/>',null).atCursor,false)
+    assert.equal(am.insertHtmlBlock('abc','<f/>',{start:99,end:120}).atCursor,false,'out-of-range selection falls back to the end')
+    assert.equal(am.insertHtmlBlock('','<f/>',{start:0,end:0}).content,'<f/>\n')
+    // everything the helper can emit survives the public sanitizer, and nothing hostile can be added
+    const { sanitizeBlogHtml }=load('src/lib/sanitize-blog-html.ts')
+    const safe=sanitizeBlogHtml(am.buildArticleFigureHtml({src:'https://x.test/a.png',alt:'"><script>bad()</script>',caption:'<img src=x onerror=bad()>',width:10,height:5}))
+    assert.match(safe,/<figure>\s*<img src="https:\/\/x\.test\/a\.png"[^>]*width="10"[^>]*height="5"[^>]*loading="lazy"/);assert.match(safe,/<figcaption>/)
+    assert.ok(!/<script|onerror=\s*bad|<img src="x"/i.test(safe.replace(/&lt;[^]*?&gt;/g,'')))
+  }
   nextError={message:'Mock save denied'};await button(editor,'Update Insight').props.onClick();editor.render();assert.match(textOf(editor.tree),/Mock save denied/)
   const { NextRequest }=require('next/server')
   const previewRoute=load('src/app/api/admin/insights/preview/route.ts')
