@@ -78,6 +78,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { label: 'Portfolio', href: '/admin/portfolio' },
       { label: 'Insights', href: '/admin/blog' },
       { label: 'Testimonials', href: '/admin/testimonials' },
+      { label: 'Media Library', href: '/admin/media' },
       { label: 'Trusted Brands', href: '/admin/trust' },
       { label: 'Before/After', href: '/admin/before-after' },
       { label: 'FAQs', href: '/admin/faqs' },

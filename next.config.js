@@ -187,6 +187,8 @@ const nextConfig = {
         destination: 'https://hbeedigitals.com/:path*',
         permanent: true,
       },
+      // Admin: the legacy image gallery is replaced by the Media Library (temporary, so it can be reversed).
+      { source: '/admin/images', destination: '/admin/media', permanent: false },
       {
         source: '/home',
         destination: '/',
