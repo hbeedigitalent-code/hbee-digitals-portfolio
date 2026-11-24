@@ -1,28 +1,45 @@
 .band { padding-block: 2.5rem 3rem; border-top: 1px solid var(--hb-border); }
 .heading { margin: 0 0 1.5rem; text-align: center; font-family: var(--hb-font-body); font-size: 0.875rem; font-weight: 600; letter-spacing: 0.06em; color: var(--hb-fg-body); }
-.marquee { text-align: center; }
-.viewport { overflow-x: auto; padding-block: 0.5rem; }
+.marquee { position: relative; text-align: center; }
+/* Reduced motion / no motion support: a manually scrollable strip. Reserved box heights mean nothing shifts as logos load. */
+.viewport { overflow-x: auto; padding-block: 0.5rem; scrollbar-width: thin; }
+.viewport:focus-visible { outline: 2px solid var(--hb-blue); outline-offset: 2px; border-radius: 4px; }
 .track { display: flex; width: max-content; }
 .group { display: flex; flex-wrap: nowrap; align-items: center; gap: 3rem; list-style: none; margin: 0; padding: 0 3rem 0 0; }
-.item { flex: 0 0 11rem; display: flex; align-items: center; justify-content: center; height: 4rem; }
-.logo { display: block; width: auto; height: auto; max-width: 10rem; max-height: 3rem; object-fit: contain; }
+/* Logo slot: a fixed box (no layout shift). The image fills it with object-fit: contain, so the limiting side of every mark
+   uses the full slot: wide wordmarks get the width, compact and tall marks get the height, nothing is stretched. Slots are
+   deliberately tall (4.5rem) so marks with built-in transparent padding still read at a useful size. */
+.item { flex: 0 0 11.5rem; display: flex; align-items: center; justify-content: center; height: 4.5rem; }
+.logo { display: block; width: 100%; height: 100%; object-fit: contain; }
 .link { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; border-radius: 4px; }
 .link:focus-visible { outline: 2px solid var(--hb-blue); outline-offset: 4px; }
 .duplicate, .copy, .pause, .pauseLabel { display: none; }
 @media (max-width: 480px) {
   .group { gap: 1.5rem; padding-right: 1.5rem; }
-  .item { flex-basis: 8rem; }
-  .logo { max-width: 7.5rem; max-height: 2.5rem; }
+  .item { flex-basis: 8.5rem; height: 3.5rem; }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .pause { display: inline-block; accent-color: var(--hb-blue); margin: 0 0.5rem 1rem 0; }
-  .pauseLabel { display: inline; font-size: 0.75rem; color: var(--hb-fg-body); cursor: pointer; }
-  .track { animation: trust-travel var(--trust-duration, 80s) linear infinite; }
   .duplicate { display: block; }
   .copy { display: flex; }
+  /* Clip, never scroll: the strip is driven by the animation alone, so nothing can nudge it out of position. */
+  .viewport { overflow-x: clip; }
+  .track { animation: trust-travel var(--trust-duration, 80s) linear infinite; }
+  /* The same visual speed on phones, where each logo travels a shorter distance per slot. */
+  @media (max-width: 480px) { .track { animation-duration: calc(var(--trust-duration, 80s) * 0.66); } }
+  /* Hover and keyboard focus pause IN PLACE. Focus never resets the animation or hides anything. */
   .marquee:hover .track, .marquee:focus-within .track, .pause:checked ~ .viewport .track { animation-play-state: paused; }
-  /* Reset originals into view for keyboard access, with no focusable clones. */
-  .marquee:focus-within .track { animation: none; }
-  .marquee:focus-within .duplicate, .marquee:focus-within .copy { display: none; }
+
+  /* The pause control: always present for assistive tech and the keyboard, visible only while it has keyboard focus. */
+  .pause, .pauseLabel { display: block; position: absolute; clip-path: inset(50%); width: 1px; height: 1px; margin: -1px; overflow: hidden; padding: 0; border: 0; white-space: nowrap; }
+  .pause { opacity: 0; }
+  .pause:focus-visible + .pauseLabel {
+    clip-path: none; width: auto; height: auto; margin: 0; overflow: visible;
+    top: -0.25rem; left: 50%; transform: translateX(-50%); z-index: 2;
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 0.875rem; border-radius: 999px; border: 2px solid var(--hb-blue);
+    background: var(--hb-surface); color: var(--hb-fg); font-size: 0.8125rem; font-weight: 600; box-shadow: var(--hb-shadow-2);
+  }
+  .pause:focus-visible + .pauseLabel::before { content: ''; width: 0.75rem; height: 0.75rem; border: 2px solid var(--hb-blue); border-radius: 3px; }
+  .pause:checked:focus-visible + .pauseLabel::before { background: var(--hb-blue); }
 }
 @keyframes trust-travel { to { transform: translateX(-50%); } }

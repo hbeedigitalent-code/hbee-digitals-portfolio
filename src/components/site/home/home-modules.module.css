@@ -47,14 +47,16 @@
 .field { position: relative; width: 100%; aspect-ratio: 100 / 92; }
 .fieldList { position: absolute; inset: 0; margin: 0; padding: 0; list-style: none; }
 
-/* Restrained central Hbee geometry: one flat glyph, deliberately quiet (the Hero carries the full emblem). */
+/* Restrained central Hbee geometry: one flat glyph, deliberately quiet (the Hero carries the full emblem). It sits at
+   the centre of the connected ring and firms up as the system closes around it. */
 .fieldGlyph {
   position: absolute;
   left: 50%;
-  top: 41%;
-  width: 30%;
+  top: 50%;
+  display: block;
+  width: 24%;
   transform: translate(-50%, -50%);
-  opacity: 0.5;
+  opacity: calc(0.45 + 0.45 * var(--k, 1));
   pointer-events: none;
 }
 
@@ -62,30 +64,96 @@
 .line { fill: none; stroke: var(--hb-structure); stroke-opacity: 0.7; stroke-width: 1.25; vector-effect: non-scaling-stroke; }
 .lineNode { fill: var(--hb-structure); }
 .lineNodeRing { fill: none; stroke: var(--hb-structure); stroke-width: 1.25; vector-effect: non-scaling-stroke; opacity: 0; transform-box: fill-box; transform-origin: center; }
+/* Scattered links fade as the modules leave the positions they connect. */
+.scatterLinks { opacity: calc(1 - var(--k, 1)); }
+/* Connected links draw by progress (pathLength = 1); user-unit stroke so the dash maths stays exact. */
+.draw {
+  fill: none;
+  stroke: var(--hb-structure);
+  stroke-opacity: 0.85;
+  stroke-width: 0.2;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--k, 1));
+}
+.signal { fill: var(--hb-signal); opacity: var(--k, 1); transform-box: fill-box; transform-origin: center; transform: scale(calc(0.6 + 0.4 * var(--k, 1))); }
 
+/* Mobile-only rail + Signal (hidden on wider layouts). */
+.fieldRail, .fieldRailSignal { display: none; }
+
+/* Modules. Scattered (k = 0) is the layout below; connected (k = 1) moves each to its ring slot and equalises its width.
+   Back layers are smaller and quieter while apart; two of them are softly blurred on desktop only. Transform and opacity
+   are scroll-driven, so there is deliberately NO CSS transition on them. */
 .item {
   position: absolute;
   left: calc(var(--x) * 1%);
   top: calc(var(--y) / 92 * 100%);
   width: calc(var(--w) * 1%);
   z-index: var(--z, 1);
+  transform:
+    translate3d(calc(var(--tx, 0) * var(--k, 1) * 1%), calc(var(--ty, 0) * var(--k, 1) * 1%), 0)
+    scale(calc(1 + (var(--sf, 1) - 1) * var(--k, 1)));
+}
+.itemBack {
+  transform:
+    translate3d(calc(var(--tx, 0) * var(--k, 1) * 1%), calc(var(--ty, 0) * var(--k, 1) * 1%), 0)
+    scale(calc((1 + (var(--sf, 1) - 1) * var(--k, 1)) * (1 - (1 - var(--hb-depth-scale, 0.94)) * (1 - var(--k, 1)))));
+  opacity: calc(1 - (1 - var(--hb-depth-opacity, 0.7)) * (1 - var(--k, 1)));
+}
+@media (min-width: 1024px) {
+  .itemSoft { filter: blur(calc(var(--hb-depth-blur, 3px) * (1 - var(--k, 1)))); }
 }
 .itemDrift { display: block; }
 .itemImage { display: block; width: 100%; height: auto; }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* Independent, slow vertical drift - different period/amplitude per module gives depth without spin or bounce. */
-  .itemDrift { animation: drift var(--dur, 12s) ease-in-out infinite; animation-delay: var(--delay, 0s); }
+  /* Independent, slow vertical drift - different period/amplitude per module gives depth without spin or bounce.
+     Its amplitude relaxes to zero as the system connects, so the settled composition is perfectly still. */
+  .itemDrift { --amp: calc(var(--amp0, 0px) * (1 - var(--k, 1))); animation: drift var(--dur, 12s) ease-in-out infinite; animation-delay: var(--delay, 0s); }
   .lineNodeRing { animation: lineNodePulse 5s ease-out infinite; animation-delay: calc(var(--i, 0) * 0.8s); }
 }
 @keyframes drift { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, var(--amp, -6px), 0); } }
 @keyframes lineNodePulse { 0% { transform: scale(1); opacity: 0.7; } 70%, 100% { transform: scale(4); opacity: 0; } }
 
-/* Mobile: no scattered field. Six modules in a staggered two-column grid, each ~half the width so its label stays readable. */
+/* Mobile: no scattered field. Six modules in a staggered two-column grid, each ~half the width so its label stays readable.
+   The same story, simplified: no ring, no blur, no connectors. Each module settles from at most 16px away (columns drift
+   slightly apart, the right column also sits lower), back layers are only a touch smaller and quieter, and a single
+   rail draws down the seam between the columns with the Signal lit at its foot. */
 @media (max-width: 767px) {
   .field { aspect-ratio: auto; }
   .fieldList { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 0.25rem; }
   .item { position: static; width: 100%; }
-  .item:nth-child(even) { margin-top: 1.75rem; }
+  .item:nth-child(odd) { --mx: -8px; --my: 10px; }
+  .item:nth-child(even) { --mx: 8px; --my: 16px; margin-top: 1.75rem; }
+  .item, .itemBack {
+    transform: translate3d(calc((1 - var(--k, 1)) * var(--mx, 0px)), calc((1 - var(--k, 1)) * var(--my, 0px)), 0)
+      scale(calc(1 - (1 - var(--hb-depth-scale, 0.97)) * (1 - var(--k, 1)) * var(--back, 0)));
+  }
+  .itemBack { --back: 1; }
   .lines, .fieldGlyph { display: none; }
+  .fieldRail {
+    display: block;
+    position: absolute;
+    left: calc(50% - 1px);
+    top: 0.75rem;
+    bottom: 0.75rem;
+    width: 2px;
+    border-radius: 2px;
+    background: var(--hb-structure);
+    opacity: 0.7;
+    transform-origin: center top;
+    transform: scaleY(var(--k, 1));
+  }
+  .fieldRailSignal {
+    display: block;
+    position: absolute;
+    left: calc(50% - 0.375rem);
+    bottom: 0;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    background: var(--hb-signal);
+    opacity: var(--k, 1);
+    transform: scale(calc(0.6 + 0.4 * var(--k, 1)));
+  }
 }

@@ -40,10 +40,12 @@ const client = {
     }
   } },
 }
+// The mount() harness drives the admin page with these test hooks. Anything rendered outside it (renderToStaticMarkup of the public
+// section, which includes small client components) falls through to React's real hooks.
 const hooks = { ...React,
-  useState(initial) { const h = active, i = h.index++; if (!(i in h.state)) h.state[i] = initial; return [h.state[i], value => { h.state[i] = typeof value === 'function' ? value(h.state[i]) : value }] },
-  useRef(initial) { const h = active, i = h.index++; return h.state[i] ||= { current: initial } },
-  useEffect(fn, deps) { const h = active, i = h.index++; if (!h.state[i]) { h.state[i] = deps; h.effects.push(fn) } },
+  useState(initial) { if (!active) return React.useState(initial); const h = active, i = h.index++; if (!(i in h.state)) h.state[i] = initial; return [h.state[i], value => { h.state[i] = typeof value === 'function' ? value(h.state[i]) : value }] },
+  useRef(initial) { if (!active) return React.useRef(initial); const h = active, i = h.index++; return h.state[i] ||= { current: initial } },
+  useEffect(fn, deps) { if (!active) return React.useEffect(fn, deps); const h = active, i = h.index++; if (!h.state[i]) { h.state[i] = deps; h.effects.push(fn) } },
 }
 function load(file) {
   file = path.resolve(root, file)
@@ -144,6 +146,28 @@ const bytesFile = (type, bytes, name = 'logo.bad-extension') => ({ name, type, s
   assert.ok(renderToStaticMarkup(React.createElement(HomeTrustedBrands, { brands: [{ name: 'Acme', logo: '/a.png' }] })).includes('alt="Acme"'), 'legacy rows keep the brand name as alt')
   const rendered = renderToStaticMarkup(React.createElement(HomeTrustedBrands, { brands: many }))
   assert.match(rendered, /type="checkbox"/); assert.match(rendered, /for="pause-trusted-brands"/)
+  // Phase 1: the pause control stays in the DOM (keyboard + assistive tech, works without JS) but is never visible unless focused.
+  const trustCss = fs.readFileSync(path.join(root, 'src/components/site/home/trusted-brands.module.css'), 'utf8')
+  const motionBlock = trustCss.slice(trustCss.indexOf('@media (prefers-reduced-motion: no-preference)'))
+  assert.match(motionBlock, /\.pause, \.pauseLabel \{[^}]*clip-path: inset\(50%\)[^}]*width: 1px; height: 1px/, 'pause control is visually hidden by default')
+  assert.match(motionBlock, /\.pause:focus-visible \+ \.pauseLabel \{[^}]*clip-path: none/, 'and revealed only on keyboard focus')
+  assert.ok(!/\.pauseLabel \{[^}]*display: inline[^}]*\}/.test(motionBlock.replace(/\.pause:focus-visible \+ \.pauseLabel \{[^}]*\}/, '')), 'no permanently visible pause label')
+  assert.match(rendered, /Pause logo motion/); assert.match(rendered, /id="pause-trusted-brands"/)
+  assert.match(rendered, /role="region"[^>]*aria-label="Brand logos"[^>]*tabindex="0"|tabindex="0"[^>]*role="region"/i, 'scrollable strip is keyboard reachable')
+  assert.ok(rendered.indexOf('pause-trusted-brands') < rendered.indexOf('data-marquee-viewport'), 'the pause control is the first tab stop in the section')
+  // Keyboard focus never resets or hides the track.
+  assert.ok(!/focus-within[^{]*\{[^}]*animation:\s*none/.test(trustCss), 'focus-within no longer sets animation: none')
+  assert.ok(!/(\.duplicate|\.copy)[^{]*\{[^}]*display:\s*none/.test(motionBlock), 'focus never hides the duplicate group')
+  assert.match(motionBlock, /\.marquee:hover \.track, \.marquee:focus-within \.track, \.pause:checked ~ \.viewport \.track \{ animation-play-state: paused; \}/)
+  const guard = fs.readFileSync(path.join(root, 'src/components/site/home/MarqueeFocusGuard.tsx'), 'utf8')
+  assert.ok(!/currentTime\s*=\s*0\b|animation\s*=\s*['"]none|cancel\(\)|\.style\.animation/.test(guard), 'the focus guard never restarts or cancels the animation')
+  assert.match(guard, /box\.left >= view\.left && box\.right <= view\.right\) return/, 'a link that is already visible is never moved')
+  // Constant visual speed and a stable loop.
+  assert.match(motionBlock, /\.track \{ animation-duration: calc\(var\(--trust-duration, 80s\) \* 0\.66\); \}/, 'phone slots are shorter, so the duration scales to keep the same px/s')
+  assert.match(motionBlock, /\.viewport \{ overflow-x: clip; \}/, 'motion mode clips rather than scrolls, so nothing can offset the strip')
+  assert.ok(rendered.includes('loading="eager"') && !rendered.includes('loading="lazy"'), 'logos in a moving strip are eager (no pop-in)')
+  assert.match(rendered, /data-motion="soft"/, 'the heading and strip reveal as a group (never per logo)')
+  assert.ok(!/data-motion/.test(rendered.slice(rendered.indexOf('<li'))), 'individual logos are not animated')
   assert.ok(!rendered.includes('<script'), 'SSR presentation and native pause require no JS')
   assert.ok(!/Shopify|Google|BigCommerce|WooCommerce|Magento|Salesforce/.test(rendered))
   const css = postcss.parse(fs.readFileSync(path.join(root, 'src/components/site/home/trusted-brands.module.css'), 'utf8'))
