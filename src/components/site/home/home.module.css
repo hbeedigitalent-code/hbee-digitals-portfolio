@@ -87,7 +87,7 @@
   .eyebrowLineHang { padding-left: calc(0.875rem + 1.125rem); }
 }
 
-/* Homepage only: slightly broader desktop composition, aligned toward the copy.
+/* Homepage only: slightly broader desktop composition, aligned to the container's right edge.
    Its compact lower row keeps the painted modules inside 98 stage units;
    retain header/top clearance and a finite cap instead of scaling or clipping. */
 @media (min-width: 1024px) {
@@ -96,8 +96,11 @@
     width: calc(100% - var(--hero-module-offset));
     max-width: 600px;
     max-width: min(600px, calc((100svh - var(--hb-header-height) - 2rem) * 100 / 98));
-    margin-left: var(--hero-module-offset);
-    margin-right: auto;
+    /* Align to the RIGHT edge of the visual column (= the page container edge, in line with the header CTA).
+       The figure is capped narrower than its column, so left-aligning it (margin-right: auto) pushed the whole
+       leftover width to the far right. Size is unchanged; only the alignment is. */
+    margin-left: auto;
+    margin-right: 0;
   }
 }
 @media (min-width: 1024px) and (max-height: 720px) {
