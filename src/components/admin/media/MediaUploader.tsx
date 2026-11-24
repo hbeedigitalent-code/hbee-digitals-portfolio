@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useEffect, useId, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { findAssetsByChecksum, uploadImageAsset } from '@/lib/media/media-library'
@@ -11,7 +12,10 @@ const field = 'mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg
 const button = 'rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)] disabled:opacity-40'
 const primary = 'rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-bold text-[var(--btn-primary-text)] disabled:opacity-50'
 
-type Phase = 'idle' | 'checking' | 'ready' | 'uploading' | 'saving'
+// The editor (and its crop library) is only fetched when the owner chooses to trim or crop.
+const MediaImageEditor = dynamic(() => import('./MediaImageEditor'), { ssr: false, loading: () => <p role="status" className="text-sm text-[var(--text-secondary)]">Opening editor…</p> })
+
+type Phase = 'idle' | 'checking' | 'ready' | 'editing' | 'uploading' | 'saving'
 
 export interface MediaUploaderProps {
   defaultCategory?: ImageCategory
@@ -29,6 +33,8 @@ export default function MediaUploader({ defaultCategory = 'general', lockCategor
   const inputId = useId()
   const [phase, setPhase] = useState<Phase>('idle')
   const [file, setFile] = useState<File | null>(null)
+  /** The file as first picked, so an edit can always be undone. */
+  const [original, setOriginal] = useState<File | null>(null)
   const [prepared, setPrepared] = useState<PreparedImage | null>(null)
   const [previewUrl, setPreviewUrl] = useState('')
   const [duplicates, setDuplicates] = useState<MediaAsset[]>([])
@@ -40,34 +46,45 @@ export default function MediaUploader({ defaultCategory = 'general', lockCategor
   const [errors, setErrors] = useState<MediaMetadataErrors>({})
   const [message, setMessage] = useState('')
   const [dragging, setDragging] = useState(false)
+  const [revalidating, setRevalidating] = useState(false)
   const busy = useRef(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl) }, [previewUrl])
 
   function reset() {
-    setPhase('idle'); setFile(null); setPrepared(null); setDuplicates([]); setTitle(''); setAltText(''); setDecorative(false)
+    setPhase('idle'); setFile(null); setOriginal(null); setPrepared(null); setDuplicates([]); setTitle(''); setAltText(''); setDecorative(false)
     setCaption(''); setErrors({}); setPreviewUrl('')
     if (inputRef.current) inputRef.current.value = ''
   }
 
-  async function choose(next: File | undefined) {
-    if (!next || busy.current || disabled) return
+  /**
+   * Validate a picked OR edited file (size, declared type vs magic bytes, SVG/markup rejection, decodable dimensions,
+   * SHA-256) with the same code path, then show it. An edited file therefore never skips security validation, and its
+   * checksum is recalculated for duplicate detection.
+   */
+  async function load(next: File, source: 'picked' | 'edited' | 'restored') {
+    if (busy.current || disabled) return
     busy.current = true
-    setMessage(''); setErrors({}); setDuplicates([]); setPrepared(null); setPhase('checking')
+    setMessage(''); setErrors({}); setDuplicates([])
+    if (source === 'picked') { setPrepared(null); setPhase('checking') } else setRevalidating(true)
     try {
       const result = await prepareImageFile(next)
       let matches: MediaAsset[] = []
       try { matches = await findAssetsByChecksum(supabase, result.checksum) } catch (error) { setMessage(`Error: ${errorText(error)}`) }
       setFile(next); setPrepared(result); setDuplicates(matches)
+      if (source === 'picked') { setOriginal(next); setTitle(suggestedTitle.trim() || defaultTitleFromFileName(next.name)) }
+      if (source === 'restored') setOriginal(next)
       setPreviewUrl(URL.createObjectURL(next))
-      setTitle(suggestedTitle.trim() || defaultTitleFromFileName(next.name))
+      if (source === 'edited') setMessage('Edited image ready. Review the details and upload when you are happy with it.')
       setPhase('ready')
     } catch (error) {
-      setFile(null); setPhase('idle'); setMessage(`Error: ${errorText(error)}`)
-      if (inputRef.current) inputRef.current.value = ''
-    } finally { busy.current = false }
+      if (source === 'picked') { setFile(null); setPhase('idle'); if (inputRef.current) inputRef.current.value = '' }
+      else setPhase(file && prepared ? 'ready' : 'idle')
+      setMessage(`Error: ${errorText(error)}`)
+    } finally { busy.current = false; setRevalidating(false) }
   }
+  const choose = async (next: File | undefined) => { if (next) await load(next, 'picked') }
 
   async function upload() {
     if (!file || !prepared || busy.current || disabled) return
@@ -88,7 +105,7 @@ export default function MediaUploader({ defaultCategory = 'general', lockCategor
     finally { busy.current = false }
   }
 
-  const working = phase === 'checking' || phase === 'uploading' || phase === 'saving'
+  const working = revalidating || phase === 'checking' || phase === 'uploading' || phase === 'saving'
   const hasDuplicate = duplicates.length > 0
   const isError = message.startsWith('Error:')
 
@@ -107,9 +124,11 @@ export default function MediaUploader({ defaultCategory = 'general', lockCategor
 
     {message && <p role={isError ? 'alert' : 'status'} className={`rounded-lg border p-3 text-sm ${isError ? 'border-red-500/30 text-red-500' : 'border-[var(--accent)]/30 text-[var(--accent)]'}`}>{message}</p>}
 
-    {file && prepared && phase !== 'idle' && phase !== 'checking' && <div className="grid gap-4 sm:grid-cols-[160px_1fr]">
+    {file && prepared && phase === 'editing' && <MediaImageEditor file={file} mime={prepared.mime} onCancel={() => setPhase('ready')} onApply={(edited) => void load(edited, 'edited')} />}
+
+    {file && prepared && phase !== 'idle' && phase !== 'checking' && phase !== 'editing' && <div className="grid gap-4 sm:grid-cols-[160px_1fr]">
       <div>
-        <div className="flex h-40 w-40 items-center justify-center rounded-lg bg-white p-2">
+        <div className="flex h-40 w-40 items-center justify-center rounded-lg bg-[#e9edf2] p-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {previewUrl && <img src={previewUrl} alt="Preview of the selected file" className="max-h-full max-w-full object-contain" />}
         </div>
@@ -144,6 +163,8 @@ export default function MediaUploader({ defaultCategory = 'general', lockCategor
         <div className="flex flex-wrap items-center gap-3">
           {(!hasDuplicate || phase === 'uploading') ? <button type="button" className={primary} onClick={() => void upload()}>{phase === 'uploading' ? 'Uploading…' : 'Upload to Media Library'}</button>
             : <button type="button" className={primary} onClick={() => void upload()}>Upload anyway</button>}
+          <button type="button" className={button} disabled={working || disabled} onClick={() => setPhase('editing')}>Trim or crop</button>
+          {original && file !== original && <button type="button" className={button} disabled={working || disabled} onClick={() => void load(original, 'restored')}>Use original</button>}
           <button type="button" className={button} onClick={reset}>Cancel</button>
           {working && <progress aria-label="Uploading" className="h-2 w-32" />}
         </div>
