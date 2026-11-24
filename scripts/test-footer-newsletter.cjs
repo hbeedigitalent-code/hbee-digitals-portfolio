@@ -219,7 +219,7 @@ async function main() {
   assert.match(html, /data-newsletter-slot="active"/); assert.match(html, /type="email"/); assert.match(html, /type="checkbox" required=""/); assert.match(html, /linkedin.com/); assert.ok(!html.includes('instagram.com'))
   const disabledHtml = renderToStaticMarkup(React.createElement(SiteFooter, { newsletter: { ...row, enabled: false } }))
   assert.match(disabledHtml, /data-newsletter-slot="reserved"/); assert.ok(!disabledHtml.includes('type="email"'))
-  for (const part of ['class="boundary"', 'class="wordmark"', 'class="motif"', '<details', 'aria-label="Legal"']) assert.ok(html.includes(part))
+  for (const part of ['class="crestHolder"', 'class="wordmark"', 'class="motif"', '<details', 'aria-label="Legal"']) assert.ok(html.includes(part))
   const css = postcss.parse(fs.readFileSync(path.join(root, 'src/components/site/layout/newsletter.module.css'), 'utf8'))
   assert.ok(css.nodes.some(node => node.selector === '.popup' && node.nodes.some(decl => decl.prop === 'max-height' && decl.value.includes('svh'))))
   assert.match(css.toString(), /safe-area-inset-bottom/)

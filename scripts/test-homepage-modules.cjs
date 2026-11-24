@@ -114,8 +114,9 @@ const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
 
   // CTA -> footer separation: a deeper surface, an edge, a signal, more air; still night-toned.
   const footerCss = read('src/components/site/layout/site-footer.module.css')
-  assert.match(footerCss, /\.footer \{[^}]*#030a15/, 'footer surface is deeper than the CTA Night (#061426)')
-  assert.match(footerCss, /\.footer \{[^}]*border-top: 1px solid rgba\(29, 110, 255/, 'footer has an electric top edge')
+  assert.match(footerCss, /\.motion \{ --crest-navy: #030a15/, 'footer surface is deeper than the CTA Night (#061426)')
+  assert.match(footerCss, /\.footer \{[^}]*linear-gradient\(180deg, var\(--crest-navy\)/, 'the footer starts from the crest navy: no seam')
+  assert.match(footerCss, /\.crestNavy \{[^}]*stroke: var\(--hb-electric\)/, 'the crest carries the electric top edge (Phase 1 replaces the footer border line)')
   assert.match(footerCss, /\.footer::before \{[^}]*background: var\(--hb-orange\)/, 'one orange signal on the divider')
   assert.match(footerCss, /padding-block: clamp\(3\.75rem/, 'more air above the footer content')
   assert.match(read('src/components/site/layout/SiteFooter.tsx'), /data-tone="night"/)

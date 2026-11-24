@@ -25,6 +25,8 @@ interface SiteSceneProps {
   settleAtEnd?: boolean
   /** Overrides applied below 1024px, where the same scene is usually a taller, single-column stack. */
   compact?: SceneWindow
+  /** Render as a plain element: no scene attribute (so no start state), no controller. Used where a scene applies on some routes only. */
+  disabled?: boolean
   children: ReactNode
 }
 
@@ -39,7 +41,7 @@ const COMPACT = '(max-width: 1023px)'
  * Without JS, under reduced motion, or if the controller never starts, the CSS default is p = 1, the
  * complete state, so no content ever depends on this component running.
  */
-export function SiteScene({ as: Tag = 'div', id, className, style, anchor = 'center', from = 0.85, to = 0.35, settleAtEnd = false, compact, children }: SiteSceneProps) {
+export function SiteScene({ as: Tag = 'div', id, className, style, anchor = 'center', from = 0.85, to = 0.35, settleAtEnd = false, compact, disabled = false, children }: SiteSceneProps) {
   const ref = useRef<HTMLElement | null>(null)
   const [isCompact, setIsCompact] = useState(false)
   const hasCompact = compact !== undefined
@@ -58,11 +60,12 @@ export function SiteScene({ as: Tag = 'div', id, className, style, anchor = 'cen
   useIsomorphicLayoutEffect(() => {
     const node = ref.current
     if (!node) return
+    if (disabled) { node.style.removeProperty('--hb-p'); return }
     return registerScene(node, { anchor: range.anchor, from: range.from, to: range.to, settleAtEnd })
-  }, [range.anchor, range.from, range.to, settleAtEnd])
+  }, [range.anchor, range.from, range.to, settleAtEnd, disabled])
 
   return (
-    <Tag ref={ref} id={id} data-scene="" className={className} style={style}>
+    <Tag ref={ref} id={id} data-scene={disabled ? undefined : ''} className={className} style={style}>
       {children}
     </Tag>
   )

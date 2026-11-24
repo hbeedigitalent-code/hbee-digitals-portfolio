@@ -60,7 +60,7 @@ assert.match(controller, /reducedMotion\(\) \|\| typeof IntersectionObserver ===
 assert.match(controller, /function onPreference[\s\S]{0,200}release/, 'switching to reduced motion mid-session releases scenes')
 assert.doesNotMatch(controller, /smooth-?scroll|lenis|gsap|framer/i, 'no global smooth-scroll or animation library')
 const scenes = read('src/components/site/motion/SiteScene.tsx')
-assert.match(scenes, /registerScene/); assert.match(scenes, /data-scene=""/)
+assert.match(scenes, /registerScene/); assert.match(scenes, /data-scene=\{disabled \? undefined : ''\}/, 'a disabled scene has no scene attribute, so no hidden start state')
 const tokens = read('src/styles/site-tokens.css')
 const sceneCss = tokens.slice(tokens.indexOf('/* ── Scenes: reversible'))
 assert.match(sceneCss, /\[data-scene\] \{\s*--hb-p: 1;/, 'default (no JS / unhydrated) is the complete state')
@@ -103,4 +103,28 @@ assert.match(problem, /HomeModuleField/); assert.match(problem, /SYMPTOMS\.map/,
 // Hero untouched by this phase.
 for (const file of ['HomeHero.tsx', 'HomeHeroSystem.tsx']) assert.doesNotMatch(read('src/components/site/home/' + file), /SiteScene|data-layer|--hb-p/, file + ' is untouched')
 
-console.log('PASS: motion scenes foundation + Growth System rail + Problem field')
+// ── Footer crest + homepage choreography ──
+const mode = loadTs('src/components/site/layout/footer-motion-mode.ts').footerMotionMode
+assert.equal(mode('/'), 'full'); assert.equal(mode(null), 'calm')
+for (const path of ['/privacy', '/terms', '/cookies', '/unsubscribe', '/growth-review/received']) assert.equal(mode(path), 'static', path)
+for (const path of ['/insights', '/insights/some-article', '/services', '/services/brand-positioning', '/work', '/about', '/contact']) assert.equal(mode(path), 'calm', path)
+const footerSrc = read('src/components/site/layout/SiteFooter.tsx')
+assert.match(footerSrc, /<footer data-tone="night"/, 'semantic footer remains'); assert.match(footerSrc, /<FooterCrest \/>/, 'the shared crest renders on every public page')
+assert.match(footerSrc, /<details key=\{column\.title\}>/, 'mobile accordions are untouched')
+assert.match(footerSrc, /aria-label="Legal"/)
+const motionSrc = read('src/components/site/layout/FooterMotion.tsx')
+assert.match(motionSrc, /<SiteScene anchor="top" from=\{1\} to=\{0\.5\} settleAtEnd disabled=\{mode !== 'full'\}/, 'choreography is homepage-only, reversible and always settles at the page end')
+assert.match(motionSrc, /IntersectionObserver[\s\S]*data-offscreen/, 'crest drift pauses off-screen')
+const layers = footerSrc.match(/data-layer=""/g) || []
+assert.ok(layers.length >= 7, 'brand, newsletter, nav columns, contact, social and legal rows are layers')
+assert.match(footerSrc, /layer\(0\.55, 0\.95\)/, 'legal row settles last')
+const crestSrc = read('src/components/site/layout/FooterCrest.tsx')
+assert.match(crestSrc, /aria-hidden="true"/); assert.doesNotMatch(crestSrc, /Math\.sin|Math\.cos|\bQ\d|\bC\d|<canvas|webgl/i, 'stepped geometry, not a sine wave; no canvas/WebGL')
+assert.equal((crestSrc.match(/<path /g) || []).length, 2, 'two layered surfaces')
+const fcss = read('src/components/site/layout/site-footer.module.css')
+assert.match(fcss, /:global\(\[data-scene\]\) \.rise \{/, 'entrance styles exist only inside a scene')
+assert.match(fcss, /@media \(max-width: 767px\) \{ \.motion \{ --footer-lateral: 0;/, 'no lateral column motion on mobile')
+assert.doesNotMatch(fcss.slice(fcss.indexOf('/* Homepage footer entrance'), fcss.indexOf('@media (max-width: 767px) { .motion')), /transition\s*:/, 'no CSS transition on scene-driven properties')
+assert.ok(!/will-change/.test(fcss.replace(/\.crestLayer \{ will-change: auto; \}|\[data-scene-active\] \.crest \{ will-change: transform, opacity; \}/g, '')), 'no permanent will-change')
+
+console.log('PASS: motion scenes foundation + Growth System rail + Problem field + footer crest')

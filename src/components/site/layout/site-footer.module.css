@@ -6,10 +6,7 @@
   isolation: isolate;
   overflow: hidden;
   padding-block: clamp(3.75rem, 6vw, 5.5rem) 1.5rem;
-  background:
-    radial-gradient(60% 9rem at 50% 0, rgba(29, 110, 255, 0.16), rgba(29, 110, 255, 0) 100%),
-    linear-gradient(180deg, #030a15 0%, #04101f 40%, #030b17 100%);
-  border-top: 1px solid rgba(29, 110, 255, 0.5);
+  background: linear-gradient(180deg, var(--crest-navy) 0%, #04101f 40%, #030b17 100%);
 }
 /* Signal on the divider, aligned with the page content edge (same maths as .hb-container). */
 .footer::before {
@@ -23,7 +20,43 @@
   background: var(--hb-orange);
   z-index: 1;
 }
-.boundary { position: absolute; inset: 0 0 auto; width: 100%; height: 1.5rem; color: var(--hb-blue); opacity: 1; pointer-events: none; }
+
+/* ── The crest: the surface that carries the page into the footer ───────────────────────────────────────────────
+   FooterMotion wraps the crest and the footer. The crest sits in a zero-height holder directly above the footer and rises
+   into the section before it (overlapping only that section's bottom padding). Its front layer is the footer's own navy, so
+   it joins the footer with no seam, and the footer no longer needs a border line: the crest's electric edge is the top light.
+   Motion is transform-only (a one-period drift of the 800-unit pattern, so the loop has no seam) and is context aware:
+   data-crest="full" (homepage), "calm" (marketing/editorial: slower), "static" (legal/utility). It pauses while the footer
+   is well off-screen (data-offscreen) and is completely still under reduced motion. */
+.motion { --crest-navy: #030a15; --crest-h: clamp(44px, 6.5vw, 96px); display: block; }
+.scene { display: block; }
+.crestHolder { position: relative; height: 0; z-index: 2; pointer-events: none; }
+.crest { position: absolute; left: 0; bottom: -1px; width: 100%; height: var(--crest-h); display: block; overflow: hidden; }
+.crestLayer { will-change: auto; }
+.crestBlue { fill: var(--hb-electric); fill-opacity: 0.2; stroke: var(--hb-electric); stroke-opacity: 0.45; stroke-width: 1; }
+.crestNavy { fill: var(--crest-navy); stroke: var(--hb-electric); stroke-opacity: 0.6; stroke-width: 1.25; }
+@media (prefers-reduced-motion: no-preference) {
+  .motion[data-crest='full'] .crestBack { animation: crestDrift 90s linear infinite; }
+  .motion[data-crest='full'] .crestFront { animation: crestDrift 140s linear infinite; }
+  .motion[data-crest='calm'] .crestBack { animation: crestDrift 200s linear infinite; }
+  .motion[data-crest='calm'] .crestFront { animation: crestDrift 310s linear infinite; }
+  .motion[data-offscreen] .crestLayer { animation-play-state: paused; }
+  .motion[data-crest='full'][data-scene-active] .crest { will-change: transform, opacity; }
+}
+@keyframes crestDrift { to { transform: translateX(-800px); } }
+
+/* Homepage footer entrance (scroll-linked, reversible): driven by the scene's progress through --k. Only inside a scene, so
+   every other route renders these elements at rest. Small translate, a hint of scale, opacity floored so nothing vanishes. */
+:global([data-scene]) .rise {
+  opacity: calc(0.25 + 0.75 * var(--k, 1));
+  transform: translate(
+      calc(var(--lx, 0px) * (1 - var(--k, 1)) * var(--footer-lateral, 1)),
+      calc(18px * (1 - var(--k, 1)) * var(--hb-scene-travel, 1))
+    )
+    scale(calc(1 - 0.015 * (1 - var(--k, 1))));
+}
+:global([data-scene]) .crest { opacity: var(--k, 1); transform: translateY(calc(14px * (1 - var(--k, 1)) * var(--hb-scene-travel, 1))); }
+@media (max-width: 767px) { .motion { --footer-lateral: 0; --crest-h: 40px; } }
 .top { display: grid; gap: 2rem; }
 .brand { display: flex; flex-direction: column; align-items: flex-start; gap: 1.25rem; min-width: 0; }
 .brand p { max-width: 22rem; font-size: 0.9375rem; line-height: 1.6; }
