@@ -95,7 +95,9 @@ const read = (f) => fs.readFileSync(path.join(root, f), 'utf8')
 
   // Sequences.
   const growthH3 = read(homeDir + 'HomeGrowthSystem.tsx')
-  assert.ok(growthH3.indexOf('data-motion="rail"') > -1 && growthH3.indexOf('data-motion="step"') > growthH3.indexOf('data-motion="rail"'), 'Growth System: rail first, then steps')
+  // Phase 1: the rail and steps are one reversible scene (progress-driven) instead of one-shot reveals; the rail still leads the steps.
+  assert.ok(growthH3.indexOf('styles.trackLine') > -1 && growthH3.indexOf('styles.stage}') > growthH3.indexOf('styles.trackLine'), 'Growth System: rail first, then steps')
+  assert.match(growthH3, /'--s': i \* 0\.15/, 'each step resolves later than the one before')
   assert.match(read(homeDir + 'HomeConditions.tsx'), /data-motion="item"/)
   assert.match(read(homeDir + 'home.module.css'), /\.rail:global\(\[data-revealed='true'\]\)::before/, 'Conditions rail draws on reveal')
   assert.match(read(homeDir + 'HomeCapabilities.tsx'), /motion="card"/)

@@ -486,3 +486,50 @@ body:has([data-surface-root]) {
   [data-surface='site'] [data-hero-copy] > :nth-child(n + 5) { animation-delay: 220ms; }
   [data-surface='site'] [data-hero-visual] { animation-duration: 700ms; animation-delay: 100ms; }
 }
+
+/* ── Scenes: reversible, scroll-linked progress ────────────────────
+   <SiteScene> writes ONE custom property, --hb-p (0 → 1), from the shared scroll controller. Everything
+   visual is derived from it here, so a scene is plain CSS over a number.
+
+   Safety: the default is p = 1, the complete state. It is held at 0 only while the surface is motion-ready
+   (the same pre-paint gate as SiteReveal), so there is no flash before hydration. Reduced motion, no JS,
+   a controller that never starts and data-scene-static all resolve to the final state; !important beats
+   the controller's inline value so a late preference change settles instantly.
+
+   Layers: a [data-layer] element declares its own window inside the scene with --s (start) and --e (end),
+   both 0..1. --q is the clamped local progress; --k is the same eased (smoothstep), so layers can overlap
+   and stagger inside one scene. Drive only transform and opacity; never put a CSS transition on a property
+   that --k drives, or it will lag the scroll.
+
+   Mobile simplification is a token change, not a second system: travel shrinks, blur is removed and the
+   depth scale is gentler. */
+[data-surface='site'] [data-scene] {
+  --hb-p: 1;
+}
+[data-surface='site'][data-motion-ready] [data-scene] {
+  --hb-p: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-surface='site'] [data-scene] { --hb-p: 1 !important; }
+}
+[data-surface='site'] [data-scene][data-scene-static] { --hb-p: 1 !important; }
+
+[data-surface='site'] {
+  --hb-depth-scale: 0.94;
+  --hb-depth-opacity: 0.7;
+  --hb-depth-blur: 3px;
+  --hb-scene-travel: 1;
+}
+@media (max-width: 1023px) {
+  [data-surface='site'] { --hb-depth-scale: 0.97; --hb-depth-blur: 0px; }
+}
+@media (max-width: 767px) {
+  [data-surface='site'] { --hb-scene-travel: 0.4; }
+}
+
+[data-surface='site'] [data-scene] [data-layer] {
+  --q: clamp(0, calc((var(--hb-p) - var(--s, 0)) / (var(--e, 1) - var(--s, 0))), 1);
+  --k: calc(var(--q) * var(--q) * (3 - 2 * var(--q)));
+}
+/* will-change only while the scene is near the viewport. */
+[data-surface='site'] [data-scene][data-scene-active] [data-layer] { will-change: transform, opacity; }

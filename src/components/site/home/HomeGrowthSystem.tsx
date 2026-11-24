@@ -1,4 +1,5 @@
 import { SiteReveal } from '../motion/SiteReveal'
+import { SiteScene } from '../motion/SiteScene'
 import { SiteGrid } from '../primitives/SiteContainer'
 import { SiteSection } from '../primitives/SiteSection'
 import { SiteDisplayHeading, SiteEyebrow, SiteLede } from '../primitives/SiteTypography'
@@ -37,12 +38,21 @@ export function HomeGrowthSystem() {
         </SiteReveal>
       </SiteGrid>
 
-      <SiteReveal motion="none" className={`${styles.track} mt-16`}>
-        <span aria-hidden="true" data-motion="rail" className={styles.trackLine} />
-        <span aria-hidden="true" className={styles.trackSignal} />
+      {/* Reversible scene (--hb-p): the rail draws, the Signal travels and each stage resolves as the track passes
+          through the viewport; scrolling back up un-draws it. Nothing is pinned. Final state = complete rail. */}
+      <SiteScene anchor="center" from={0.85} to={0.5} compact={{ from: 0.95, to: 0.4 }} className={`${styles.track} mt-16`}>
+        <span aria-hidden="true" data-layer="" style={{ '--s': 0, '--e': 0.78 } as React.CSSProperties} className={styles.trackLine} />
+        <span aria-hidden="true" className={styles.trackSignalPath}>
+          <span data-layer="" style={{ '--s': 0.2, '--e': 1 } as React.CSSProperties} className={styles.trackSignal} />
+        </span>
         <ol className={`${styles.stageList} grid gap-14 lg:grid-cols-5 lg:gap-6`}>
           {STAGES.map((stage, i) => (
-            <li key={stage.name} data-motion="step" style={{ '--hb-motion-index': i } as React.CSSProperties} className="lg:flex lg:flex-col lg:items-center lg:text-center">
+            <li
+              key={stage.name}
+              data-layer=""
+              style={{ '--s': i * 0.15, '--e': i * 0.15 + 0.22 } as React.CSSProperties}
+              className={`${styles.stage} lg:flex lg:flex-col lg:items-center lg:text-center`}
+            >
               <span aria-hidden="true" className={styles.trackNode}>
                 {String(i + 1).padStart(2, '0')}
               </span>
@@ -54,7 +64,7 @@ export function HomeGrowthSystem() {
             </li>
           ))}
         </ol>
-      </SiteReveal>
+      </SiteScene>
     </SiteSection>
   )
 }

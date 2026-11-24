@@ -178,31 +178,43 @@
   .trackNode { width: 64px; height: 64px; font-size: 1.0625rem; border-radius: 16px 16px 28px 16px; }
 }
 
-/* The Signal travels once along the track when it is revealed, then settles
-   just before Optimize (beside the node, never covering its number).
-   Reduced motion / no JS: it simply rests there. */
-.trackSignal {
+/* Scene-driven (--hb-p via <SiteScene>): the rail draws left to right, the Signal rides it and settles just before
+   Optimize (beside the node, never covering its number), and each stage resolves as the rail reaches it. All
+   transform/opacity; reversible. Complete (p = 1) under reduced motion, without JS, and in the settled state. */
+.trackLine {
+  transform-origin: left center;
+  transform: scaleX(var(--k, 1));
+}
+.trackSignalPath {
   position: absolute;
   z-index: 2;
   top: 23px;
-  left: calc(90% - 58px);
+  left: calc(10% + 58px);
+  right: calc(10% + 58px);
+  height: 18px;
+  container-type: inline-size;
+}
+.trackSignal {
+  position: absolute;
+  left: 0;
+  top: 0;
   width: 34px;
   height: 18px;
   margin-left: -17px;
   border-radius: 3px 999px 999px 3px;
   background: var(--hb-orange);
   box-shadow: 0 0 0 4px var(--hb-bg), 0 0 22px rgba(252, 93, 28, 0.55);
-  transition: left 1900ms var(--hb-ease-in-out) 350ms, opacity 280ms linear 330ms;
+  opacity: var(--k, 1);
+  transform: translate3d(calc(var(--k, 1) * 100cqw), 0, 0);
 }
-/* Held invisible at its start until the rail has begun to draw, so it never sits alone before the track exists. */
-:global([data-surface='site'][data-motion-ready]) :global([data-revealed='false']) .trackSignal {
-  left: calc(10% + 58px);
-  opacity: 0;
+.stage {
+  opacity: var(--k, 1);
+  transform: translate3d(0, calc((1 - var(--k, 1)) * var(--hb-travel, 14px) * var(--hb-scene-travel, 1)), 0);
 }
 
 @media (max-width: 1023px) {
   .trackLine { display: none; }
-  .trackSignal { display: none; }
+  .trackSignalPath { display: none; }
 }
 
 /* Mobile/tablet: vertical sequence on a rail */
@@ -254,7 +266,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .trackSignal { transition: none; }
   .media img { transition: none; }
 }
 
