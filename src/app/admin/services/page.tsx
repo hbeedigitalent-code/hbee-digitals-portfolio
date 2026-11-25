@@ -133,6 +133,12 @@ export default function ServicesAdmin() {
             </button>
           )}
           <Link
+            href="/admin/services/showcase"
+            className="rounded-full border border-[var(--accent)] px-5 py-2 text-sm font-black text-[var(--accent)]"
+          >
+            Capability showcases
+          </Link>
+          <Link
             href="/admin/services/new"
             className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-black text-[var(--btn-primary-text)] transition hover:scale-[1.02]"
           >

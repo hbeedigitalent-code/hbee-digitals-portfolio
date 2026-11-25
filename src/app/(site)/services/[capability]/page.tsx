@@ -6,6 +6,7 @@ import { getCapabilityWork } from '@/lib/site/portfolio-creative-data'
 import { CapabilityDetailPage } from '@/components/site/capability/CapabilityDetailPage'
 import { CAPABILITY_DETAILS, capabilityIdentity } from '@/components/site/capability/capability-content'
 import { SITE_URL } from '@/lib/blog-utils'
+import { getShowcase } from '@/lib/site/showcase-data'
 
 /**
  * Capability detail pages (/services/[capability]). Only slugs with a content
@@ -45,9 +46,10 @@ export default async function CapabilityPage({ params }: { params: { capability:
   /* Editorial links inside the semantic content are only rendered when the Insight is
      currently published, so an unpublished or renamed article never becomes a dead link. */
   const linkedInsightSlugs = semanticInsightSlugs(detail)
-  const [work, insightData] = await Promise.all([
+  const [work, insightData, showcase] = await Promise.all([
     getCapabilityWork(params.capability),
     detail?.insightSlugs.length || linkedInsightSlugs.length ? getInsightsData() : Promise.resolve({ items: [], topics: [] }),
+    detail ? getShowcase({ type: 'service', key: params.capability, slot: 'showcase' }) : Promise.resolve([]),
   ])
   /* slug → the published post's real title (used as the link label). Unpublished slugs are absent. */
   const insightTitles: Record<string, string> = {}
@@ -100,7 +102,7 @@ export default async function CapabilityPage({ params }: { params: { capability:
           />
         </>
       )}
-      <CapabilityDetailPage slug={params.capability} work={work} insights={insights} insightTitles={insightTitles} />
+      <CapabilityDetailPage slug={params.capability} work={work} insights={insights} insightTitles={insightTitles} showcase={showcase} />
     </>
   )
 }

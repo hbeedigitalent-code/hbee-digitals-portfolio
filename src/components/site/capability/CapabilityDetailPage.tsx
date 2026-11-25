@@ -6,6 +6,8 @@ import { CapabilityHero } from './CapabilityHero'
 import { CapabilityApproach, CapabilityCta, CapabilityFaq, CapabilityOpportunity, CapabilityWork } from './CapabilitySections'
 import { CapabilityConnected, CapabilityQuestions, CapabilityServiceArea, CapabilitySymptomsDiagnose } from './CapabilitySemanticSections'
 import { CapabilitySystemFit } from './CapabilitySystemFit'
+import { CapabilityShowcase } from './CapabilityShowcase'
+import type { ShowcaseItem } from '@/lib/site/showcase-model'
 
 /**
  * The capability-detail template. One structure for all six capabilities;
@@ -30,12 +32,15 @@ export function CapabilityDetailPage({
   work = [],
   insights = [],
   insightTitles = {},
+  showcase = [],
 }: {
   slug: string
   work?: WorkItem[]
   insights?: InsightSummary[]
   /** Published Insights by slug → real title. Editorial links to any other Insight are omitted. */
   insightTitles?: Record<string, string>
+  /** Media Library pieces explicitly placed on this capability; nothing renders when empty. */
+  showcase?: ShowcaseItem[]
 }) {
   const detail = CAPABILITY_DETAILS[slug]
   const identity = capabilityIdentity(slug)
@@ -53,6 +58,7 @@ export function CapabilityDetailPage({
         <CapabilityServiceArea detail={detail} insightTitles={insightTitles} />
         <CapabilityQuestions detail={detail} insightTitles={insightTitles} />
         <CapabilityWork detail={detail} work={work} insights={insights} />
+        <CapabilityShowcase slug={slug} items={showcase} />
         <CapabilityConnected detail={detail} />
         <CapabilityCta detail={detail} />
       </>
@@ -65,6 +71,7 @@ export function CapabilityDetailPage({
       <CapabilityOpportunity detail={detail} />
       <CapabilityApproach detail={detail} name={name} />
       <CapabilityWork detail={detail} work={work} insights={insights} />
+      <CapabilityShowcase slug={slug} items={showcase} />
       <CapabilitySystemFit detail={detail} name={name} />
       <CapabilityFaq detail={detail} />
       <CapabilityCta detail={detail} />
