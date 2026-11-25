@@ -301,8 +301,12 @@ assert.equal(row.alt_text, '', 'decorative rows store no alt text'); assert.equa
   assert.match(read('next.config.js'), /source: '\/admin\/images', destination: '\/admin\/media', permanent: false/)
   const scoped = [...['src/lib/media/media-types.ts', 'src/lib/media/media-validation.ts', 'src/lib/media/media-library.ts', 'src/lib/media/media-prepare.ts', 'src/app/admin/media/page.tsx', 'src/components/admin/media/MediaUploader.tsx', 'src/components/admin/media/MediaPicker.tsx'].map(read)].join('\n')
   assert.ok(!/client-portal|project-files|proposal-files|onboarding-files|client-portal-files|service_role|SUPABASE_SERVICE/.test(scoped), 'no Client Portal, private bucket or service-role code in the media library')
-  assert.ok(!/site-media/.test(scoped), 'no site-media bucket in Batch 1')
-  assert.ok(!/<video|video\/mp4|video\/webm/.test(scoped.replace(/kind: MediaKind/g, '')), 'no video upload UI in Batch 1')
+  // Batch 3 adds video (site-media) in its own modules. The IMAGE upload path stays exactly as it was: it never targets
+  // the video bucket and never accepts a video type.
+  const imagePath = ['src/lib/media/media-validation.ts', 'src/lib/media/media-prepare.ts', 'src/components/admin/media/MediaUploader.tsx'].map(read).join('\n')
+  assert.ok(!/site-media|SITE_MEDIA_BUCKET/.test(imagePath), 'image uploads never use the video bucket')
+  assert.ok(!/<video|video\/mp4|video\/webm/.test(imagePath), 'the image upload path accepts no video type')
+  assert.match(read('src/lib/media/media-library.ts'), /db\.storage\.from\(MEDIA_BUCKET\)/, 'images are still stored in project-images')
   assert.ok(!/blog-images|portfolio-images|team-avatars|'proofs'|'avatars'/.test(scoped), 'legacy buckets are not touched')
   console.log('admin media foundation checks passed')
 })().catch((error) => { console.error(error); process.exit(1) })

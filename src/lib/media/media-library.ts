@@ -162,6 +162,8 @@ export const USAGE_SOURCES: UsageSource[] = [
   { table: 'hero_section', area: 'Hero', label: () => 'Hero section', href: () => '/admin/hero' },
   { table: 'team_members', area: 'Team', label: (r) => text(r.name) || 'Team member', href: () => '/admin/team' },
   { table: 'about_page', area: 'About page', label: () => 'About page', href: () => '/admin/about' },
+  { table: 'testimonials', area: 'Testimonials', label: (r) => text(r.name) || text(r.author) || 'Testimonial', href: () => '/admin/testimonials' },
+  { table: 'video_testimonials', area: 'Video proofs', label: (r) => text(r.caption) || text(r.title) || 'Proof', href: () => '/admin/video-testimonials' },
 ]
 
 const SKIPPED_FIELDS = new Set(['id', 'created_at', 'updated_at'])
@@ -208,6 +210,16 @@ export async function scanAssetUsage(db: Db, asset: MediaAsset): Promise<MediaUs
       }
     } catch (error) {
       unscanned.push({ area: source.area, reason: error instanceof Error ? error.message : 'Could not be read.' })
+    }
+  }
+  // An image can be referenced by id as the poster of a library video (no URL is stored for that link).
+  if (asset.kind === 'image') {
+    try {
+      const { data, error } = await db.from('media_assets').select('id,title,poster_asset_id').eq('poster_asset_id', asset.id).limit(200)
+      if (error) unscanned.push({ area: 'Video posters', reason: error.message || 'Could not be read.' })
+      else for (const row of (data ?? []) as Array<Record<string, unknown>>) usages.push({ area: 'Video poster', label: text(row.title) || 'Video', field: 'poster_asset_id', href: '/admin/media' })
+    } catch (error) {
+      unscanned.push({ area: 'Video posters', reason: error instanceof Error ? error.message : 'Could not be read.' })
     }
   }
   return { usages, unscanned, scannedAt: new Date().toISOString() }

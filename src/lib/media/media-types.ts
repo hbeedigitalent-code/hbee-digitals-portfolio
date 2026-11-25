@@ -37,6 +37,16 @@ export const CATEGORY_FOLDERS: Record<ImageCategory, string> = {
 
 export const MEDIA_BUCKET = 'project-images'
 
+/** Public bucket for website video (Batch 3). Images stay in MEDIA_BUCKET. Created by scripts/admin-media-video-01-forward.sql. */
+export const SITE_MEDIA_BUCKET = 'site-media'
+export type VideoCategory = (typeof VIDEO_CATEGORIES)[number]
+/** Folder under the site-media bucket for NEW video uploads. */
+export const VIDEO_FOLDERS: Record<VideoCategory, string> = {
+  video: 'videos',
+  bgc_video: 'background',
+  ugc_video: 'ugc',
+}
+
 export interface MediaAsset {
   id: string
   kind: MediaKind
@@ -67,6 +77,8 @@ export const MEDIA_COLUMNS =
 
 export const isMediaCategory = (value: unknown): value is MediaCategory =>
   typeof value === 'string' && (MEDIA_CATEGORIES as readonly string[]).includes(value)
+export const isVideoCategory = (value: unknown): value is VideoCategory =>
+  typeof value === 'string' && (VIDEO_CATEGORIES as readonly string[]).includes(value)
 export const isImageCategory = (value: unknown): value is ImageCategory =>
   typeof value === 'string' && (IMAGE_CATEGORIES as readonly string[]).includes(value)
 export const isMediaKind = (value: unknown): value is MediaKind =>
