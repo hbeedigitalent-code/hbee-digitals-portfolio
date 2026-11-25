@@ -9,6 +9,8 @@ import { SiteButton } from '../primitives/SiteButton'
 import { SiteImage } from '../primitives/SiteImage'
 import { SiteArrow } from '../primitives/SiteIcons'
 import { SiteSection } from '../primitives/SiteSection'
+import { MediaShowcase } from '../media/MediaShowcase'
+import type { ShowcaseItem } from '@/lib/site/showcase-model'
 import { SiteEyebrow } from '../primitives/SiteTypography'
 import { StoryText } from './StoryText'
 import { WorkCta } from './WorkSections'
@@ -31,7 +33,7 @@ import styles from './work.module.css'
  *   - client wording appears only for engagement_type === 'client';
  *   - an ongoing project never claims final results ("Progress so far").
  */
-export function WorkDetailPage({ detail, next }: { detail: WorkDetail; next?: WorkItem | null }) {
+export function WorkDetailPage({ detail, next, showcase = [] }: { detail: WorkDetail; next?: WorkItem | null; showcase?: ShowcaseItem[] }) {
   return (
     <>
       <WorkDetailHero detail={detail} />
@@ -39,11 +41,17 @@ export function WorkDetailPage({ detail, next }: { detail: WorkDetail; next?: Wo
       <WorkApproach detail={detail} />
       <WorkVideos detail={detail} />
       <WorkEvidence detail={detail} />
+      <ProjectMedia items={showcase} />
       <WorkOutcome detail={detail} />
       {detail.creative && next && <WorkNextProject next={next} />}
       <WorkCta />
     </>
   )
+}
+
+/** Library assets placed on this project. Renders nothing until something is switched on. */
+export function ProjectMedia({ items }: { items: ShowcaseItem[] }) {
+  return <MediaShowcase id="case-media" items={items} eyebrow="From this project" heading="Project media" />
 }
 
 function MetaLine({ detail }: { detail: WorkDetail }) {

@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 
 import { WorkDetailPage } from '@/components/site/work/WorkDetail'
 import { getNextWork, getWorkDetail, getWorkSeo } from '@/lib/site/work-data'
+import { getShowcase } from '@/lib/site/showcase-data'
 import { pageMetadata } from '@/lib/site/seo'
 import { generatedSocialImage } from '@/lib/site/social-image'
 import { pageJsonLd } from '@/lib/site/page-schema'
@@ -44,7 +45,7 @@ export default async function CaseStudyPage({ params }: { params: { slug: string
       {jsonLd.map((block, i) => (
         <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: block }} />
       ))}
-      <WorkDetailPage detail={detail} next={next} />
+      <WorkDetailPage detail={detail} next={next} showcase={await getShowcase({ type: 'project', key: params.slug, slot: 'project_media' })} />
     </>
   )
 }

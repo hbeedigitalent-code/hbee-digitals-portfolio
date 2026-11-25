@@ -183,7 +183,7 @@ function fakeDb({ poster = { id: POSTER, kind: 'image', status: 'active' }, toke
   const posterField = read('src/components/admin/media/PosterField.tsx')
   assert.match(posterField, /<MediaPicker/); assert.ok(!/kind="video"/.test(posterField), 'posters are picked from images'); assert.match(posterField, /Clear poster/)
   const picker = read('src/components/admin/media/MediaPicker.tsx')
-  assert.match(picker, /kind = 'image', open,/, 'existing pickers still choose images by default')
+  assert.ok(picker.includes("{ kind = 'image', multiple = false,"), 'existing pickers still choose one image by default')
   const page = read('src/app/admin/media/page.tsx')
   assert.match(page, /Upload media/); assert.match(page, /<BulkUploader /); assert.match(page, /updateVideoMetadata\(/); assert.match(page, /updateAssetMetadata\(/, 'image editing unchanged')
   assert.match(page, /if \(asset\.kind === 'video'\) return <span/, 'the grid does not download videos')

@@ -9,7 +9,8 @@ import { SiteButton } from '../primitives/SiteButton'
 import { SiteArrow } from '../primitives/SiteIcons'
 import { SiteSection } from '../primitives/SiteSection'
 import { SiteEyebrow } from '../primitives/SiteTypography'
-import { CaseStudyContextStrip, EvidenceImage, WorkApproach, WorkDetailHero, WorkNarrative, WorkOutcome, WorkVideos } from './WorkDetail'
+import { CaseStudyContextStrip, EvidenceImage, WorkApproach, WorkDetailHero, WorkNarrative, WorkOutcome, ProjectMedia, WorkVideos } from './WorkDetail'
+import type { ShowcaseItem } from '@/lib/site/showcase-model'
 import { Media, WorkCard, WorkCta } from './WorkSections'
 import homeStyles from '../home/home.module.css'
 import styles from './work.module.css'
@@ -305,7 +306,7 @@ function RelatedWork({ items }: { items: WorkItem[] }) {
  * Ongoing projects never claim final results; studio projects never read as a
  * client relationship (see work-classification / WorkDetail).
  */
-export function CaseStudyPage({ detail, related = [] }: { detail: WorkDetail; related?: WorkItem[] }) {
+export function CaseStudyPage({ detail, related = [], showcase = [] }: { detail: WorkDetail; related?: WorkItem[]; showcase?: ShowcaseItem[] }) {
   return (
     <>
       <WorkDetailHero detail={detail} />
@@ -315,6 +316,7 @@ export function CaseStudyPage({ detail, related = [] }: { detail: WorkDetail; re
       <CaseStudyProcess detail={detail} />
       <CaseStudyMedia detail={detail} />
       <WorkVideos detail={detail} />
+      <ProjectMedia items={showcase} />
       <WorkOutcome detail={detail} />
       <CaseStudyTestimonial detail={detail} />
       <RelatedWork items={related} />

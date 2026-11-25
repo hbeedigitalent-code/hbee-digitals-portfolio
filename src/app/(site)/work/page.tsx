@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import { MediaShowcase } from '@/components/site/media/MediaShowcase'
+import { getShowcase } from '@/lib/site/showcase-data'
 import { pageMetadata } from '@/lib/site/seo'
 import { pageJsonLd } from '@/lib/site/page-schema'
 
@@ -27,7 +29,7 @@ export const metadata: Metadata = pageMetadata({
 
 export default async function WorkPage() {
 
-  const data = await getWorkData()
+  const [data, creative] = await Promise.all([getWorkData(), getShowcase({ type: 'site', key: 'work', slot: 'creative_showcase' })])
   const jsonLd = pageJsonLd({ path: '/work', name: 'Ecommerce Work and Case Studies from Hbee Digitals', description: DESCRIPTION, breadcrumb: 'Work', type: 'CollectionPage' })
 
   return (
@@ -37,6 +39,7 @@ export default async function WorkPage() {
       ))}
       <WorkHero creative={portfolioCreativeEnabled()} caseStudies={data.items.some((item) => item.creative?.caseStudy)} />
       <WorkCollection data={data} />
+      <MediaShowcase id="creative-work" items={creative} eyebrow="Creative portfolio" heading="Selected creative work" lede="Individual design and content pieces, shown on their own." />
       <WorkCta />
     </>
   )

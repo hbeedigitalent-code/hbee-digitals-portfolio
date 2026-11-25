@@ -143,6 +143,7 @@ export default function AdminPortfolioPage() {
       title="Portfolio & Case Studies"
       description="Manage the public /work entries. Open a project to edit its story, media, classification and SEO."
     >
+      <Link href="/admin/portfolio/showcase" className={adminBtn('secondary')}>Creative Portfolio on /work</Link>
       <button type="button" disabled={busy} onClick={() => { setShowCreate(true); setMessage(''); setErrorMessage('') }} className={adminBtn('primary')}>
         <Plus aria-hidden="true" className="h-4 w-4" />Create New Project
       </button>

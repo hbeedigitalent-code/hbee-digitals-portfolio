@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase'
 import MediaImageField from '@/components/admin/media/MediaImageField'
 import PortfolioGallery from '@/components/admin/PortfolioGallery'
 import PortfolioCreativeMedia from '@/components/admin/PortfolioCreativeMedia'
+import PlacementManager from '@/components/admin/media/PlacementManager'
+import { projectMedia } from '@/lib/media/placements'
 import PortfolioClassification from '@/components/admin/PortfolioClassification'
 import { portfolioCreativeEnabled } from '@/lib/portfolio-creative'
 import { AdminActionBar, AdminActionBarActions, AdminActionBarStatus, AdminLoadingState, AdminNotice, AdminPageHeader, AdminSection, AdminStatusBadge, adminBtn } from '@/components/admin/ui/AdminUi'
@@ -143,7 +145,7 @@ export default function EditPortfolioPage() {
       </AdminPageHeader>
       {/* A div, not <nav>: the root layout's critical CSS pins every <nav> to the top of the viewport. */}
       <div role="navigation" aria-label="Portfolio editor sections" className="sticky top-0 z-20 flex gap-1.5 overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/95 p-1.5 backdrop-blur">
-        {[['basics', 'Basics'], ['story', 'Story'], ['media', 'Media'], ['visibility', 'Visibility & ordering'], ['seo', 'SEO'], ...(portfolioCreativeEnabled() ? [['classification', 'Engagement & presentation'], ['creative-media', 'Creative media']] : [['creative-media', 'Creative media']])].map(([section, label]) => <a key={section} href={`#${section}`} className="shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-section)] hover:text-[var(--accent)]">{label}</a>)}
+        {[['basics', 'Basics'], ['story', 'Story'], ['media', 'Media'], ['visibility', 'Visibility & ordering'], ['seo', 'SEO'], ['project-media', 'Project media'], ...(portfolioCreativeEnabled() ? [['classification', 'Engagement & presentation'], ['creative-media', 'Creative media']] : [['creative-media', 'Creative media']])].map(([section, label]) => <a key={section} href={`#${section}`} className="shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-section)] hover:text-[var(--accent)]">{label}</a>)}
       </div>
       {message && <AdminNotice tone="success">{message}</AdminNotice>}
       {errorMessage && <AdminNotice tone="error">{errorMessage}</AdminNotice>}
@@ -222,6 +224,9 @@ export default function EditPortfolioPage() {
               <PortfolioClassification portfolioId={id} disabled={saving} />
             </Section>
           )}
+          <Section id="project-media" title="Project media" description="Images and videos from the Media Library, shown on this project's public page. Saved immediately, separately from the form above.">
+            <PlacementManager target={projectMedia(id)} heading="Media on this project" description="Appears as “Project media” on the project page." />
+          </Section>
           <Section id="creative-media" title="Creative media & capabilities" description="Typed assets, mockups and videos, and the Hbee capabilities involved.">
             {portfolioCreativeEnabled() ? <PortfolioCreativeMedia portfolioId={id} disabled={saving} /> : <p className="text-sm text-[var(--text-muted)]">Typed creative assets and explicit capability assignments are awaiting the approved database rollout. The existing gallery remains available above.</p>}
           </Section>

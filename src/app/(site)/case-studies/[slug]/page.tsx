@@ -7,6 +7,7 @@ import { pageMetadata } from '@/lib/site/seo'
 import { generatedSocialImage } from '@/lib/site/social-image'
 import { pageJsonLd } from '@/lib/site/page-schema'
 import { getRelatedWork, getWorkDetail, getWorkSeo } from '@/lib/site/work-data'
+import { getShowcase } from '@/lib/site/showcase-data'
 
 /**
  * Case Study (/case-studies/[slug]) is the canonical deep page for a project
@@ -44,7 +45,7 @@ export default async function CaseStudyRoute({ params }: { params: { slug: strin
       {jsonLd.map((block, i) => (
         <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: block }} />
       ))}
-      <CaseStudyPage detail={detail} related={await getRelatedWork(params.slug)} />
+      <CaseStudyPage detail={detail} related={await getRelatedWork(params.slug)} showcase={await getShowcase({ type: 'project', key: params.slug, slot: 'project_media' })} />
     </>
   )
 }

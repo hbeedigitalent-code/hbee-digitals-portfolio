@@ -1,0 +1,31 @@
+/* Mixed-media showcase. Consistent outer modules; the media keeps its own proportions inside. */
+.grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--hb-grid-gap); margin-top: 2.5rem; padding: 0; list-style: none; align-items: start; }
+@media (min-width: 640px) {
+  .grid[data-columns='2'], .grid[data-columns='3'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .grid[data-columns='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* A single piece does not stretch across the page. */
+  .grid[data-columns='1'] { grid-template-columns: minmax(0, 36rem); }
+}
+.card {
+  overflow: hidden;
+  border: 1px solid var(--hb-border);
+  border-radius: var(--hb-radius-sm) var(--hb-radius-sm) var(--hb-radius-sweep) var(--hb-radius-sm);
+  background: var(--hb-surface);
+  box-shadow: var(--hb-shadow-1);
+}
+/* The frame reserves the space before anything loads. Very tall pieces are height-capped and centred, still contained. */
+.frame { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: var(--ratio, 1); max-height: 34rem; background: var(--hb-plane); }
+.open { display: flex; align-items: center; justify-content: center; position: absolute; inset: 0; padding: 0.75rem; }
+.open:focus-visible { outline: 2px solid var(--hb-focus); outline-offset: -4px; }
+.image { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
+.video { position: absolute; inset: 0; }
+.video video { width: 100%; height: 100%; object-fit: contain; border-radius: 0; }
+.body { padding: 1rem 1.25rem 1.5rem; }
+.label { font-size: var(--hb-text-eyebrow); font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--hb-link); }
+.title { margin-top: 0.5rem; font-family: var(--hb-font-display); font-size: 1.25rem; font-weight: 600; line-height: 1.3; letter-spacing: -0.015em; color: var(--hb-fg); overflow-wrap: anywhere; }
+.caption { margin-top: 0.5rem; font-size: 0.9375rem; line-height: 1.6; color: var(--hb-fg-body); }
+.project { margin-top: 0.75rem; font-size: 0.875rem; font-weight: 600; }
+.project a { display: inline-flex; align-items: center; min-height: 2.75rem; color: var(--hb-link); }
+.project a:hover, .project a:focus-visible { text-decoration: underline; }

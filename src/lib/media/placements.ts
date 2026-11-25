@@ -3,6 +3,7 @@ import { CAPABILITY_SLUGS, isCapabilitySlug, type CapabilitySlug } from '@/lib/p
 import { getAssetsByIds } from './media-video'
 import { MediaLibraryError } from './media-library'
 import type { MediaAsset, MediaKind } from './media-types'
+import { CUSTOM_LABEL_MAX, DISPLAY_TYPES, allowsKind, displayLabel, displayTypesFor, isDisplayType, type DisplayType } from './display-types'
 
 /**
  * Reusable media placements (scripts/admin-media-placement-01-forward.sql).
@@ -13,39 +14,9 @@ import type { MediaAsset, MediaKind } from './media-types'
  * Removing a placement removes only the reference: never the asset, never the stored file.
  */
 
-/* ── Editorial display labels (presentation layer, not library categories) ───────────────── */
+/* ── Editorial display labels live in display-types.ts (also used by the public site) ── */
 
-interface DisplayTypeInfo { label: string; kinds: readonly MediaKind[] }
-const IMAGE: readonly MediaKind[] = ['image']
-const VIDEO: readonly MediaKind[] = ['video']
-const BOTH: readonly MediaKind[] = ['image', 'video']
-
-export const DISPLAY_TYPES = {
-  logo_design: { label: 'Logo Design', kinds: IMAGE },
-  brand_identity: { label: 'Brand Identity', kinds: BOTH },
-  brand_asset: { label: 'Brand Asset', kinds: BOTH },
-  flyer_design: { label: 'Flyer Design', kinds: IMAGE },
-  social_flyer: { label: 'Social Media Flyer', kinds: IMAGE },
-  social_creative: { label: 'Social Media Creative', kinds: BOTH },
-  campaign_creative: { label: 'Campaign Creative', kinds: BOTH },
-  ugc_video: { label: 'UGC Video', kinds: VIDEO },
-  creator_content: { label: 'Creator-Led Content', kinds: BOTH },
-  product_creative: { label: 'Product Creative', kinds: BOTH },
-  website_creative: { label: 'Website Creative', kinds: BOTH },
-  store_experience: { label: 'Store Experience', kinds: BOTH },
-  landing_page: { label: 'Landing Page Creative', kinds: BOTH },
-  project_video: { label: 'Project Video', kinds: VIDEO },
-  other: { label: 'Other / Custom', kinds: BOTH },
-} as const satisfies Record<string, DisplayTypeInfo>
-export type DisplayType = keyof typeof DISPLAY_TYPES
-export const CUSTOM_LABEL_MAX = 60
-
-export const isDisplayType = (value: unknown): value is DisplayType => typeof value === 'string' && Object.prototype.hasOwnProperty.call(DISPLAY_TYPES, value)
-export const displayTypesFor = (kind: MediaKind): DisplayType[] =>
-  (Object.keys(DISPLAY_TYPES) as DisplayType[]).filter((type) => (DISPLAY_TYPES[type].kinds as readonly MediaKind[]).includes(kind))
-/** What visitors read. "Other" shows the custom wording. */
-export const displayLabel = (type: string, custom: string): string =>
-  type === 'other' ? custom.trim() : isDisplayType(type) ? DISPLAY_TYPES[type].label : ''
+export { CUSTOM_LABEL_MAX, DISPLAY_TYPES, displayLabel, displayTypesFor, isDisplayType, type DisplayType }
 
 /* ── Targets and slots ─────────────────────────────────────────────────────────────────── */
 
@@ -113,7 +84,7 @@ export type PlacementEdit = Pick<MediaPlacement, 'display_type' | 'custom_label'
 
 export function validatePlacement(edit: PlacementEdit, kind: MediaKind, target: PlacementTarget): string | undefined {
   if (!isDisplayType(edit.display_type)) return 'Choose a display label.'
-  if (!(DISPLAY_TYPES[edit.display_type].kinds as readonly MediaKind[]).includes(kind)) return `“${DISPLAY_TYPES[edit.display_type].label}” cannot describe ${kind === 'video' ? 'a video' : 'an image'}.`
+  if (!allowsKind(edit.display_type, kind)) return `“${DISPLAY_TYPES[edit.display_type].label}” cannot describe ${kind === 'video' ? 'a video' : 'an image'}.`
   const custom = edit.custom_label.trim()
   if (edit.display_type === 'other' && !custom) return 'Write the custom label, or choose one from the list.'
   if (custom.length > CUSTOM_LABEL_MAX) return `Keep the custom label to ${CUSTOM_LABEL_MAX} characters or fewer.`

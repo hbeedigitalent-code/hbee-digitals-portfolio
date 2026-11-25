@@ -29,6 +29,15 @@ export default function PortfolioGallery({ images, onChange }: { images: string[
     setNotice(`Added “${asset.title}”.`)
   }
 
+  /** "Add selected": several library images in one change, skipping any already in the gallery. */
+  function addAssets(assets: MediaAsset[]) {
+    if (assets.length === 1) { addAsset(assets[0]); return }
+    const fresh = assets.map((asset) => asset.public_url).filter((url) => !currentImages.current.includes(url))
+    if (fresh.length) onChange([...currentImages.current, ...fresh])
+    const skipped = assets.length - fresh.length
+    setNotice(`Added ${fresh.length} image${fresh.length === 1 ? '' : 's'}.${skipped ? ` ${skipped} already in this gallery.` : ''}`)
+  }
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-[var(--text-muted)]">Gallery order is saved as shown. Per-image alt text is not stored for gallery images yet; the Media Library keeps each image's description. The public page removes duplicates and images already used as the cover or before/after pair. Removing an entry does not delete its stored file.</p>
@@ -70,7 +79,7 @@ export default function PortfolioGallery({ images, onChange }: { images: string[
             </div>
           </div>
         </details>
-        <MediaPicker open={pickerOpen} keepOpen onClose={() => setPickerOpen(false)} heading="Add gallery images" initialCategory="project_image" uploadCategory="project_image" onSelect={addAsset} />
+        <MediaPicker open={pickerOpen} keepOpen multiple onClose={() => setPickerOpen(false)} heading="Add gallery images" initialCategory="project_image" uploadCategory="project_image" onSelect={addAsset} onSelectMany={addAssets} />
       </div>
     </div>
   )
