@@ -5,7 +5,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { findAssetsByChecksum } from '@/lib/media/media-library'
 import {
-  BULK_MAX_FILES, BULK_MAX_TOTAL_BYTES, acceptFiles, applyCategory, guessKind, isFinished, markRepeats, metadataProblems, newQueueItem,
+  BULK_MAX_FILES, BULK_MAX_TOTAL_BYTES, acceptFiles, applyCategory, guessKind, isFinished, markRepeats, metadataProblems, newQueueItem, offerAssetToRepeats,
   prepareQueueFile, queueState, queueSummary, runQueue, type BatchDefaults, type QueueItem, type QueueState,
 } from '@/lib/media/bulk-queue'
 import { analyseImage, decodeForEdit, editedFileName, editedMime, renderCrop } from '@/lib/media/media-edit'
@@ -111,8 +111,7 @@ export default function BulkUploader({ onAsset }: BulkUploaderProps) {
         for (const asset of added) {
           onAsset(asset)
           // A later file with the same bytes can now use the asset that was just added, instead of uploading it again.
-          commit((previous) => previous.map((item) => (!isFinished(item) && asset.checksum && item.prepared?.checksum === asset.checksum && !item.duplicates.some((other) => other.id === asset.id)
-            ? { ...item, duplicates: [...item.duplicates, asset] } : item)))
+          commit((previous) => offerAssetToRepeats(previous, asset))
         }
         setRun({ done: i + 1, total: keys.length })
       }

@@ -158,8 +158,14 @@ function fakeDb({ placements = [], assets = [], failInsertFor = [] } = {}) {
   assert.ok(!/grant[^;]*on public\.media_placements to[^;]*\banon\b/i.test(forward), 'anon gets no table privilege')
   assert.equal((forward.match(/create policy/g) || []).length, 1); assert.match(forward, /for all to authenticated[\s\S]*au\.is_active = true/)
   assert.match(forward, /security definer\s*\nset search_path = pg_catalog, public/); assert.match(forward, /where p\.is_active\b/)
-  assert.ok(!/alter table public\.(media_assets|portfolio_items|portfolio_media)|storage\.|delete from|update public\./i.test(forward), 'additive only; no storage or data change')
-  assert.ok(!/delete from|media_assets|storage\./i.test(code(sql('02-rollback'))), 'rollback deletes no rows, assets or files')
+  // The only change to media_assets: two nullable accessibility columns and their checks (hardening pass).
+  const approved = /alter table public\.media_assets (add column if not exists (captions_url|transcript) text;|(drop constraint if exists|add constraint) media_assets_(captions_url_safe|transcript_length|accessibility_video_only)\b)/g
+  assert.equal((forward.match(/add column if not exists (captions_url|transcript) text;/g) || []).length, 2)
+  assert.ok(!/add column[^;]*(not null|default)/i.test(forward), 'new columns are nullable with no default: no row is rewritten')
+  assert.ok(!/alter table public\.(media_assets|portfolio_items|portfolio_media)|storage\.|delete from|update public\./i.test(forward.replace(approved, '')), 'additive only; no storage or data change')
+  const rollback = code(sql('02-rollback'))
+  assert.ok(!/delete from|update public\.|truncate|storage\.|drop table public\.media_assets/i.test(rollback), 'rollback deletes no rows, assets or files')
+  assert.ok(rollback.indexOf('where captions_url is not null or transcript is not null') > -1 && rollback.indexOf('where captions_url is not null') < rollback.indexOf('drop column captions_url'), 'columns are dropped only when empty')
   for (const name of ['00-preflight-readonly', '03-verify-readonly']) assert.ok(!/\b(insert into|update\s+public|delete from|drop |alter table|create |grant |revoke |truncate )/i.test(code(sql(name)).replace(/'[^']*'/g, "''")), name + ' is read-only')
   console.log('PASS: media placements - targets, compatibility, editorial labels, hidden-by-default multi-add, per-placement active state, ordering, reference-only removal, SQL drafts')
 })().catch(error => { console.error(error); process.exit(1) })

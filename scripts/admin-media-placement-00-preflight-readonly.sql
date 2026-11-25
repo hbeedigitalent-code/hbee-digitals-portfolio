@@ -43,6 +43,14 @@ checks(ord, check_name, actual, verdict) as (
                       and coalesce(obj_description(p.oid, 'pg_proc'), '') <> 'Hbee media placements v1') then 'FAIL' else 'PASS' end
 
   union all
+  select 22, 'media_assets.captions_url / transcript: absent, or already owned by this migration',
+         coalesce((select string_agg(a.attname || ' ' || format_type(a.atttypid, a.atttypmod) || ' [' || coalesce(col_description(a.attrelid, a.attnum), 'no comment') || ']', ', ' order by a.attname)
+                     from pg_attribute a where a.attrelid = to_regclass('public.media_assets') and a.attname in ('captions_url', 'transcript') and not a.attisdropped), 'absent'),
+         case when exists (select 1 from pg_attribute a where a.attrelid = to_regclass('public.media_assets') and a.attname in ('captions_url', 'transcript') and not a.attisdropped
+                             and (format_type(a.atttypid, a.atttypmod) <> 'text' or coalesce(col_description(a.attrelid, a.attnum), '') <> 'Hbee media placements v1'))
+              then 'FAIL' else 'PASS' end
+
+  union all
   select 30, 'portfolio creative tables (informational; NOT required and NOT changed by this migration)',
          case when to_regclass('public.portfolio_media') is null then 'portfolio_media absent' else 'portfolio_media present' end, 'INFO'
 )

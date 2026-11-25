@@ -38,7 +38,7 @@ export function MediaShowcase({ items, id, eyebrow, heading, lede, tone = 'white
             <article className={styles.card}>
               <div className={styles.frame} style={{ '--ratio': frameRatio(item) } as CSSProperties}>
                 {item.kind === 'video'
-                  ? <ContentVideo src={item.url} mimeType={item.mimeType as 'video/mp4' | 'video/webm'} title={item.title || item.label} poster={item.posterUrl} preload="none" className={styles.video} />
+                  ? <ContentVideo src={item.url} mimeType={item.mimeType as 'video/mp4' | 'video/webm'} title={item.title || item.label} poster={item.posterUrl} captionsUrl={item.captionsUrl} preload="none" className={styles.video} />
                   : <a href={item.url} target="_blank" rel="noopener noreferrer" className={styles.open}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={item.url} alt={item.alt} loading="lazy" decoding="async" width={item.width ?? undefined} height={item.height ?? undefined} className={styles.image} />
@@ -49,6 +49,11 @@ export function MediaShowcase({ items, id, eyebrow, heading, lede, tone = 'white
                 <p className={styles.label}>{item.label}</p>
                 {item.title && <h3 className={styles.title}>{item.title}</h3>}
                 {item.caption && <p className={styles.caption}>{item.caption}</p>}
+                {/* Under the card, closed until asked for. Rendered as text, never as markup. */}
+                {item.kind === 'video' && item.transcript && <details className={styles.transcript}>
+                  <summary>Transcript<span className="sr-only">: {item.title || item.label}</span></summary>
+                  <p>{item.transcript}</p>
+                </details>}
                 {item.project && <p className={styles.project}><Link href={item.project.href}>View project: {item.project.name}</Link></p>}
               </div>
             </article>

@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { archiveAsset, listMediaAssets, restoreAsset, placementUsage, scanAssetUsage, updateAssetMetadata, type MediaUsage, type MediaUsageScan } from '@/lib/media/media-library'
 import { CATEGORY_LABELS, IMAGE_CATEGORIES, MEDIA_CATEGORIES, VIDEO_CATEGORIES, formatBytes, isImageCategory, isMediaCategory, isMediaKind, isVideoCategory, type MediaAsset, type MediaCategory, type MediaKind, type MediaStatus } from '@/lib/media/media-types'
-import { getAssetsByIds, updateVideoMetadata } from '@/lib/media/media-video'
+import { getAssetsByIds, getVideoAccessibility, updateVideoMetadata } from '@/lib/media/media-video'
+import { TRANSCRIPT_MAX } from '@/lib/media/video-accessibility'
 import BulkUploader from '@/components/admin/media/BulkUploader'
 import PosterField from '@/components/admin/media/PosterField'
 
@@ -119,9 +120,24 @@ function AssetDetail({ asset, onChanged, onStatusChanged }: { asset: MediaAsset;
   const [busy, setBusy] = useState(false)
   const [scan, setScan] = useState<MediaUsageScan | null>(null)
   const [confirmArchive, setConfirmArchive] = useState(false)
+  // Captions and transcript (video only). null = not loaded, so Save never touches them.
+  const [access, setAccess] = useState<{ captions_url: string; transcript: string } | null>(null)
+  const [savedAccess, setSavedAccess] = useState<{ captions_url: string; transcript: string } | null>(null)
+  const [accessNote, setAccessNote] = useState('')
+  useEffect(() => {
+    if (asset.kind !== 'video') return
+    let live = true
+    getVideoAccessibility(supabase, asset.id)
+      .then((found) => { if (!live) return; const value = { captions_url: found.captions_url ?? '', transcript: found.transcript ?? '' }; setAccess(value); setSavedAccess(value) })
+      .catch((cause) => { if (live) setAccessNote(cause instanceof Error ? cause.message : 'Captions and transcript could not be loaded.') })
+    return () => { live = false }
+  }, [asset.id, asset.kind])
+  const accessDirty = !!access && !!savedAccess && (access.captions_url !== savedAccess.captions_url || access.transcript !== savedAccess.transcript)
   // "Used in": showcase placements are listed as soon as an asset is opened.
   const [placements, setPlacements] = useState<MediaUsage[] | null>(null)
   const [placementNote, setPlacementNote] = useState('')
+  /** Places the asset is really used: references left by a deleted project are listed, but not counted. */
+  const live = (scan?.usages ?? placements ?? []).filter((usage) => !usage.stale)
   useEffect(() => {
     let live = true
     placementUsage(supabase, asset.id)
@@ -146,7 +162,7 @@ function AssetDetail({ asset, onChanged, onStatusChanged }: { asset: MediaAsset;
     getAssetsByIds(supabase, [asset.poster_asset_id]).then(([found]) => { if (live && found) setPoster(found) }).catch(() => {})
     return () => { live = false }
   }, [asset.poster_asset_id])
-  const dirty = title !== asset.title || altText !== asset.alt_text || decorative !== asset.is_decorative || caption !== asset.caption || category !== asset.category || posterId !== asset.poster_asset_id
+  const dirty = title !== asset.title || altText !== asset.alt_text || decorative !== asset.is_decorative || caption !== asset.caption || category !== asset.category || posterId !== asset.poster_asset_id || accessDirty
   const archived = asset.status === 'archived'
 
   async function run(action: () => Promise<void>) {
@@ -158,7 +174,8 @@ function AssetDetail({ asset, onChanged, onStatusChanged }: { asset: MediaAsset;
   const save = () => run(async () => {
     const next = isImage
       ? await updateAssetMetadata(supabase, asset, { title, alt_text: altText, is_decorative: decorative, caption, ...(isImageCategory(category) ? { category } : {}) })
-      : await updateVideoMetadata(supabase, asset, { title, caption, poster_asset_id: posterId, ...(isVideoCategory(category) ? { category } : {}) })
+      : await updateVideoMetadata(supabase, asset, { title, caption, poster_asset_id: posterId, ...(isVideoCategory(category) ? { category } : {}), ...(access && accessDirty && category !== 'bgc_video' ? { accessibility: access } : {}) })
+    if (access && category !== 'bgc_video') setSavedAccess(access)
     onChanged(next); setMessage('Details saved.')
   })
   const check = () => run(async () => { setScan(await scanAssetUsage(supabase, asset)) })
@@ -182,8 +199,8 @@ function AssetDetail({ asset, onChanged, onStatusChanged }: { asset: MediaAsset;
       <dt>Status</dt><dd>{archived ? 'Archived' : 'Active'}</dd>
     </dl>
     <label className="block text-xs text-[var(--text-muted)]">URL<input readOnly value={asset.public_url} onFocus={(event) => event.currentTarget.select()} className={`${field} mt-1 text-xs`} /></label>
-    {asset.status === 'archived' && (scan?.usages.length ?? placements?.length ?? 0) > 0 && <p role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-[var(--text-primary)]">
-      This archived asset is still used in {scan?.usages.length ?? placements?.length} place{(scan?.usages.length ?? placements?.length) === 1 ? '' : 's'}. Those stay live until you hide or remove them, or replace the asset.</p>}
+    {asset.status === 'archived' && live.length > 0 && <p role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-[var(--text-primary)]">
+      This archived asset is still used in {live.length} place{live.length === 1 ? '' : 's'}. Those stay live until you hide or remove them, or replace the asset.</p>}
 
     <div className="space-y-1 text-sm">
       <h3 className="font-semibold text-[var(--text-primary)]">Used in</h3>
@@ -213,6 +230,16 @@ function AssetDetail({ asset, onChanged, onStatusChanged }: { asset: MediaAsset;
       <label className="block text-sm">Category<select className={`${field} mt-1`} value={category} onChange={(event) => { if (isVideoCategory(event.target.value)) setCategory(event.target.value) }}>
         {VIDEO_CATEGORIES.map((value) => <option key={value} value={value}>{CATEGORY_LABELS[value]}</option>)}</select></label>
       <label className="block text-sm">Caption<input className={`${field} mt-1`} value={caption} maxLength={1000} onChange={(event) => setCaption(event.target.value)} /></label>
+      {category === 'bgc_video'
+        ? <p className="text-xs text-[var(--text-muted)]">Background video is muted and decorative, so it needs no captions. Visitors with reduced motion see the poster.</p>
+        : <div className="space-y-3 rounded-lg border border-[var(--border)] p-3">
+          <p className="text-sm font-semibold text-[var(--text-primary)]">Accessibility (optional)</p>
+          <p className="text-xs text-[var(--text-muted)]">Use captions for spoken/dialogue video where available. Nothing is generated automatically.</p>
+          {accessNote && <p role="status" className="text-xs text-amber-500">{accessNote}</p>}
+          <label className="block text-sm">Captions URL<input type="url" inputMode="url" className={`${field} mt-1`} value={access?.captions_url ?? ''} disabled={!access} maxLength={2048} placeholder="https://… .vtt" onChange={(event) => { const value = event.target.value; setAccess((previous) => (previous ? { ...previous, captions_url: value } : previous)) }} />
+            <span className="mt-1 block text-xs text-[var(--text-muted)]">An HTTPS WebVTT (.vtt) file that allows cross-origin loading.</span></label>
+          <label className="block text-sm">Transcript<textarea className={`${field} mt-1`} rows={5} value={access?.transcript ?? ''} disabled={!access} maxLength={TRANSCRIPT_MAX} placeholder="Plain text of what is said" onChange={(event) => { const value = event.target.value; setAccess((previous) => (previous ? { ...previous, transcript: value } : previous)) }} /></label>
+        </div>}
       <PosterField poster={posterId ? poster : null} required={category === 'bgc_video'} suggestedTitle={`${title} poster`} disabled={busy} onChange={(next) => { setPoster(next); setPosterId(next?.id ?? null) }} />
       <button type="button" className={button} disabled={!dirty || busy} onClick={() => void save()}>Save details</button>
     </fieldset>}
@@ -220,7 +247,7 @@ function AssetDetail({ asset, onChanged, onStatusChanged }: { asset: MediaAsset;
     {message && <p role={message.startsWith('Error:') ? 'alert' : 'status'} className={`text-sm ${message.startsWith('Error:') ? 'text-red-500' : 'text-[var(--accent)]'}`}>{message}</p>}
 
     {scan && <div className="space-y-2 rounded-lg border border-[var(--border)] p-3 text-sm" aria-live="polite">
-      <p className="font-semibold text-[var(--text-primary)]">{scan.usages.length ? `Used in ${scan.usages.length} place${scan.usages.length === 1 ? '' : 's'}` : 'Not found in the places checked'}</p>
+      <p className="font-semibold text-[var(--text-primary)]">{live.length ? `Used in ${live.length} place${live.length === 1 ? '' : 's'}` : 'Not found in the places checked'}</p>
       {scan.usages.length > 0 && <ul className="space-y-1">{scan.usages.map((usage, index) => <li key={`${usage.href}-${usage.field}-${index}`}>
         <Link href={usage.href} className="text-[var(--accent)] underline">{usage.area}: {usage.label}</Link> <span className="text-xs text-[var(--text-muted)]">({usage.field}{usage.detail ? `; ${usage.detail}` : ''})</span></li>)}</ul>}
       {scan.unscanned.length > 0 && <p className="text-xs text-[var(--text-muted)]">Could not check: {scan.unscanned.map((entry) => entry.area).join(', ')}.</p>}
@@ -230,7 +257,7 @@ function AssetDetail({ asset, onChanged, onStatusChanged }: { asset: MediaAsset;
     <div className="border-t border-[var(--border)] pt-3">
       {archived ? <button type="button" className={button} disabled={busy} onClick={() => void doRestore()}>Restore asset</button>
         : confirmArchive ? <div className="space-y-2">
-          <p className="text-sm text-[var(--text-secondary)]">{scan?.usages.length ? `This asset is used in ${scan.usages.length} place${scan.usages.length === 1 ? '' : 's'}. ` : ''}Archiving hides this asset from new selections. It removes no placement: the file stays in storage and existing pages keep working{scan?.usages.length ? ', including the places listed above' : ''}.</p>
+          <p className="text-sm text-[var(--text-secondary)]">{live.length ? `This asset is used in ${live.length} place${live.length === 1 ? '' : 's'}. ` : ''}Archiving hides this asset from new selections. It removes no placement: the file stays in storage and existing pages keep working{scan?.usages.length ? ', including the places listed above' : ''}.</p>
           <div className="flex gap-2"><button type="button" className={button} disabled={busy} onClick={() => void doArchive()}>Confirm archive</button><button type="button" className={button} onClick={() => setConfirmArchive(false)}>Cancel</button></div></div>
           : <button type="button" className={button} disabled={busy} onClick={() => void startArchive()}>Archive…</button>}
     </div>

@@ -9,6 +9,7 @@ import PortfolioGallery from '@/components/admin/PortfolioGallery'
 import PortfolioCreativeMedia from '@/components/admin/PortfolioCreativeMedia'
 import PlacementManager from '@/components/admin/media/PlacementManager'
 import { projectMedia } from '@/lib/media/placements'
+import { deletePortfolioProject } from '@/lib/admin/portfolio-delete'
 import PortfolioClassification from '@/components/admin/PortfolioClassification'
 import { portfolioCreativeEnabled } from '@/lib/portfolio-creative'
 import { AdminActionBar, AdminActionBarActions, AdminActionBarStatus, AdminLoadingState, AdminNotice, AdminPageHeader, AdminSection, AdminStatusBadge, adminBtn } from '@/components/admin/ui/AdminUi'
@@ -117,8 +118,8 @@ export default function EditPortfolioPage() {
     setSaving(true)
     setErrorMessage('')
     try {
-      const { error } = await supabase.from('portfolio_items').delete().eq('id', id)
-      if (error) throw error
+      const { warning } = await deletePortfolioProject(supabase, id)
+      if (warning) window.alert(warning)
       router.push('/admin/portfolio')
     } catch (error) {
       setErrorMessage(portfolioErrorMessage(error, 'Unable to delete this portfolio item.'))

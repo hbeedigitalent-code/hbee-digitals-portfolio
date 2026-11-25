@@ -3,6 +3,7 @@
  * that cannot be shown safely (no HTTPS file, no label, unknown type) is dropped rather than rendered half-broken.
  */
 import { displayLabel } from '@/lib/media/display-types'
+import { TRANSCRIPT_MAX, isCaptionsUrl } from '@/lib/media/video-accessibility'
 
 export interface ShowcaseItem {
   id: string
@@ -13,6 +14,9 @@ export interface ShowcaseItem {
   height: number | null
   alt: string
   posterUrl: string | null
+  /** Video only, and only when the asset has them. */
+  captionsUrl: string | null
+  transcript: string | null
   label: string
   title: string
   caption: string
@@ -45,6 +49,8 @@ export function toShowcaseItems(rows: unknown): ShowcaseItem[] {
       // These images are content, so there is always a text alternative: the library alt text, else what the card says.
       alt: text(row.alt_text) || [label, title].filter(Boolean).join(': '),
       posterUrl: https(row.poster_url) ? (row.poster_url as string) : null,
+      captionsUrl: kind === 'video' && isCaptionsUrl(row.captions_url) ? row.captions_url : null,
+      transcript: kind === 'video' ? text(row.transcript).slice(0, TRANSCRIPT_MAX) || null : null,
       label, title, caption: text(row.caption),
       project: /^[a-z0-9][a-z0-9-]*$/i.test(slug) ? { href: `/work/${slug}`, name: text(row.project_name) || 'the project' } : null,
     })

@@ -18,7 +18,8 @@ export interface ContentVideoProps {
 
 /**
  * Foreground video (case study, UGC, explainer): native controls, never autoplays, loads nothing until asked when a poster
- * exists. Captions and a transcript are shown when the content provides them. Not placed on any page yet.
+ * exists. A captions track is added only when a WebVTT file is supplied (the site language is English); a transcript is
+ * shown when supplied. Nothing is generated.
  */
 export function ContentVideo({ src, mimeType, title, poster, caption, captionsUrl, transcript, className, preload }: ContentVideoProps) {
   return <figure className={cn(styles.content, className)}>

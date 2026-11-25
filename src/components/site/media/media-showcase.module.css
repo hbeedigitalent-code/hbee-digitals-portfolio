@@ -26,6 +26,10 @@
 .label { font-size: var(--hb-text-eyebrow); font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--hb-link); }
 .title { margin-top: 0.5rem; font-family: var(--hb-font-display); font-size: 1.25rem; font-weight: 600; line-height: 1.3; letter-spacing: -0.015em; color: var(--hb-fg); overflow-wrap: anywhere; }
 .caption { margin-top: 0.5rem; font-size: 0.9375rem; line-height: 1.6; color: var(--hb-fg-body); }
+.transcript { margin-top: 0.75rem; font-size: 0.875rem; }
+.transcript summary { display: flex; align-items: center; min-height: 2.75rem; cursor: pointer; font-weight: 600; color: var(--hb-link); }
+/* Long transcripts scroll inside the card instead of stretching it. */
+.transcript p { max-height: 14rem; overflow: auto; white-space: pre-line; overflow-wrap: anywhere; line-height: 1.6; color: var(--hb-fg-body); }
 .project { margin-top: 0.75rem; font-size: 0.875rem; font-weight: 600; }
 .project a { display: inline-flex; align-items: center; min-height: 2.75rem; color: var(--hb-link); }
 .project a:hover, .project a:focus-visible { text-decoration: underline; }

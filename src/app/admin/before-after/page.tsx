@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import SvgIcon from '@/components/ui/SvgIcon'
+import { deletePortfolioProject } from '@/lib/admin/portfolio-delete'
 
 interface BeforeAfterItem {
   id: string
@@ -66,13 +67,12 @@ export default function AdminBeforeAfterPage() {
   async function deleteItem(id: string) {
     if (!confirm('Are you sure you want to delete this transformation?')) return
 
-    const { error } = await supabase
-      .from('portfolio_items')
-      .delete()
-      .eq('id', id)
-
-    if (!error) {
+    try {
+      const { warning } = await deletePortfolioProject(supabase, id)
       setItems(items.filter(item => item.id !== id))
+      if (warning) alert(warning)
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Unable to delete this item.')
     }
   }
 

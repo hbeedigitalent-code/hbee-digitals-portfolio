@@ -137,6 +137,13 @@ export function markRepeats(items: QueueItem[]): QueueItem[] {
   })
 }
 
+/** Once a file is in the library, later queued files with the same bytes can use that asset instead of uploading again. */
+export function offerAssetToRepeats(items: QueueItem[], asset: MediaAsset): QueueItem[] {
+  if (!asset.checksum) return items
+  return items.map((item) => (!isFinished(item) && item.prepared?.checksum === asset.checksum && !item.duplicates.some((other) => other.id === asset.id)
+    ? { ...item, duplicates: [...item.duplicates, asset] } : item))
+}
+
 /** Batch default: set the category on every unfinished file of that kind. Each file can still be changed afterwards. */
 export function applyCategory(items: QueueItem[], kind: MediaKind, category: string): QueueItem[] {
   if (kind === 'image' ? !isImageCategory(category) : !isVideoCategory(category)) return items

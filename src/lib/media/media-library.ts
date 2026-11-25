@@ -163,7 +163,7 @@ export function friendlyDbError(message?: string): string {
 
 // ── usage scan ───────────────────────────────────────────────────────────────────────────────────────────────
 
-export interface MediaUsage { area: string; label: string; field: string; href: string; detail?: string }
+export interface MediaUsage { area: string; label: string; field: string; href: string; detail?: string; /** A reference to something that no longer exists. */ stale?: boolean }
 export interface MediaUsageScan { usages: MediaUsage[]; unscanned: Array<{ area: string; reason: string }>; scannedAt: string }
 
 interface UsageSource { table: string; area: string; label: (row: Record<string, unknown>) => string; href: (row: Record<string, unknown>) => string }
@@ -209,15 +209,21 @@ export async function placementUsage(db: Db, assetId: string): Promise<MediaUsag
   const rows = (data ?? []) as Array<Record<string, unknown>>
   const projectIds = [...new Set(rows.filter((row) => row.target_type === 'project').map((row) => text(row.target_key)))]
   const names = new Map<string, string>()
+  // Only a successful read can say that a project is gone.
+  let projectsRead = false
   if (projectIds.length) {
     const projects = await db.from('portfolio_items').select('*').in('id', projectIds)
-    for (const row of ((projects.data ?? []) as Array<Record<string, unknown>>)) names.set(String(row.id), text(row.client_name) || text(row.name) || text(row.title) || text(row.slug))
+    projectsRead = !projects.error && Array.isArray(projects.data)
+    for (const row of ((projects.data ?? []) as Array<Record<string, unknown>>)) names.set(String(row.id).toLowerCase(), text(row.client_name) || text(row.name) || text(row.title) || text(row.slug))
   }
   return rows.map((row) => {
     const key = text(row.target_key)
     const detail = `${displayLabel(text(row.display_type), text(row.custom_label)) || 'Unlabelled'}; ${row.is_active === true ? 'shown' : 'hidden'}`
     if (row.target_type === 'service') return { area: (SERVICE_NAMES as Record<string, string>)[key] ?? key, label: 'Selected work', field: 'placement', href: `/admin/services/showcase?capability=${key}`, detail }
-    if (row.target_type === 'project') return { area: 'Work', label: names.get(key) || 'Project', field: 'placement', href: `/admin/portfolio/${key}#project-media`, detail }
+    if (row.target_type === 'project') {
+      if (projectsRead && !names.has(key)) return { area: 'Work', label: 'Deleted project (stale reference, not public)', field: 'placement', href: '/admin/portfolio', detail, stale: true }
+      return { area: 'Work', label: names.get(key) || 'Project', field: 'placement', href: `/admin/portfolio/${key}#project-media`, detail }
+    }
     return { area: 'Work', label: 'Creative Portfolio', field: 'placement', href: '/admin/portfolio/showcase', detail }
   })
 }

@@ -49,5 +49,24 @@ checks(ord, check_name, actual, verdict) as (
   select 22, 'the function returns no admin or storage columns',
          coalesce((select pg_get_function_result(f.oid) from f limit 1), 'n/a'),
          case when coalesce((select pg_get_function_result(f.oid) from f limit 1), 'created_by') !~ '(created_by|checksum|object_path|bucket|media_asset_id|status)' then 'PASS' else 'FAIL' end
+
+  union all
+  select 23, 'the function returns captions_url and transcript',
+         coalesce((select (pg_get_function_result(f.oid) ~ 'captions_url' and pg_get_function_result(f.oid) ~ 'transcript')::text from f limit 1), 'n/a'),
+         case when coalesce((select pg_get_function_result(f.oid) ~ 'captions_url' and pg_get_function_result(f.oid) ~ 'transcript' from f limit 1), false) then 'PASS' else 'FAIL' end
+
+  union all
+  select 30, 'media_assets.captions_url and transcript: two nullable text columns',
+         coalesce((select string_agg(column_name || ' ' || data_type || ' nullable=' || is_nullable, ', ' order by column_name) from information_schema.columns
+                    where table_schema = 'public' and table_name = 'media_assets' and column_name in ('captions_url', 'transcript')), 'missing'),
+         case when (select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'media_assets'
+                     and column_name in ('captions_url', 'transcript') and data_type = 'text' and is_nullable = 'YES' and column_default is null) = 2 then 'PASS' else 'FAIL' end
+
+  union all
+  select 31, 'accessibility checks present on media_assets (safe URL, length, video only)',
+         coalesce((select string_agg(conname, ', ' order by conname) from pg_constraint where conrelid = to_regclass('public.media_assets')
+                    and conname in ('media_assets_captions_url_safe', 'media_assets_transcript_length', 'media_assets_accessibility_video_only')), 'none'),
+         case when (select count(*) from pg_constraint where conrelid = to_regclass('public.media_assets') and convalidated
+                     and conname in ('media_assets_captions_url_safe', 'media_assets_transcript_length', 'media_assets_accessibility_video_only')) = 3 then 'PASS' else 'FAIL' end
 )
 select ord, check_name, actual, verdict from checks order by ord;

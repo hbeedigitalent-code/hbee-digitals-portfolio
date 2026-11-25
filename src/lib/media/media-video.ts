@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { looksLikeMarkup, isHttpsUrl, sanitizeFileBase, MediaValidationError } from './media-validation'
 import { SITE_MEDIA_BUCKET, MEDIA_COLUMNS, VIDEO_FOLDERS, isVideoCategory, type MediaAsset, type VideoCategory } from './media-types'
 import { MediaLibraryError, friendlyDbError, friendlyStorageError } from './media-library'
+import { cleanAccessibility, type VideoAccessibility } from './video-accessibility'
 
 /**
  * Video support for the Admin Media Library (Batch 3). Short, optimised website video only: this is not a hosting platform
@@ -242,7 +243,22 @@ export async function registerVideoAsset(db: Db, input: RegisterVideoInput): Pro
   return data as unknown as MediaAsset
 }
 
-export interface VideoMetadataPatch { title?: string; category?: VideoCategory; caption?: string; poster_asset_id?: string | null }
+export interface VideoMetadataPatch {
+  title?: string; category?: VideoCategory; caption?: string; poster_asset_id?: string | null
+  /** Only sent when the accessibility fields were successfully loaded (the columns exist). */
+  accessibility?: { captions_url: string; transcript: string }
+}
+
+/**
+ * Captions URL and transcript are read on their own, deliberately outside MEDIA_COLUMNS: the Media Library keeps working
+ * if this code is deployed before the database migration adds the columns.
+ */
+export async function getVideoAccessibility(db: Pick<SupabaseClient, 'from'>, id: string): Promise<VideoAccessibility> {
+  const { data, error } = await db.from('media_assets').select('captions_url,transcript').eq('id', id).maybeSingle()
+  if (error) throw new MediaLibraryError(/captions_url|transcript/.test(error.message ?? '') ? 'Captions and transcript are not set up yet: the database migration has not been run.' : friendlyDbError(error.message))
+  const row = (data ?? {}) as Partial<VideoAccessibility>
+  return { captions_url: row.captions_url ?? null, transcript: row.transcript ?? null }
+}
 
 /** Descriptive fields and the poster only. File identity stays immutable (database trigger). */
 export async function updateVideoMetadata(db: Pick<SupabaseClient, 'from'>, asset: MediaAsset, patch: VideoMetadataPatch): Promise<MediaAsset> {
@@ -254,9 +270,11 @@ export async function updateVideoMetadata(db: Pick<SupabaseClient, 'from'>, asse
   const problems = validateVideoMetadata(meta, { hasPoster: poster !== null })
   const first = Object.values(problems)[0]
   if (first) throw new MediaValidationError(first)
+  const accessibility = patch.accessibility ? cleanAccessibility(patch.accessibility) : null
+  if (accessibility && 'error' in accessibility) throw new MediaValidationError(accessibility.error)
   if (poster !== null && poster !== asset.poster_asset_id) await assertPosterAsset(db, poster)
   const { data, error } = await db.from('media_assets')
-    .update({ title: meta.title.trim(), category: meta.category, caption: meta.caption.trim(), poster_asset_id: poster })
+    .update({ title: meta.title.trim(), category: meta.category, caption: meta.caption.trim(), poster_asset_id: poster, ...(accessibility && 'value' in accessibility ? accessibility.value : {}) })
     .eq('id', asset.id).select(MEDIA_COLUMNS).single()
   if (error || !data) throw new MediaLibraryError(friendlyDbError(error?.message))
   return data as unknown as MediaAsset

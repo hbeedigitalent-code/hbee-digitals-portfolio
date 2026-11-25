@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { deletePortfolioProject } from '@/lib/admin/portfolio-delete'
 import { useRouter } from 'next/navigation'
 import { Plus, Search } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -110,10 +111,9 @@ export default function AdminPortfolioPage() {
     setErrorMessage('')
     setMessage('')
     try {
-      const { error } = await supabase.from('portfolio_items').delete().eq('id', id)
-      if (error) throw error
+      const { warning } = await deletePortfolioProject(supabase, id)
       await fetchItems()
-      setMessage('Portfolio item deleted.')
+      setMessage(warning ?? 'Portfolio item deleted.')
     } catch (error) {
       setErrorMessage(portfolioErrorMessage(error, 'Unable to delete the portfolio item.'))
     } finally { setBusy(false) }
