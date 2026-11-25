@@ -159,6 +159,7 @@ function fakeDb({ failStorage = [], failInsert = [] } = {}) {
   assert.match(ui, /item\.prepared\?\.mime !== 'image\/jpeg'/); assert.match(ui, /Use original/, 'a trim can be undone before upload')
   assert.match(ui, /await replaceFile\(item, new File/, 'edited files are validated and hashed again')
   assert.match(ui, /Use existing asset/); assert.match(ui, /Upload anyway/); assert.match(ui, /BULK_MAX_FILES/)
+  assert.ok(ui.includes('item.prepared?.checksum === asset.checksum') && ui.includes('duplicates: [...item.duplicates, asset]'), 'once the first copy uploads, a repeat later in the batch can use that asset')
   assert.match(ui, /preparing\.current = preparing\.current\.then/, 'files are read one at a time')
   assert.match(ui, /state === 'uploading' && item\.kind === 'video'/, 'only a transfer that can really be interrupted offers Cancel')
   assert.ok(!/\.delete\(|\.remove\(/.test(ui.replace(/urls\.current\.\w+\(/g, '')) , 'no delete')

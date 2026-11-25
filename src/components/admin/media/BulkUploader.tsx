@@ -108,7 +108,12 @@ export default function BulkUploader({ onAsset }: BulkUploaderProps) {
       for (let i = 0; i < keys.length; i += 1) {
         current.current = { key: keys[i], handle: null }
         const added = await runQueue(supabase, [keys[i]], get, update, { token: () => crypto.randomUUID(), onHandle: (handle) => { current.current.handle = handle } })
-        added.forEach(onAsset)
+        for (const asset of added) {
+          onAsset(asset)
+          // A later file with the same bytes can now use the asset that was just added, instead of uploading it again.
+          commit((previous) => previous.map((item) => (!isFinished(item) && asset.checksum && item.prepared?.checksum === asset.checksum && !item.duplicates.some((other) => other.id === asset.id)
+            ? { ...item, duplicates: [...item.duplicates, asset] } : item)))
+        }
         setRun({ done: i + 1, total: keys.length })
       }
     } finally { uploading.current = false; runKeys.current = []; current.current = { key: '', handle: null }; setRun(null) }
