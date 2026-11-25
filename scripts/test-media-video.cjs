@@ -174,22 +174,21 @@ function fakeDb({ poster = { id: POSTER, kind: 'image', status: 'active' }, toke
   assert.match(content, /<video[^>]*controls/); assert.ok(!/autoPlay|\bloop\b|\bmuted\b/.test(content), 'foreground video never autoplays')
   assert.match(content, /kind="captions"/); assert.match(content, /Transcript/)
 
-  // ── Admin workflow wiring ──
-  const uploader = read('src/components/admin/media/VideoUploader.tsx')
-  assert.ok(uploader.indexOf('validateVideoBytes(') < uploader.indexOf('readVideoMetadata(next)') && uploader.indexOf('readVideoMetadata(next)') < uploader.indexOf('startVideoUpload(supabase'), 'bytes, then decodability, then upload')
-  assert.match(uploader, /<progress[^>]*max=\{100\}/); assert.match(uploader, /Cancel upload/); assert.match(uploader, /Retry upload/); assert.match(uploader, /Retry saving/)
-  assert.match(uploader, /if \(!objectPath\) \{/, 'a stored file is registered again without re-uploading')
-  assert.match(uploader, /token: crypto\.randomUUID\(\)/, 'every attempt uses a new path')
-  assert.match(uploader, /<PosterField[\s\S]*required=\{category === 'bgc_video'\}/)
+  // ── Admin workflow wiring (the multi-file queue; behaviour is covered in test-media-bulk.cjs) ──
+  const uploader = read('src/components/admin/media/BulkUploader.tsx')
+  assert.match(uploader, /<progress/); assert.match(uploader, /Cancel remaining/); assert.match(uploader, /'Retry saving' : 'Retry'/)
+  assert.ok(uploader.includes("<PosterField poster={item.poster} required={item.category === 'bgc_video'}"))
+  assert.ok(uploader.includes('token: () => crypto.randomUUID()'), 'every attempt uses a new path')
+  assert.ok(/<video src=\{url\}[^>]*controls/.test(uploader), 'each queued video can be previewed')
   const posterField = read('src/components/admin/media/PosterField.tsx')
   assert.match(posterField, /<MediaPicker/); assert.ok(!/kind="video"/.test(posterField), 'posters are picked from images'); assert.match(posterField, /Clear poster/)
   const picker = read('src/components/admin/media/MediaPicker.tsx')
   assert.match(picker, /kind = 'image', open,/, 'existing pickers still choose images by default')
   const page = read('src/app/admin/media/page.tsx')
-  assert.match(page, /Upload video/); assert.match(page, /<VideoUploader /); assert.match(page, /updateVideoMetadata\(/); assert.match(page, /updateAssetMetadata\(/, 'image editing unchanged')
+  assert.match(page, /Upload media/); assert.match(page, /<BulkUploader /); assert.match(page, /updateVideoMetadata\(/); assert.match(page, /updateAssetMetadata\(/, 'image editing unchanged')
   assert.match(page, /if \(asset\.kind === 'video'\) return <span/, 'the grid does not download videos')
   assert.match(page, /<video[^>]*controls[^>]*preload="metadata"/)
-  for (const file of ['VideoUploader.tsx', 'PosterField.tsx', 'MediaPicker.tsx']) assert.ok(!/\.delete\(|\.remove\(|autoPlay/.test(read('src/components/admin/media/' + file)), file + ': no delete, no autoplay')
+  for (const file of ['BulkUploader.tsx', 'PosterField.tsx', 'MediaPicker.tsx']) assert.ok(!/\.delete\(|\.remove\(|autoPlay/.test(read('src/components/admin/media/' + file)), file + ': no delete, no autoplay')
   // Nothing outside the media library was wired up in this batch.
   for (const file of ['src/components/site/home/HomeHero.tsx', 'src/components/site/home/HomeHeroSystem.tsx', 'src/app/admin/hero/page.tsx']) assert.ok(!/BackgroundVideo|ContentVideo|site-media|video_url/.test(read(file)), file + ' is unchanged for video')
 

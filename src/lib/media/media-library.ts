@@ -15,7 +15,10 @@ import {
  */
 type Db = Pick<SupabaseClient, 'from' | 'storage'>
 
-export class MediaLibraryError extends Error {}
+export class MediaLibraryError extends Error {
+  /** Set when the bytes reached storage but the library row did not: registration can be retried without re-uploading. */
+  storedPath?: string
+}
 
 /** Escape LIKE wildcards so a search for "100%" or "a_b" is literal. */
 export function escapeLike(value: string): string {
@@ -81,14 +84,25 @@ export async function uploadImageAsset(db: Db, input: UploadImageInput): Promise
   const bucket = db.storage.from(MEDIA_BUCKET)
   const { error: uploadError } = await bucket.upload(objectPath, input.file, { cacheControl: '31536000', upsert: false, contentType: input.mime })
   if (uploadError) throw new MediaLibraryError(friendlyStorageError(uploadError.message))
-  const publicUrl = bucket.getPublicUrl(objectPath).data.publicUrl
-  if (!isHttpsUrl(publicUrl)) throw new MediaLibraryError(`The file was uploaded to ${objectPath} but storage did not return a usable HTTPS URL. It was not added to the library.`)
+  return registerStoredImage(db, input, objectPath)
+}
+
+/**
+ * Register an image that is already in storage. Used by the upload above and to retry a registration that failed, so a
+ * file is never sent twice. Nothing is deleted when it fails: the error names the orphaned object path.
+ */
+export async function registerStoredImage(db: Db, input: UploadImageInput, objectPath: string): Promise<MediaAsset> {
+  const problems = validateMediaMetadata(input.meta)
+  if (hasErrors(problems)) throw new MediaValidationError(Object.values(problems)[0] as string)
+  const stored = (message: string) => Object.assign(new MediaLibraryError(message), { storedPath: objectPath })
+  const publicUrl = db.storage.from(MEDIA_BUCKET).getPublicUrl(objectPath).data.publicUrl
+  if (!isHttpsUrl(publicUrl)) throw stored(`The file was uploaded to ${objectPath} but storage did not return a usable HTTPS URL. It was not added to the library.`)
   const row = buildInsertRow({
     meta: input.meta, category: input.category, objectPath, publicUrl, mime: input.mime,
     size: input.file.size, width: input.width, height: input.height, checksum: input.checksum,
   })
   const { data, error } = await db.from('media_assets').insert(row).select(MEDIA_COLUMNS).single()
-  if (error || !data) throw new MediaLibraryError(`The file was uploaded (${objectPath}) but could not be added to the library: ${friendlyDbError(error?.message)}`)
+  if (error || !data) throw stored(`The file was uploaded (${objectPath}) but could not be added to the library: ${friendlyDbError(error?.message)}`)
   return data as unknown as MediaAsset
 }
 

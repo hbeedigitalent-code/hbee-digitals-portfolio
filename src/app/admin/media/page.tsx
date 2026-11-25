@@ -6,8 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { archiveAsset, listMediaAssets, restoreAsset, scanAssetUsage, updateAssetMetadata, type MediaUsageScan } from '@/lib/media/media-library'
 import { CATEGORY_LABELS, IMAGE_CATEGORIES, MEDIA_CATEGORIES, VIDEO_CATEGORIES, formatBytes, isImageCategory, isMediaCategory, isMediaKind, isVideoCategory, type MediaAsset, type MediaCategory, type MediaKind, type MediaStatus } from '@/lib/media/media-types'
 import { getAssetsByIds, updateVideoMetadata } from '@/lib/media/media-video'
-import MediaUploader from '@/components/admin/media/MediaUploader'
-import VideoUploader from '@/components/admin/media/VideoUploader'
+import BulkUploader from '@/components/admin/media/BulkUploader'
 import PosterField from '@/components/admin/media/PosterField'
 
 const field = 'w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-2 text-sm text-[var(--text-primary)]'
@@ -23,7 +22,9 @@ export default function AdminMediaPage() {
   const [kind, setKind] = useState<MediaKind | ''>('')
   const [status, setStatus] = useState<MediaStatus>('active')
   const [view, setView] = useState<'grid' | 'list'>('grid')
-  const [showUpload, setShowUpload] = useState<'' | 'image' | 'video'>('')
+  const [showUpload, setShowUpload] = useState(false)
+  // Stays mounted once opened, so closing the panel never throws away a queue.
+  const [uploaderMounted, setUploaderMounted] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
 
@@ -39,7 +40,8 @@ export default function AdminMediaPage() {
 
   const selected = assets.find((asset) => asset.id === selectedId) ?? null
 
-  function uploaded(asset: MediaAsset) { setNotice(`“${asset.title}” was added to the Media Library.`); setStatus('active'); setCategory(''); setKind(''); setSearch(''); setQuery(''); setSelectedId(asset.id); void load() }
+  /** A file from the upload queue is in the library: refresh the list without disturbing the queue or the filters' focus. */
+  function added(asset: MediaAsset) { setNotice(`“${asset.title}” is in the Media Library.`); setStatus('active'); setSelectedId(asset.id); void load() }
   function replaceAsset(next: MediaAsset) { setAssets((previous) => previous.map((asset) => (asset.id === next.id ? next : asset))) }
   function removeFromView(id: string) { setAssets((previous) => previous.filter((asset) => asset.id !== id)); setSelectedId(null) }
 
@@ -49,20 +51,14 @@ export default function AdminMediaPage() {
         <h1 className="text-2xl font-black text-[var(--text-primary)]">Media Library</h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--text-secondary)]">Upload graphics, brand logos and short videos once, then reuse them. Archiving hides an asset from pickers but never deletes the file or breaks pages that already use it.</p>
       </div>
-      <div className="flex flex-wrap gap-2">
-        {(['image', 'video'] as const).map((value) => <button key={value} type="button" aria-expanded={showUpload === value} onClick={() => setShowUpload((current) => (current === value ? '' : value))}
-          className={value === 'image' ? 'rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-bold text-[var(--btn-primary-text)]' : 'rounded-full border border-[var(--accent)] px-5 py-2.5 text-sm font-bold text-[var(--accent)]'}>
-          {showUpload === value ? 'Close upload' : value === 'image' ? 'Upload image' : 'Upload video'}</button>)}
-      </div>
+      <button type="button" aria-expanded={showUpload} onClick={() => { setUploaderMounted(true); setShowUpload((value) => !value) }}
+        className="rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-bold text-[var(--btn-primary-text)]">{showUpload ? 'Close upload' : 'Upload media'}</button>
     </div>
 
     {notice && <p role="status" className="rounded-lg border border-[var(--accent)]/30 p-3 text-sm text-[var(--accent)]">{notice}</p>}
 
-    {showUpload && <section aria-label={showUpload === 'video' ? 'Upload a video' : 'Upload an image'} className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-      {showUpload === 'image' ? <MediaUploader onUploaded={uploaded}
-        onUseExisting={(asset) => { setNotice(`Using the existing asset “${asset.title}”.`); setSelectedId(asset.id) }} />
-        : <VideoUploader onUploaded={uploaded}
-          onUseExisting={(asset) => { setNotice(`Using the existing asset “${asset.title}”.`); setSelectedId(asset.id) }} />}
+    {uploaderMounted && <section aria-label="Upload media" hidden={!showUpload} className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+      <BulkUploader onAsset={added} />
     </section>}
 
     <section aria-label="Filters" className="flex flex-wrap items-end gap-3">
@@ -80,7 +76,7 @@ export default function AdminMediaPage() {
 
     {error && <div role="alert" className="space-y-2 rounded-lg border border-red-500/30 p-4 text-sm text-red-500"><p>{error}</p><button type="button" className={button} onClick={() => void load()}>Retry</button></div>}
     {loading && <p role="status" className="text-sm text-[var(--text-muted)]">Loading…</p>}
-    {!loading && !error && !assets.length && <p className="rounded-xl border border-dashed border-[var(--border)] p-8 text-sm text-[var(--text-muted)]">{query || category || kind ? 'No assets match these filters.' : status === 'archived' ? 'No archived assets.' : 'No assets yet. Use “Upload image” to add your first logo or graphic.'}</p>}
+    {!loading && !error && !assets.length && <p className="rounded-xl border border-dashed border-[var(--border)] p-8 text-sm text-[var(--text-muted)]">{query || category || kind ? 'No assets match these filters.' : status === 'archived' ? 'No archived assets.' : 'No assets yet. Use “Upload media” to add your first logo, graphic or video.'}</p>}
 
     <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
       {view === 'grid'

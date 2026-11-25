@@ -292,7 +292,7 @@ assert.equal(row.alt_text, '', 'decorative rows store no alt text'); assert.equa
   const uploaderHtml = renderToStaticMarkup(React.createElement(MediaUploader, { onUploaded() {} }))
   assert.match(uploaderHtml, /accept="image\/png,image\/jpeg,image\/webp,image\/avif"/); assert.match(uploaderHtml, /SVG is not accepted/); assert.match(uploaderHtml, /drag and drop/)
   const pageHtml = renderToStaticMarkup(React.createElement(MediaPage))
-  for (const text of ['Media Library', 'Upload image', 'Search by name', 'All categories', 'All types', 'Archived', 'Grid', 'List']) assert.ok(pageHtml.includes(text), text)
+  for (const text of ['Media Library', 'Upload media', 'Search by name', 'All categories', 'All types', 'Archived', 'Grid', 'List']) assert.ok(pageHtml.includes(text), text)
   assert.ok(!/hard delete|Delete asset/i.test(pageHtml), 'no delete control')
 
   // ── navigation, redirect, scope ────────────────────────────────────────────────────────────────────────────
