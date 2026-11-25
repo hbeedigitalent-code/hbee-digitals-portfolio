@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { toShowcaseItems, type ShowcaseItem } from './showcase-model'
+import { toShowcaseItems, type ShowcaseItem } from '@/lib/site/showcase-model'
 
 if (typeof window !== 'undefined') throw new Error('showcase-data is server-only')
 

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { archiveAsset, listMediaAssets, restoreAsset, scanAssetUsage, updateAssetMetadata, type MediaUsageScan } from '@/lib/media/media-library'
+import { archiveAsset, listMediaAssets, restoreAsset, placementUsage, scanAssetUsage, updateAssetMetadata, type MediaUsage, type MediaUsageScan } from '@/lib/media/media-library'
 import { CATEGORY_LABELS, IMAGE_CATEGORIES, MEDIA_CATEGORIES, VIDEO_CATEGORIES, formatBytes, isImageCategory, isMediaCategory, isMediaKind, isVideoCategory, type MediaAsset, type MediaCategory, type MediaKind, type MediaStatus } from '@/lib/media/media-types'
 import { getAssetsByIds, updateVideoMetadata } from '@/lib/media/media-video'
 import BulkUploader from '@/components/admin/media/BulkUploader'
@@ -119,6 +119,23 @@ function AssetDetail({ asset, onChanged, onStatusChanged }: { asset: MediaAsset;
   const [busy, setBusy] = useState(false)
   const [scan, setScan] = useState<MediaUsageScan | null>(null)
   const [confirmArchive, setConfirmArchive] = useState(false)
+  // "Used in": showcase placements are listed as soon as an asset is opened.
+  const [placements, setPlacements] = useState<MediaUsage[] | null>(null)
+  const [placementNote, setPlacementNote] = useState('')
+  useEffect(() => {
+    let live = true
+    placementUsage(supabase, asset.id)
+      .then((found) => { if (live) setPlacements(found) })
+      .catch(() => { if (live) setPlacementNote('Showcase placements could not be checked. If they have not been set up yet, the database migration has not been run.') })
+    return () => { live = false }
+  }, [asset.id])
+  // An archived asset that is still referenced says so without being asked.
+  useEffect(() => {
+    if (asset.status !== 'archived') return
+    let live = true
+    scanAssetUsage(supabase, asset).then((found) => { if (live) setScan(found) }).catch(() => {})
+    return () => { live = false }
+  }, [asset])
   const isImage = asset.kind === 'image'
   // A video's poster is a library image referenced by id.
   const [poster, setPoster] = useState<MediaAsset | null>(null)
@@ -165,6 +182,18 @@ function AssetDetail({ asset, onChanged, onStatusChanged }: { asset: MediaAsset;
       <dt>Status</dt><dd>{archived ? 'Archived' : 'Active'}</dd>
     </dl>
     <label className="block text-xs text-[var(--text-muted)]">URL<input readOnly value={asset.public_url} onFocus={(event) => event.currentTarget.select()} className={`${field} mt-1 text-xs`} /></label>
+    {asset.status === 'archived' && (scan?.usages.length ?? placements?.length ?? 0) > 0 && <p role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-[var(--text-primary)]">
+      This archived asset is still used in {scan?.usages.length ?? placements?.length} place{(scan?.usages.length ?? placements?.length) === 1 ? '' : 's'}. Those stay live until you hide or remove them, or replace the asset.</p>}
+
+    <div className="space-y-1 text-sm">
+      <h3 className="font-semibold text-[var(--text-primary)]">Used in</h3>
+      {placementNote ? <p className="text-xs text-[var(--text-muted)]">{placementNote}</p>
+        : placements === null ? <p className="text-xs text-[var(--text-muted)]">Checking…</p>
+        : placements.length ? <ul className="space-y-1">{placements.map((usage, index) => <li key={`${usage.href}-${index}`}>
+          <Link href={usage.href} className="text-[var(--accent)] underline">{usage.area}: {usage.label}</Link> <span className="text-xs text-[var(--text-muted)]">({usage.detail})</span></li>)}</ul>
+        : <p className="text-xs text-[var(--text-muted)]">Not placed in any showcase. “Where is it used?” also checks other website content.</p>}
+    </div>
+
     <div className="flex flex-wrap gap-2">
       <button type="button" className={button} disabled={busy} onClick={() => void copy()}>Copy URL</button>
       <button type="button" className={button} disabled={busy} onClick={() => void check()}>Where is it used?</button>
@@ -201,7 +230,7 @@ function AssetDetail({ asset, onChanged, onStatusChanged }: { asset: MediaAsset;
     <div className="border-t border-[var(--border)] pt-3">
       {archived ? <button type="button" className={button} disabled={busy} onClick={() => void doRestore()}>Restore asset</button>
         : confirmArchive ? <div className="space-y-2">
-          <p className="text-sm text-[var(--text-secondary)]">Archiving hides this asset from pickers. The file stays in storage and existing pages keep working{scan?.usages.length ? ', including the places listed above' : ''}.</p>
+          <p className="text-sm text-[var(--text-secondary)]">{scan?.usages.length ? `This asset is used in ${scan.usages.length} place${scan.usages.length === 1 ? '' : 's'}. ` : ''}Archiving hides this asset from new selections. It removes no placement: the file stays in storage and existing pages keep working{scan?.usages.length ? ', including the places listed above' : ''}.</p>
           <div className="flex gap-2"><button type="button" className={button} disabled={busy} onClick={() => void doArchive()}>Confirm archive</button><button type="button" className={button} onClick={() => setConfirmArchive(false)}>Cancel</button></div></div>
           : <button type="button" className={button} disabled={busy} onClick={() => void startArchive()}>Archive…</button>}
     </div>

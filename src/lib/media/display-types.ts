@@ -28,6 +28,16 @@ export const DISPLAY_TYPES = {
 } as const satisfies Record<string, DisplayTypeInfo>
 
 export type DisplayType = keyof typeof DISPLAY_TYPES
+
+/** Admin wording for the six capability pages (keys are the public /services/<slug> routes). */
+export const SERVICE_NAMES = {
+  'brand-positioning': 'Brand & Positioning',
+  'digital-systems': 'Digital Systems & Analytics',
+  'creative-ugc': 'Creative & UGC',
+  'discovery-traffic': 'Traffic & Visibility',
+  'commerce-experience': 'Website & Conversion',
+  'retention-growth': 'Retention & Customer Value',
+} as const
 export const CUSTOM_LABEL_MAX = 60
 
 export const isDisplayType = (value: unknown): value is DisplayType => typeof value === 'string' && Object.prototype.hasOwnProperty.call(DISPLAY_TYPES, value)

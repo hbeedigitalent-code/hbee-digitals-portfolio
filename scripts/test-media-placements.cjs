@@ -114,6 +114,36 @@ function fakeDb({ placements = [], assets = [], failInsertFor = [] } = {}) {
   await assert.rejects(p.removePlacement(db, 'x'), /Invalid/)
   assert.match(p.friendlyPlacementError("Could not find the table 'public.media_placements' in the schema cache"), /migration has not been run/)
 
+  // ── Media Library "Used in": placements are part of the usage scan, with links to the right editor ──
+  const library_ = load('src/lib/media/media-library.ts')
+  const usageRows = [
+    { id: ID(1), target_type: 'site', target_key: 'work', is_active: true, display_type: 'logo_design', custom_label: '' },
+    { id: ID(2), target_type: 'project', target_key: ID(50), is_active: true, display_type: 'campaign_creative', custom_label: '' },
+    { id: ID(3), target_type: 'service', target_key: 'creative-ugc', is_active: false, display_type: 'other', custom_label: 'Menu' },
+    { id: ID(4), target_type: 'service', target_key: 'brand-positioning', is_active: true, display_type: 'brand_identity', custom_label: '' },
+  ]
+  const usageDb = (fail = false) => ({ from(table) {
+    const chain = { select: () => chain, eq: () => chain, order: () => chain, limit: () => chain,
+      in: () => Promise.resolve({ data: [{ id: ID(50), client_name: 'SpecGT' }], error: null }),
+      delete: () => assert.fail('read only'), update: () => assert.fail('read only'), insert: () => assert.fail('read only'),
+      then: (resolve, reject) => Promise.resolve(table === 'media_placements' ? (fail ? { data: null, error: { message: 'relation "media_placements" does not exist' } } : { data: usageRows, error: null }) : { data: [], error: null }).then(resolve, reject) }
+    return chain
+  } })
+  const usage = await library_.placementUsage(usageDb(), ID(9))
+  assert.deepEqual(clone(usage.map(u => `${u.area} → ${u.label} (${u.detail}) ${u.href}`)), [
+    'Work → Creative Portfolio (Logo Design; shown) /admin/portfolio/showcase',
+    `Work → SpecGT (Campaign Creative; shown) /admin/portfolio/${ID(50)}#project-media`,
+    'Creative & UGC → Selected work (Menu; hidden) /admin/services/showcase?capability=creative-ugc',
+    'Brand & Positioning → Selected work (Brand Identity; shown) /admin/services/showcase?capability=brand-positioning',
+  ])
+  const scanned = await library_.scanAssetUsage(usageDb(), { id: ID(9), kind: 'video', bucket: 'site-media', object_path: 'videos/a.mp4', public_url: 'https://x.test/a.mp4' })
+  assert.equal(scanned.usages.length, 4)
+  const unavailable = await library_.scanAssetUsage(usageDb(true), { id: ID(9), kind: 'video', bucket: 'site-media', object_path: 'videos/a.mp4', public_url: 'https://x.test/a.mp4' })
+  assert.ok(unavailable.unscanned.some(entry => entry.area === 'Showcase placements'), 'before the migration the scan says what it could not check')
+  const mediaPage = read('src/app/admin/media/page.tsx')
+  assert.match(mediaPage, />Used in</); assert.match(mediaPage, /placementUsage\(supabase, asset\.id\)/)
+  assert.match(mediaPage, /This archived asset is still used in/); assert.match(mediaPage, /It removes no placement/)
+
   // Archiving is a status flag on the asset: nothing in the library layer removes or switches off placements.
   assert.ok(!/media_placements[\s\S]{0,200}\.(delete|update)\(/.test(read('src/lib/media/media-library.ts')))
   assert.ok(!/storage|media_assets'\)\.(delete|update)/.test(read('src/lib/media/placements.ts')), 'the placement module cannot delete assets or files')

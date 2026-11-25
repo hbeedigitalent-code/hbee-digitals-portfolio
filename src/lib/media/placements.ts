@@ -3,7 +3,7 @@ import { CAPABILITY_SLUGS, isCapabilitySlug, type CapabilitySlug } from '@/lib/p
 import { getAssetsByIds } from './media-video'
 import { MediaLibraryError } from './media-library'
 import type { MediaAsset, MediaKind } from './media-types'
-import { CUSTOM_LABEL_MAX, DISPLAY_TYPES, allowsKind, displayLabel, displayTypesFor, isDisplayType, type DisplayType } from './display-types'
+import { CUSTOM_LABEL_MAX, DISPLAY_TYPES, SERVICE_NAMES, allowsKind, displayLabel, displayTypesFor, isDisplayType, type DisplayType } from './display-types'
 
 /**
  * Reusable media placements (scripts/admin-media-placement-01-forward.sql).
@@ -36,15 +36,7 @@ export function isValidTarget(target: PlacementTarget): boolean {
   return target.type === 'project' && UUID.test(target.key) && target.slot === 'project_media'
 }
 
-export const SERVICE_NAMES: Record<CapabilitySlug, string> = {
-  'brand-positioning': 'Brand & Positioning',
-  'digital-systems': 'Digital Systems & Analytics',
-  'creative-ugc': 'Creative & UGC',
-  'discovery-traffic': 'Traffic & Visibility',
-  'commerce-experience': 'Website & Conversion',
-  'retention-growth': 'Retention & Customer Value',
-}
-export { CAPABILITY_SLUGS }
+export { CAPABILITY_SLUGS, SERVICE_NAMES }
 
 /** Every showcase accepts images and foreground video. Background (decorative) video is never showcase content. */
 export function placementBlocker(asset: Pick<MediaAsset, 'kind' | 'category'>): string | undefined {

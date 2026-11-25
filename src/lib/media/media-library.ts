@@ -3,6 +3,7 @@ import {
   MEDIA_BUCKET, MEDIA_COLUMNS, isMediaCategory, isMediaKind, isMediaStatus,
   type ImageCategory, type MediaAsset, type MediaCategory, type MediaKind, type MediaStatus,
 } from './media-types'
+import { SERVICE_NAMES, displayLabel } from './display-types'
 import {
   buildInsertRow, buildObjectPath, isHttpsUrl, validateMediaMetadata, hasErrors, MediaValidationError,
   type MediaImageMime, type MediaMetadataInput,
@@ -199,6 +200,29 @@ function brandDetail(raw: unknown, asset: MediaAsset, needles: string[]): string
 }
 
 /**
+ * Where an asset is placed: the Work creative portfolio, capability pages and individual projects, each with whether it is
+ * currently shown. Read-only; throws if placements cannot be read (for example before the migration has run).
+ */
+export async function placementUsage(db: Db, assetId: string): Promise<MediaUsage[]> {
+  const { data, error } = await db.from('media_placements').select('id,target_type,target_key,is_active,display_type,custom_label').eq('media_asset_id', assetId).limit(200)
+  if (error) throw new MediaLibraryError(error.message || 'Could not be read.')
+  const rows = (data ?? []) as Array<Record<string, unknown>>
+  const projectIds = [...new Set(rows.filter((row) => row.target_type === 'project').map((row) => text(row.target_key)))]
+  const names = new Map<string, string>()
+  if (projectIds.length) {
+    const projects = await db.from('portfolio_items').select('*').in('id', projectIds)
+    for (const row of ((projects.data ?? []) as Array<Record<string, unknown>>)) names.set(String(row.id), text(row.client_name) || text(row.name) || text(row.title) || text(row.slug))
+  }
+  return rows.map((row) => {
+    const key = text(row.target_key)
+    const detail = `${displayLabel(text(row.display_type), text(row.custom_label)) || 'Unlabelled'}; ${row.is_active === true ? 'shown' : 'hidden'}`
+    if (row.target_type === 'service') return { area: (SERVICE_NAMES as Record<string, string>)[key] ?? key, label: 'Selected work', field: 'placement', href: `/admin/services/showcase?capability=${key}`, detail }
+    if (row.target_type === 'project') return { area: 'Work', label: names.get(key) || 'Project', field: 'placement', href: `/admin/portfolio/${key}#project-media`, detail }
+    return { area: 'Work', label: 'Creative Portfolio', field: 'placement', href: '/admin/portfolio/showcase', detail }
+  })
+}
+
+/**
  * On-demand usage check across the known reference points. Read-only, no reference tables, no foreign keys.
  * It cannot see references inside external systems or in markup the CMS does not expose, so "not found" means
  * "not found in the places scanned", never "safe to delete" (the library never deletes anyway).
@@ -226,6 +250,8 @@ export async function scanAssetUsage(db: Db, asset: MediaAsset): Promise<MediaUs
       unscanned.push({ area: source.area, reason: error instanceof Error ? error.message : 'Could not be read.' })
     }
   }
+  try { usages.push(...await placementUsage(db, asset.id)) }
+  catch (error) { unscanned.push({ area: 'Showcase placements', reason: error instanceof Error ? error.message : 'Could not be read.' }) }
   // An image can be referenced by id as the poster of a library video (no URL is stored for that link).
   if (asset.kind === 'image') {
     try {
