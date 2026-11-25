@@ -4,8 +4,11 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { archiveAsset, listMediaAssets, restoreAsset, scanAssetUsage, updateAssetMetadata, type MediaUsageScan } from '@/lib/media/media-library'
-import { CATEGORY_LABELS, IMAGE_CATEGORIES, MEDIA_CATEGORIES, formatBytes, isImageCategory, isMediaCategory, isMediaKind, type MediaAsset, type MediaCategory, type MediaKind, type MediaStatus } from '@/lib/media/media-types'
+import { CATEGORY_LABELS, IMAGE_CATEGORIES, MEDIA_CATEGORIES, VIDEO_CATEGORIES, formatBytes, isImageCategory, isMediaCategory, isMediaKind, isVideoCategory, type MediaAsset, type MediaCategory, type MediaKind, type MediaStatus } from '@/lib/media/media-types'
+import { getAssetsByIds, updateVideoMetadata } from '@/lib/media/media-video'
 import MediaUploader from '@/components/admin/media/MediaUploader'
+import VideoUploader from '@/components/admin/media/VideoUploader'
+import PosterField from '@/components/admin/media/PosterField'
 
 const field = 'w-full rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-2 text-sm text-[var(--text-primary)]'
 const button = 'rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)] disabled:opacity-40'
@@ -20,7 +23,7 @@ export default function AdminMediaPage() {
   const [kind, setKind] = useState<MediaKind | ''>('')
   const [status, setStatus] = useState<MediaStatus>('active')
   const [view, setView] = useState<'grid' | 'list'>('grid')
-  const [showUpload, setShowUpload] = useState(false)
+  const [showUpload, setShowUpload] = useState<'' | 'image' | 'video'>('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
 
@@ -36,6 +39,7 @@ export default function AdminMediaPage() {
 
   const selected = assets.find((asset) => asset.id === selectedId) ?? null
 
+  function uploaded(asset: MediaAsset) { setNotice(`“${asset.title}” was added to the Media Library.`); setStatus('active'); setCategory(''); setKind(''); setSearch(''); setQuery(''); setSelectedId(asset.id); void load() }
   function replaceAsset(next: MediaAsset) { setAssets((previous) => previous.map((asset) => (asset.id === next.id ? next : asset))) }
   function removeFromView(id: string) { setAssets((previous) => previous.filter((asset) => asset.id !== id)); setSelectedId(null) }
 
@@ -43,16 +47,22 @@ export default function AdminMediaPage() {
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1 className="text-2xl font-black text-[var(--text-primary)]">Media Library</h1>
-        <p className="mt-2 max-w-2xl text-sm text-[var(--text-secondary)]">Upload graphics and brand logos once, then reuse them. Archiving hides an asset from pickers but never deletes the file or breaks pages that already use it.</p>
+        <p className="mt-2 max-w-2xl text-sm text-[var(--text-secondary)]">Upload graphics, brand logos and short videos once, then reuse them. Archiving hides an asset from pickers but never deletes the file or breaks pages that already use it.</p>
       </div>
-      <button type="button" className="rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-bold text-[var(--btn-primary-text)]" onClick={() => setShowUpload((value) => !value)} aria-expanded={showUpload}>{showUpload ? 'Close upload' : 'Upload image'}</button>
+      <div className="flex flex-wrap gap-2">
+        {(['image', 'video'] as const).map((value) => <button key={value} type="button" aria-expanded={showUpload === value} onClick={() => setShowUpload((current) => (current === value ? '' : value))}
+          className={value === 'image' ? 'rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-bold text-[var(--btn-primary-text)]' : 'rounded-full border border-[var(--accent)] px-5 py-2.5 text-sm font-bold text-[var(--accent)]'}>
+          {showUpload === value ? 'Close upload' : value === 'image' ? 'Upload image' : 'Upload video'}</button>)}
+      </div>
     </div>
 
     {notice && <p role="status" className="rounded-lg border border-[var(--accent)]/30 p-3 text-sm text-[var(--accent)]">{notice}</p>}
 
-    {showUpload && <section aria-label="Upload an image" className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-      <MediaUploader onUploaded={(asset) => { setNotice(`“${asset.title}” was added to the Media Library.`); setStatus('active'); setCategory(''); setKind(''); setSearch(''); setQuery(''); setSelectedId(asset.id); void load() }}
+    {showUpload && <section aria-label={showUpload === 'video' ? 'Upload a video' : 'Upload an image'} className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+      {showUpload === 'image' ? <MediaUploader onUploaded={uploaded}
         onUseExisting={(asset) => { setNotice(`Using the existing asset “${asset.title}”.`); setSelectedId(asset.id) }} />
+        : <VideoUploader onUploaded={uploaded}
+          onUseExisting={(asset) => { setNotice(`Using the existing asset “${asset.title}”.`); setSelectedId(asset.id) }} />}
     </section>}
 
     <section aria-label="Filters" className="flex flex-wrap items-end gap-3">
@@ -76,13 +86,13 @@ export default function AdminMediaPage() {
       {view === 'grid'
         ? <ul className="grid grid-cols-2 content-start gap-3 sm:grid-cols-3 xl:grid-cols-4">{assets.map((asset) => <li key={asset.id}>
           <button type="button" aria-pressed={asset.id === selectedId} onClick={() => setSelectedId(asset.id)} className={`flex w-full flex-col gap-2 rounded-xl border bg-[var(--bg-card)] p-2 text-left ${asset.id === selectedId ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]/40' : 'border-[var(--border)]'}`}>
-            <span className="flex h-28 items-center justify-center rounded-lg bg-white p-1">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={asset.public_url} alt="" loading="lazy" className="max-h-full max-w-full object-contain" /></span>
+            <span className="flex h-28 items-center justify-center rounded-lg bg-white p-1"><Thumbnail asset={asset} /></span>
             <span className="min-w-0"><span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{asset.title}</span>
               <span className="block truncate text-xs text-[var(--text-muted)]">{CATEGORY_LABELS[asset.category]}</span></span>
           </button></li>)}</ul>
         : <ul className="space-y-2">{assets.map((asset) => <li key={asset.id}>
           <button type="button" aria-pressed={asset.id === selectedId} onClick={() => setSelectedId(asset.id)} className={`flex w-full items-center gap-3 rounded-xl border bg-[var(--bg-card)] p-2 text-left ${asset.id === selectedId ? 'border-[var(--accent)]' : 'border-[var(--border)]'}`}>
-            <span className="flex h-12 w-16 shrink-0 items-center justify-center rounded bg-white p-1">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={asset.public_url} alt="" loading="lazy" className="max-h-full max-w-full object-contain" /></span>
+            <span className="flex h-12 w-16 shrink-0 items-center justify-center rounded bg-white p-1"><Thumbnail asset={asset} /></span>
             <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{asset.title}</span>
               <span className="block truncate text-xs text-[var(--text-muted)]">{CATEGORY_LABELS[asset.category]} · {asset.width && asset.height ? `${asset.width}×${asset.height} · ` : ''}{formatBytes(asset.size_bytes)}</span></span>
           </button></li>)}</ul>}
@@ -96,6 +106,13 @@ export default function AdminMediaPage() {
   </div>
 }
 
+/** Grid / list preview. Videos show a label, never the file: listing the library must not download every clip. */
+function Thumbnail({ asset }: { asset: MediaAsset }) {
+  if (asset.kind === 'video') return <span className="text-center text-xs font-semibold text-gray-600">▶ Video{asset.duration_seconds ? ` · ${Math.round(asset.duration_seconds)} s` : ''}</span>
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={asset.public_url} alt="" loading="lazy" className="max-h-full max-w-full object-contain" />
+}
+
 function AssetDetail({ asset, onChanged, onStatusChanged }: { asset: MediaAsset; onChanged: (asset: MediaAsset) => void; onStatusChanged: (asset: MediaAsset, message: string) => void }) {
   const [title, setTitle] = useState(asset.title)
   const [altText, setAltText] = useState(asset.alt_text)
@@ -106,8 +123,17 @@ function AssetDetail({ asset, onChanged, onStatusChanged }: { asset: MediaAsset;
   const [busy, setBusy] = useState(false)
   const [scan, setScan] = useState<MediaUsageScan | null>(null)
   const [confirmArchive, setConfirmArchive] = useState(false)
-  const dirty = title !== asset.title || altText !== asset.alt_text || decorative !== asset.is_decorative || caption !== asset.caption || category !== asset.category
   const isImage = asset.kind === 'image'
+  // A video's poster is a library image referenced by id.
+  const [poster, setPoster] = useState<MediaAsset | null>(null)
+  const [posterId, setPosterId] = useState<string | null>(asset.poster_asset_id)
+  useEffect(() => {
+    if (!asset.poster_asset_id) return
+    let live = true
+    getAssetsByIds(supabase, [asset.poster_asset_id]).then(([found]) => { if (live && found) setPoster(found) }).catch(() => {})
+    return () => { live = false }
+  }, [asset.poster_asset_id])
+  const dirty = title !== asset.title || altText !== asset.alt_text || decorative !== asset.is_decorative || caption !== asset.caption || category !== asset.category || posterId !== asset.poster_asset_id
   const archived = asset.status === 'archived'
 
   async function run(action: () => Promise<void>) {
@@ -117,7 +143,9 @@ function AssetDetail({ asset, onChanged, onStatusChanged }: { asset: MediaAsset;
   }
 
   const save = () => run(async () => {
-    const next = await updateAssetMetadata(supabase, asset, { title, alt_text: altText, is_decorative: decorative, caption, ...(isImageCategory(category) ? { category } : {}) })
+    const next = isImage
+      ? await updateAssetMetadata(supabase, asset, { title, alt_text: altText, is_decorative: decorative, caption, ...(isImageCategory(category) ? { category } : {}) })
+      : await updateVideoMetadata(supabase, asset, { title, caption, poster_asset_id: posterId, ...(isVideoCategory(category) ? { category } : {}) })
     onChanged(next); setMessage('Details saved.')
   })
   const check = () => run(async () => { setScan(await scanAssetUsage(supabase, asset)) })
@@ -130,10 +158,12 @@ function AssetDetail({ asset, onChanged, onStatusChanged }: { asset: MediaAsset;
   })
 
   return <div className="space-y-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
-    <div className="flex h-48 items-center justify-center rounded-lg bg-white p-2">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={asset.public_url} alt={asset.is_decorative ? '' : asset.alt_text || asset.title} className="max-h-full max-w-full object-contain" /></div>
+    {isImage ? <div className="flex h-48 items-center justify-center rounded-lg bg-white p-2">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={asset.public_url} alt={asset.is_decorative ? '' : asset.alt_text || asset.title} className="max-h-full max-w-full object-contain" /></div>
+      : <video key={poster?.id ?? 'no-poster'} src={asset.public_url} poster={posterId ? poster?.public_url : undefined} controls playsInline preload="metadata" aria-label={asset.title} className="h-48 w-full rounded-lg bg-black" />}
     <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-[var(--text-muted)]">
       <dt>Dimensions</dt><dd>{asset.width && asset.height ? `${asset.width} × ${asset.height}px` : '—'}</dd>
       <dt>Size</dt><dd>{formatBytes(asset.size_bytes)}</dd>
+      {!isImage && <><dt>Duration</dt><dd>{asset.duration_seconds === null ? '—' : `${Math.round(asset.duration_seconds)} s`}</dd></>}
       <dt>Type</dt><dd>{asset.mime_type}</dd>
       <dt>Storage</dt><dd className="break-all">{asset.bucket}</dd>
       <dt>Status</dt><dd>{archived ? 'Archived' : 'Active'}</dd>
@@ -144,7 +174,7 @@ function AssetDetail({ asset, onChanged, onStatusChanged }: { asset: MediaAsset;
       <button type="button" className={button} disabled={busy} onClick={() => void check()}>Where is it used?</button>
     </div>
 
-    <fieldset disabled={busy || !isImage} className="space-y-3 border-t border-[var(--border)] pt-3">
+    {isImage ? <fieldset disabled={busy} className="space-y-3 border-t border-[var(--border)] pt-3">
       <label className="block text-sm">Name<input className={`${field} mt-1`} value={title} maxLength={160} onChange={(event) => setTitle(event.target.value)} /></label>
       <label className="block text-sm">Category<select className={`${field} mt-1`} value={category} onChange={(event) => { if (isMediaCategory(event.target.value)) setCategory(event.target.value) }}>
         {IMAGE_CATEGORIES.map((value) => <option key={value} value={value}>{CATEGORY_LABELS[value]}</option>)}
@@ -153,7 +183,14 @@ function AssetDetail({ asset, onChanged, onStatusChanged }: { asset: MediaAsset;
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={decorative} onChange={(event) => setDecorative(event.target.checked)} />Decorative image</label>
       <label className="block text-sm">Caption<input className={`${field} mt-1`} value={caption} maxLength={1000} onChange={(event) => setCaption(event.target.value)} /></label>
       <button type="button" className={button} disabled={!dirty || busy} onClick={() => void save()}>Save details</button>
-    </fieldset>
+    </fieldset> : <fieldset disabled={busy} className="space-y-3 border-t border-[var(--border)] pt-3">
+      <label className="block text-sm">Name<input className={`${field} mt-1`} value={title} maxLength={160} onChange={(event) => setTitle(event.target.value)} /></label>
+      <label className="block text-sm">Category<select className={`${field} mt-1`} value={category} onChange={(event) => { if (isVideoCategory(event.target.value)) setCategory(event.target.value) }}>
+        {VIDEO_CATEGORIES.map((value) => <option key={value} value={value}>{CATEGORY_LABELS[value]}</option>)}</select></label>
+      <label className="block text-sm">Caption<input className={`${field} mt-1`} value={caption} maxLength={1000} onChange={(event) => setCaption(event.target.value)} /></label>
+      <PosterField poster={posterId ? poster : null} required={category === 'bgc_video'} suggestedTitle={`${title} poster`} disabled={busy} onChange={(next) => { setPoster(next); setPosterId(next?.id ?? null) }} />
+      <button type="button" className={button} disabled={!dirty || busy} onClick={() => void save()}>Save details</button>
+    </fieldset>}
 
     {message && <p role={message.startsWith('Error:') ? 'alert' : 'status'} className={`text-sm ${message.startsWith('Error:') ? 'text-red-500' : 'text-[var(--accent)]'}`}>{message}</p>}
 
@@ -162,7 +199,7 @@ function AssetDetail({ asset, onChanged, onStatusChanged }: { asset: MediaAsset;
       {scan.usages.length > 0 && <ul className="space-y-1">{scan.usages.map((usage, index) => <li key={`${usage.href}-${usage.field}-${index}`}>
         <Link href={usage.href} className="text-[var(--accent)] underline">{usage.area}: {usage.label}</Link> <span className="text-xs text-[var(--text-muted)]">({usage.field}{usage.detail ? `; ${usage.detail}` : ''})</span></li>)}</ul>}
       {scan.unscanned.length > 0 && <p className="text-xs text-[var(--text-muted)]">Could not check: {scan.unscanned.map((entry) => entry.area).join(', ')}.</p>}
-      <p className="text-xs text-[var(--text-muted)]">Image links written inside article text or other free-form content may not be detected.</p>
+      <p className="text-xs text-[var(--text-muted)]">Links written inside article text or other free-form content may not be detected.</p>
     </div>}
 
     <div className="border-t border-[var(--border)] pt-3">

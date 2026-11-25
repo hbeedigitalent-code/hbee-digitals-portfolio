@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { listMediaAssets } from '@/lib/media/media-library'
-import { CATEGORY_LABELS, IMAGE_CATEGORIES, formatBytes, isImageCategory, type ImageCategory, type MediaAsset } from '@/lib/media/media-types'
+import { CATEGORY_LABELS, IMAGE_CATEGORIES, VIDEO_CATEGORIES, formatBytes, isImageCategory, isVideoCategory, type ImageCategory, type MediaAsset, type MediaKind, type VideoCategory } from '@/lib/media/media-types'
 import MediaUploader from './MediaUploader'
 
 const field = 'rounded-lg border border-[var(--border)] bg-[var(--bg-section)] p-2 text-sm text-[var(--text-primary)]'
@@ -12,6 +12,8 @@ const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]):not([typ
 
 export interface MediaPickerProps {
   open: boolean
+  /** What is being chosen. Default 'image'. Videos are selected here and uploaded on the Media Library page. */
+  kind?: MediaKind
   onClose: () => void
   /** Receives the full asset: metadata (alt text, dimensions, category…) plus public_url. */
   onSelect: (asset: MediaAsset) => void
@@ -28,7 +30,7 @@ export interface MediaPickerProps {
   keepOpen?: boolean
 }
 
-export default function MediaPicker({ open, onClose, onSelect, selectedId = null, selectedUrl = null, initialCategory = '', uploadCategory = 'general', suggestedTitle = '', heading = 'Choose from the Media Library', keepOpen = false }: MediaPickerProps) {
+export default function MediaPicker({ kind = 'image', open, onClose, onSelect, selectedId = null, selectedUrl = null, initialCategory = '', uploadCategory = 'general', suggestedTitle = '', heading = 'Choose from the Media Library', keepOpen = false }: MediaPickerProps) {
   const headingId = useId()
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const searchRef = useRef<HTMLInputElement | null>(null)
@@ -36,7 +38,7 @@ export default function MediaPicker({ open, onClose, onSelect, selectedId = null
   const [tab, setTab] = useState<'library' | 'upload'>('library')
   const [search, setSearch] = useState('')
   const [query, setQuery] = useState('')
-  const [category, setCategory] = useState<ImageCategory | ''>(initialCategory)
+  const [category, setCategory] = useState<ImageCategory | VideoCategory | ''>(initialCategory)
   const [assets, setAssets] = useState<MediaAsset[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -55,10 +57,10 @@ export default function MediaPicker({ open, onClose, onSelect, selectedId = null
 
   const load = useCallback(async () => {
     setLoading(true); setError('')
-    try { setAssets(await listMediaAssets(supabase, { search: query, category, kind: 'image', status: 'active', limit: 120 })) }
+    try { setAssets(await listMediaAssets(supabase, { search: query, category, kind, status: 'active', limit: 120 })) }
     catch (loadError) { setError(loadError instanceof Error ? loadError.message : 'Could not load the Media Library.') }
     finally { setLoading(false) }
-  }, [query, category])
+  }, [query, category, kind])
   useEffect(() => { if (open && tab === 'library') void load() }, [open, tab, load])
 
   function onKeyDown(event: React.KeyboardEvent) {
@@ -94,9 +96,9 @@ export default function MediaPicker({ open, onClose, onSelect, selectedId = null
             <label className="flex-1 text-sm"><span className="sr-only">Search by name</span>
               <input ref={searchRef} type="search" className={`${field} w-full`} placeholder="Search by name" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
             <label className="text-sm"><span className="sr-only">Filter by category</span>
-              <select className={field} value={category} onChange={(event) => setCategory(isImageCategory(event.target.value) ? event.target.value : '')}>
+              <select className={field} value={category} onChange={(event) => setCategory(isImageCategory(event.target.value) || isVideoCategory(event.target.value) ? event.target.value : '')}>
                 <option value="">All categories</option>
-                {IMAGE_CATEGORIES.map((value) => <option key={value} value={value}>{CATEGORY_LABELS[value]}</option>)}</select></label>
+                {(kind === 'video' ? VIDEO_CATEGORIES : IMAGE_CATEGORIES).map((value) => <option key={value} value={value}>{CATEGORY_LABELS[value]}</option>)}</select></label>
           </div>
           {added && <p role="status" className="text-sm text-[var(--accent)]">{added}</p>}
           {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
@@ -109,8 +111,9 @@ export default function MediaPicker({ open, onClose, onSelect, selectedId = null
                 <button type="button" aria-pressed={current} onClick={() => choose(asset)}
                   className={`flex w-full flex-col gap-2 rounded-xl border p-2 text-left ${current ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]/40' : 'border-[var(--border)] hover:border-[var(--accent)]'}`}>
                   <span className="flex h-24 items-center justify-center rounded-lg bg-white p-1">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={asset.public_url} alt="" loading="lazy" className="max-h-full max-w-full object-contain" />
+                    {asset.kind === 'video' ? <span className="text-xs font-semibold text-gray-600">▶ Video{asset.duration_seconds ? ` · ${Math.round(asset.duration_seconds)} s` : ''}</span>
+                      // eslint-disable-next-line @next/next/no-img-element
+                      : <img src={asset.public_url} alt="" loading="lazy" className="max-h-full max-w-full object-contain" />}
                   </span>
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{asset.title}</span>
@@ -121,7 +124,8 @@ export default function MediaPicker({ open, onClose, onSelect, selectedId = null
               </li>
             })}
           </ul>
-        </div> : <MediaUploader defaultCategory={uploadCategory} suggestedTitle={suggestedTitle} onUploaded={choose} onUseExisting={choose} />}
+        </div> : kind === 'video' ? <p className="text-sm text-[var(--text-secondary)]">Upload videos, and choose their posters, on the <a href="/admin/media" target="_blank" rel="noopener" className="text-[var(--accent)] underline">Media Library page</a>. Then reopen this picker and choose the video from the Library tab.</p>
+          : <MediaUploader defaultCategory={uploadCategory} suggestedTitle={suggestedTitle} onUploaded={choose} onUseExisting={choose} />}
       </div>
     </div>
   </div>
